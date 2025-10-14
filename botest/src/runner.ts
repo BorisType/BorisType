@@ -3,67 +3,6 @@ import { JsEvalCode, JsParseCode, JsGlobalEnv, FaStartApp } from './main';
 import { join } from 'path';
 import chalk from 'chalk';
 
-function getAllFiles(dir: string): string[] {
-    let results: string[] = [];
-    console.log(dir);
-    const list = readdirSync(dir);
-    list.forEach((file) => {
-        const filePath = join(dir, file);
-        const stat = statSync(filePath);
-        if (stat && stat.isDirectory()) {
-            results = results.concat(getAllFiles(filePath));
-        } else {
-            results.push(filePath);
-        }
-    });
-    return results;
-}
-
-function evalBorisScript(code: string) {
-    return JsEvalCode(JsParseCode(code), JsGlobalEnv());
-}
-
-function appendHeaderToCode(code: string) {
-    const header = `
-    function assertValueEquals(actual, expected, message) {
-        if (message === undefined) message = "";
-
-        if (actual !== expected) {
-            throw "TEST-RUNNER:assertValueEquals:" + EncodeJson({ "actual": actual, "expected": expected, "message": message });
-        }
-    }
-
-    function assertJsArrayEquals(actual, expected, message) {
-        if (message === undefined) message = "";
-        if (ArrayCount(actual) !== ArrayCount(expected)) {
-            throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
-        }
-        // for (var i = 0; i < ArrayCount(actual); i++) {
-        //     if (actual[i] !== expected[i]) {
-        //         throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
-        //     }
-        // }
-        if (EncodeJson(actual) !== EncodeJson(expected)) {
-            throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
-        }
-    }
-
-    function assertJsObjectEquals(actual, expected, message) {
-        if (message === undefined) message = "";
-
-        if (EncodeJson(actual) === EncodeJson(expected)) {
-            return;
-        }
-
-        throw "TEST-RUNNER:assertJsObjectEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
-    }
-    `;
-
-    const footer = `
-    throw "TEST-RUNNER:exit:0";`;
-    return header + code + footer;
-}
-
 interface TestResult {
     name: string;
     status: TestStatus;
@@ -71,6 +10,71 @@ interface TestResult {
 }
 
 type TestStatus = "PASSED" | "FAILED";
+
+interface TestCase {
+    name: string;
+    code: string;
+}
+
+export function runTest(buildDir: string) {
+    const startTime = new Date();
+
+    const header = `╔══════════════════════════════════════════════════════════════╗
+                          RUNNING TESTS                         
+                     Run: ${startTime.toISOString().replace('T', ' ').substring(0, 19)}                   
+╚══════════════════════════════════════════════════════════════╝`
+
+    const files = getTestFiles(buildDir);
+
+    console.log(files);
+
+    console.log(header);
+    console.log()
+    const results = files.map((file) => {
+        const relativeFilePath = file.replace(buildDir, '').substring(1);
+
+        console.log(`Running Test File: ${relativeFilePath}\n`);
+        const testResults = runTestFile(file);
+        console.log(`\nFinished Test File: ${relativeFilePath}`);
+        return testResults;
+    });
+
+    const totalPassed = results.flat().filter(r => r.status === "PASSED").length;
+    const totalFailed = results.flat().filter(r => r.status === "FAILED").length;
+    const totalTests = totalPassed + totalFailed;
+
+    const successRate = totalTests === 0 ? 0 : (totalPassed / totalTests) * 100;
+    // const totalTimeMs = results.flat().reduce((sum, r) => sum + r.time, 0) / 1e6;
+    const totalTimeMs = 0
+
+    const footer = `
+╔══════════════════════════════════════════════════════════════╗
+  SUMMARY:
+  ${chalk.green(`Passed: ${totalPassed}`)}
+  ${chalk.red(`Failed: ${totalFailed}`)}
+  ${chalk.gray(`Total: ${totalTests}`)}
+  ${chalk.blue(`Success Rate: ${successRate.toFixed(0)}%`)}
+  ${chalk.magenta(`Time: ${totalTimeMs.toFixed(0)}ms`)}
+╚══════════════════════════════════════════════════════════════╝`;
+    console.log(footer);
+}
+
+function getTestFiles(dir: string): string[] {
+    let results: string[] = [];
+
+    readdirSync(dir).forEach((file) => {
+        const filePath = join(dir, file);
+        const stat = statSync(filePath);
+        if (stat && stat.isDirectory()) {
+            results = results.concat(getTestFiles(filePath));
+        } else {
+            results.push(filePath);
+        }
+    });
+
+    return results;
+}
+
 
 function runTestFile(filePath: string): TestResult[] {
     const results: TestResult[] = [];
@@ -160,16 +164,49 @@ function runTestFile(filePath: string): TestResult[] {
     return results;
 }
 
-interface TestCase {
-    name: string;
-    code: string;
+function appendHeaderToCode(code: string) {
+    const header = `
+    function assertValueEquals(actual, expected, message) {
+        if (message === undefined) message = "";
+
+        if (actual !== expected) {
+            throw "TEST-RUNNER:assertValueEquals:" + EncodeJson({ "actual": actual, "expected": expected, "message": message });
+        }
+    }
+
+    function assertJsArrayEquals(actual, expected, message) {
+        if (message === undefined) message = "";
+        if (ArrayCount(actual) !== ArrayCount(expected)) {
+            throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
+        }
+        // for (var i = 0; i < ArrayCount(actual); i++) {
+        //     if (actual[i] !== expected[i]) {
+        //         throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
+        //     }
+        // }
+        if (EncodeJson(actual) !== EncodeJson(expected)) {
+            throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
+        }
+    }
+
+    function assertJsObjectEquals(actual, expected, message) {
+        if (message === undefined) message = "";
+
+        if (EncodeJson(actual) === EncodeJson(expected)) {
+            return;
+        }
+
+        throw "TEST-RUNNER:assertJsObjectEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
+    }
+    `;
+
+    const footer = `
+    throw "TEST-RUNNER:exit:0";`;
+    return header + code + footer;
 }
 
-function extractNonTestContent(content: string): string {
-    const firstTest = content.indexOf('test(');
-    if (firstTest === -1) return content.trim();
-
-    return content.substring(0, firstTest).trim();
+function evalBorisScript(code: string) {
+    return JsEvalCode(JsParseCode(code), JsGlobalEnv());
 }
 
 export function extractTestsReliably(filePath: string): TestCase[] {
@@ -243,47 +280,9 @@ export function extractTestsReliably(filePath: string): TestCase[] {
     return tests;
 }
 
-export function runTest(buildDir: string) {
-    const startTime = new Date();
+function extractNonTestContent(content: string): string {
+    const firstTest = content.indexOf('test(');
+    if (firstTest === -1) return content.trim();
 
-    const header = `╔══════════════════════════════════════════════════════════════╗
-                          RUNNING TESTS                         
-                     Run: ${startTime.toISOString().replace('T', ' ').substring(0, 19)}                   
-╚══════════════════════════════════════════════════════════════╝`
-
-    // const cwd = process.cwd();
-    // const buildDir = cwd
-    const files = getAllFiles(buildDir);
-
-    console.log(files);
-
-    console.log(header);
-    console.log()
-    const results = files.map((file) => {
-        const relativeFilePath = file.replace(buildDir, '').substring(1);
-
-        console.log(`Running Test File: ${relativeFilePath}\n`);
-        const testResults = runTestFile(file);
-        console.log(`\nFinished Test File: ${relativeFilePath}`);
-        return testResults;
-    });
-
-    const totalPassed = results.flat().filter(r => r.status === "PASSED").length;
-    const totalFailed = results.flat().filter(r => r.status === "FAILED").length;
-    const totalTests = totalPassed + totalFailed;
-
-    const successRate = totalTests === 0 ? 0 : (totalPassed / totalTests) * 100;
-    // const totalTimeMs = results.flat().reduce((sum, r) => sum + r.time, 0) / 1e6;
-    const totalTimeMs = 0
-
-    const footer = `
-╔══════════════════════════════════════════════════════════════╗
-  SUMMARY:
-  ${chalk.green(`Passed: ${totalPassed}`)}
-  ${chalk.red(`Failed: ${totalFailed}`)}
-  ${chalk.gray(`Total: ${totalTests}`)}
-  ${chalk.blue(`Success Rate: ${successRate.toFixed(0)}%`)}
-  ${chalk.magenta(`Time: ${totalTimeMs.toFixed(0)}ms`)}
-╚══════════════════════════════════════════════════════════════╝`;
-    console.log(footer);
+    return content.substring(0, firstTest).trim();
 }
