@@ -39,13 +39,13 @@ function processBuild(
 
 program
   .name('bsc')
-  .description('Basic TypeScript CLI utility for file processing')
-  .version('0.0.1')
-  .option('--init', 'Initializes a BorisType project and creates a tsconfig.json file.')
-  .option('--outDir <dir>', 'Output directory for processed files')
-  .option('--include-non-ts-files', 'Enable "include-non-ts-files" mode', false)
-  .option('--retain-non-ascii-characters', 'Enable "retain-non-ascii-characters" mode', false)
-  .option('--remove-comments', 'Remove comments from files', false)
+  .description(require('../package.json').description)
+  .version(require('../package.json').version)
+  .option('--init', 'Initialize a BorisType project and create a tsconfig.json file.')
+  .option('--outDir <dir>', 'Directory to save processed files')
+  .option('--include-non-ts-files', 'Process files that are not TypeScript', false)
+  .option('--retain-non-ascii-characters', 'Keep non-ASCII characters in source files', false)
+  .option('--remove-comments', 'Remove comments from source files', false)
   .arguments('[files...]')
   .action((files: string[], options: any) => {
     processBuild(files, options);

@@ -1,16 +1,20 @@
 {
-  "name": "btc",
-  "version": "0.0.1",
-  "description": "TypeScript compilation tool for SPXML-Javascript (aka BorisScript) language",
-  "main": "index.js",
+  "name": "@boristype/btc",
+  "version": "0.0.1-alpha.1",
+  "description": "This tool compiles TypeScript into valid SP-XML JavaScript (also known as BorisScript), ensuring full compliance with the specific constraints and APIs of the WebSoft HCM platform.",
+  "main": "./build/index.js",
   "bin": {
     "btc": "./build/index.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc"
   },
   "author": "punkhomov",
-  "license": "ISC",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BorisType/BorisType.git"
+  },
   "devDependencies": {
     "@babel/core": "^7.28.4",
     "@babel/plugin-transform-runtime": "^7.28.3",
