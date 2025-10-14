@@ -4,7 +4,7 @@
   "description": "This tool compiles TypeScript into valid SP-XML JavaScript (also known as BorisScript), ensuring full compliance with the specific constraints and APIs of the WebSoft HCM platform.",
   "main": "./build/index.js",
   "bin": {
-    "btc": "./build/index.js"
+    "btc": "build/index.js"
   },
   "scripts": {
     "build": "tsc"
