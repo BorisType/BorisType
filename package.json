@@ -4,7 +4,10 @@
   "description": "TypeScript compilation tool for SPXML-Javascript (aka BorisScript) language",
   "main": "index.js",
   "scripts": {
-    "build": ""
+    "build": "",
+    "test:build": "cd ./tests && npm run build",
+    "test:run": "node ./botest/build/index.js -- \"tests/dist\"",
+    "test": "npm run test:build && npm run test:run"
   },
   "author": "",
   "license": "ISC"

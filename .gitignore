@@ -3,5 +3,4 @@ build
 dist
 /botest/src/main.js
 /example
-/tests
 /std

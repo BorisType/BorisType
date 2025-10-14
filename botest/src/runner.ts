@@ -243,7 +243,7 @@ export function extractTestsReliably(filePath: string): TestCase[] {
     return tests;
 }
 
-export function runTest() {
+export function runTest(buildDir: string) {
     const startTime = new Date();
 
     const header = `╔══════════════════════════════════════════════════════════════╗
@@ -251,8 +251,8 @@ export function runTest() {
                      Run: ${startTime.toISOString().replace('T', ' ').substring(0, 19)}                   
 ╚══════════════════════════════════════════════════════════════╝`
 
-    const cwd = process.cwd();
-    const buildDir = cwd
+    // const cwd = process.cwd();
+    // const buildDir = cwd
     const files = getAllFiles(buildDir);
 
     console.log(files);

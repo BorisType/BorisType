@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "Bundler",
+    "outDir": "./dist/",
+    "strict": false,
+    "skipLibCheck": true,
+    "typeRoots": [
+      "node_modules/@wshcmx/types/lib",
+      "node_modules/@wshcmx/types/lib/xml"
+    ]
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
