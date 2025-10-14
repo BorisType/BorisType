@@ -1,11 +1,15 @@
 import fs from 'node:fs';
 import path, { dirname, normalize, relative, resolve } from 'node:path';
 import ts from 'typescript';
-import { enumsToObjects } from '../transformers/enums_to_objects.js';
-import { transformNamespaces } from '../transformers/transform_namespaces.js';
 import { logger } from './logger.js';
 import { BscCompileOptions } from '../index.js';
 import * as babel from '@babel/core';
+
+import { namespacesTransformer } from '../transformers/namespaces.js';
+import { enumsToObjectsTransformer } from '../transformers/enumsToObjects.js';
+import arrayFunctionalTransformer from '../transformers/arrayFunctional.js';
+import arrayGeneralTransformer from '../transformers/arrayGeneral.js';
+import stringTransformer from '../transformers/string.js';
 
 interface EmittedFile {
   fileName: string;
@@ -201,8 +205,11 @@ function decorateHostWriteFile(host: ts.CompilerHost, options: BscCompileOptions
 function decorateProgramEmit(host: ts.CompilerHost, program?: ts.SemanticDiagnosticsBuilderProgram | ts.Program) {
   return program?.emit(undefined, host.writeFile, undefined, undefined, {
     before: [
-      enumsToObjects(),
-      transformNamespaces(),
+      enumsToObjectsTransformer(),
+      arrayFunctionalTransformer(program as ts.Program),
+      arrayGeneralTransformer(program as ts.Program),
+      stringTransformer(program as ts.Program),
+      namespacesTransformer(),
     ],
   });
 }

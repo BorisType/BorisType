@@ -1,6 +1,6 @@
 import ts from 'typescript';
 
-export function enumsToObjects(): ts.TransformerFactory<ts.SourceFile> {
+export function enumsToObjectsTransformer(): ts.TransformerFactory<ts.SourceFile> {
   return (context) => (sourceFile: ts.SourceFile) => {
     function visit(node: ts.Node): ts.Node {
       if (ts.isEnumDeclaration(node)) {

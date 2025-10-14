@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 
-export default function transformer(program: ts.Program): ts.TransformerFactory<ts.SourceFile> {
+export default function arrayGeneralTransformer(program: ts.Program): ts.TransformerFactory<ts.SourceFile> {
   return (context: ts.TransformationContext) => (file: ts.SourceFile) => {
     const typeChecker = program.getTypeChecker();
     let hasAtMethod = false;

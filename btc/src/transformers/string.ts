@@ -1,7 +1,6 @@
 import * as ts from 'typescript';
 
-export default function transformer(program: ts.Program): ts.TransformerFactory<ts.SourceFile> {
-  console.log('Transformer initialized');
+export default function stringTransformer(program: ts.Program): ts.TransformerFactory<ts.SourceFile> {
   return (context: ts.TransformationContext) => (file: ts.SourceFile) => {
     const typeChecker = program.getTypeChecker();
 

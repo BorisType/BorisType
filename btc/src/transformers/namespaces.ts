@@ -1,6 +1,6 @@
 import ts from 'typescript';
 
-export function transformNamespaces(): ts.TransformerFactory<ts.SourceFile> {
+export function namespacesTransformer(): ts.TransformerFactory<ts.SourceFile> {
   return (context) => (sourceFile: ts.SourceFile) => {
     function visit(node: ts.Node): ts.Node {
       if (ts.isModuleDeclaration(node) && (node.flags & ts.NodeFlags.Namespace)) {
