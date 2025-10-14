@@ -61,7 +61,7 @@ export function generateDefaultTSConfig(cwd: string = process.cwd()): boolean {
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "Bundler",
-    "outDir": "./dist/",
+    "outDir": "./build/",
     "strict": false,
     "skipLibCheck": true,
     "typeRoots": [
