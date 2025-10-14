@@ -1,0 +1,26 @@
+{
+  "name": "btc",
+  "version": "0.0.1",
+  "description": "TypeScript compilation tool for SPXML-Javascript (aka BorisScript) language",
+  "main": "index.js",
+  "bin": {
+    "btc": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "author": "punkhomov",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/plugin-transform-runtime": "^7.28.3",
+    "@babel/preset-env": "^7.28.3",
+    "@types/babel__core": "^7.20.5",
+    "@types/node": "^24.7.2",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "chalk": "^5.6.0",
+    "commander": "^14.0.1"
+  }
+}

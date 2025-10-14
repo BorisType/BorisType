@@ -1,0 +1,11 @@
+{
+  "name": "boristype",
+  "version": "0.0.1",
+  "description": "TypeScript compilation tool for SPXML-Javascript (aka BorisScript) language",
+  "main": "index.js",
+  "scripts": {
+    "build": ""
+  },
+  "author": "",
+  "license": "ISC"
+}
