@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'fs';
 import { JsEvalCode, JsParseCode, JsGlobalEnv, FaStartApp, JsEvalCodeAsyncExt } from './main';
 import path, { join } from 'path';
 import chalk from 'chalk';
+import { extractTestsFromFile, extractTestsReliably, TestCase } from './parser';
 
 interface TestResult {
     name: string;
@@ -10,11 +11,6 @@ interface TestResult {
 }
 
 type TestStatus = "PASSED" | "FAILED";
-
-interface TestCase {
-    name: string;
-    code: string;
-}
 
 export function runTest(buildDir: string) {
     const startTime = new Date();
@@ -29,7 +25,7 @@ export function runTest(buildDir: string) {
     console.log(files);
 
     console.log(header);
-    console.log()
+    console.log();
     const results = files.map((file) => {
         const relativeFilePath = file.replace(buildDir, '').substring(1);
 
@@ -44,8 +40,7 @@ export function runTest(buildDir: string) {
     const totalTests = totalPassed + totalFailed;
 
     const successRate = totalTests === 0 ? 0 : (totalPassed / totalTests) * 100;
-    // const totalTimeMs = results.flat().reduce((sum, r) => sum + r.time, 0) / 1e6;
-    const totalTimeMs = 0
+    const totalTimeMs = results.flat().reduce((sum, r) => sum + r.time, 0);
 
     const footer = `
 ╔══════════════════════════════════════════════════════════════╗
@@ -75,63 +70,72 @@ function getTestFiles(dir: string): string[] {
     return results;
 }
 
+function outputTestCode(testCase: TestCase, fullCode: string, contrastLineNumber?: number) {
+    const testCodeLineCount = testCase.code.split('\n').length;
+    const fullCodeLineCount = fullCode.split('\n').length - 1; // -1 : в конце добавлен главный выход
+    const delta = fullCodeLineCount - testCodeLineCount + 1; // +1 : так как нам надо получить номер строки где начинается тест
+
+    const debugCode = testCase.code.split('\n')
+        .map((line, index) => {
+            const realLineNumber = index + 1 + delta;
+            if (realLineNumber === contrastLineNumber) {
+                return chalk.bgRed(`${realLineNumber.toString().padStart(4, ' ')} | ${line}`);
+            } else {
+                return `${realLineNumber.toString().padStart(4, ' ')} | ${line}`;
+            }
+        })
+        .join('\n');
+    console.log(debugCode);
+}
+
 
 function runTestFile(filePath: string): TestResult[] {
     const results: TestResult[] = [];
 
-    extractTestsReliably(filePath).forEach((test) => {
-        let fullCode: string | undefined = undefined;
-        let timeNs = 0;
-        let timeMs = 0;
+    extractTestsFromFile(filePath).forEach((test) => {
         let status: TestStatus = "FAILED";
         let errorObj: Error | undefined = undefined;
-        let errorMsg: string[] = [];
 
+        const fullCode = appendHeaderToCode(test.code);
+        const startTime = Date.now();
         try {
-            fullCode = appendHeaderToCode(test.code);
-            const startTime = Date.now();
             evalBorisScript(fullCode);
-            const endTime = Date.now();
-            timeMs = (endTime - startTime);
         } catch (error) {
-            const errorStr = String((error as any).errorCode);
+            errorObj = error as Error;
+        }
+        const endTime = Date.now();
+        const timeMs = (endTime - startTime);
 
-            if (errorStr.startsWith("TEST-RUNNER")) {
-                const [_, command, ...args] = errorStr.split(":");
-                const arg = args.join(":");
+        const errorStr = String((errorObj as any).errorCode);
+        const errorMsg: string[] = [];
 
-                if (command === "exit") {
-                    const exitCode = parseInt(arg);
-                    if (exitCode === 0) {
-                        status = "PASSED";
-                        // console.log(0)
-                    } else {
-                        status = "FAILED";
-                        errorMsg.push(`Exit code: ${exitCode}`);
-                        // console.log(1)
-                    }
-                } else if (command.startsWith("assert")) {
-                    const assertData = JSON.parse(arg);
+        if (errorStr.startsWith("TEST-RUNNER")) {
+            const [_, command, ...args] = errorStr.split(":");
+            const arg = args.join(":");
 
-                    status = "FAILED";
-                    errorMsg.push(`Assertion failed: ${assertData.message}`);
-                    errorMsg.push(`Expected: ${assertData.expected}`);
-                    errorMsg.push(`Actual: ${assertData.actual}`);
-                    // console.log(2)
+            if (command === "exit") {
+                const exitCode = parseInt(arg);
+                if (exitCode === 0) {
+                    status = "PASSED";
                 } else {
                     status = "FAILED";
-                    errorMsg.push(`Unknown TEST-RUNNER command: ${command}`);
-                    // console.log(3)
+                    errorMsg.push(`Exit code: ${exitCode}`);
                 }
+            } else if (command.startsWith("assert")) {
+                const assertData = JSON.parse(arg);
+
+                status = "FAILED";
+                errorMsg.push(`Assertion failed: ${assertData.message}`);
+                errorMsg.push(`Expected: ${assertData.expected}`);
+                errorMsg.push(`Actual: ${assertData.actual}`);
             } else {
                 status = "FAILED";
-                errorObj = error as Error;
-                // console.log(4)
+                errorMsg.push(`Unknown TEST-RUNNER command: ${command}`);
             }
-            // console.log(5) // пока только для async методов
+        } else {
+            status = "FAILED";
+            // errorMsg.push(errorStr);
         }
-
-        // console.log(timeNs)
 
         if (status === "PASSED") {
             console.log(`${chalk.green("PASSED")}: ${test.name} (${chalk.yellow(timeMs.toFixed(0) + "ms")})`);
@@ -141,17 +145,21 @@ function runTestFile(filePath: string): TestResult[] {
                 console.log(chalk.gray(`        ${errorMsg.join("\n        ")}`));
             } else {
                 console.error(errorObj);
-                if (errorObj !== undefined && ((errorObj as any).customText as string).startsWith("JavaScript syntax error.")) {
-                    // const debugCode = fullCode?.split('\n')
-                    //     .map((line, index) => `${(index + 1).toString().padStart(4, ' ')} | ${line}`)
-                    //     .join('\n') || ''
-                    // console.log(debugCode);
+
+                // for 'JavaScript syntax error'
+                const errorCustomText = (errorObj as any)?.customText as string | undefined;
+
+                if (errorCustomText !== undefined && errorCustomText.startsWith("JavaScript syntax error.")) {
+                    const errorLineMatch = errorCustomText.match(/line (\d+)/);
+                    const errorLineNumber: number = errorLineMatch && errorLineMatch[1] ? parseInt(errorLineMatch[1], 10) : -1;
+
+                    outputTestCode(test, fullCode, errorLineNumber);
+                } else {
+                    // for any other errors
+                    const errorLine = (errorObj as any)?.callStack?.find(Boolean)?.sourceLineIndex ?? -1 as number;
+                    outputTestCode(test, fullCode, errorLine + 1); // +1 потому что ХЗ
                 }
             }
-            // const debugCode = fullCode?.split('\n')
-            //             .map((line, index) => `${(index + 1).toString().padStart(4, ' ')} | ${line}`)
-            //             .join('\n') || ''
-            // console.log(debugCode);
         }
 
         results.push({
@@ -167,8 +175,7 @@ function runTestFile(filePath: string): TestResult[] {
 function appendHeaderToCode(code: string) {
     const header = readFileSync(path.resolve(__dirname, '../resources/test.bs'), 'utf-8') + '\n';
 
-    const footer = `
-    throw "TEST-RUNNER:exit:0";`;
+    const footer = `throw "TEST-RUNNER:exit:0";`;
     return header + code + footer;
 }
 
@@ -192,82 +199,4 @@ export async function evalBorisScriptAsync(code: string): Promise<any> {
 
 function evalBorisScript(code: string) {
     return JsEvalCode(JsParseCode(code), JsGlobalEnv());
-}
-
-export function extractTestsReliably(filePath: string): TestCase[] {
-    const fs = require('fs');
-    const content = fs.readFileSync(filePath, 'utf-8');
-
-    const tests: TestCase[] = [];
-    const nonTestContent = extractNonTestContent(content);
-
-    let pos = nonTestContent.length;
-
-    while (pos < content.length) {
-        // Ищем 'test('
-        if (content.substr(pos, 5) === 'test(') {
-            pos += 5;
-
-            // Пропускаем пробелы
-            while (pos < content.length && /\s/.test(content[pos])) pos++;
-
-            // Ищем кавычки
-            if (content[pos] === '"' || content[pos] === "'") {
-                const quoteChar = content[pos];
-                pos++;
-
-                // Извлекаем имя теста
-                let testName = '';
-                while (pos < content.length && content[pos] !== quoteChar) {
-                    testName += content[pos];
-                    pos++;
-                }
-                pos++; // Пропускаем закрывающую кавычку
-
-                // Ищем function
-                while (pos < content.length && content.substr(pos, 8) !== 'function') pos++;
-                if (pos >= content.length) break;
-
-                pos += 8;
-
-                // Ищем {
-                while (pos < content.length && content[pos] !== '{') pos++;
-                if (pos >= content.length) break;
-
-                const braceStart = pos;
-                pos++;
-
-                // Парсим тело функции
-                let braceCount = 1;
-                let testBody = '';
-
-                while (braceCount > 0 && pos < content.length) {
-                    const char = content[pos];
-                    if (char === '{') braceCount++;
-                    if (char === '}') braceCount--;
-
-                    if (braceCount > 0) {
-                        testBody += char;
-                    }
-                    pos++;
-                }
-
-                tests.push({
-                    name: testName,
-                    code: `${nonTestContent}\n${testBody.trim()}`
-                });
-            }
-        } else {
-            pos++;
-        }
-    }
-
-    return tests;
-}
-
-function extractNonTestContent(content: string): string {
-    const firstTest = content.indexOf('test(');
-    if (firstTest === -1) return content.trim();
-
-    return content.substring(0, firstTest).trim();
 }
