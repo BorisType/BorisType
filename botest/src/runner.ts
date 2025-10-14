@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync } from 'fs';
-import { JsEvalCode, JsParseCode, JsGlobalEnv, FaStartApp } from './main';
-import { join } from 'path';
+import { JsEvalCode, JsParseCode, JsGlobalEnv, FaStartApp, JsEvalCodeAsyncExt } from './main';
+import path, { join } from 'path';
 import chalk from 'chalk';
 
 interface TestResult {
@@ -165,44 +165,29 @@ function runTestFile(filePath: string): TestResult[] {
 }
 
 function appendHeaderToCode(code: string) {
-    const header = `
-    function assertValueEquals(actual, expected, message) {
-        if (message === undefined) message = "";
-
-        if (actual !== expected) {
-            throw "TEST-RUNNER:assertValueEquals:" + EncodeJson({ "actual": actual, "expected": expected, "message": message });
-        }
-    }
-
-    function assertJsArrayEquals(actual, expected, message) {
-        if (message === undefined) message = "";
-        if (ArrayCount(actual) !== ArrayCount(expected)) {
-            throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
-        }
-        // for (var i = 0; i < ArrayCount(actual); i++) {
-        //     if (actual[i] !== expected[i]) {
-        //         throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
-        //     }
-        // }
-        if (EncodeJson(actual) !== EncodeJson(expected)) {
-            throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
-        }
-    }
-
-    function assertJsObjectEquals(actual, expected, message) {
-        if (message === undefined) message = "";
-
-        if (EncodeJson(actual) === EncodeJson(expected)) {
-            return;
-        }
-
-        throw "TEST-RUNNER:assertJsObjectEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
-    }
-    `;
+    const header = readFileSync(path.resolve(__dirname, '../resources/test.bs'), 'utf-8') + '\n';
 
     const footer = `
     throw "TEST-RUNNER:exit:0";`;
     return header + code + footer;
+}
+
+
+type JsEvalReturnValue = {
+    err: any;
+    retVal: any;
+};
+
+export async function evalBorisScriptAsync(code: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+        JsEvalCodeAsyncExt(JsParseCode(code), JsGlobalEnv(), undefined, (result: JsEvalReturnValue) => {
+            if (result.err) {
+                reject(result.err);
+            } else {
+                resolve(result.retVal);
+            }
+        });
+    });
 }
 
 function evalBorisScript(code: string) {

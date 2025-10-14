@@ -1,0 +1,32 @@
+function assertValueEquals(actual, expected, message) {
+    if (message === undefined) message = "";
+
+    if (actual !== expected) {
+        throw "TEST-RUNNER:assertValueEquals:" + EncodeJson({ "actual": actual, "expected": expected, "message": message });
+    }
+}
+
+function assertJsArrayEquals(actual, expected, message) {
+    if (message === undefined) message = "";
+    if (ArrayCount(actual) !== ArrayCount(expected)) {
+        throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
+    }
+    // for (var i = 0; i < ArrayCount(actual); i++) {
+    //     if (actual[i] !== expected[i]) {
+    //         throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
+    //     }
+    // }
+    if (EncodeJson(actual) !== EncodeJson(expected)) {
+        throw "TEST-RUNNER:assertJsArrayEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
+    }
+}
+
+function assertJsObjectEquals(actual, expected, message) {
+    if (message === undefined) message = "";
+
+    if (EncodeJson(actual) === EncodeJson(expected)) {
+        return;
+    }
+
+    throw "TEST-RUNNER:assertJsObjectEquals:" + EncodeJson({ "actual": EncodeJson(actual), "expected": EncodeJson(expected), "message": message });
+}
