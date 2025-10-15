@@ -1,6 +1,7 @@
 function ___btp_object_rest(obj, exclude) {
     var newObj = {};
-    for (var key in obj) {
+    var key;
+    for (key in obj) {
         if (exclude.indexOf(key) >= 0) continue;
         newObj[key] = obj[key];
     }
@@ -9,7 +10,8 @@ function ___btp_object_rest(obj, exclude) {
 
 function ___btp_array_rest(arr, start) {
     var newArr = [];
-    for (var i = start; i < arr.length; i++) {
+    var i = start;
+    for (; i < arr.length; i++) {
         newArr.push(arr[i]);
     }
     return newArr;

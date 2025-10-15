@@ -1,11 +1,14 @@
 import { PluginObj, PluginPass, types as t } from '@babel/core';
-import template from '@babel/template';
+import { parse } from '@babel/parser';
 import { Expression } from '@babel/types';
 import path from 'path';
 import fs from 'fs';
 
 interface DestructuringState extends PluginPass {
-  // Empty interface for potential future extensions
+  staticCode?: string;
+  helpers?: Map<string, t.FunctionDeclaration>;
+  needsObjectRest?: boolean;
+  needsArrayRest?: boolean;
 }
 
 export default function replaceDestructuringPlugin(): PluginObj<DestructuringState> {
@@ -14,10 +17,20 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
     pre() {
       const staticFilePath = 'destructuring.js';
       this.staticCode = fs.readFileSync(path.resolve(__dirname, '..', '..', 'resources', staticFilePath), 'utf-8');
+      
+      const staticAst = parse(this.staticCode, { sourceType: 'script' });
+      this.helpers = new Map();
+      staticAst.program.body.forEach((node) => {
+        if (t.isFunctionDeclaration(node)) {
+          this.helpers!.set(node.id!.name, node);
+        }
+      });
+
+      this.needsObjectRest = false;
+      this.needsArrayRest = false;
     },
     visitor: {
-      // Handle VariableDeclaration nodes (const, let, var)
-      VariableDeclaration(path) {
+      VariableDeclaration(path, state) {
         const declarations = path.node.declarations;
         const newDeclarations: t.VariableDeclaration[] = [];
 
@@ -48,6 +61,7 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
                   excludedKeys.push(t.stringLiteral(key.name));
                 }
               } else if (t.isRestElement(prop)) {
+                state.needsObjectRest = true;
                 // Handle rest element (...restKeys)
                 const restIdent = prop.argument;
                 if (t.isIdentifier(restIdent)) {
@@ -90,6 +104,7 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
                   t.variableDeclaration(path.node.kind, [newDeclarator])
                 );
               } else if (t.isRestElement(element)) {
+                state.needsArrayRest = true;
                 // Handle rest element (...restElems)
                 const restIdent = element.argument;
                 if (t.isIdentifier(restIdent)) {
@@ -113,11 +128,24 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
           path.replaceWithMultiple(newDeclarations);
         }
       },
-      // Add static code (presumably containing ___btp_object_rest and ___btp_array_rest) to the program scope
-      Program(path) {
-        const ast = template.ast(this.staticCode as string);
-        const statements = Array.isArray(ast) ? ast : [ast];
-        path.node.body.unshift(...statements);
+      Program: {
+        exit(path, state) {
+          const toInsert: t.Statement[] = [];
+
+          if (state.needsObjectRest) {
+            const objectRestFunc = state.helpers?.get('___btp_object_rest');
+            if (objectRestFunc) toInsert.push(objectRestFunc);
+          }
+
+          if (state.needsArrayRest) {
+            const arrayRestFunc = state.helpers?.get('___btp_array_rest');
+            if (arrayRestFunc) toInsert.push(arrayRestFunc);
+          }
+
+          if (toInsert.length > 0) {
+            path.node.body.unshift(...toInsert);
+          }
+        },
       },
     },
   };
