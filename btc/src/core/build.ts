@@ -112,7 +112,7 @@ export function buildTypescriptFiles(configuration: ts.ParsedCommandLine, option
           originalWriteFile.call(host, `${emittedFile.fileName}.map`, JSON.stringify(babelResult.map), false, undefined, undefined);
         }
       } else {
-        logger.error(`Babel transformation failed for ${emittedFile.fileName}`);
+        logger.warning(`Babel transformation skipped for ${emittedFile.fileName}`);
       }
     } catch (error) {
       // Type guard for error.message
