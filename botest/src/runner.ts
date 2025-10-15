@@ -73,7 +73,7 @@ function getTestFiles(dir: string): string[] {
 function outputTestCode(testCase: TestCase, fullCode: string, contrastLineNumber?: number) {
     const testCodeLineCount = testCase.code.split('\n').length;
     const fullCodeLineCount = fullCode.split('\n').length - 1; // -1 : в конце добавлен главный выход
-    const delta = fullCodeLineCount - testCodeLineCount + 1; // +1 : так как нам надо получить номер строки где начинается тест
+    const delta = fullCodeLineCount - testCodeLineCount;
 
     const debugCode = testCase.code.split('\n')
         .map((line, index) => {
@@ -145,6 +145,7 @@ function runTestFile(filePath: string): TestResult[] {
                 console.log(chalk.gray(`        ${errorMsg.join("\n        ")}`));
             } else {
                 console.error(errorObj);
+                // console.log(`>>${fullCode}<<`);
 
                 // for 'JavaScript syntax error'
                 const errorCustomText = (errorObj as any)?.customText as string | undefined;
@@ -175,7 +176,7 @@ function runTestFile(filePath: string): TestResult[] {
 function appendHeaderToCode(code: string) {
     const header = readFileSync(path.resolve(__dirname, '../resources/test.bs'), 'utf-8') + '\n';
 
-    const footer = `throw "TEST-RUNNER:exit:0";`;
+    const footer = `\nthrow "TEST-RUNNER:exit:0";`;
     return header + code + footer;
 }
 
