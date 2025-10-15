@@ -1,7 +1,8 @@
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring
-
 import { PluginObj, PluginPass, types as t } from '@babel/core';
+import template from '@babel/template';
 import { Expression } from '@babel/types';
+import path from 'path';
+import fs from 'fs';
 
 interface DestructuringState extends PluginPass {
   // Empty interface for potential future extensions
@@ -10,6 +11,10 @@ interface DestructuringState extends PluginPass {
 export default function replaceDestructuringPlugin(): PluginObj<DestructuringState> {
   return {
     name: 'replace-destructuring',
+    pre() {
+      const staticFilePath = 'destructuring.js';
+      this.staticCode = fs.readFileSync(path.resolve(__dirname, '..', '..', 'resources', staticFilePath), 'utf-8');
+    },
     visitor: {
       // Handle VariableDeclaration nodes (const, let, var)
       VariableDeclaration(path) {
@@ -22,7 +27,9 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
           if (t.isObjectPattern(declarator.id)) {
             const properties = declarator.id.properties;
             const init = declarator.init;
+            const excludedKeys: t.StringLiteral[] = [];
 
+            // Collect excluded keys and handle regular properties
             properties.forEach((prop) => {
               if (t.isObjectProperty(prop)) {
                 const key = prop.key;
@@ -37,16 +44,19 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
                   newDeclarations.push(
                     t.variableDeclaration(path.node.kind, [newDeclarator])
                   );
+                  // Collect key for exclusion
+                  excludedKeys.push(t.stringLiteral(key.name));
                 }
               } else if (t.isRestElement(prop)) {
                 // Handle rest element (...restKeys)
                 const restIdent = prop.argument;
                 if (t.isIdentifier(restIdent)) {
-                  // Create throw function call for rest element
-                  const throwCall = t.callExpression(t.identifier('throwNotSupported'), [
-                    t.stringLiteral('Rest object destructuring not supported yet'),
+                  // Create ___btp_object_rest call with excluded keys
+                  const restCall = t.callExpression(t.identifier('___btp_object_rest'), [
+                    init as Expression,
+                    t.arrayExpression(excludedKeys)
                   ]);
-                  const newDeclarator = t.variableDeclarator(restIdent, throwCall);
+                  const newDeclarator = t.variableDeclarator(restIdent, restCall);
                   newDeclarations.push(
                     t.variableDeclaration(path.node.kind, [newDeclarator])
                   );
@@ -83,11 +93,12 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
                 // Handle rest element (...restElems)
                 const restIdent = element.argument;
                 if (t.isIdentifier(restIdent)) {
-                  // Create throw function call for rest element
-                  const throwCall = t.callExpression(t.identifier('throwNotSupported'), [
-                    t.stringLiteral('Rest array destructuring not supported yet'),
-                  ]);
-                  const newDeclarator = t.variableDeclarator(restIdent, throwCall);
+                  // Create ___btp_array_rest call: const restElems = ___btp_array_rest(_arr, index)
+                  const restCall = t.callExpression(
+                    t.identifier('___btp_array_rest'),
+                    [auxVarName, t.numericLiteral(index)]
+                  );
+                  const newDeclarator = t.variableDeclarator(restIdent, restCall);
                   newDeclarations.push(
                     t.variableDeclaration(path.node.kind, [newDeclarator])
                   );
@@ -102,16 +113,11 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
           path.replaceWithMultiple(newDeclarations);
         }
       },
-      // Add throwNotSupported function to the program scope
+      // Add static code (presumably containing ___btp_object_rest and ___btp_array_rest) to the program scope
       Program(path) {
-        const throwFunction = t.functionDeclaration(
-          t.identifier('throwNotSupported'),
-          [t.identifier('message')],
-          t.blockStatement([
-            t.throwStatement(t.newExpression(t.identifier('Error'), [t.identifier('message')])),
-          ])
-        );
-        path.node.body.unshift(throwFunction);
+        const ast = template.ast(this.staticCode as string);
+        const statements = Array.isArray(ast) ? ast : [ast];
+        path.node.body.unshift(...statements);
       },
     },
   };
