@@ -10,6 +10,7 @@ import { enumsToObjectsTransformer } from '../transformers/enumsToObjects.js';
 import arrayFunctionalTransformer from '../transformers/arrayFunctional.js';
 import arrayGeneralTransformer from '../transformers/arrayGeneral.js';
 import stringTransformer from '../transformers/string.js';
+import { mathTransformer } from '../transformers/math.js';
 
 interface EmittedFile {
   fileName: string;
@@ -154,8 +155,8 @@ export function collectNonTypescriptFiles(configuration: ts.ParsedCommandLine) {
   const fileNames = configuration.fileNames.map(normalize);
   const normalizedExclude = (exclude ?? []).map(normalize);
 
-  console.log(fileNames)
-  console.log(normalizedExclude)
+  // console.log(fileNames)
+  // console.log(normalizedExclude)
 
   return fs.globSync([...(include ?? []), ...(files ?? [])])
     .map(x => { console.log(x); return x })
@@ -209,6 +210,7 @@ function decorateProgramEmit(host: ts.CompilerHost, program?: ts.SemanticDiagnos
       arrayFunctionalTransformer(program as ts.Program),
       arrayGeneralTransformer(program as ts.Program),
       stringTransformer(program as ts.Program),
+      mathTransformer(),
       namespacesTransformer(),
     ],
   });
