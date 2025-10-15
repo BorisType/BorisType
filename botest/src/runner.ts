@@ -67,7 +67,7 @@ function getTestFiles(dir: string): string[] {
         }
     });
 
-    return results;
+    return results.filter(f => f.endsWith('.test.js'));
 }
 
 function outputTestCode(testCase: TestCase, fullCode: string, contrastLineNumber?: number) {
