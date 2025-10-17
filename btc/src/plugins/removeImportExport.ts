@@ -14,10 +14,18 @@ export default function removeImportExportPlugin(): PluginObj<RemoveImportExport
       },
       // Handle export declarations (named and default)
       ExportNamedDeclaration(path) {
-        path.remove();
+        if (!path.node.declaration) {
+          path.remove();
+          return;
+        }
+        path.replaceWith(path.node.declaration);
       },
       ExportDefaultDeclaration(path) {
-        path.remove();
+        if (!path.node.declaration) {
+          path.remove();
+          return;
+        }
+        path.replaceWith(path.node.declaration);
       },
       // Handle export all declarations
       ExportAllDeclaration(path) {
