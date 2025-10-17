@@ -126,6 +126,7 @@ export function buildTypescriptFiles(configuration: ts.ParsedCommandLine, option
           });
         }
 
+        code = '\uFEFF' + code;
 
         // Write the Babel-transformed code to the output file
         originalWriteFile.call(host, fileName, code, false, undefined, undefined);

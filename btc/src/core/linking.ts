@@ -61,7 +61,7 @@ export async function processLinking() {
 
   const apiExtXmlFilePath = path.join(distFilePath, 'source', 'api_ext.xml');
   fs.mkdirSync(path.dirname(apiExtXmlFilePath), { recursive: true });
-  fs.writeFileSync(apiExtXmlFilePath, apiExtXml, { encoding: 'utf-8' });
+  fs.writeFileSync(apiExtXmlFilePath, "\uFEFF" + apiExtXml, { encoding: 'utf-8' });
 
   process.exit(0);
 }
@@ -95,11 +95,13 @@ function buildApiExt(linkingPackages: WsPackageInfo[]) {
 
     apiExtXml += `\t\t\t<name>${pkg.apiext.name}</name>\n`;
 
+    apiExtXml += `\t\t\t<libs>\n`;
     pkg.apiext.libs.forEach(lib => {
       apiExtXml += `\t\t\t<lib>\n`;
       apiExtXml += `\t\t\t\t<path>${lib}</path>\n`;
       apiExtXml += `\t\t\t</lib>\n`;
     });
+    apiExtXml += `\t\t\t</libs>\n`;
 
     apiExtXml += `\t\t</api>\n`;
   });
