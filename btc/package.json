@@ -1,6 +1,6 @@
 {
   "name": "@boristype/btc",
-  "version": "0.0.1-alpha.2",
+  "version": "0.0.1-alpha.3",
   "description": "This tool compiles TypeScript into valid SP-XML JavaScript (also known as BorisScript), ensuring full compliance with the specific constraints and APIs of the WebSoft HCM platform.",
   "main": "./build/index.js",
   "bin": {
@@ -15,6 +15,10 @@
     "type": "git",
     "url": "git+https://github.com/BorisType/BorisType.git"
   },
+  "bugs": {
+    "url": "https://github.com/BorisType/BorisType/issues"
+  },
+  "homepage": "https://github.com/BorisType/BorisType#readme",
   "devDependencies": {
     "@types/node": "^24.7.2",
     "typescript": "^5.9.2"
