@@ -104,13 +104,36 @@ export function buildTypescriptFiles(configuration: ts.ParsedCommandLine, option
       });
 
       if (babelResult?.code) {
-        // Write the Babel-transformed code to the output file
-        originalWriteFile.call(host, emittedFile.fileName, babelResult.code, false, undefined, undefined);
+        let fileName = emittedFile.fileName;
+        let code = babelResult.code;
 
-        // If source maps are enabled, write the source map
-        if (babelResult.map && configuration.options.sourceMap) {
-          originalWriteFile.call(host, `${emittedFile.fileName}.map`, JSON.stringify(babelResult.map), false, undefined, undefined);
+        // Add spxml inline form tag
+        if (code.indexOf('/// @xml-init') !== -1) {
+          code = `<?xml version="1.0" encoding="UTF-8"?>\n<SPXML-INLINE-FORM>\n\t<OnInit PROPERTY="1" EXPR="\n${code.split('\n').map(line => "\t\t" + line).join('\n')}\n\t"/>\n</SPXML-INLINE-FORM>`;
+          fileName = fileName.replace('.js', '.xml');
         }
+
+        // Add aspnet render tag
+        if (code.indexOf('/// @html') !== -1) {
+          code = `<%\n${code}\n%>`;
+          fileName = fileName.replace('.js', '.html');
+        }
+
+        if (options.retainNonAsciiCharacters !== true) {
+          // Decode non ASCII characters
+          code = code.replace(/\\u[\dA-Fa-f]{4}/g, (match) => {
+            return String.fromCharCode(parseInt(match.substr(2), 16));
+          });
+        }
+
+
+        // Write the Babel-transformed code to the output file
+        originalWriteFile.call(host, fileName, code, false, undefined, undefined);
+
+        // // If source maps are enabled, write the source map
+        // if (babelResult.map && configuration.options.sourceMap) {
+        //   originalWriteFile.call(host, `${emittedFile.fileName}.map`, JSON.stringify(babelResult.map), false, undefined, undefined);
+        // }
       } else {
         logger.warning(`Babel transformation skipped for ${emittedFile.fileName}`);
       }
