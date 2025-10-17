@@ -1,95 +1,45 @@
-Проект поддержки компиляции TypeScript в валидный код на BorisScript.
+# BorisType Compiler (`btc`)
 
-Пример использования:
-```ts
-const groupId = OptInt(Param["group_id"]);
-const groupDoc = tools.open_doc<GroupDocument>(groupId);
-if (groupDoc === undefined) {
-    Cancel();
-}
+> Инструмент для компиляции TypeScript в валидный код на **BorisScript** и последующей сборки проекта для поставки.  
+> ⚠️ **Проект в активной разработке — не готов для продакшн-использования!**
 
-const members = ArraySelectAll(groupDoc.TopElem.collaborators);
-members
-    .map((member) => tools.open_doc<CollaboratorDocument>(member.collaborator_id.Value))
-    .filter(Boolean)
-    .forEach((collaborator) => tools.create_notification("notification", collaborator.DocID, null, null, collaborator.TopElem));
-```
+## Установка
 
-НЕ ГОТОВО ДЛЯ ИСПОЛЬЗОВАНИЯ!!!
-
-
-Возможности
-- объявление переменных внутри цикла
-- поддержка **Spread syntax**
-- поддержка **Destructuring**
-- поддержка базовых математических операций с `Math`
-- поддержка функциональных итераций по массиву (forEach, map, ...) (не до конца)
-- использование зависимостей на основе системы npm с помощью `btc --linking`
-- сборка многомодульного проекта с помощь линковщика (скоро)
-- и другое
-
-# Примеры компиляции
-Исход файл:
-```ts
-const arr1 = [1, 2, 3];
-const arr2 = [4, 5, 6];
-const result = [];
-
-
-
-for (const v1 of arr1) {
-	const test = v1 * 2;
-	if (v1 > 2) {
-		for (const v2 of arr2) {
-			const doubled = (test + v2) * 2;
-			result.push(doubled);
-		}
-	}
-}
-```
-Результат компиляции:
-```js
-var arr1 = [1, 2, 3];
-var arr2 = [4, 5, 6];
-var result = [];
-var v1_loop3 = null;
-var test_loop3 = undefined;
-var v2_loop3 = null;
-var doubled_loop3 = undefined;
-for (v1_loop3 in arr1) {
-	test_loop3 = v1_loop3 * 2;
-	if (v1_loop3 > 2) {
-	  for (v2_loop3 in arr2) {
-		doubled_loop3 = (test_loop3 + v2_loop3) * 2;
-		result.push(doubled_loop3);
-	  }
-	}
-}
-```
-
-Исход файл:
-```ts
-const arr = [1, 2, 3];
-let result = arr.map((x) => x * 2);
-```
-Результат компиляции:
-```js
-var arr = [1, 2, 3];
-var result;
-var temp_result_1_2 = [];
-var i_1_2_loop2 = undefined;
-var x_loop2 = undefined;
-var result_1_2_loop2 = undefined;
-for (i_1_2_loop2 = 0; i_1_2_loop2 < ArrayCount(arr); i_1_2_loop2++) {
-	x_loop2 = arr[i_1_2_loop2];
-	result_1_2_loop2 = x_loop2 * 2;
-	temp_result_1_2.push(result_1_2_loop2);
-}
-result = temp_result_1_2;
-```
-# Тестирование
 ```sh
+npm install -D @boristype/btc @boristype/types
+npx btc --init
+```
+
+---
+
+## Возможности
+- Объявление переменных внутри циклов
+- Поддержка циклов `for-of`
+- Поддержка **spread-синтаксиса** (`...`)
+- Поддержка **деструктуризации**
+- Поддержка функциональных итераций (`forEach`, `map`, и др.)
+- Частичная поддержка методов и свойств привычных в JavaScript (`Array`, `Object`, и др.)
+- Работа с зависимостями с помощью `npm`
+- Компоновка и сборка проекта
+
+
+## Сборка из исходников
+```sh
+git clone https://github.com/BorisType/BorisType.git
+cd BorisType
 npm run initialize
-npm run build
+npm run build:btc
+```
+При внесении изменений в логику компиляции можно запустить тесты (интерпритатор BorisScript `main.js` не включен в репозиторий):
+```sh
+npm run build:botest
 npm run test
 ```
+*Тестирование компилятора проводится на версии 916.*
+
+---
+
+## Статус проекта
+
+BorisType Compiler находится в стадии активной разработки.  
+Некоторые возможности ещё не реализованы или могут измениться в будущем.
