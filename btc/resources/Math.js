@@ -30,3 +30,8 @@ function ___btt_Math_trunc(num) {
     }
     return Math.round(num) > num ? Math.round(num) - 1 : Math.round(num);
 }
+
+function ___btt_Math_random(num) {
+    var value = Random(0, 65535);
+    return value / 65535.0;
+}
