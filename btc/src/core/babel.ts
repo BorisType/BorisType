@@ -27,7 +27,7 @@ export function createConfig(options: Options) {
       require.resolve("@babel/plugin-transform-nullish-coalescing-operator"),
 
       // TODO: реализовать по другому
-      // require.resolve("@babel/plugin-transform-optional-chaining"),
+      require.resolve("@babel/plugin-transform-optional-chaining"),
 
       // TODO: у нас нет Math.pow, надо проверить
       require.resolve("@babel/plugin-transform-exponentiation-operator"),
