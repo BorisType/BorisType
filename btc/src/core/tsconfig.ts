@@ -39,12 +39,20 @@ export function generateDefaultTSConfig(cwd: string = process.cwd()): boolean {
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "Bundler",
+    "rootDir": "./src/",
     "outDir": "./build/",
-    "strict": false,
-    "skipLibCheck": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "allowJs": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noLib": true,
     "typeRoots": [
-      "node_modules/@wshcmx/types/lib",
-      "node_modules/@wshcmx/types/lib/xml"
+      "node_modules/@boristype/types/lib",
+      "node_modules/@boristype/types/lib/xml"
     ]
   },
   "include": [
