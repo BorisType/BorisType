@@ -1,6 +1,6 @@
 {
   "name": "@boristype/btc",
-  "version": "0.0.1-alpha.3",
+  "version": "0.0.1-alpha.4",
   "description": "This tool compiles TypeScript into valid SP-XML JavaScript (also known as BorisScript), ensuring full compliance with the specific constraints and APIs of the WebSoft HCM platform.",
   "main": "./build/index.js",
   "bin": {
