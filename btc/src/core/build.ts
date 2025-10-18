@@ -11,33 +11,17 @@ import arrayFunctionalTransformer from '../transformers/arrayFunctional.js';
 import arrayGeneralTransformer from '../transformers/arrayGeneral.js';
 import stringTransformer from '../transformers/string.js';
 import { mathTransformer } from '../transformers/math.js';
-
-interface EmittedFile {
-  fileName: string;
-  content: string;
-}
+import { createConfig } from './babel.js';
 
 export function buildTypescriptFiles(configuration: ts.ParsedCommandLine, options: BscCompileOptions): ts.EmitResult | undefined {
   const program = ts.createProgram(configuration.fileNames, configuration.options);
   const host = ts.createCompilerHost(program.getCompilerOptions());
 
-  // Store emitted files in memory for Babel processing
-  const emittedFiles: EmittedFile[] = [];
+  const babelConfig = createConfig({ sourceMaps: configuration.options.sourceMap, cwd: process.cwd() });
 
-  // Override host.writeFile to capture output instead of writing to disk
-  const originalWriteFile = host.writeFile;
-  host.writeFile = (fileName: string, text: string, writeByteOrderMark: boolean, onError?: (message: string) => void, sourceFiles?: readonly ts.SourceFile[], data?: ts.WriteFileCallbackData) => {
-    if (fileName.endsWith('.js') || fileName.endsWith('.jsx') || fileName.endsWith('.mjs')) {
-      emittedFiles.push({ fileName, content: text });
-    } else {
-      originalWriteFile.call(host, fileName, text, writeByteOrderMark, onError, sourceFiles);
-    }
-  };
-
-  // Decorate program emit
+  decorateHostWriteFile(host, options, configuration, babelConfig);
   const emitResult = decorateProgramEmit(host, program);
 
-  // Log diagnostics
   const diagnostics = [
     ...ts.getPreEmitDiagnostics(program),
     ...(emitResult?.diagnostics || []),
@@ -52,98 +36,6 @@ export function buildTypescriptFiles(configuration: ts.ParsedCommandLine, option
       logger.error(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
     }
   });
-
-  // console.log('cwd:', process.cwd());
-  // console.log('__dirname:', __dirname);
-
-  const babelConfig = {
-    presets: [
-      [
-        require.resolve("@babel/preset-env"),
-        {
-          targets: "defaults",
-          modules: false
-        }
-      ]
-    ],
-    plugins: [
-      require.resolve("@babel/plugin-transform-numeric-separator"),
-      require.resolve("@babel/plugin-transform-logical-assignment-operators"), // не уверен насчет этого
-      require.resolve("@babel/plugin-transform-nullish-coalescing-operator"), // TODO: Убрать $ из названия переменной
-      require.resolve("@babel/plugin-transform-optional-chaining"), // TODO: нужная вещь но надо подумать
-      require.resolve("@babel/plugin-transform-exponentiation-operator"), // TODO: у нас нет Math.pow
-      [require.resolve("@babel/plugin-transform-template-literals"), { "loose": true }], // concat нам не подходит, используем +
-      // require.resolve("@babel/plugin-transform-literals"), // TODO: не уверен как ведет себя BS и нотацией \u и когда литерал вставлен напрямую
-      require.resolve("@babel/plugin-transform-function-name"), // в BS нельзя анонимные функции
-      require.resolve("@babel/plugin-transform-arrow-functions"), // TODO: назначать рандомные имена??
-      require.resolve("@babel/plugin-transform-shorthand-properties"),
-      path.resolve(__dirname, "../plugins/forOfToForIn.js"), // for-of to for-in
-      require.resolve("@babel/plugin-transform-unicode-escapes"), // TODO: не уверен как ведет себя BS и нотацией \u и когда литерал вставлен напрямую
-      path.resolve(__dirname, "../plugins/spreadArray.js"), // transform-spread-array
-      path.resolve(__dirname, "../plugins/spreadObject.js"), // transform-spread-object
-      // // path.resolve(__dirname, "../plugins/myPlugin.js" // transform-destructuring
-
-      // require.resolve("@babel/plugin-transform-destructuring"),
-      path.resolve(__dirname, "../plugins/destructuring.js"), // TODO throwNotSupported
-
-      require.resolve("@babel/plugin-transform-block-scoping"),
-      path.resolve(__dirname, "../plugins/replaceDollar.js"), // удаляет $ из названий переменных
-      path.resolve(__dirname, "../plugins/loopHoistVariables.js"), // loopHoisting
-      path.resolve(__dirname, "../plugins/removeImportExport.js") // let/const to var
-    ],
-    sourceMaps: configuration.options.sourceMap, // Enable source maps if TypeScript is configured to use them
-    cwd: process.cwd(),
-  }
-
-  // Process emitted JavaScript files with Babel
-  for (const emittedFile of emittedFiles) {
-    try {
-      const babelResult = babel.transformSync(emittedFile.content, {
-        filename: emittedFile.fileName,
-        ...babelConfig,
-      });
-
-      if (babelResult?.code) {
-        let fileName = emittedFile.fileName;
-        let code = babelResult.code;
-
-        // Add spxml inline form tag
-        if (code.indexOf('/// @xml-init') !== -1) {
-          code = `<?xml version="1.0" encoding="UTF-8"?>\n<SPXML-INLINE-FORM>\n\t<OnInit PROPERTY="1" EXPR="\n${code.split('\n').map(line => "\t\t" + line).join('\n')}\n\t"/>\n</SPXML-INLINE-FORM>`;
-          fileName = fileName.replace('.js', '.xml');
-        }
-
-        // Add aspnet render tag
-        if (code.indexOf('/// @html') !== -1) {
-          code = `<%\n${code}\n%>`;
-          fileName = fileName.replace('.js', '.html');
-        }
-
-        if (options.retainNonAsciiCharacters !== true) {
-          // Decode non ASCII characters
-          code = code.replace(/\\u[\dA-Fa-f]{4}/g, (match) => {
-            return String.fromCharCode(parseInt(match.substr(2), 16));
-          });
-        }
-
-        code = '\uFEFF' + code;
-
-        // Write the Babel-transformed code to the output file
-        originalWriteFile.call(host, fileName, code, false, undefined, undefined);
-
-        // // If source maps are enabled, write the source map
-        // if (babelResult.map && configuration.options.sourceMap) {
-        //   originalWriteFile.call(host, `${emittedFile.fileName}.map`, JSON.stringify(babelResult.map), false, undefined, undefined);
-        // }
-      } else {
-        logger.warning(`Babel transformation skipped for ${emittedFile.fileName}`);
-      }
-    } catch (error) {
-      // Type guard for error.message
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error(`Babel transformation error for ${emittedFile.fileName}: ${errorMessage}`);
-    }
-  }
 
   return emitResult;
 }
@@ -179,11 +71,7 @@ export function collectNonTypescriptFiles(configuration: ts.ParsedCommandLine) {
   const fileNames = configuration.fileNames.map(normalize);
   const normalizedExclude = (exclude ?? []).map(normalize);
 
-  // console.log(fileNames)
-  // console.log(normalizedExclude)
-
   return fs.globSync([...(include ?? []), ...(files ?? [])])
-    .map(x => { console.log(x); return x })
     .filter(x => !fileNames.includes(x))
     .filter(x => !normalizedExclude?.includes(x))
     .filter(x => fs.statSync(x).isFile());
@@ -199,32 +87,72 @@ function reportDiagnostic(diagnostic: ts.Diagnostic) {
   }
 }
 
-function decorateHostWriteFile(host: ts.CompilerHost, options: BscCompileOptions) {
+function decorateHostWriteFile(host: ts.CompilerHost, options: BscCompileOptions, configuration: ts.ParsedCommandLine, babelConfig: babel.TransformOptions) {
   const originalWriteFile = host.writeFile;
 
-  host.writeFile = (fileName, data, writeByteOrderMark, onError, sourceFiles) => {
+  host.writeFile = (fileName, text, writeByteOrderMark, onError, sourceFiles, data) => {
     if (fileName.endsWith('.js')) {
-      // Convert namespaces
-      if (data.indexOf('"META:NAMESPACE:') !== -1) {
-        fileName = fileName.replace('.js', '.bs');
-      }
+      const result = transformWithBabel(text, fileName, babelConfig);
 
-      // Add aspnet render tag
-      if (data.indexOf('/// @html') !== -1) {
-        data = `<%\n// <script>\n${data}\n%>`;
-        fileName = fileName.replace('.js', '.html');
-      }
+      const transformedContent = result?.code;
+      const sourceMap = result?.map;
 
-      if (options.retainNonAsciiCharacters !== true) {
-        // Decode non ASCII characters
-        data = data.replace(/\\u[\dA-Fa-f]{4}/g, (match) => {
-          return String.fromCharCode(parseInt(match.substr(2), 16));
-        });
+      if (transformedContent != null && transformedContent !== undefined) {
+        const { newFileName, newFileContent } = transformOutput(fileName, transformedContent, options);
+        originalWriteFile.call(host, newFileName, newFileContent, writeByteOrderMark, onError, sourceFiles);
+
+        if (sourceMap && configuration.options.sourceMap) {
+          originalWriteFile.call(host, `${fileName}.map`, JSON.stringify(sourceMap), writeByteOrderMark, onError, sourceFiles);
+        }
+      } else {
+        logger.warning(`Babel transformation skipped for ${fileName}`);
       }
+    } else {
+      originalWriteFile.call(host, fileName, text, writeByteOrderMark, onError, sourceFiles);
     }
-
-    originalWriteFile(fileName, data, writeByteOrderMark, onError, sourceFiles);
   };
+}
+
+
+export function transformWithBabel(code: string, fileName: string, babelConfig: babel.TransformOptions): babel.BabelFileResult | null {
+  try {
+    const babelResult = babel.transformSync(code, {
+      filename: fileName,
+      ...babelConfig,
+    });
+
+    return babelResult;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Babel transformation error for ${fileName}: ${errorMessage}`);
+
+    return null;
+  }
+}
+
+export function transformOutput(fileName: string, code: string, options: BscCompileOptions) {
+  // Add spxml inline form tag
+  if (code.indexOf('/// @xml-init') !== -1) {
+    code = `<?xml version="1.0" encoding="UTF-8"?>\n<SPXML-INLINE-FORM>\n\t<OnInit PROPERTY="1" EXPR="\n${code.split('\n').map(line => "\t\t" + line).join('\n')}\n\t"/>\n</SPXML-INLINE-FORM>`;
+    fileName = fileName.replace('.js', '.xml');
+  }
+
+  // Add aspnet render tag
+  if (code.indexOf('/// @html') !== -1) {
+    code = `<%\n${code}\n%>`;
+    fileName = fileName.replace('.js', '.html');
+  }
+
+  if (options.retainNonAsciiCharacters !== true) {
+    // Decode non ASCII characters
+    code = code.replace(/\\u[\dA-Fa-f]{4}/g, (match) => {
+      return String.fromCharCode(parseInt(match.substr(2), 16));
+    });
+  }
+
+  code = '\uFEFF' + code;
+
+  return { newFileName: fileName, newFileContent: code };
 }
 
 function decorateProgramEmit(host: ts.CompilerHost, program?: ts.SemanticDiagnosticsBuilderProgram | ts.Program) {

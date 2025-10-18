@@ -38,8 +38,6 @@ export async function processLinking() {
   const linkingPackages = borisTypeDeps.map(dep => parseWsPackageInfo(dep.packageJson, dep.projectPath)!);
   const apiExtXml = buildApiExt(linkingPackages);
 
-  console.log(apiExtXml);
-
   const distFilePath = path.join(projectPath, 'dist');
   if (!fs.existsSync(distFilePath)) {
     fs.mkdirSync(distFilePath);
@@ -47,8 +45,6 @@ export async function processLinking() {
 
 
   linkingPackages.forEach(dep => {
-    // console.log(`Копирование файлов из пакета ${dep.name}@${dep.version}`);
-
     const buildFilePath = path.join(dep.projectPath, 'build');
     const distFilePath = path.join(projectPath, 'dist');
 
@@ -139,10 +135,8 @@ export function copyWithPrefix(
  * Рекурсивно копирует файлы и папки
  */
 function copyRecursive(source: string, target: string): void {
-  // Создаем целевую директорию если ее нет
   fs.mkdirSync(target, { recursive: true });
 
-  // Читаем содержимое исходной папки
   const items = fs.readdirSync(source, { withFileTypes: true });
 
   for (const item of items) {
@@ -150,12 +144,9 @@ function copyRecursive(source: string, target: string): void {
     const targetPath = path.join(target, item.name);
 
     if (item.isDirectory()) {
-      // Если это папка - рекурсивно копируем
       copyRecursive(sourcePath, targetPath);
     } else {
-      // Если это файл - копируем
       fs.copyFileSync(sourcePath, targetPath);
-      console.log(`Скопирован: ${sourcePath} -> ${targetPath}`);
     }
   }
 }
