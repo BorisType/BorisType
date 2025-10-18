@@ -33,3 +33,7 @@ test("Handle array destructuring with rest", () => {
     assertValueEquals(second, 20);
     assertValueEquals(rest[0], 30);
 });
+
+// for (const [key, value] of Object.entries(object)) {
+//   console.log(`${key}: ${value}`);
+// }
