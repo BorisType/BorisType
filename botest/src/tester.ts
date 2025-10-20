@@ -32,9 +32,10 @@ export async function runTestsAsync(filePath: string): Promise<void> {
     for (const file of files) {
         const relativeFilePath = path.relative(filePath, file);
 
-        console.log(`./${relativeFilePath}`);
+        console.log(chalk.bgCyanBright(` ./${relativeFilePath} `));
         const results = await runTestFileAsync(file);
         testResults.push(...results);
+        console.log();
     }
 
     printTestReport(files, startTime, testResults);
@@ -223,8 +224,10 @@ function printTestReport(files: string[], startTime: Date, testResults: TestResu
     const passedTests = testResults.filter(r => r.status === "PASSED");
     const failedTests = testResults.filter(r => r.status === "FAILED");
 
-    const passedFiles = new Set(passedTests.map(r => r.file));
+    const passedFiles = new Set(files);
     const failedFiles = new Set(failedTests.map(r => r.file));
+
+    failedFiles.forEach(file => passedFiles.delete(file));
 
     const passedFilesCount = passedFiles.size;
     const failedFilesCount = failedFiles.size;
@@ -244,14 +247,13 @@ function printTestReport(files: string[], startTime: Date, testResults: TestResu
     const durationFormatted = chalk.blue(`${totalDuration.toFixed(0)}ms`);
 
     if (failedTestsCount === 0) {
-        testFilesFormatted = (`${passedFilesFormatted} (${totalFilesFormatted})`);
-        testsFormatted = (`${passedTestsFormatted} (${totalTestsFormatted})`);
+        testFilesFormatted = `${passedFilesFormatted} (${totalFilesFormatted})`;
+        testsFormatted = `${passedTestsFormatted} (${totalTestsFormatted})`;
     } else {
-        testFilesFormatted = (`${passedFilesFormatted} | ${failedFilesFormatted} (${totalFilesFormatted})`);
-        testsFormatted = (`${passedTestsFormatted} | ${failedTestsFormatted} (${totalTestsFormatted})`);
+        testFilesFormatted = `${failedFilesFormatted} | ${passedFilesFormatted} (${totalFilesFormatted})`;
+        testsFormatted = `${failedTestsFormatted} | ${passedTestsFormatted} (${totalTestsFormatted})`;
     }
 
-    console.log();
     console.log(chalk.gray(`Test Files:  ${testFilesFormatted}`));
     console.log(chalk.gray(`     Tests:  ${testsFormatted}`));
     console.log(chalk.gray(`    Run at:  ${runAtFormatted}`));
