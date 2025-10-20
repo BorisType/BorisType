@@ -4,9 +4,7 @@ test("Handle variable declarations", () => {
     const arr = [1, 2, 3];
     const result = [];
     
-    let item;
-    for (item of arr) {
-        // console.log(item);
+    for (const item of arr) {
         result.push(item * 2);
     }
 

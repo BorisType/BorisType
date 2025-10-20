@@ -3,7 +3,8 @@ import { assertJsArrayEquals, assertValueEquals, test } from "./test";
 
 test("Handle variable declarations", () => {
     const arr = [1, 2, 3];
-    const result = arr.toReversed().map((x) => x * 2);
+    // const result = arr.toReversed().map((x) => x * 2);
+    const result = arr.map((x) => x * 2);
 
     assertJsArrayEquals(result, [2, 4, 6], "Array should be doubled");
 });

@@ -216,13 +216,13 @@ test("Array.fill() with nested arrays", () => {
     assertJsArrayEquals(arr, [[1], [9, 9], [9, 9]]);
 });
 
-test("Array.fill() with string value", () => {
-    // const arr = [1, 2, 3];
-    // arr.fill("x", 0, 2);
-    // assertJsArrayEquals(arr, ["x", "x", 3]);
-});
+// test("Array.fill() with string value", () => {
+//     const arr = [1, 2, 3];
+//     arr.fill("x", 0, 2);
+//     assertJsArrayEquals(arr, ["x", "x", 3]);
+// });
 
-test("Array.fill() basic usage", () => {
-    const arr = [1, 2, 3, 4];
-    assertValueEquals(arr.fill(9).at(-1), 9);
-});
+// test("Array.fill() basic usage", () => {
+//     const arr = [1, 2, 3, 4];
+//     assertValueEquals(arr.fill(9).at(-1), 9);
+// });

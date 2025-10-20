@@ -1,6 +1,18 @@
 import { assertJsArrayEquals, test } from "./test";
 
 
+test("Handle simple for loop", () => {
+    const arr = [1, 2, 3];
+    const result = [];
+
+    for (let i = 0; i < arr.length; i++) {
+        const doubled = arr[i] * 2;
+        result.push(doubled);
+    }
+
+    assertJsArrayEquals(result, [2, 4, 6], "Array should be doubled");
+});
+
 test("Handle simple for-of loop", () => {
     const arr = [1, 2, 3];
     const result = [];
@@ -37,11 +49,15 @@ test("Handle deep inner loops", () => {
         if (v1 > 2) {
             for (const v2 of arr2) {
                 const doubled = (test + v2) * 2;
-                result.push(doubled);
+                let counter = 0;
+
+                while (counter < 2) {
+                    result.push(doubled);
+                    counter++;
+                }
             }
         }
     }
 
-    // LogEvent("debug", EncodeJson(result));
-    assertJsArrayEquals(result, [20, 22, 24], "Array should be doubled");
+    assertJsArrayEquals(result, [20, 20, 22, 22, 24, 24], "Array should be doubled");
 });
