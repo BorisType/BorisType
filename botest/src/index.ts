@@ -1,21 +1,19 @@
 #!/usr/bin/env node
 
 import { program } from 'commander';
-import { runTest } from './runner';
+import { runTestsAsync } from './tester';
 
 export type CommandLineOptions = {
 }
 
-function processTest(
+async function processTest(
   files: string[],
   options: CommandLineOptions
 ) {
   const cwd = process.cwd();
 
-  console.log('Running tests in:', cwd);
-  console.log('Running tests in:', files);
   const workdir = files[0] || cwd;
-  runTest(workdir);
+  await runTestsAsync(workdir);
 
   process.exit(0);
 }
@@ -25,8 +23,8 @@ program
   .description('Basic TypeScript CLI utility for file processing')
   .version('0.0.1')
   .arguments('[files...]')
-  .action((files: string[], options: any) => {
-    processTest(files, options);
+  .action(async (files: string[], options: any) => {
+    await processTest(files, options);
   });
 
 program.parse(process.argv);
