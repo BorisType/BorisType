@@ -1,6 +1,6 @@
 node_modules
 build
 dist
-/botest/src/main.js
+/botest/src/borisscript/main.js
 /example
 /std
