@@ -27,6 +27,8 @@ export async function runTestsAsync(filePath: string): Promise<void> {
     const testResults: TestResult[] = [];
 
     const startTime = new Date();
+    // TODO: надо что-то другое придумать вместо этого костыля, плюс оставить warmup
+    await evalBorisScriptAsync(`RegisterCodeLibrary("x-mock://polyfill/build/index.js");\nbt.init_polyfill();`);
 
     const files = getTestFiles(filePath);
     for (const file of files) {
