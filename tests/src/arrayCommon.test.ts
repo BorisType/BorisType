@@ -280,7 +280,7 @@ test("Array.flat() comprehensive test", () => {
     // Deep nesting with depth = 3
     const deepArr = [1, [2, [3, [4, [5]]]]];
     const result7 = deepArr.flat(3);
-    assertJsArrayEquals(result7, [1, 2, 3, 4, 5]);
+    assertJsArrayEquals(result7, [1, 2, 3, 4, [5]]);
 
     // Very deep nesting with large depth
     const veryDeepArr = [1, [2, [3, [4, [5]]]]];
@@ -295,7 +295,7 @@ test("Array.flat() comprehensive test", () => {
     // Array with empty nested arrays
     const arrWithEmpty = [1, [], [3, []], 4];
     const result10 = arrWithEmpty.flat();
-    assertJsArrayEquals(result10, [1, 3, 4]);
+    assertJsArrayEquals(result10, [1, 3, [], 4]);
 
     // Multiple levels of empty arrays
     const multiEmpty = [1, [[], 2], []];
