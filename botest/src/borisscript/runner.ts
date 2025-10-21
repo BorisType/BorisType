@@ -1,4 +1,4 @@
-import { JsEvalCodeAsyncExt, JsGlobalEnv, JsParseCode } from "./main";
+import { JsEvalCodeAsyncExt, JsGlobalEnv, JsParseCode } from "./patch";
 
 type JsEvalReturnValue = {
     err: any;

@@ -2,7 +2,7 @@ import chalk, { Chalk } from 'chalk';
 import { extractTestsFromFile, TestCase } from './parser';
 import { evalBorisScriptAsync } from "./borisscript/runner";
 import { readdirSync, statSync } from 'fs';
-import path, { join } from 'path';
+import {relative, join } from 'path';
 
 
 interface TestResult {
@@ -30,7 +30,7 @@ export async function runTestsAsync(filePath: string): Promise<void> {
 
     const files = getTestFiles(filePath);
     for (const file of files) {
-        const relativeFilePath = path.relative(filePath, file);
+        const relativeFilePath = relative(filePath, file);
 
         console.log(chalk.bgCyanBright(` ./${relativeFilePath} `));
         const results = await runTestFileAsync(file);
