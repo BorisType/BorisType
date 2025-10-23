@@ -318,3 +318,301 @@ test("Array.flat() comprehensive test", () => {
     assertJsArrayEquals(result14, [1, 2, 3, 4, 5, 6, 7]);
 });
 
+test("Array.indexOf() comprehensive test", () => {
+    // Basic usage
+    const arr1 = [1, 2, 3, 4, 2];
+    assertValueEquals(arr1.indexOf(2), 1);
+    assertValueEquals(arr1.indexOf(3), 2);
+    assertValueEquals(arr1.indexOf(5), -1);
+
+    // Start index
+    assertValueEquals(arr1.indexOf(2, 2), 4);
+    assertValueEquals(arr1.indexOf(2, 5), -1);
+
+    // Negative start index
+    assertValueEquals(arr1.indexOf(2, -1), 4);
+    assertValueEquals(arr1.indexOf(2, -3), 4);
+    assertValueEquals(arr1.indexOf(1, -100), 0);
+
+    // Array with strings
+    const arr2 = ["a", "b", "c", "a"];
+    assertValueEquals(arr2.indexOf("a"), 0);
+    assertValueEquals(arr2.indexOf("a", 1), 3);
+    assertValueEquals(arr2.indexOf("d"), -1);
+
+    // Array with undefined and null
+    const arr3 = [undefined, null, 0, false];
+    assertValueEquals(arr3.indexOf(undefined), 0);
+    assertValueEquals(arr3.indexOf(null), 1);
+    assertValueEquals(arr3.indexOf(0), 2);
+    assertValueEquals(arr3.indexOf(false), 3);
+    assertValueEquals(arr3.indexOf(true), -1);
+
+    // // Array with NaN
+    // const arr4 = [0/0, 1, 0/0];
+    // assertValueEquals(arr4.indexOf(0/0), -1); // indexOf does not find NaN
+
+    // Array with objects
+    const obj = {x: 1};
+    const arr5 = [obj, {x: 1}];
+    assertValueEquals(arr5.indexOf(obj), 0);
+    assertValueEquals(arr5.indexOf({x: 1}), -1);
+
+    // Array with arrays
+    const subArr = [1, 2];
+    const arr6 = [subArr, [1, 2]];
+    assertValueEquals(arr6.indexOf(subArr), 0);
+    assertValueEquals(arr6.indexOf([1, 2]), -1);
+
+    // Empty array
+    const emptyArr: any[] = [];
+    assertValueEquals(emptyArr.indexOf(1), -1);
+
+    // // Sparse array
+    // const sparseArr = [1, , 3, undefined];
+    // assertValueEquals(sparseArr.indexOf(undefined), 3);
+    // assertValueEquals(sparseArr.indexOf(3), 2);
+    // assertValueEquals(sparseArr.indexOf(2), -1);
+
+    // Array with mixed types
+    const mixedArr = [1, "1", true, null, undefined];
+    assertValueEquals(mixedArr.indexOf("1"), 1);
+    assertValueEquals(mixedArr.indexOf(1), 0);
+    assertValueEquals(mixedArr.indexOf(true), 2);
+    assertValueEquals(mixedArr.indexOf(null), 3);
+    assertValueEquals(mixedArr.indexOf(undefined), 4);
+
+    // Array with nested arrays
+    const nestedArr = [[1], [2], [3]];
+    assertValueEquals(nestedArr.indexOf([2]), -1);
+    assertValueEquals(nestedArr.indexOf(nestedArr[1]), 1);
+});
+
+test("Array.join() comprehensive test", () => {
+    // Basic usage (default comma separator)
+    const arr1 = [1, 2, 3];
+    assertValueEquals(arr1.join(), "1,2,3");
+
+    // Custom separator
+    assertValueEquals(arr1.join("-"), "1-2-3");
+    assertValueEquals(arr1.join(" "), "1 2 3");
+    assertValueEquals(arr1.join(""), "123");
+    assertValueEquals(arr1.join(" and "), "1 and 2 and 3");
+
+    // Empty separator
+    assertValueEquals(arr1.join(""), "123");
+
+    // Array with strings
+    const arr2 = ["a", "b", "c"];
+    assertValueEquals(arr2.join(), "a,b,c");
+    assertValueEquals(arr2.join("-"), "a-b-c");
+
+    // Array with mixed types
+    const arr3 = [1, "hello", true, null, undefined];
+    assertValueEquals(arr3.join(), "1,hello,true,,");
+});
+
+test("Array.keys() comprehensive test", () => {
+    // Basic usage
+    const arr1 = ['a', 'b', 'c'];
+    const keys1 = arr1.keys();
+    assertJsArrayEquals(keys1, [0, 1, 2]);
+
+    // Empty array
+    const emptyArr: any[] = [];
+    const keys2 = emptyArr.keys();
+    assertJsArrayEquals(keys2, []);
+
+    // Array with one element
+    const singleArr = [42];
+    const keys3 = singleArr.keys();
+    assertJsArrayEquals(keys3, [0]);
+
+    // Array with mixed types
+    const mixedArr = [1, 'hello', true, null, undefined];
+    const keys4 = mixedArr.keys();
+    assertJsArrayEquals(keys4, [0, 1, 2, 3, 4]);
+
+    // // Sparse array
+    // const sparseArr = [1, , 3, , 5];
+    // const keys5 = sparseArr.keys();
+    // assertJsArrayEquals(keys5, [0, 1, 2, 3, 4]);
+
+    // // Using iterator directly
+    // const arr6 = ['x', 'y', 'z'];
+    // const iterator = arr6.keys();
+    // const first = iterator.next();
+    // const second = iterator.next();
+    // const third = iterator.next();
+    // const fourth = iterator.next();
+
+    // assertValueEquals(first.value, 0);
+    // assertValueEquals(first.done, false);
+    // assertValueEquals(second.value, 1);
+    // assertValueEquals(second.done, false);
+    // assertValueEquals(third.value, 2);
+    // assertValueEquals(third.done, false);
+    // assertValueEquals(fourth.done, true);
+
+    // Array with explicit length
+    const arr7: any[] = [];
+    const keys7 = arr7.keys();
+    assertJsArrayEquals(keys7, []);
+
+    // // Large array (first few keys)
+    // const largeArr = new Array(100);
+    // const keys8 = largeArr.keys().slice(0, 5);
+    // assertJsArrayEquals(keys8, [0, 1, 2, 3, 4]);
+
+    // Array with nested arrays
+    const nestedArr2 = [[1], [2, 3], []];
+    const keys9 = nestedArr2.keys();
+    assertJsArrayEquals(keys9, [0, 1, 2]);
+
+    // Comparison with entries() keys
+    // const arr10 = ['a', 'b', 'c'];
+    // const keysFromEntries = arr10.entries().map(([key]) => key);
+    // const keysDirect = arr10.keys();
+    // assertJsArrayEquals(keysFromEntries, keysDirect);
+});
+
+test("Array.lastIndexOf() comprehensive test", () => {
+    // Basic usage
+    const arr1 = [1, 2, 3, 4, 2];
+    assertValueEquals(arr1.lastIndexOf(2), 4);
+    assertValueEquals(arr1.lastIndexOf(3), 2);
+    assertValueEquals(arr1.lastIndexOf(5), -1);
+
+    // From index
+    assertValueEquals(arr1.lastIndexOf(2, 3), 1);
+    assertValueEquals(arr1.lastIndexOf(2, 0), -1);
+    assertValueEquals(arr1.lastIndexOf(4, 2), -1);
+
+    // Negative from index
+    assertValueEquals(arr1.lastIndexOf(2, -1), 4);
+    assertValueEquals(arr1.lastIndexOf(2, -2), 1);
+    assertValueEquals(arr1.lastIndexOf(2, -3), 1);
+    assertValueEquals(arr1.lastIndexOf(1, -100), -1);
+
+    // Array with strings
+    const arr2 = ["a", "b", "c", "a", "b"];
+    assertValueEquals(arr2.lastIndexOf("a"), 3);
+    assertValueEquals(arr2.lastIndexOf("b"), 4);
+    assertValueEquals(arr2.lastIndexOf("a", 2), 0);
+    assertValueEquals(arr2.lastIndexOf("d"), -1);
+
+    // Array with undefined and null
+    const arr3 = [undefined, null, 0, false, undefined];
+    assertValueEquals(arr3.lastIndexOf(undefined), 4);
+    assertValueEquals(arr3.lastIndexOf(null), 1);
+    assertValueEquals(arr3.lastIndexOf(0), 2);
+    assertValueEquals(arr3.lastIndexOf(false), 3);
+    assertValueEquals(arr3.lastIndexOf(true), -1);
+
+    // // Array with NaN
+    // const arr4 = [0/0, 1, 0/0];
+    // assertValueEquals(arr4.lastIndexOf(0/0), -1); // lastIndexOf does not find NaN
+
+    // Array with objects
+    const obj = {x: 1};
+    const arr5 = [obj, {x: 1}, obj];
+    assertValueEquals(arr5.lastIndexOf(obj), 2);
+    assertValueEquals(arr5.lastIndexOf({x: 1}), -1);
+
+    // Array with arrays
+    const subArr = [1, 2];
+    const arr6 = [subArr, [1, 2], subArr];
+    assertValueEquals(arr6.lastIndexOf(subArr), 2);
+    assertValueEquals(arr6.lastIndexOf([1, 2]), -1);
+
+    // Empty array
+    const emptyArr: any[] = [];
+    assertValueEquals(emptyArr.lastIndexOf(1), -1);
+
+    // Array with one element
+    const singleArr = [42];
+    assertValueEquals(singleArr.lastIndexOf(42), 0);
+    assertValueEquals(singleArr.lastIndexOf(43), -1);
+
+    // // Sparse array
+    // const sparseArr = [1, , 3, undefined, , 1];
+    // assertValueEquals(sparseArr.lastIndexOf(undefined), 3);
+    // assertValueEquals(sparseArr.lastIndexOf(1), 5);
+    // assertValueEquals(sparseArr.lastIndexOf(3), 2);
+
+    // Array with mixed types
+    const mixedArr = [1, "1", true, null, undefined, 1];
+    assertValueEquals(mixedArr.lastIndexOf("1"), 1);
+    assertValueEquals(mixedArr.lastIndexOf(1), 5);
+    assertValueEquals(mixedArr.lastIndexOf(true), 2);
+    assertValueEquals(mixedArr.lastIndexOf(null), 3);
+    assertValueEquals(mixedArr.lastIndexOf(undefined), 4);
+
+    // Array with nested arrays
+    const nestedArr = [[1], [2], [1]];
+    assertValueEquals(nestedArr.lastIndexOf([1]), -1);
+    assertValueEquals(nestedArr.lastIndexOf(nestedArr[0]), 0);
+    assertValueEquals(nestedArr.lastIndexOf(nestedArr[2]), 2);
+
+    // From index larger than array length
+    assertValueEquals(arr1.lastIndexOf(2, 10), 4);
+    assertValueEquals(arr1.lastIndexOf(2, 100), 4);
+});
+
+test("Array.pop() comprehensive test", () => {
+    // Basic usage
+    const arr1 = [1, 2, 3];
+    assertValueEquals(arr1.pop(), 3);
+    assertJsArrayEquals(arr1, [1, 2]);
+    assertValueEquals(arr1.pop(), 2);
+    assertJsArrayEquals(arr1, [1]);
+    assertValueEquals(arr1.pop(), 1);
+    assertJsArrayEquals(arr1, []);
+    assertValueEquals(arr1.pop(), undefined);
+    assertJsArrayEquals(arr1, []);
+
+    // Empty array
+    const emptyArr: any[] = [];
+    assertValueEquals(emptyArr.pop(), undefined);
+    assertJsArrayEquals(emptyArr, []);
+
+    // Array with one element
+    const singleArr = [42];
+    assertValueEquals(singleArr.pop(), 42);
+    assertJsArrayEquals(singleArr, []);
+    assertValueEquals(singleArr.pop(), undefined);
+
+    // Array with undefined and null
+    const arr2 = [undefined, null, 0];
+    assertValueEquals(arr2.pop(), 0);
+    assertJsArrayEquals(arr2, [undefined, null]);
+    assertValueEquals(arr2.pop(), null);
+    assertJsArrayEquals(arr2, [undefined]);
+    assertValueEquals(arr2.pop(), undefined);
+    assertJsArrayEquals(arr2, []);
+
+    // Array with objects
+    const obj1 = {x: 1};
+    const obj2 = {y: 2};
+    const arr3 = [obj1, obj2];
+    assertValueEquals(arr3.pop(), obj2);
+    assertJsArrayEquals(arr3, [obj1]);
+    assertValueEquals(arr3.pop(), obj1);
+    assertJsArrayEquals(arr3, []);
+
+    // Array with nested arrays
+    const arr4 = [[1], [2, 3], []];
+    // assertJsArrayEquals(arr4.pop() ?? [], []);
+    // assertJsArrayEquals(arr4, [[1], [2, 3]]);
+    // assertJsArrayEquals(arr4.pop() ?? [], [2, 3]);
+    // assertJsArrayEquals(arr4, [[1]]);
+    // assertJsArrayEquals(arr4.pop() ?? [], [1]);
+    // assertJsArrayEquals(arr4, []);
+
+    // // Array with length property manually set
+    // const arr7: any[] = [1, 2, 3];
+    // (arr7 as any).length = 1;
+    // assertValueEquals(arr7.pop(), 1);
+    // assertJsArrayEquals(arr7, []);
+    // assertValueEquals(arr7.pop(), undefined);
+});
