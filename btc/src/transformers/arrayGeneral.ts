@@ -13,11 +13,17 @@ function makeArrayPolyfillExpression(functionName: string): ts.PropertyAccessExp
   )
 }
 
-function collectArgs(expression: ts.LeftHandSideExpression, node: ts.CallExpression, count: number): ts.Expression[] {
+function collectArgs(expression: ts.LeftHandSideExpression, node: ts.CallExpression, count: number, rest: boolean = false): ts.Expression[] {
   const args: ts.Expression[] = [expression];
+  const firstCount = rest ? count - 2 : count - 1;
 
-  for (let i = 0; i < count - 1; i++) {
+  for (let i = 0; i < firstCount; i++) {
     args.push(node.arguments[i] || ts.factory.createIdentifier('undefined'));
+  }
+
+  if (rest) {
+    const restArgs = node.arguments.slice(count - 2);
+    args.push(ts.factory.createArrayLiteralExpression(restArgs));
   }
 
   return args;
@@ -177,6 +183,15 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
             const args = collectArgs(expression, node, 3);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('slice'),
+              undefined,
+              args
+            );
+          }
+
+          if (node.expression.name.text === 'splice') {
+            const args = collectArgs(expression, node, 4, true);
+            return ts.factory.createCallExpression(
+              makeArrayPolyfillExpression('splice'),
               undefined,
               args
             );

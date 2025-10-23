@@ -1,5 +1,5 @@
 export function at<T>(array: Array<T>, index: number): T | undefined {
-  //   if (array === undefined || array === null || !IsArray(array)) throw new Error('arrayAt: first argument is not an array');
+  //   if (array === undefined || array === null || !IsArray(array)) throw 'arrayAt: first argument is not an array');
 
   const len = ArrayCount(array);
   const normalizedIndex = Int(index);
@@ -14,7 +14,7 @@ export function at<T>(array: Array<T>, index: number): T | undefined {
 // function Concat = ArrayUnion
 
 export function copyWithin<T>(array: Array<T>, target: number, start: number, end: number): Array<T> {
-  //   if (array === undefined || array === null || !IsArray(array)) throw new Error('arrayCopyWithin: first argument is not an array');
+  //   if (array === undefined || array === null || !IsArray(array)) throw 'arrayCopyWithin: first argument is not an array');
 
   const len = ArrayCount(array);
   const to = Int(target);
@@ -210,10 +210,45 @@ export function slice<T>(array: Array<T>, start?: number, end?: number): Array<T
 }
 
 export function sort<T>(array: Array<T>, compareFn?: (a: T, b: T) => number): Array<T> {
-  throw new Error('Array.sort polyfill is not implemented yet');
+  throw 'Array.sort polyfill is not implemented yet';
 }
 
-// export function splice<T>(array: Array<T>, start: number, deleteCount?: number, ...items: Array<T>): Array<T>
+export function splice<T>(array: Array<T>, start: number, deleteCount: number | undefined, items: Array<T>): Array<T> {
+  deleteCount = deleteCount === undefined ? ArrayCount(array) - start : Int(deleteCount);
+
+  const len = ArrayCount(array);
+  const normalizedStart = start < 0 ? Max(len + start, 0) : Min(start, len);
+  const normalizedDeleteCount = Min(deleteCount, len - normalizedStart);
+
+  const removed: Array<T> = [];
+  for (let i = 0; i < normalizedDeleteCount; i++) {
+    removed.push(array[normalizedStart + i]);
+  }
+
+  // Shift elements to the left
+  for (let i = normalizedStart; i < len - normalizedDeleteCount; i++) {
+    array[i] = array[i + normalizedDeleteCount];
+  }
+
+  // Shift elements to the right to make space for new items
+  for (let i = len - normalizedDeleteCount - 1; i >= normalizedStart; i--) {
+    array[i + items.length] = array[i];
+  }
+
+  // Insert new elements
+  for (let i = 0; i < items.length; i++) {
+    array[normalizedStart + i] = items[i];
+  }
+
+  var newLength = len - normalizedDeleteCount + items.length;
+  var delta = ArrayCount(array) - newLength;
+  
+  // Resize the array
+  // array.splice((len - normalizedDeleteCount + items.length), (len - normalizedDeleteCount));
+  // array.length = len - normalizedDeleteCount + items.length;
+
+  return removed;
+}
 
 export function toReversed<T>(array: Array<T>): Array<T> {
   const len = ArrayCount(array);
@@ -227,13 +262,13 @@ export function toReversed<T>(array: Array<T>): Array<T> {
 }
 
 export function toSorted<T>(array: Array<T>, compareFn?: (a: T, b: T) => number): Array<T> {
-  throw new Error('Array.toSorted polyfill is not implemented yet');
+  throw 'Array.toSorted polyfill is not implemented yet';
 }
 
 // export function toSpliced<T>(array: Array<T>, start: number, deleteCount?: number, ...items: Array<T>): Array<T>
 
 export function unshift<T>(array: Array<T>, items: Array<T>): number {
-  throw new Error('Array.unshift polyfill is not implemented yet');
+  throw 'Array.unshift polyfill is not implemented yet';
 }
 
 export function values<T>(array: Array<T>): Array<T> {
