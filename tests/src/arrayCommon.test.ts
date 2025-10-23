@@ -182,7 +182,7 @@ test("Array.entries() comprehensive test", () => {
     // assertJsArrayEquals(entries6, [[0, 1], [2, 3], [5, 6]]);
 
     // Array with objects
-    const objArr = [{name: 'Alice'}, {name: 'Bob'}];
+    const objArr = [{ name: 'Alice' }, { name: 'Bob' }];
     const entries7 = objArr.entries();
     assertValueEquals(entries7.length, 2);
     assertValueEquals(entries7[0][0], 0);
@@ -353,10 +353,10 @@ test("Array.indexOf() comprehensive test", () => {
     // assertValueEquals(arr4.indexOf(0/0), -1); // indexOf does not find NaN
 
     // Array with objects
-    const obj = {x: 1};
-    const arr5 = [obj, {x: 1}];
+    const obj = { x: 1 };
+    const arr5 = [obj, { x: 1 }];
     assertValueEquals(arr5.indexOf(obj), 0);
-    assertValueEquals(arr5.indexOf({x: 1}), -1);
+    assertValueEquals(arr5.indexOf({ x: 1 }), -1);
 
     // Array with arrays
     const subArr = [1, 2];
@@ -514,10 +514,10 @@ test("Array.lastIndexOf() comprehensive test", () => {
     // assertValueEquals(arr4.lastIndexOf(0/0), -1); // lastIndexOf does not find NaN
 
     // Array with objects
-    const obj = {x: 1};
-    const arr5 = [obj, {x: 1}, obj];
+    const obj = { x: 1 };
+    const arr5 = [obj, { x: 1 }, obj];
     assertValueEquals(arr5.lastIndexOf(obj), 2);
-    assertValueEquals(arr5.lastIndexOf({x: 1}), -1);
+    assertValueEquals(arr5.lastIndexOf({ x: 1 }), -1);
 
     // Array with arrays
     const subArr = [1, 2];
@@ -592,8 +592,8 @@ test("Array.pop() comprehensive test", () => {
     assertJsArrayEquals(arr2, []);
 
     // Array with objects
-    const obj1 = {x: 1};
-    const obj2 = {y: 2};
+    const obj1 = { x: 1 };
+    const obj2 = { y: 2 };
     const arr3 = [obj1, obj2];
     assertValueEquals(arr3.pop(), obj2);
     assertJsArrayEquals(arr3, [obj1]);
@@ -654,8 +654,8 @@ test("Array.reverse() comprehensive test", () => {
     assertJsArrayEquals(arr5, [false, 0, null, undefined]);
 
     // Array with objects
-    const obj1 = {x: 1};
-    const obj2 = {y: 2};
+    const obj1 = { x: 1 };
+    const obj2 = { y: 2 };
     const arr6 = [obj1, obj2];
     arr6.reverse();
     assertJsArrayEquals(arr6, [obj2, obj1]);
@@ -739,8 +739,8 @@ test("Array.shift() comprehensive test", () => {
     assertJsArrayEquals(arr2, [false]);
 
     // Array with objects
-    const obj1 = {x: 1};
-    const obj2 = {y: 2};
+    const obj1 = { x: 1 };
+    const obj2 = { y: 2 };
     const arr3 = [obj1, obj2];
     assertValueEquals(arr3.shift(), obj1);
     assertJsArrayEquals(arr3, [obj2]);
@@ -858,8 +858,8 @@ test("Array.slice() comprehensive test", () => {
     assertJsArrayEquals(result14, [null, 0]);
 
     // Array with objects (shallow copy)
-    const obj1 = {x: 1};
-    const obj2 = {y: 2};
+    const obj1 = { x: 1 };
+    const obj2 = { y: 2 };
     const arr3 = [obj1, obj2];
     const result15 = arr3.slice();
     assertJsArrayEquals(result15, [obj1, obj2]);
