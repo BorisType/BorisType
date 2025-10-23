@@ -207,9 +207,9 @@ test("Handle 'Math.sqrt' calls", () => {
     assertValueEquals(Math.sqrt(25), 5);
     
     // Non-perfect squares
-    assertValueEquals(Math.sqrt(2), Math.sqrt(2)); // approximately 1.414
-    assertValueEquals(Math.sqrt(3), Math.sqrt(3)); // approximately 1.732
-    assertValueEquals(Math.sqrt(5), Math.sqrt(5)); // approximately 2.236
+    assertValueEquals(Math.sqrt(2), 1.4142135623730951); // approximately 1.414
+    assertValueEquals(Math.sqrt(3), 1.7320508075688772); // approximately 1.732
+    assertValueEquals(Math.sqrt(5), 2.23606797749979); // approximately 2.236
     
     // Decimal numbers
     assertValueEquals(Math.sqrt(0.25), 0.5);
@@ -226,4 +226,12 @@ test("Handle 'Math.sqrt' calls", () => {
     // Special values
     // assertValueEquals(Math.sqrt(Infinity), Infinity);
     // assertValueEquals(isNaN(Math.sqrt(NaN)), true);
+});
+
+test("Handle 'Math.random' calls", () => {
+    // Test that Math.random() returns a number between 0 (inclusive) and 1 (exclusive)
+    for (let i = 0; i < 100; i++) {
+        const result = Math.random();
+        assertValueEquals(result >= 0 && result < 1, true);
+    }
 });
