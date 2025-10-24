@@ -796,7 +796,6 @@ test("Array.shift() comprehensive test", () => {
     // assertValueEquals(iterator.next().value, 3);
 });
 
-
 test("Array.slice() comprehensive test", () => {
     // Basic usage - no parameters (full copy)
     const arr1 = [1, 2, 3, 4, 5];
@@ -1004,12 +1003,12 @@ test("Array.splice() comprehensive test", () => {
     assertJsArrayEquals(arr13, [undefined, 'a', 'b', false]);
 
     // Array with objects
-    const obj1 = {x: 1};
-    const obj2 = {y: 2};
+    const obj1 = { x: 1 };
+    const obj2 = { y: 2 };
     const arr14: any[] = [obj1, obj2];
-    const removed17 = arr14.splice(0, 1, {z: 3});
+    const removed17 = arr14.splice(0, 1, { z: 3 });
     assertJsArrayEquals(removed17, [obj1]);
-    assertJsArrayEquals(arr14, [{z: 3}, obj2]);
+    assertJsArrayEquals(arr14, [{ z: 3 }, obj2]);
 
     // Array with nested arrays
     const arr15: any[] = [[1], [2, 3], []];
@@ -1048,6 +1047,534 @@ test("Array.splice() comprehensive test", () => {
     // assertValueEquals(iterator.next().value, 1);
     // assertValueEquals(iterator.next().value, 'a');
     // assertValueEquals(iterator.next().value, 'b');
+    // assertValueEquals(iterator.next().value, 4);
+    // assertValueEquals(iterator.next().value, 5);
+});
+
+test("Array.toReversed() comprehensive test", () => {
+    // Basic usage
+    const arr1 = [1, 2, 3, 4, 5];
+    const result1 = arr1.toReversed();
+    assertJsArrayEquals(result1, [5, 4, 3, 2, 1]);
+    assertJsArrayEquals(arr1, [1, 2, 3, 4, 5]); // Original unchanged
+
+    // Array with even length
+    const arr2 = [1, 2, 3, 4];
+    const result2 = arr2.toReversed();
+    assertJsArrayEquals(result2, [4, 3, 2, 1]);
+    assertJsArrayEquals(arr2, [1, 2, 3, 4]); // Original unchanged
+
+    // Array with odd length
+    const arr3 = [1, 2, 3];
+    const result3 = arr3.toReversed();
+    assertJsArrayEquals(result3, [3, 2, 1]);
+    assertJsArrayEquals(arr3, [1, 2, 3]); // Original unchanged
+
+    // Empty array
+    const emptyArr: any[] = [];
+    const result4 = emptyArr.toReversed();
+    assertJsArrayEquals(result4, []);
+    assertJsArrayEquals(emptyArr, []); // Original unchanged
+
+    // Array with one element
+    const singleArr = [42];
+    const result5 = singleArr.toReversed();
+    assertJsArrayEquals(result5, [42]);
+    assertJsArrayEquals(singleArr, [42]); // Original unchanged
+
+    // Array with two elements
+    const arr4 = [1, 2];
+    const result6 = arr4.toReversed();
+    assertJsArrayEquals(result6, [2, 1]);
+    assertJsArrayEquals(arr4, [1, 2]); // Original unchanged
+
+    // Array with undefined and null
+    const arr5 = [undefined, null, 0, false];
+    const result7 = arr5.toReversed();
+    assertJsArrayEquals(result7, [false, 0, null, undefined]);
+    assertJsArrayEquals(arr5, [undefined, null, 0, false]); // Original unchanged
+
+    // Array with objects (shallow copy)
+    const obj1 = { x: 1 };
+    const obj2 = { y: 2 };
+    const arr6 = [obj1, obj2];
+    const result8 = arr6.toReversed();
+    assertJsArrayEquals(result8, [obj2, obj1]);
+    assertValueEquals(result8[0] === obj2, true); // Same reference
+    assertJsArrayEquals(arr6, [obj1, obj2]); // Original unchanged
+
+    // Array with nested arrays (shallow copy)
+    const arr7 = [[1], [2, 3], []];
+    const result9 = arr7.toReversed();
+    assertJsArrayEquals(result9, [[], [2, 3], [1]]);
+    assertValueEquals(result9[1] === arr7[1], true); // Same reference
+    assertJsArrayEquals(arr7, [[1], [2, 3], []]); // Original unchanged
+
+    // Array with mixed types
+    const arr8 = [1, "a", null, undefined, true];
+    const result10 = arr8.toReversed();
+    assertJsArrayEquals(result10, [true, undefined, null, "a", 1]);
+    assertJsArrayEquals(arr8, [1, "a", null, undefined, true]); // Original unchanged
+
+    // Array with strings
+    const arr9 = ["a", "b", "c", "d"];
+    const result11 = arr9.toReversed();
+    assertJsArrayEquals(result11, ["d", "c", "b", "a"]);
+    assertJsArrayEquals(arr9, ["a", "b", "c", "d"]); // Original unchanged
+
+    // Return value is new array
+    const arr10 = [1, 2, 3];
+    const result12 = arr10.toReversed();
+    assertValueEquals(result12 === arr10, false); // Different arrays
+    assertJsArrayEquals(result12, [3, 2, 1]);
+    assertJsArrayEquals(arr10, [1, 2, 3]); // Original unchanged
+
+    // Multiple calls return same result
+    const arr11 = [1, 2, 3, 4];
+    const result13 = arr11.toReversed();
+    const result14 = arr11.toReversed();
+    assertJsArrayEquals(result13, result14);
+    assertJsArrayEquals(result13, [4, 3, 2, 1]);
+    assertJsArrayEquals(arr11, [1, 2, 3, 4]); // Original unchanged
+
+    // // Sparse array (commented out)
+    // const sparseArr = [1, , 3, , 5];
+    // const result15 = sparseArr.toReversed();
+    // assertJsArrayEquals(result15, [5, , 3, , 1]);
+    // assertJsArrayEquals(sparseArr, [1, , 3, , 5]); // Original unchanged
+
+    // // Array with NaN and Infinity (commented out)
+    // const specialArr = [1, 0/0, Infinity, -Infinity];
+    // const result16 = specialArr.toReversed();
+    // assertJsArrayEquals(result16, [-Infinity, Infinity, 0/0, 1]);
+    // assertJsArrayEquals(specialArr, [1, 0/0, Infinity, -Infinity]); // Original unchanged
+
+    // // Direct iterator access (commented out)
+    // const arr12 = [1, 2, 3];
+    // const result17 = arr12.toReversed();
+    // const iterator = result17[Symbol.iterator]();
+    // assertValueEquals(iterator.next().value, 3);
+    // assertValueEquals(iterator.next().value, 2);
+    // assertValueEquals(iterator.next().value, 1);
+});
+
+test("Array.toSpliced() comprehensive test", () => {
+    // Remove elements without adding (deleteCount only)
+    const arr1 = [1, 2, 3, 4, 5];
+    const result1 = arr1.toSpliced(2, 2);
+    assertJsArrayEquals(result1, [1, 2, 5]);
+    assertJsArrayEquals(arr1, [1, 2, 3, 4, 5]); // Original unchanged
+
+    // Remove single element
+    const arr2 = [1, 2, 3, 4];
+    const result2 = arr2.toSpliced(1, 1);
+    assertJsArrayEquals(result2, [1, 3, 4]);
+    assertJsArrayEquals(arr2, [1, 2, 3, 4]); // Original unchanged
+
+    // Remove from beginning
+    const arr3 = [1, 2, 3, 4];
+    const result3 = arr3.toSpliced(0, 2);
+    assertJsArrayEquals(result3, [3, 4]);
+    assertJsArrayEquals(arr3, [1, 2, 3, 4]); // Original unchanged
+
+    // Remove from end
+    const arr4 = [1, 2, 3, 4];
+    const result4 = arr4.toSpliced(2);
+    assertJsArrayEquals(result4, [1, 2]);
+    assertJsArrayEquals(arr4, [1, 2, 3, 4]); // Original unchanged
+
+    // Add elements without removing (deleteCount = 0)
+    const arr5 = [1, 2, 4, 5];
+    const result5 = arr5.toSpliced(2, 0, 3);
+    assertJsArrayEquals(result5, [1, 2, 3, 4, 5]);
+    assertJsArrayEquals(arr5, [1, 2, 4, 5]); // Original unchanged
+
+    // Replace elements (remove and add)
+    const arr6 = [1, 2, 5, 6];
+    const result6 = arr6.toSpliced(2, 2, 3, 4);
+    assertJsArrayEquals(result6, [1, 2, 3, 4]);
+    assertJsArrayEquals(arr6, [1, 2, 5, 6]); // Original unchanged
+
+    // Add multiple elements
+    const arr7: any[] = [1, 2];
+    const result7 = arr7.toSpliced(1, 0, 'a', 'b', 'c');
+    assertJsArrayEquals(result7, [1, 'a', 'b', 'c', 2]);
+    assertJsArrayEquals(arr7, [1, 2]); // Original unchanged
+
+    // Negative start index
+    const arr8 = [1, 2, 3, 4, 5];
+    const result8 = arr8.toSpliced(-2, 1);
+    assertJsArrayEquals(result8, [1, 2, 3, 5]);
+    assertJsArrayEquals(arr8, [1, 2, 3, 4, 5]); // Original unchanged
+
+    // Negative start index with add
+    const arr9 = [1, 2, 3, 5];
+    const result9 = arr9.toSpliced(-1, 0, 4);
+    assertJsArrayEquals(result9, [1, 2, 3, 4, 5]);
+    assertJsArrayEquals(arr9, [1, 2, 3, 5]); // Original unchanged
+
+    // Start index out of bounds (positive)
+    const arr10 = [1, 2, 3];
+    const result10 = arr10.toSpliced(5, 1);
+    assertJsArrayEquals(result10, [1, 2, 3]);
+    assertJsArrayEquals(arr10, [1, 2, 3]); // Original unchanged
+
+    // Start index out of bounds (negative)
+    const arr11 = [1, 2, 3];
+    const result11 = arr11.toSpliced(-10, 2);
+    assertJsArrayEquals(result11, [3]);
+    assertJsArrayEquals(arr11, [1, 2, 3]); // Original unchanged
+
+    // Delete count larger than remaining elements
+    const arr12 = [1, 2, 3];
+    const result12 = arr12.toSpliced(1, 10);
+    assertJsArrayEquals(result12, [1]);
+    assertJsArrayEquals(arr12, [1, 2, 3]); // Original unchanged
+
+    // Empty array
+    const emptyArr: any[] = [];
+    const result13 = emptyArr.toSpliced(0, 1);
+    assertJsArrayEquals(result13, []);
+    assertJsArrayEquals(emptyArr, []); // Original unchanged
+
+    // Array with one element - remove
+    const singleArr1 = [42];
+    const result14 = singleArr1.toSpliced(0, 1);
+    assertJsArrayEquals(result14, []);
+    assertJsArrayEquals(singleArr1, [42]); // Original unchanged
+
+    // Array with one element - add
+    const singleArr2: any[] = [42];
+    const result15 = singleArr2.toSpliced(0, 0, 'before');
+    assertJsArrayEquals(result15, ['before', 42]);
+    assertJsArrayEquals(singleArr2, [42]); // Original unchanged
+
+    // Array with undefined and null
+    const arr13: any[] = [undefined, null, 0, false];
+    const result16 = arr13.toSpliced(1, 2, 'a', 'b');
+    assertJsArrayEquals(result16, [undefined, 'a', 'b', false]);
+    assertJsArrayEquals(arr13, [undefined, null, 0, false]); // Original unchanged
+
+    // Array with objects (shallow copy)
+    const obj1 = { x: 1 };
+    const obj2 = { y: 2 };
+    const arr14: any[] = [obj1, obj2];
+    const result17 = arr14.toSpliced(0, 1, { z: 3 });
+    assertJsArrayEquals(result17, [{ z: 3 }, obj2]);
+    assertValueEquals(result17[1] === obj2, true); // Same reference
+    assertJsArrayEquals(arr14, [obj1, obj2]); // Original unchanged
+
+    // Array with nested arrays (shallow copy)
+    const arr15: any[] = [[1], [2, 3], []];
+    const result18 = arr15.toSpliced(1, 1, ['new']);
+    assertJsArrayEquals(result18, [[1], ['new'], []]);
+    assertValueEquals(result18[0] === arr15[0], true); // Same reference
+    assertJsArrayEquals(arr15, [[1], [2, 3], []]); // Original unchanged
+
+    // Array with mixed types
+    const arr16: any[] = [1, "a", null, undefined, true];
+    const result19 = arr16.toSpliced(2, 2, 42, "hello");
+    assertJsArrayEquals(result19, [1, "a", 42, "hello", true]);
+    assertJsArrayEquals(arr16, [1, "a", null, undefined, true]); // Original unchanged
+
+    // Return value is new array
+    const arr17 = [1, 2, 3, 4, 5];
+    const result20 = arr17.toSpliced(1, 3);
+    assertValueEquals(result20 === arr17, false); // Different arrays
+    assertJsArrayEquals(result20, [1, 5]);
+    assertJsArrayEquals(arr17, [1, 2, 3, 4, 5]); // Original unchanged
+
+    // // Sparse array (commented out)
+    // const sparseArr = [1, , 3, , 5];
+    // const result21 = sparseArr.toSpliced(1, 2, 'a', 'b');
+    // assertJsArrayEquals(result21, [1, 'a', 'b', , 5]);
+    // assertJsArrayEquals(sparseArr, [1, , 3, , 5]); // Original unchanged
+
+    // // Array with NaN and Infinity (commented out)
+    // const specialArr = [1, 0/0, Infinity, -Infinity];
+    // const result22 = specialArr.toSpliced(1, 2, 2, 3);
+    // assertJsArrayEquals(result22, [1, 2, 3, -Infinity]);
+    // assertJsArrayEquals(specialArr, [1, 0/0, Infinity, -Infinity]); // Original unchanged
+
+    // // Direct iterator access (commented out)
+    // const arr18 = [1, 2, 3, 4, 5];
+    // const result23 = arr18.toSpliced(1, 2, 'a', 'b');
+    // const iterator = result23[Symbol.iterator]();
+    // assertValueEquals(iterator.next().value, 1);
+    // assertValueEquals(iterator.next().value, 'a');
+    // assertValueEquals(iterator.next().value, 'b');
+    // assertValueEquals(iterator.next().value, 4);
+    // assertValueEquals(iterator.next().value, 5);
+});
+
+test("Array.unshift() comprehensive test", () => {
+    // Add single element
+    const arr1 = [2, 3, 4];
+    const result1 = arr1.unshift(1);
+    assertValueEquals(result1, 4); // New length
+    assertJsArrayEquals(arr1, [1, 2, 3, 4]);
+
+    // Add multiple elements
+    const arr2: any[] = [4, 5];
+    const result2 = arr2.unshift(1, 2, 3);
+    assertValueEquals(result2, 5); // New length
+    assertJsArrayEquals(arr2, [1, 2, 3, 4, 5]);
+
+    // Add to empty array
+    const emptyArr: any[] = [];
+    const result3 = emptyArr.unshift('first');
+    assertValueEquals(result3, 1); // New length
+    assertJsArrayEquals(emptyArr, ['first']);
+
+    // Add to array with one element
+    const singleArr = [2];
+    const result4 = singleArr.unshift(1);
+    assertValueEquals(result4, 2); // New length
+    assertJsArrayEquals(singleArr, [1, 2]);
+
+    // Add undefined and null
+    const arr3: any[] = [3, 4];
+    const result5 = arr3.unshift(undefined, null);
+    assertValueEquals(result5, 4); // New length
+    assertJsArrayEquals(arr3, [undefined, null, 3, 4]);
+
+    // Add objects
+    const obj1 = { x: 1 };
+    const obj2 = { y: 2 };
+    const arr4: any[] = [obj2];
+    const result6 = arr4.unshift(obj1);
+    assertValueEquals(result6, 2); // New length
+    assertJsArrayEquals(arr4, [obj1, obj2]);
+
+    // Add nested arrays
+    const arr5: any[] = [[2, 3]];
+    const result7 = arr5.unshift([1]);
+    assertValueEquals(result7, 2); // New length
+    assertJsArrayEquals(arr5, [[1], [2, 3]]);
+
+    // Add mixed types
+    const arr6: any[] = [true, null];
+    const result8 = arr6.unshift(1, "hello");
+    assertValueEquals(result8, 4); // New length
+    assertJsArrayEquals(arr6, [1, "hello", true, null]);
+
+    // Add strings
+    const arr7 = ["c", "d"];
+    const result9 = arr7.unshift("a", "b");
+    assertValueEquals(result9, 4); // New length
+    assertJsArrayEquals(arr7, ["a", "b", "c", "d"]);
+
+    // Return value is new length
+    const arr8 = [3, 4, 5];
+    const newLength = arr8.unshift(1, 2);
+    assertValueEquals(newLength, 5);
+    assertJsArrayEquals(arr8, [1, 2, 3, 4, 5]);
+
+    // No arguments (should do nothing)
+    const arr9 = [1, 2, 3];
+    const result10 = arr9.unshift();
+    assertValueEquals(result10, 3); // Length unchanged
+    assertJsArrayEquals(arr9, [1, 2, 3]);
+
+    // Add zero
+    const arr10 = [2, 3];
+    const result11 = arr10.unshift(0);
+    assertValueEquals(result11, 3); // New length
+    assertJsArrayEquals(arr10, [0, 2, 3]);
+
+    // Add false
+    const arr11 = [true, null];
+    const result12 = arr11.unshift(false);
+    assertValueEquals(result12, 3); // New length
+    assertJsArrayEquals(arr11, [false, true, null]);
+
+    // Add empty string
+    const arr12 = ["b", "c"];
+    const result13 = arr12.unshift("");
+    assertValueEquals(result13, 3); // New length
+    assertJsArrayEquals(arr12, ["", "b", "c"]);
+
+    // // Sparse array (commented out)
+    // const sparseArr = [3, , 5];
+    // const result14 = sparseArr.unshift(1, 2);
+    // assertValueEquals(result14, 5);
+    // assertJsArrayEquals(sparseArr, [1, 2, 3, , 5]);
+
+    // // Array with NaN and Infinity (commented out)
+    // const specialArr = [Infinity, 2];
+    // const result15 = specialArr.unshift(0/0, -Infinity);
+    // assertValueEquals(result15, 4);
+    // assertJsArrayEquals(specialArr, [0/0, -Infinity, Infinity, 2]);
+
+    // // Direct iterator access (commented out)
+    // const arr13 = [3, 4, 5];
+    // arr13.unshift(1, 2);
+    // const iterator = arr13[Symbol.iterator]();
+    // assertValueEquals(iterator.next().value, 1);
+    // assertValueEquals(iterator.next().value, 2);
+    // assertValueEquals(iterator.next().value, 3);
+    // assertValueEquals(iterator.next().value, 4);
+    // assertValueEquals(iterator.next().value, 5);
+});
+
+test("Array.values() comprehensive test", () => {
+    // Basic usage with numbers
+    const arr1 = [1, 2, 3];
+    const values1 = arr1.values();
+    assertJsArrayEquals(values1, [1, 2, 3]);
+
+    // Array with strings
+    const arr2 = ["a", "b", "c"];
+    const values2 = arr2.values();
+    assertJsArrayEquals(values2, ["a", "b", "c"]);
+
+    // Empty array
+    const emptyArr: any[] = [];
+    const values3 = emptyArr.values();
+    assertJsArrayEquals(values3, []);
+
+    // Array with undefined and null
+    const arr4: any[] = [undefined, null, 0, false];
+    const values4 = arr4.values();
+    assertJsArrayEquals(values4, [undefined, null, 0, false]);
+
+    // Array with objects
+    const obj1 = { x: 1 };
+    const obj2 = { y: 2 };
+    const arr5: any[] = [obj1, obj2];
+    const values5 = arr5.values();
+    assertJsArrayEquals(values5, [obj1, obj2]);
+
+    // Array with nested arrays
+    const arr6: any[] = [[1, 2], [3, 4]];
+    const values6 = arr6.values();
+    assertJsArrayEquals(values6, [[1, 2], [3, 4]]);
+
+    // Mixed types array
+    const arr7: any[] = [1, "hello", true, null, undefined];
+    const values7 = arr7.values();
+    assertJsArrayEquals(values7, [1, "hello", true, null, undefined]);
+
+    // Single element array
+    const singleArr = [42];
+    const values8 = singleArr.values();
+    assertJsArrayEquals(values8, [42]);
+
+    // Array with zero and false
+    const arr9 = [0, false, ""];
+    const values9 = arr9.values();
+    assertJsArrayEquals(values9, [0, false, ""]);
+
+    // Values is independent of array changes
+    const arr10 = [1, 2, 3];
+    const values10 = arr10.values();
+    arr10.push(4); // Modify array after calling values
+    assertJsArrayEquals(values10, [1, 2, 3]); // Should still be original values
+
+    // // Sparse array (commented out)
+    // const sparseArr = [1, , 3];
+    // const values11 = sparseArr.values();
+    // assertJsArrayEquals(values11, [1, undefined, 3]);
+
+    // // Array with NaN and Infinity (commented out)
+    // const specialArr = [0/0, Infinity, -Infinity];
+    // const values12 = specialArr.values();
+    // assertJsArrayEquals(values12, [0/0, Infinity, -Infinity]);
+
+    // // Direct iterator access (commented out)
+    // const arr11 = [1, 2, 3];
+    // const values13 = arr11.values();
+    // // In BorisType, values() returns an array, not an iterator
+    // assertJsArrayEquals(values13, [1, 2, 3]);
+});
+
+test("Array.with() comprehensive test", () => {
+    // Basic usage - replace element at index 1
+    const arr1 = [1, 2, 3, 4];
+    const result1 = arr1.with(1, 99);
+    assertJsArrayEquals(result1, [1, 99, 3, 4]);
+    assertJsArrayEquals(arr1, [1, 2, 3, 4]); // Original unchanged
+
+    // Replace first element (index 0)
+    const arr2 = ['a', 'b', 'c'];
+    const result2 = arr2.with(0, 'x');
+    assertJsArrayEquals(result2, ['x', 'b', 'c']);
+    assertJsArrayEquals(arr2, ['a', 'b', 'c']); // Original unchanged
+
+    // Replace last element
+    const arr3 = [10, 20, 30];
+    const result3 = arr3.with(2, 300);
+    assertJsArrayEquals(result3, [10, 20, 300]);
+    assertJsArrayEquals(arr3, [10, 20, 30]); // Original unchanged
+
+    // Negative index
+    const arr4 = [1, 2, 3, 4, 5];
+    const result4 = arr4.with(-1, 999);
+    assertJsArrayEquals(result4, [1, 2, 3, 4, 999]);
+    assertJsArrayEquals(arr4, [1, 2, 3, 4, 5]); // Original unchanged
+
+    // Negative index - second to last
+    const arr5 = [1, 2, 3, 4, 5];
+    const result5 = arr5.with(-2, 888);
+    assertJsArrayEquals(result5, [1, 2, 3, 888, 5]);
+    assertJsArrayEquals(arr5, [1, 2, 3, 4, 5]); // Original unchanged
+
+    // Single element array
+    const singleArr = [42];
+    const result6 = singleArr.with(0, 100);
+    assertJsArrayEquals(result6, [100]);
+    assertJsArrayEquals(singleArr, [42]); // Original unchanged
+
+    // Array with undefined and null
+    const arr6: any[] = [undefined, null, 0, false];
+    const result7 = arr6.with(1, 'replaced');
+    assertJsArrayEquals(result7, [undefined, 'replaced', 0, false]);
+    assertJsArrayEquals(arr6, [undefined, null, 0, false]); // Original unchanged
+
+    // Array with objects
+    const obj1 = { x: 1 };
+    const obj2 = { y: 2 };
+    const arr7: any[] = [obj1, obj2];
+    const newObj = { z: 3 };
+    const result8 = arr7.with(0, newObj);
+    assertJsArrayEquals(result8, [newObj, obj2]);
+    assertJsArrayEquals(arr7, [obj1, obj2]); // Original unchanged
+
+    // Array with nested arrays
+    const arr8: any[] = [[1, 2], [3, 4], [5, 6]];
+    const result9 = arr8.with(1, [99, 100]);
+    assertJsArrayEquals(result9, [[1, 2], [99, 100], [5, 6]]);
+    assertJsArrayEquals(arr8, [[1, 2], [3, 4], [5, 6]]); // Original unchanged
+
+    // Mixed types array
+    const arr9: any[] = [1, "hello", true, null, undefined];
+    const result10 = arr9.with(2, false);
+    assertJsArrayEquals(result10, [1, "hello", false, null, undefined]);
+    assertJsArrayEquals(arr9, [1, "hello", true, null, undefined]); // Original unchanged
+
+    // Replace with same value (no-op functionally)
+    const arr10 = [1, 2, 3];
+    const result11 = arr10.with(1, 2);
+    assertJsArrayEquals(result11, [1, 2, 3]);
+    assertJsArrayEquals(arr10, [1, 2, 3]); // Original unchanged
+
+    // // Sparse array (commented out)
+    // const sparseArr = [1, , 3, 4];
+    // const result12 = sparseArr.with(1, 999);
+    // assertJsArrayEquals(result12, [1, 999, 3, 4]);
+
+    // // Array with NaN and Infinity (commented out)
+    // const specialArr = [0/0, Infinity, -Infinity];
+    // const result13 = specialArr.with(0, 42);
+    // assertJsArrayEquals(result13, [42, Infinity, -Infinity]);
+
+    // // Direct iterator access (commented out)
+    // const arr11 = [1, 2, 3];
+    // const result14 = arr11.with(1, 99);
+    // const iterator = result14[Symbol.iterator]();
+    // assertValueEquals(iterator.next().value, 1);
+    // assertValueEquals(iterator.next().value, 99);
+    // assertValueEquals(iterator.next().value, 3);
     // assertValueEquals(iterator.next().value, 4);
     // assertValueEquals(iterator.next().value, 5);
 });
