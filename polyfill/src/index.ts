@@ -1,4 +1,4 @@
-import { Polyfill, TArray, TMath, TObject, TString } from "./prelude";
+import { Polyfill, TArray, Tdestructuring, TMath, TObject, TString } from "./prelude";
 
 export namespace bt {
     let polyfill: Polyfill;
@@ -8,12 +8,14 @@ export namespace bt {
         const MathPolyfill = OpenCodeLibrary<TMath>('./polyfill/Math.js');
         const ObjectPolyfill = OpenCodeLibrary<TObject>('./polyfill/Object.js');
         const StringPolyfill = OpenCodeLibrary<TString>('./polyfill/String.js');
+        const destructuringPolyfill = OpenCodeLibrary<Tdestructuring>('./polyfill/destructuring.js');
 
         polyfill = {
             Array: ArrayPolyfill,
             Math: MathPolyfill,
             Object: ObjectPolyfill,
             String: StringPolyfill,
+            destructuring: destructuringPolyfill,
         };
     }
 }
