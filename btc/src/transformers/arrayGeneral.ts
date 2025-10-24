@@ -13,17 +13,28 @@ function makeArrayPolyfillExpression(functionName: string): ts.PropertyAccessExp
   )
 }
 
-function collectArgs(expression: ts.LeftHandSideExpression, node: ts.CallExpression, count: number, rest: boolean = false): ts.Expression[] {
+function collectArgs(expression: ts.LeftHandSideExpression, node: ts.CallExpression, count: number | undefined, restAsArray: boolean = false, visitor: ts.Visitor | undefined = undefined): ts.Expression[] {
   const args: ts.Expression[] = [expression];
-  const firstCount = rest ? count - 2 : count - 1;
 
-  for (let i = 0; i < firstCount; i++) {
-    args.push(node.arguments[i] || ts.factory.createIdentifier('undefined'));
+  if (count !== undefined) {
+    const positionalEnd = restAsArray ? count - 2 : count - 1;
+
+    for (let i = 0; i < positionalEnd; i++) {
+      args.push(node.arguments[i] || ts.factory.createIdentifier('undefined'));
+    }
+
+    if (restAsArray) {
+      const restArgs = node.arguments.slice(positionalEnd);
+      args.push(ts.factory.createArrayLiteralExpression(restArgs));
+    }
+  } else {
+    args.push(...node.arguments);
   }
 
-  if (rest) {
-    const restArgs = node.arguments.slice(count - 2);
-    args.push(ts.factory.createArrayLiteralExpression(restArgs));
+  if (visitor !== undefined) {
+    for (let i = 0; i < args.length; i++) {
+      args[i] = ts.visitNode(args[i], visitor) as ts.Expression;
+    }
   }
 
   return args;
@@ -46,7 +57,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
 
         if (isArrayType) {
           if (node.expression.name.text === 'at') {
-            const args = collectArgs(expression, node, 2);
+            const args = collectArgs(expression, node, 2, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('at'),
               undefined,
@@ -55,7 +66,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'concat') {
-            const args = [expression, ...node.arguments];
+            const args = collectArgs(expression, node, undefined, false, visit);
             return ts.factory.createCallExpression(
               ts.factory.createIdentifier('ArrayUnion'),
               undefined,
@@ -64,7 +75,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'copyWithin') {
-            const args = collectArgs(expression, node, 4);
+            const args = collectArgs(expression, node, 4, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('copyWithin'),
               undefined,
@@ -73,7 +84,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'entries') {
-            const args = collectArgs(expression, node, 1);
+            const args = collectArgs(expression, node, 1, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('entries'),
               undefined,
@@ -82,7 +93,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'fill') {
-            const args = collectArgs(expression, node, 4);
+            const args = collectArgs(expression, node, 4, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('fill'),
               undefined,
@@ -91,7 +102,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'flat') {
-            const args = collectArgs(expression, node, 2);
+            const args = collectArgs(expression, node, 2, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('flat'),
               undefined,
@@ -100,7 +111,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'includes') {
-            const args = collectArgs(expression, node, 3);
+            const args = collectArgs(expression, node, 3, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('includes'),
               undefined,
@@ -109,7 +120,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'indexOf') {
-            const args = collectArgs(expression, node, 3);
+            const args = collectArgs(expression, node, 3, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('indexOf'),
               undefined,
@@ -118,7 +129,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'join') {
-            const args = collectArgs(expression, node, 2);
+            const args = collectArgs(expression, node, 2, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('join'),
               undefined,
@@ -127,7 +138,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'keys') {
-            const args = collectArgs(expression, node, 1);
+            const args = collectArgs(expression, node, 1, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('keys'),
               undefined,
@@ -136,7 +147,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'lastIndexOf') {
-            const args = collectArgs(expression, node, 3);
+            const args = collectArgs(expression, node, 3, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('lastIndexOf'),
               undefined,
@@ -145,7 +156,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'pop') {
-            const args = collectArgs(expression, node, 1);
+            const args = collectArgs(expression, node, 1, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('pop'),
               undefined,
@@ -163,7 +174,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           // }
 
           if (node.expression.name.text === 'reverse') {
-            const args = collectArgs(expression, node, 1);
+            const args = collectArgs(expression, node, 1, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('reverse'),
               undefined,
@@ -172,7 +183,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'shift') {
-            const args = collectArgs(expression, node, 1);
+            const args = collectArgs(expression, node, 1, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('shift'),
               undefined,
@@ -181,7 +192,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'slice') {
-            const args = collectArgs(expression, node, 3);
+            const args = collectArgs(expression, node, 3, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('slice'),
               undefined,
@@ -190,7 +201,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'splice') {
-            const args = collectArgs(expression, node, 4, true);
+            const args = collectArgs(expression, node, 4, true, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('splice'),
               undefined,
@@ -210,7 +221,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
 
 
           if (node.expression.name.text === 'toReversed') {
-            const args = collectArgs(expression, node, 1);
+            const args = collectArgs(expression, node, 1, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('toReversed'),
               undefined,
@@ -228,7 +239,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           // }
 
           if (node.expression.name.text === 'toSpliced') {
-            const args = collectArgs(expression, node, 4, true);
+            const args = collectArgs(expression, node, 4, true, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('toSpliced'),
               undefined,
@@ -237,7 +248,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'unshift') {
-            const args = collectArgs(expression, node, 2, true);
+            const args = collectArgs(expression, node, 2, true, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('unshift'),
               undefined,
@@ -246,7 +257,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'values') {
-            const args = collectArgs(expression, node, 1);
+            const args = collectArgs(expression, node, 1, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('values'),
               undefined,
@@ -255,7 +266,7 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           }
 
           if (node.expression.name.text === 'with') {
-            const args = collectArgs(expression, node, 3);
+            const args = collectArgs(expression, node, 3, false, visit);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('_with'),
               undefined,
