@@ -29,7 +29,7 @@ test("Handle standalone expressions", () => {
 });
 
 test("Handle call expressions within expression statements", () => {
-    function dummyFunc(value) {
+    function dummyFunc(value: any) {
         return value;
     }
 
@@ -224,10 +224,13 @@ test("Handle calls on not simple array", () => {
     assertJsArrayEquals(result, [2, 3, 4]);
 });
 
+// доделать этот кейс
 // test("Handle variable declarations", () => {
 //     const arr = [1, 2, 3];
     
 //     for (const v of [arr.map((x) => x * 2)]) {
+//         alert(v);
+//     }
 
-//     assertJsArrayEquals(result, [2, 4, 6], "Array should be doubled");
+//     // assertJsArrayEquals(result, [2, 4, 6], "Array should be doubled");
 // });
