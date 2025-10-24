@@ -244,7 +244,7 @@ export function splice<T>(array: Array<T>, start: number, deleteCount: number | 
   var delta = ArrayCount(array) - newLength;
   
   // Resize the array
-  // array.splice((len - normalizedDeleteCount + items.length), (len - normalizedDeleteCount));
+  array.splice((len - normalizedDeleteCount + items.length), (len - normalizedDeleteCount));
   // array.length = len - normalizedDeleteCount + items.length;
 
   return removed;
@@ -265,12 +265,71 @@ export function toSorted<T>(array: Array<T>, compareFn?: (a: T, b: T) => number)
   throw 'Array.toSorted polyfill is not implemented yet';
 }
 
-// export function toSpliced<T>(array: Array<T>, start: number, deleteCount?: number, ...items: Array<T>): Array<T>
+export function toSpliced<T>(array: Array<T>, start: number, deleteCount: number | undefined, items: Array<T>): Array<T> {
+  deleteCount = deleteCount === undefined ? ArrayCount(array) - start : Int(deleteCount);
+
+  const len = ArrayCount(array);
+  const normalizedStart = start < 0 ? Max(len + start, 0) : Min(start, len);
+  const normalizedDeleteCount = Min(deleteCount, len - normalizedStart);
+  const result: Array<T> = [];
+
+  // Copy elements before the start index
+  for (let i = 0; i < normalizedStart; i++) {
+    result.push(array[i]);
+  }
+
+  // Insert new items
+  for (const item of items) {
+    result.push(item);
+  }
+
+  // Copy elements after the deleted section
+  for (let i = normalizedStart + normalizedDeleteCount; i < len; i++) {
+    result.push(array[i]);
+  }
+
+  return result;
+}
 
 export function unshift<T>(array: Array<T>, items: Array<T>): number {
-  throw 'Array.unshift polyfill is not implemented yet';
+  const len = ArrayCount(array);
+
+  // Shift existing elements to the right
+  for (let i = len - 1; i >= 0; i--) {
+    array[i + items.length] = array[i];
+  }
+  
+  // Insert new elements at the start
+  for (let i = 0; i < items.length; i++) {
+    array[i] = items[i];
+  }
+
+  return len + ArrayCount(items);
 }
 
 export function values<T>(array: Array<T>): Array<T> {
   return ArraySelectAll(array);
+}
+
+export function _with<T>(array: Array<T>, index: number, value: T): Array<T> {
+  const len = ArrayCount(array);
+  const normalizedIndex = Int(index);
+  const result: Array<T> = [];
+
+  for (let i = 0; i < len; i++) {
+    result[i] = array[i];
+  }
+
+  if (normalizedIndex < 0) {
+    const positiveIndex = len + normalizedIndex;
+    if (positiveIndex >= 0) {
+      result[positiveIndex] = value;
+    }
+  } else {
+    if (normalizedIndex < len) {
+      result[normalizedIndex] = value;
+    }
+  }
+
+  return result;
 }

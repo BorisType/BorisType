@@ -46,10 +46,11 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
 
         if (isArrayType) {
           if (node.expression.name.text === 'at') {
+            const args = collectArgs(expression, node, 2);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('at'),
               undefined,
-              [expression, ...node.arguments]
+              args
             );
           }
 
@@ -226,19 +227,37 @@ export default function arrayGeneralTransformer(program: ts.Program): ts.Transfo
           //   );
           // }
 
-          // if (node.expression.name.text === 'unshift') {
-          //   const args = collectArgs(expression, node, 3);
-          //   return ts.factory.createCallExpression(
-          //     makeArrayPolyfillExpression('unshift'),
-          //     undefined,
-          //     args
-          //   );
-          // }
+          if (node.expression.name.text === 'toSpliced') {
+            const args = collectArgs(expression, node, 4, true);
+            return ts.factory.createCallExpression(
+              makeArrayPolyfillExpression('toSpliced'),
+              undefined,
+              args
+            );
+          }
+
+          if (node.expression.name.text === 'unshift') {
+            const args = collectArgs(expression, node, 2, true);
+            return ts.factory.createCallExpression(
+              makeArrayPolyfillExpression('unshift'),
+              undefined,
+              args
+            );
+          }
 
           if (node.expression.name.text === 'values') {
-            const args = collectArgs(expression, node, 3);
+            const args = collectArgs(expression, node, 1);
             return ts.factory.createCallExpression(
               makeArrayPolyfillExpression('values'),
+              undefined,
+              args
+            );
+          }
+
+          if (node.expression.name.text === 'with') {
+            const args = collectArgs(expression, node, 3);
+            return ts.factory.createCallExpression(
+              makeArrayPolyfillExpression('_with'),
               undefined,
               args
             );
