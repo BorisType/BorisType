@@ -1,34 +1,25 @@
 import { PluginObj, PluginPass, types as t } from '@babel/core';
-import { parse } from '@babel/parser';
 import { Expression } from '@babel/types';
-import path from 'path';
-import fs from 'fs';
 
 interface DestructuringState extends PluginPass {
-  staticCode?: string;
-  helpers?: Map<string, t.FunctionDeclaration>;
-  needsObjectRest?: boolean;
-  needsArrayRest?: boolean;
+}
+
+function makeDestructuringPolyfillExpression(functionName: string) {
+  return t.memberExpression(
+    t.memberExpression(
+      t.memberExpression(
+        t.identifier('bt'),
+        t.identifier('polyfill')
+      ),
+      t.identifier('destructuring')
+    ),
+    t.identifier(functionName)
+  );
 }
 
 export default function replaceDestructuringPlugin(): PluginObj<DestructuringState> {
   return {
     name: 'replace-destructuring',
-    pre() {
-      const staticFilePath = 'destructuring.js';
-      this.staticCode = fs.readFileSync(path.resolve(__dirname, '..', '..', 'resources', staticFilePath), 'utf-8');
-      
-      const staticAst = parse(this.staticCode, { sourceType: 'script' });
-      this.helpers = new Map();
-      staticAst.program.body.forEach((node) => {
-        if (t.isFunctionDeclaration(node)) {
-          this.helpers!.set(node.id!.name, node);
-        }
-      });
-
-      this.needsObjectRest = false;
-      this.needsArrayRest = false;
-    },
     visitor: {
       VariableDeclaration(path, state) {
         const declarations = path.node.declarations;
@@ -65,11 +56,11 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
                 // Handle rest element (...restKeys)
                 const restIdent = prop.argument;
                 if (t.isIdentifier(restIdent)) {
-                  // Create ___btp_object_rest call with excluded keys
-                  const restCall = t.callExpression(t.identifier('___btp_object_rest'), [
-                    init as Expression,
-                    t.arrayExpression(excludedKeys)
-                  ]);
+                  const restCall = t.callExpression(
+                    makeDestructuringPolyfillExpression("object_rest"),
+                    [init as Expression, t.arrayExpression(excludedKeys)]
+                  );
+
                   const newDeclarator = t.variableDeclarator(restIdent, restCall);
                   newDeclarations.push(
                     t.variableDeclaration(path.node.kind, [newDeclarator])
@@ -108,11 +99,11 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
                 // Handle rest element (...restElems)
                 const restIdent = element.argument;
                 if (t.isIdentifier(restIdent)) {
-                  // Create ___btp_array_rest call: const restElems = ___btp_array_rest(_arr, index)
                   const restCall = t.callExpression(
-                    t.identifier('___btp_array_rest'),
+                    makeDestructuringPolyfillExpression("array_rest"),
                     [auxVarName, t.numericLiteral(index)]
                   );
+
                   const newDeclarator = t.variableDeclarator(restIdent, restCall);
                   newDeclarations.push(
                     t.variableDeclaration(path.node.kind, [newDeclarator])
@@ -127,25 +118,6 @@ export default function replaceDestructuringPlugin(): PluginObj<DestructuringSta
         if (newDeclarations.length > 0) {
           path.replaceWithMultiple(newDeclarations);
         }
-      },
-      Program: {
-        exit(path, state) {
-          const toInsert: t.Statement[] = [];
-
-          if (state.needsObjectRest) {
-            const objectRestFunc = state.helpers?.get('___btp_object_rest');
-            if (objectRestFunc) toInsert.push(objectRestFunc);
-          }
-
-          if (state.needsArrayRest) {
-            const arrayRestFunc = state.helpers?.get('___btp_array_rest');
-            if (arrayRestFunc) toInsert.push(arrayRestFunc);
-          }
-
-          if (toInsert.length > 0) {
-            path.node.body.unshift(...toInsert);
-          }
-        },
       },
     },
   };
