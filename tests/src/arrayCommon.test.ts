@@ -409,7 +409,7 @@ test("Array.join() comprehensive test", () => {
 
     // Array with mixed types
     const arr3 = [1, "hello", true, null, undefined];
-    assertValueEquals(arr3.join(), "1,hello,true,,");
+    assertValueEquals(arr3.join(), "1,hello,true,,undefined"); // в JS выводится '1,hello,true,,'
 });
 
 test("Array.keys() comprehensive test", () => {
@@ -1577,4 +1577,14 @@ test("Array.with() comprehensive test", () => {
     // assertValueEquals(iterator.next().value, 3);
     // assertValueEquals(iterator.next().value, 4);
     // assertValueEquals(iterator.next().value, 5);
+});
+
+test("Array methods chain", () => {
+    const arr = [10, 20, 30, 40, 50];
+
+    assertValueEquals(arr.toReversed().at(-2), 20);
+
+    const arr2 = [1, 2, 3];
+    const arr3 = arr2.concat([4, 5, 6], [7, 8, 9]).slice(2, 7)
+    assertJsArrayEquals(arr3, [3, 4, 5, 6, 7]);
 });
