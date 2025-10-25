@@ -1,9 +1,10 @@
 {
-  "name": "polyfill",
-  "version": "1.0.0",
+  "name": "@boristype/polyfill",
+  "version": "0.0.1-alpha.1",
   "description": "",
-  "main": "index.js",
+  "main": "./build/index.js",
   "scripts": {
+    "build": "npx btc --include-non-ts-files --no-use-polyfill",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "punkhomov",
@@ -19,5 +20,12 @@
   "devDependencies": {
     "btc": "file:../btc",
     "@boristype/types": "^1.0.0-alpha.1"
+  },
+  "ws:root": "./wt/bt/polyfill",
+  "ws:apiext": {
+    "name": "BT_polyfill",
+    "libs": [
+      "./init.xml"
+    ]
   }
 }
