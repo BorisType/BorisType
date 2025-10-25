@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from './logger';
-import { buildDependencyTree, extractBorisTypeDependencies, flattenDependencyTreeIterative, printDependencyTree, printFlattenedTree } from './dependencies';
+import { buildDependencyTree, extractBorisTypeDependencies, flattenDependencyTreeIterative, getCompilerRequiredDependencies as getCompilerRequiredBorisTypeDependencies, printDependencyTree, printFlattenedTree } from './dependencies';
 
 
 type WsPackageInfo = {
@@ -19,14 +19,18 @@ type WsLinkingLibraries = {
 
 export async function processLinking() {
   const projectPath = process.cwd();
+
+  const compilerDeps = await getCompilerRequiredBorisTypeDependencies(projectPath);
+  printFlattenedTree(compilerDeps);
+
   const dependencyTree = await buildDependencyTree(projectPath);
   printDependencyTree(dependencyTree);
+
   const flatTree = flattenDependencyTreeIterative(dependencyTree);
   printFlattenedTree(flatTree);
-  const borisTypeDeps = extractBorisTypeDependencies(flatTree);
 
+  const borisTypeDeps = [...compilerDeps, ...extractBorisTypeDependencies(flatTree)];
 
-  // const cwd = process.cwd();
   const packageFilePath = path.join(projectPath, 'package.json');
   const packageJson = require(packageFilePath);
   const packageInfo = parseWsPackageInfo(packageJson, projectPath);
@@ -42,7 +46,6 @@ export async function processLinking() {
   if (!fs.existsSync(distFilePath)) {
     fs.mkdirSync(distFilePath);
   }
-
 
   linkingPackages.forEach(dep => {
     const buildFilePath = path.join(dep.projectPath, 'build');

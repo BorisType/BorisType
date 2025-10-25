@@ -16,6 +16,7 @@ export type BscCompileOptions = {
   outDir?: string;
   includeNonTsFiles?: boolean;
   retainNonAsciiCharacters?: boolean;
+  usePolyfill?: boolean;
   removeComments?: boolean;
 }
 
@@ -61,6 +62,7 @@ program
   .option('--outDir <dir>', 'Directory to save processed files')
   .option('--include-non-ts-files', 'Process files that are not TypeScript', false)
   .option('--retain-non-ascii-characters', 'Keep non-ASCII characters in source files', false)
+  .option('--no-use-polyfill', 'Do not use polyfills')
   .option('--remove-comments', 'Remove comments from source files', false)
   .arguments('[files...]')
   .action(async (files: string[], options: any) => {

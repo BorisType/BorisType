@@ -20,7 +20,7 @@ export function buildTypescriptFiles(configuration: ts.ParsedCommandLine, option
   const babelConfig = createConfig({ sourceMaps: configuration.options.sourceMap, cwd: process.cwd() });
 
   decorateHostWriteFile(host, options, configuration, babelConfig);
-  const emitResult = decorateProgramEmit(host, program);
+  const emitResult = decorateProgramEmit(host, program, options);
 
   const diagnostics = [
     ...ts.getPreEmitDiagnostics(program),
@@ -155,16 +155,27 @@ export function transformOutput(fileName: string, code: string, options: BscComp
   return { newFileName: fileName, newFileContent: code };
 }
 
-function decorateProgramEmit(host: ts.CompilerHost, program?: ts.SemanticDiagnosticsBuilderProgram | ts.Program) {
-  return program?.emit(undefined, host.writeFile, undefined, undefined, {
-    before: [
+function decorateProgramEmit(host: ts.CompilerHost, program: ts.SemanticDiagnosticsBuilderProgram | ts.Program, options: BscCompileOptions) {
+  const beforeTransformers: ts.TransformerFactory<ts.SourceFile>[] = [];
+
+  if (options.usePolyfill) {
+    beforeTransformers.push(
       enumsToObjectsTransformer(),
       arrayFunctionalTransformer(program as ts.Program),
       arrayGeneralTransformer(program as ts.Program),
       stringTransformer(program as ts.Program),
       mathTransformer(),
       namespacesTransformer(),
-    ],
+    );
+  } else {
+    beforeTransformers.push(
+      enumsToObjectsTransformer(),
+      namespacesTransformer(),
+    );
+  }
+
+  return program.emit(undefined, host.writeFile, undefined, undefined, {
+    before: beforeTransformers,
   });
 }
 

@@ -19,6 +19,61 @@ export class DependencyNode {
   hash: string;
 }
 
+export async function getCompilerRequiredDependencies(projectPath: string): Promise<DependencyNode[]> {
+  const rootPackageJsonPath = path.join(projectPath, 'package.json');
+  const nodeModulesPath = path.join(projectPath, 'node_modules');
+
+  const rootPackageJson = JSON.parse(await fs.readFile(rootPackageJsonPath, 'utf-8'));
+  
+  const devDependencies = rootPackageJson.devDependencies || {};
+  const btcRemoteDependency = devDependencies['@boristype/btc'] !== undefined;
+  const btcLocalDependency = devDependencies['btc'] !== undefined;
+
+  if (!btcLocalDependency && !btcRemoteDependency) {
+    console.warn(`Предупреждение: В devDependencies отсутствует зависимость 'btc'.`);
+    return [];
+  }
+
+  const btcPath = btcRemoteDependency ? path.join(nodeModulesPath, '@boristype', 'btc') : path.join(nodeModulesPath, 'btc');
+  const btcPackageJsonPath = path.join(btcPath, 'package.json');
+  const btcPackageJson = JSON.parse(await fs.readFile(btcPackageJsonPath, 'utf-8'));
+
+  const btcDependencies = btcPackageJson.dependencies || {};
+
+  const result: DependencyNode[] = [];
+
+  for (const [depName, depVersion] of Object.entries(btcDependencies)) {
+    // console.log(`Требуемая зависимость компилятора: ${depName}@${depVersion}`);
+
+    if (depName.startsWith('@boristype/')) {
+      // Обработка зависимостей BorisType
+
+      // Если btc установлен из репозитория, ищем в node_modules проекта
+      // Если btc установлен локально (file:...), ищем в node_modules внутри btc
+      const btcNodeModulesPath = btcRemoteDependency ? nodeModulesPath : path.join(btcPath, 'node_modules');
+      const depPath = path.join(btcNodeModulesPath, depName);
+
+      try {
+        const depPackageJsonPath = path.join(depPath, 'package.json');
+        const depPackageJson = JSON.parse(await fs.readFile(depPackageJsonPath, 'utf-8'));
+
+        // console.log(`  Найдена зависимость BorisType: ${depName}@${depPackageJson.version}`);
+
+        const depNode = new DependencyNode(depPackageJson, depPath);
+        result.push(depNode);
+      } catch (err) {
+        if (err instanceof Error) {
+          console.warn(`Не удалось обработать зависимость ${depName}: ${err.message}`);
+        } else {
+          console.warn(`Не удалось обработать зависимость ${depName}: ${String(err)}`);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 export async function buildDependencyTree(projectPath: string) {
   const rootPackageJsonPath = path.join(projectPath, 'package.json');
   const nodeModulesPath = path.join(projectPath, 'node_modules');
@@ -137,21 +192,23 @@ export function flattenDependencyTreeIterative(rootNode: DependencyNode): Depend
   return result;
 }
 
+// Функция для вывода дерева (без изменений)
+export function printDependencyTree(node: DependencyNode, depth = 0) {
+  console.log('\n📦 Дерево зависимостей:');
+  console.log('='.repeat(50));
+  console.log(`${' '.repeat(depth * 2)}${node.name}@${node.version}  [${node.hash}]`);
+  for (const dep of node.dependencies) {
+    printDependencyTree(dep, depth + 1);
+  }
+}
+
 // Функция для вывода плоского массива
 export function printFlattenedTree(flatTree: DependencyNode[]) {
   console.log('\n📦 Плоский список зависимостей (в порядке загрузки):');
   console.log('='.repeat(50));
   flatTree.forEach((node, index) => {
-    console.log(`${(index + 1).toString().padStart(2)}. ${node.name}@${node.version} [${node.hash}]`);
+    console.log(`${(index + 1).toString().padStart(2)}. ${node.name}@${node.version}  [${node.hash}]`);
   });
-}
-
-// Функция для вывода дерева (без изменений)
-export function printDependencyTree(node: DependencyNode, depth = 0) {
-  console.log(`${' '.repeat(depth * 2)}${node.name}@${node.version}  [${node.hash}]`);
-  for (const dep of node.dependencies) {
-    printDependencyTree(dep, depth + 1);
-  }
 }
 
 export function extractBorisTypeDependencies(flatTree: DependencyNode[]): DependencyNode[] {
