@@ -244,7 +244,7 @@ export function splice<T>(array: Array<T>, start: number, deleteCount: number | 
   var delta = ArrayCount(array) - newLength;
   
   // Resize the array
-  array.splice((len - normalizedDeleteCount + items.length), (len - normalizedDeleteCount));
+  array.splice((len - normalizedDeleteCount + items.length), delta);
   // array.length = len - normalizedDeleteCount + items.length;
 
   return removed;
