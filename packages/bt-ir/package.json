@@ -1,0 +1,44 @@
+{
+  "name": "@boristype/bt-ir",
+  "version": "0.1.0-alpha.4",
+  "description": "IR-based backend for BorisType compiler",
+  "type": "module",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "bin": {
+    "bt-ir": "./build/cli.js"
+  },
+  "files": [
+    "build",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": ["boristype", "compiler", "transpiler", "ir"],
+  "author": "punkhomov",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BorisType/BorisType.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BorisType/BorisType/issues"
+  },
+  "homepage": "https://github.com/BorisType/BorisType#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

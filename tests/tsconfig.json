@@ -16,7 +16,8 @@
     "noLib": true,
     "typeRoots": [
       "node_modules/@boristype/types/lib",
-      "node_modules/@boristype/types/lib/xml"
+      "node_modules/@boristype/types/lib/xml",
+      "types"
     ]
   },
   "include": [

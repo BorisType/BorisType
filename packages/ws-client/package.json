@@ -1,0 +1,41 @@
+{
+  "name": "@boristype/ws-client",
+  "version": "0.1.0-alpha.2",
+  "description": "WSHCM SOAP client — клиент для работы с WebSoft HCM через SP-XML API",
+  "type": "module",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "build",
+    "resources",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "typescript": "^5.9.2"
+  },
+  "keywords": ["wshcm", "soap", "websoft", "hcm"],
+  "author": "BorisType Project",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BorisType/BorisType.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BorisType/BorisType/issues"
+  },
+  "homepage": "https://github.com/BorisType/BorisType#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

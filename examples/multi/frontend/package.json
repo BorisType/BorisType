@@ -1,0 +1,6 @@
+{
+  "name": "example-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example frontend application (static HTML)"
+}

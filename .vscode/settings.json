@@ -1,0 +1,8 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["**/btconfig.json"],
+      "url": "./schemas/btconfig.schema.json"
+    }
+  ]
+}

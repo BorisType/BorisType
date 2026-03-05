@@ -1,0 +1,42 @@
+{
+  "name": "@boristype/ws-version",
+  "version": "0.1.0-alpha.2",
+  "description": "Утилита для преобразования semver версий в формат целевой системы",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "node test.js",
+    "prepublishOnly": "pnpm build"
+  },
+  "dependencies": {
+    "semver": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/semver": "^7.0.0",
+    "typescript": "^5.9.2"
+  },
+  "keywords": ["version", "semver", "conversion"],
+  "author": "BorisType Project",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BorisType/BorisType.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BorisType/BorisType/issues"
+  },
+  "homepage": "https://github.com/BorisType/BorisType#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

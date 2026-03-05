@@ -1,0 +1,8 @@
+src/
+example/
+TODO.md
+tsconfig.json
+.turbo/
+.gitignore
+*.tsbuildinfo
+**/*.map

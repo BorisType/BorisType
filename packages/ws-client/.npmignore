@@ -1,0 +1,7 @@
+src/
+resources/
+tsconfig.json
+.turbo/
+.gitignore
+*.tsbuildinfo
+**/*.map

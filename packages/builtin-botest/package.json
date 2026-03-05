@@ -1,0 +1,24 @@
+{
+  "name": "botest-builtins",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "main": "./build/index.js",
+  "scripts": {
+    "build": "npx btc build --include-non-ts-files --compile-mode bare"
+  },
+  "author": "punkhomov",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BorisType/BorisType.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BorisType/BorisType/issues"
+  },
+  "homepage": "https://github.com/BorisType/BorisType#readme",
+  "devDependencies": {
+    "@boristype/bt-cli": "workspace:^",
+    "@boristype/types": "^1.0.0-alpha.3"
+  }
+}

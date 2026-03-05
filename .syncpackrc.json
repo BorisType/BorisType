@@ -1,0 +1,44 @@
+{
+  "$schema": "https://unpkg.com/syncpack@13/dist/schema.json",
+  "versionGroups": [
+    {
+      "label": "Exact-pinned workspace deps in bt-cli (bt-ir, runtime)",
+      "packages": ["@boristype/bt-cli"],
+      "dependencies": ["@boristype/bt-ir", "@boristype/runtime"],
+      "dependencyTypes": ["prod", "peer"],
+      "pinVersion": "workspace:*"
+    },
+    {
+      "label": "Workspace packages use workspace:^ protocol",
+      "dependencies": [
+        "@boristype/bt-cli",
+        "@boristype/bt-ir",
+        "@boristype/runtime",
+        "@boristype/ws-client",
+        "@boristype/ws-version",
+        "boristype-example-library"
+      ],
+      "dependencyTypes": [
+        "dev",
+        "prod",
+        "peer"
+      ],
+      "pinVersion": "workspace:^"
+    },
+    {
+      "label": "TypeScript aligned to latest",
+      "dependencies": ["typescript"],
+      "pinVersion": "^5.9.2"
+    },
+    {
+      "label": "@types/node aligned",
+      "dependencies": ["@types/node"],
+      "pinVersion": "^24.7.2"
+    },
+    {
+      "label": "fast-xml-parser aligned",
+      "dependencies": ["fast-xml-parser"],
+      "pinVersion": "^5.3.3"
+    }
+  ]
+}

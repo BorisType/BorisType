@@ -1,0 +1,19 @@
+packages:
+  - "packages/*"
+  - "tests"
+  - "examples/single"
+  - "examples/multi"
+  - "examples/multi/backend"
+  - "examples/library"
+  - "examples/component"
+ignoreScripts: true
+ignoreDepScripts: true
+blockExoticSubdeps: true
+minimumReleaseAge: 43200
+minimumReleaseAgeExclude:
+  - "@boristype/bt-cli"
+  - "@boristype/bt-ir"
+  - "@boristype/runtime"
+  - "@boristype/ws-client"
+  - "@boristype/ws-version"
+trustPolicy: strict

@@ -1,0 +1,9 @@
+{
+    "name": "Destructuring",
+    "tests": {
+        "object.test.js": "object destructuring",
+        "objectRest.test.js": "object destructuring with rest",
+        "array.test.js": "array destructuring",
+        "arrayRest.test.js": "array destructuring with rest"
+    }
+}

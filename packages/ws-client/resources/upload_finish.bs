@@ -1,0 +1,267 @@
+// имя целевого файла для загрузки (обычный файл или директория)
+var sFileName = '{{file_name}}' // string
+// путь назначения для загрузки
+var sDestPath = '{{dest_path}}' // string
+// временная директория на всю сессию процесса загрузки файлов
+var sTempPath = '{{temp_path}}' // string
+// перечень относительных путей всех загружаемых файлов
+var sarrFileList = ParseJson('{{file_paths}}'); // string[]
+
+function main() {
+    joinAllFiles();
+
+    if (!IsEmptyValue(sDestPath)) {
+        // Путь назначения указан, переместить файлы по этому пути и вернуть url'ы на них
+        return copyContentToDestination();
+    } else {
+        // Путь назначения НЕ указан, вернуть url'ы на файлы во временной директории
+        return getUploadedFileUrls();
+    }
+}
+
+function joinAllFiles() {
+    var sFilePath;
+    for (sFilePath in sarrFileList) {
+        joinChunks(sFilePath);
+    }
+}
+
+function joinChunks(sFilePath) {
+    var sFileHash = StrUpperCase(Md5Hex(sFilePath));
+    // path: <...tmp>/chunks/<file_hash = md5(file_path...)/chunk_>
+    var sChunkPath = FilePath(FilePath(FilePath(sTempPath, "chunks"), sFileHash), "chunk_");
+    // path: <...tmp>/files/<file_path...>
+    var sMirrorFilePath = UrlToFilePath(UrlAppendPath(FilePathToUrl(FilePath(sTempPath, "files")), sFilePath));
+
+    ObtainDirectory(ParentDirectory(sMirrorFilePath), true)
+    PutFileData(sMirrorFilePath, '');
+
+    var iChunkNumber = 0;
+    var iChunkSize = 0;
+    var iStartIndex = 0;
+    var iFinishIndex = 0;
+    var sbChunkData;
+    var sPresentChunkPath;
+    while (true) {
+        sPresentChunkPath = sChunkPath + iChunkNumber;
+        // alert(sPresentChunkPath)
+
+        try {
+            sbChunkData = LoadFileData(sPresentChunkPath);
+        } catch (err) {
+            break;
+        }
+
+        iChunkSize = FileSize(sPresentChunkPath);
+        iFinishIndex = iStartIndex + iChunkSize;
+        // alert('chunk write [' + chunkNumber + ']:  ' +  startIndex + '-' + finishIndex)
+        PutFileDataRange(sMirrorFilePath, iStartIndex, iFinishIndex, sbChunkData);
+        iStartIndex = iFinishIndex;
+
+        iChunkNumber += 1;
+    }
+
+    DeleteDirectory(ParentDirectory(sChunkPath))
+}
+
+function copyContentToDestination() {
+    if (!IsEmptyValue(sFileName)) {
+        var sContentPath = UrlToFilePath(UrlAppendPath(FilePathToUrl(FilePath(sTempPath, "files")), sFileName));
+        var sFinalPath = getFinalDestinationFilePath(sContentPath);
+
+        if (sFinalPath.error) {
+            deleteAnyFile(sContentPath);
+            throw sFinalPath.message;
+        } else {
+            copyAnyFile(sContentPath, sFinalPath.value);
+            deleteAnyFile(sContentPath);
+            return ok([FilePathToUrl(sFinalPath.value)]);
+        }
+    } else {
+        // glob режим (dir/*): копируем содержимое напрямую в destination
+        var sResolvedDestPath = resolveDestPath();
+        var sFilesPath = FilePath(sTempPath, "files");
+        var sarrUrls = [];
+        
+        var sFilePath;
+        var sSrcPath;
+        var sDstPath;
+        for (sFilePath in sarrFileList) {
+            sSrcPath = UrlToFilePath(UrlAppendPath(FilePathToUrl(sFilesPath), sFilePath));
+            sDstPath = UrlToFilePath(UrlAppendPath(FilePathToUrl(sResolvedDestPath), sFilePath));
+            copyAnyFile(sSrcPath, sDstPath);
+            deleteAnyFile(sSrcPath);
+            sarrUrls.push(FilePathToUrl(sDstPath));
+        }
+        
+        return ok(sarrUrls);
+    }
+}
+
+function getUploadedFileUrls() {
+    if (!IsEmptyValue(sFileName)) {
+        var sContentPath = UrlToFilePath(UrlAppendPath(FilePathToUrl(FilePath(sTempPath, "files")), sFileName));
+        return ok([FilePathToUrl(sContentPath)]);
+    } else {
+        // glob режим (dir/*): возвращаем URL'ы всех файлов
+        var sFilesPath = FilePath(sTempPath, "files");
+        var sarrUrls = [];
+        
+        var sFilePath;
+        for (sFilePath in sarrFileList) {
+            var sContentPath = UrlToFilePath(UrlAppendPath(FilePathToUrl(sFilesPath), sFilePath));
+            sarrUrls.push(FilePathToUrl(sContentPath));
+        }
+        
+        return ok(sarrUrls);
+    }
+}
+
+/**
+ * Разрешает путь назначения (x-local:// -> AppDirectoryPath)
+ */
+function resolveDestPath() {
+    if (sDestPath === "x-local://") {
+        return AppDirectoryPath();
+    }
+    try {
+        return UrlToFilePath(sDestPath);
+    } catch (err) {
+        return sDestPath;
+    }
+}
+
+function getFinalDestinationFilePath(sContentPath) {
+    if (sDestPath === "x-local://") {
+        sDestPath = AppDirectoryPath();
+    } else {
+        try {
+            sDestPath = UrlToFilePath(sDestPath);
+        } catch (err) { }
+    }
+
+    if (FilePathExists(sDestPath)) {
+        // sDestPath существует
+
+        if (IsDirectory(sDestPath)) {
+            // sDestPath - директория (существует)
+
+            if (IsDirectory(sContentPath)) {
+                // sContentPath - директория
+
+                // 1. директория -> директория (существует)
+                // директория sContentPath будет записана внутри директории sDestPath
+                return ok(FilePath(sDestPath, sFileName));
+            } else {
+                // sContentPath - файл
+
+                // 2. файл -> директория (существует)
+                // файл sContentPath будет записан внутри директории sDestPath
+                return ok(FilePath(sDestPath, sFileName));
+            }
+        } else {
+            // sDestPath - файл (существует)
+
+            if (IsDirectory(sContentPath)) {
+                // sContentPath - директория 
+
+                // 3. директория -> файл (существует)
+                // ERR: нельзя перезаписать директорию в существующий файл
+                return fail("cannot overwrite non-directory '" + sDestPath + "' with directory 'sFileName'");
+            } else {
+                // sContentPath - файл
+
+                // 4. файл -> файл (существует)
+                // файл sContentPath перезапишет существующий файл sDestPath
+                return ok(sDestPath);
+            }
+        }
+
+    } else {
+        var sParentDir = ParentDirectory(sDestPath);
+        if (!FilePathExists(sParentDir)) {
+            return fail("cannot create directory '" + sDestPath + "': No such file or directory");
+        } else if (!IsDirectory(sParentDir)) {
+            return fail("cannot create directory '" + sDestPath + "': Not a directory");
+        }
+
+        var sDestUrl = FilePathToUrl(sDestPath)
+        if (StrEnds(sDestUrl, "/")) {
+            // sDestPath - претендует быть директорией
+
+            if (IsDirectory(sContentPath)) {
+                // sContentPath - директория
+
+                // 5. директория -> директория (не существует)
+                // директория sContentPath будет записана по пути sDestPath
+                return ok(sDestPath);
+            } else {
+                // sContentPath - файл
+
+                // 6. файл -> директория (не существует)
+                // ERR: попытка записать файл внутрь несуществующей директории
+                return fail("cannot create regular file '" + sDestPath + "': Not a directory")
+            }
+        } else {
+            // sDestPath - файл или директория
+
+            if (IsDirectory(sContentPath)) {
+                // sContentPath - директория 
+
+                // 7. директория -> файл или директория (не существует)
+                // директория sContentPath будет записана по пути sDestPath
+                return ok(sDestPath);
+            } else {
+                // sContentPath - файл
+
+                // 8. файл -> файл или директория (не существует)
+                // файл sContentPath будет записан по пути sDestPath
+                return ok(sDestPath);
+            }
+        }
+    }
+}
+
+function copyAnyFile(sSrcPath, sDstPath) {
+    if (IsDirectory(sSrcPath)) {
+        ObtainDirectory(sDstPath);
+
+        var sarrFiles = ReadDirectoryByPath(sSrcPath);
+
+        var sFileDest = undefined;
+        var sFile;
+        for (sFile in sarrFiles) {
+            sFileDest = FilePath(sDstPath, FileName(sFile));
+            copyAnyFile(sFile, sFileDest);
+        }
+    } else if (FilePathExists(sSrcPath)) {
+        ObtainDirectory(ParentDirectory(sDstPath));
+        CopyFile(sSrcPath, sDstPath);
+    } else {
+        throw "No such file.";
+    }
+}
+
+function deleteAnyFile(sFilePathToDelete) {
+    if (IsDirectory(sFilePathToDelete)) {
+        DeleteDirectory(sFilePathToDelete)
+    } else if (FilePathExists(sFilePathToDelete)) {
+        DeleteFile(sFilePathToDelete);
+    } else {
+        throw "No such file.";
+    }
+}
+
+function ok(value) {
+    return { "error": false, "value": value };
+}
+
+function fail(msg) {
+    return { "error": true, "message": msg };
+}
+
+try {
+    return main();
+} catch (err) {
+    return fail(err + '');
+}

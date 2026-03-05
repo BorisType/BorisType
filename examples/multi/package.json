@@ -1,0 +1,17 @@
+{
+  "name": "boristype-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example multi-package project demonstrating btconfig.json linking",
+  "scripts": {
+    "build:backend": "cd backend && npm run build",
+    "build": "npm run build:backend",
+    "link": "npx btc link --clean",
+    "dev": "npx btc dev"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@boristype/bt-cli": "workspace:^"
+  }
+}

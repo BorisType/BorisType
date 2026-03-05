@@ -1,0 +1,17 @@
+{
+  "name": "boristype-example-library",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example library package project",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx btc build"
+  },
+  "author": "",
+  "license": "ISC",
+  "ws:package": "lib",
+  "devDependencies": {
+    "@boristype/bt-cli": "workspace:^",
+    "@boristype/types": "^1.0.0-alpha.3"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "boristype-example-single",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example single package project demonstrating legacy linking mode",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx btc build",
+    "link": "npx btc link",
+    "dev": "npx btc dev",
+    "push" : "npx btc push"
+  },
+  "author": "",
+  "license": "ISC",
+  "ws:package": "standalone",
+  "ws:name": "example-single",
+  "ws:root": "./wt/myapp",
+  "devDependencies": {
+    "@boristype/bt-cli": "workspace:^",
+    "@boristype/runtime": "workspace:^",
+    "@boristype/types": "^1.0.0-alpha.3"
+  },
+  "dependencies": {
+    "boristype-example-library": "workspace:^"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "boristype-example-component",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example component package demonstrating component linking",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx btc build --include-non-ts-files",
+    "link": "npx btc link --clean"
+  },
+  "author": "",
+  "license": "ISC",
+  "ws:package": "component",
+  "ws:name": "example-component",
+  "devDependencies": {
+    "@boristype/bt-cli": "workspace:^",
+    "@boristype/types": "^1.0.0-alpha.3"
+  },
+  "dependencies": {
+    "boristype-example-library": "workspace:^"
+  }
+}

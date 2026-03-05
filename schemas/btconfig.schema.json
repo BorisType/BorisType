@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://boristype.dev/schemas/btconfig.json",
+  "title": "BorisType Configuration",
+  "description": "Configuration file for BorisType compiler linking system",
+  "type": "object",
+  "properties": {
+    "linking": {
+      "description": "Linking configuration. Can be either a single package config (name, source, target) or multi-package config (packages array)",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Package name (overrides ws:name from package.json). Used when linking current project as single package",
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "description": "Source directory path. Defaults to ./build for BorisType packages",
+          "type": "string",
+          "pattern": "^\\.\\/",
+          "examples": ["./build", "./dist", "./src"]
+        },
+        "target": {
+          "description": "Target path inside dist/. Defaults to ws:root from package.json, then ./wt/{ws:name}",
+          "type": "string",
+          "pattern": "^\\.\\/",
+          "examples": ["./wt/myapp", "./wt/backend"]
+        },
+        "packages": {
+          "description": "Array of child packages to link. If specified, name/source/target are ignored",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/linkingPackage"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "linkingPackage": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Package name (directory name). System checks ./{name}/package.json for ws:package to determine package type",
+          "type": "string",
+          "minLength": 1,
+          "examples": ["backend", "frontend", "shared"]
+        },
+        "source": {
+          "description": "Source directory. Defaults to ./{name}/build for BorisType packages, REQUIRED for regular directories",
+          "type": "string",
+          "pattern": "^\\.\\/",
+          "examples": ["./backend/dist", "./frontend/src"]
+        },
+        "target": {
+          "description": "Target path inside dist/. Defaults to ws:root from package.json, REQUIRED for regular directories",
+          "type": "string",
+          "pattern": "^\\.\\/",
+          "examples": ["./wt/backend", "./wt/frontend"]
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    }
+  }
+}

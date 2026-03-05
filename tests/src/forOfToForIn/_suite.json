@@ -1,0 +1,6 @@
+{
+    "name": "for-of to for-in",
+    "tests": {
+        "variableDeclarations.test.js": "for-of loop with variable declarations"
+    }
+}

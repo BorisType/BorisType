@@ -1,0 +1,88 @@
+---
+description: Работа с тестами через botest
+globs: ["tests/**/*.ts"]
+alwaysApply: false
+---
+
+# Тесты botest
+
+## Суть
+
+Это **грубые тесты**, которые проверяют, что код вообще компилируется и выполняется правильно. Поэтому тесты разбросаны по файлам — каждый файл проверяет свой сценарий. Основа выполнения — **assert'ы** botest, которые проверяют, что код выполнился и выполнился правильно. Других методик пока нет.
+
+## Assert'ы
+
+- `botest.assertOk()` — тест прошёл успешно (обязательно в конце файла)
+- `botest.assertValueEquals(actual, expected, message)` — сравнение значений
+- `botest.assertJsArrayEquals(actual, expected, message)` — сравнение массивов
+- `botest.assertJsObjectEquals(actual, expected, message)` — сравнение объектов
+
+**Третий аргумент** в assert'ах: обязательно строка с уникальным описанием на файл (для отладки) или `undefined`.
+
+```typescript
+// ✅ GOOD — уникальное описание
+botest.assertValueEquals(arr.at(0), 10, "at(0) should return first element");
+
+// ✅ OK — undefined
+botest.assertJsArrayEquals(result, [1, 2], undefined);
+
+// ❌ BAD — пустая строка или дублирующееся описание
+botest.assertValueEquals(x, y, "");
+```
+
+## Создать новый тест в существующем наборе
+
+1. Добавить файл `имя.test.ts` в директорию сьюта (например `tests/src/array/`).
+2. Зарегистрировать в `_suite.json`:
+   ```json
+   "имя.test.js": "Краткое описание теста"
+   ```
+   (в JSON указывается `.test.js` — имя скомпилированного файла)
+
+## Создать новый набор тестов
+
+1. Создать директорию в `tests/src/`, например `tests/src/mySuite/`.
+2. Создать `_suite.json`:
+   ```json
+   {
+     "name": "Название набора",
+     "tests": {
+       "first.test.js": "Описание первого теста"
+     }
+   }
+   ```
+3. Добавить файлы `*.test.ts` в эту директорию.
+
+## Запуск тестов
+
+**Обязательно запускать из корневой папки проекта.**
+
+```bash
+# Собрать тесты и запустить все
+npm run test
+
+# Только запуск (тесты уже собраны)
+npm run test:run
+
+# Фильтрация — передать имя сьюта или путь к файлу после tests/build
+node ./botest/build/index.js tests/build array
+node ./botest/build/index.js tests/build array/at.test.js
+node ./botest/build/index.js tests/build precedence propSemantic/nested.test.js
+```
+
+| Аргумент | Результат |
+|----------|-----------|
+| `array` | Запустить весь сьют array |
+| `array/at.test.js` | Запустить только этот тест |
+| `array propSemantic` | Запустить несколько сьютов |
+
+## Соглашения
+
+- Каждый файл — отдельный тест
+- Обязательно `botest.assertOk()` в конце
+- Уникальные сообщения или `undefined`
+- Тесты должны быть независимыми
+
+## См. также
+
+- [Testing Guide](../../docs/guides/testing.md) — пользовательская документация

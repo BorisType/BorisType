@@ -1,0 +1,14 @@
+{
+  "linking": {
+    "packages": [
+      {
+        "name": "backend"
+      },
+      {
+        "name": "frontend",
+        "source": "./frontend/src",
+        "target": "./wt/frontend"
+      }
+    ]
+  }
+}

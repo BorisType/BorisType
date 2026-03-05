@@ -1,0 +1,49 @@
+{
+  "name": "@boristype/bt-cli",
+  "version": "0.1.0-alpha.4",
+  "description": "This tool compiles TypeScript into valid SP-XML JavaScript (also known as BorisScript), ensuring full compliance with the specific constraints and APIs of the WebSoft HCM platform.",
+  "main": "./build/index.js",
+  "bin": {
+    "btc": "./build/index.js"
+  },
+  "files": [
+    "build",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "pnpm build"
+  },
+  "author": "punkhomov",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BorisType/BorisType.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BorisType/BorisType/issues"
+  },
+  "homepage": "https://github.com/BorisType/BorisType#readme",
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "typescript": "^5.9.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@boristype/bt-ir": "workspace:*",
+    "@boristype/ws-client": "workspace:^",
+    "@boristype/ws-version": "workspace:^",
+    "@types/archiver": "^7.0.0",
+    "archiver": "^7.0.1",
+    "chalk": "^5.6.0",
+    "chokidar": "^5.0.0",
+    "commander": "^14.0.1",
+    "fast-xml-parser": "^5.3.3",
+    "typescript": "^5.9.2"
+  }
+}

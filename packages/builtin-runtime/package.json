@@ -1,0 +1,43 @@
+{
+  "name": "@boristype/runtime",
+  "version": "0.1.0-alpha.4",
+  "description": "BorisScript runtime polyfills for the BorisType compiler",
+  "files": [
+    "build",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "npx btc build --include-non-ts-files --compile-mode bare && node scripts/gen-package-file.js",
+    "prepublishOnly": "pnpm build"
+  },
+  "author": "punkhomov",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BorisType/BorisType.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BorisType/BorisType/issues"
+  },
+  "homepage": "https://github.com/BorisType/BorisType#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@boristype/bt-cli": "workspace:^",
+    "@boristype/types": "^1.0.0-alpha.3",
+    "@boristype/ws-version": "workspace:^"
+  },
+  "ws:package": "system",
+  "ws:name": "bt-runtime",
+  "ws:root": "./wt/bt/runtime",
+  "ws:apiext": {
+    "name": "bt:runtime",
+    "libs": [
+      "./init.xml"
+    ]
+  }
+}

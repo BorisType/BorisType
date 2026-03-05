@@ -1,0 +1,61 @@
+---
+description: BT-CLI — BorisType Compiler architecture and conventions
+globs: ["packages/bt-cli/**/*"]
+alwaysApply: false
+---
+
+# btc — BorisType Compiler
+
+## Архитектура
+
+- `cli/` — тонкие обёртки над commander. Не содержат бизнес-логику. Импортируют из `core/`.
+- `core/` — вся бизнес-логика. Каждый модуль (`building/`, `linking/`, `pushing/`, `artifacting/`) имеет `index.ts` (фасад) и `types.ts`.
+- `core/utils/` — общие утилиты (logger, XML, properties parser). Не зависят от модулей выше.
+- `core/config.ts` — чтение tsconfig.json и btconfig.json. Единственный модуль конфигурации.
+
+## Emit и компиляция
+
+- TypeScript Compiler API используется **только для диагностики** (`noEmit: true`).
+- Кодогенерация выполняется через `compileSourceFile()` из пакета `bt-ir`.
+- Трансформеры TypeScript и Babel **удалены** — всё делается через IR.
+
+## Правила зависимостей
+
+- `cli/` → `core/` (одностороннее)
+- `core/` **НИКОГДА** не импортирует из `cli/`
+- Внутри `core/`: модули импортируют `utils/`, `config.ts`, `logger.ts` — НЕ друг друга напрямую (кроме `building/coordinator.ts` → `linking/`, `pushing/`)
+- Внешние пакеты: `bt-ir`, `@boristype/ws-client`, `@boristype/runtime`, `fast-xml-parser`, `commander` (только в cli), `chokidar`, `archiver`
+
+## Соглашения о коде
+
+- JSDoc для всех экспортируемых функций, классов и типов.
+- Не использовать `process.exit()` в `core/` — бросать ошибки. `process.exit()` допустим только в `cli/`.
+- Предпочитать `node:fs`, `node:path`, `node:crypto` (с префиксом `node:`).
+- XML-инстансы (`XMLBuilder`, `XMLParser`) брать из `core/utils/xml.ts`, не создавать локально.
+- Logger: использовать `import { logger } from '../logger.js'`, не создавать новые экземпляры.
+- `.properties` парсинг: использовать `parsePropertiesFile()` из `core/utils/properties.ts`.
+
+## Модульная система
+
+- TypeScript с `moduleResolution: "NodeNext"`.
+- В относительных импортах **обязательно** указывать расширение `.js`.
+- Barrel-экспорты (`index.ts`) — для фасадов модулей. Внутренние файлы модуля могут импортировать друг друга напрямую.
+
+## Линковка
+
+- Pipeline: resolve → parse → link → generate → finalize.
+- Линковщики (`linkers/`) — по типу пакета: standalone, component, system.
+- Генераторы (`generators/`) — api_ext.xml, init.xml, filemap, component.xml.
+- Не добавлять новые `process.exit()` в парсеры и линковщики.
+
+## Watch mode (dev)
+
+- `DevCoordinator` (`core/building/coordinator.ts`) координирует multi-package сборку.
+- `DebouncedPushQueue` (`core/pushing/queue.ts`) debounce-ит авто-push.
+- `BuildPipeline.watch()` использует `ts.createWatchProgram` с `noEmit: true` + emit через bt-ir для изменённых файлов.
+
+## См. также
+
+- [BT-CLI Architecture](../../ref/architecture/btc.md) — детальная архитектура
+- [Build Pipeline](../../docs/guides/dev-mode.md) — как работает компиляция
+- [Linking System](../../docs/Linking.md) — линковка модулей

@@ -1,6 +1,12 @@
 node_modules
 build
 dist
-/botest/src/borisscript/main.js
-/example
-/std
+artifact
+packages/botest/src/borisscript/main.js
+.btc
+.turbo
+.npmrc
+
+# VitePress
+docs/.vitepress/dist
+docs/.vitepress/cache

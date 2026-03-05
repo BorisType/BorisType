@@ -1,19 +1,18 @@
 {
   "name": "boristype-tests",
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "private": true,
   "description": "Tests",
   "main": "index.js",
   "scripts": {
-    "build": "npx btc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npx btc build --include-non-ts-files && node generate-filemap.js"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "typescript": "^5.9.2",
-    "btc": "file:../btc"
+    "@boristype/bt-cli": "workspace:^",
+    "@boristype/types": "^1.0.0-alpha.3"
   },
-  "dependencies": {
-    "@boristype/types": "^1.0.0-alpha.1"
-  }
+  "ws:package": "app",
+  "ws:root": "./wt/norbit"
 }

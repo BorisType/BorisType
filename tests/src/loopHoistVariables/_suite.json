@@ -1,0 +1,9 @@
+{
+    "name": "Hoist loop vars",
+    "tests": {
+        "for.test.js": "for loop with block-scoped variables",
+        "forOf.test.js": "for-of loop with block-scoped variables",
+        "forIn.test.js": "for-in loop with block-scoped variables",
+        "nested.test.js": "deeply nested loops with block-scoped variables"
+    }
+}

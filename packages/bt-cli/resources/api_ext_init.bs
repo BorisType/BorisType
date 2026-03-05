@@ -1,0 +1,23 @@
+try {
+    sApiUrl = 'x-local://source/api_ext.xml';
+
+    if (tools.file_url_exists_server(sApiUrl)) {
+        teApis = OpenDoc(sApiUrl, 'form=x-local://wtv/wtv_form_api_ext.xmd;ignore-top-elem-name=1;').TopElem;
+
+        for (fldApiElem in teApis.apis) {
+            for (fldLibElem in fldApiElem.libs) {
+                if (fldLibElem.path.HasValue) {
+                    FetchDoc(fldLibElem.path).SetShared();
+                    
+                    if (LdsIsServer) {
+                        alert('External API Lib: ' + fldLibElem.path + '. Loaded.');
+                    }
+                }
+            }
+        }
+    }
+} catch (err) {
+    if (LdsIsServer) {
+        alert('Error loading external API: ' + err);
+    }
+}

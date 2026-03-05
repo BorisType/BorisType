@@ -1,0 +1,12 @@
+var dest_path = '{{destination}}';
+try {
+    dest_path = UrlToFilePath(dest_path);
+} catch (err) {}
+var sTempPath = ObtainTempDirectoryPath();
+var chunk_path = FilePath(FilePath(FilePath(sTempPath, 'chunks'), 'RELATIVE_PATH_HASH'), 'chunk');
+
+return {
+    'dest_path': dest_path,
+    'temp_path': sTempPath,
+    'chunk_path': chunk_path
+};

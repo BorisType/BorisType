@@ -1,0 +1,9 @@
+{
+    "name": "Troubleshooting with AST parsing of BS code",
+    "tests": {
+        "variable-assign.test.js": "assignment to variables",
+        "object-values.test.js": "object values parsing and handling",
+        "function-arg.test.js": "function parameters parsing and handling",
+        "expression-extraction.test.js": "complex expressions inside other expressions (optional chaining, ternary in binary/template/call)"
+    }
+}
