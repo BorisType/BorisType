@@ -149,4 +149,3 @@ my-mono-project/
 - [Что такое BorisType?](./what-is-boristype) — подробнее о проекте и архитектуре
 - [Режимы компиляции](../reference/compile-modes) — bare, script, module
 - [Ограничения BorisScript](../reference/borisscript-constraints) — что умеет (и не умеет) целевая платформа
-- [Тестирование](./testing) — как тестировать транспилированный код
