@@ -5,14 +5,18 @@
   "description": "Example backend application",
   "main": "index.js",
   "scripts": {
-    "build": "npx btc build"
+    "build": "npx btc build",
+    "lint": "eslint src/"
   },
   "ws:package": "standalone",
   "ws:name": "example-backend",
   "ws:root": "./wt/backend",
   "devDependencies": {
     "@boristype/bt-cli": "workspace:^",
-    "@boristype/types": "^1.0.0-alpha.3"
+    "@boristype/eslint-plugin": "workspace:^",
+    "@boristype/types": "^1.0.0-alpha.3",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0"
   },
   "dependencies": {
     "boristype-example-library": "workspace:^"

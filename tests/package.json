@@ -5,13 +5,17 @@
   "description": "Tests",
   "main": "index.js",
   "scripts": {
-    "build": "npx btc build --include-non-ts-files && node generate-filemap.js"
+    "build": "npx btc build --include-non-ts-files && node generate-filemap.js",
+    "lint": "eslint src/"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@boristype/bt-cli": "workspace:^",
-    "@boristype/types": "^1.0.0-alpha.3"
+    "@boristype/eslint-plugin": "workspace:^",
+    "@boristype/types": "^1.0.0-alpha.3",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0"
   },
   "ws:package": "app",
   "ws:root": "./wt/norbit"
