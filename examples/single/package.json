@@ -8,7 +8,8 @@
     "build": "npx btc build",
     "link": "npx btc link",
     "dev": "npx btc dev",
-    "push" : "npx btc push"
+    "push": "npx btc push",
+    "lint": "eslint src/"
   },
   "author": "",
   "license": "ISC",
@@ -17,8 +18,11 @@
   "ws:root": "./wt/myapp",
   "devDependencies": {
     "@boristype/bt-cli": "workspace:^",
+    "@boristype/eslint-plugin": "workspace:^",
     "@boristype/runtime": "workspace:^",
-    "@boristype/types": "^1.0.0-alpha.3"
+    "@boristype/types": "^1.0.0-alpha.3",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0"
   },
   "dependencies": {
     "boristype-example-library": "workspace:^"

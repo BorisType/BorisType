@@ -1,0 +1,50 @@
+{
+  "name": "@boristype/eslint-plugin",
+  "version": "0.1.0-alpha.5",
+  "description": "ESLint plugin with custom rules for BorisType/BorisScript development",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "build",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node --test build/**/*.test.js",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "boristype",
+    "borisscript"
+  ],
+  "author": "punkhomov",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BorisType/BorisType.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BorisType/BorisType/issues"
+  },
+  "homepage": "https://github.com/BorisType/BorisType#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "peerDependencies": {
+    "eslint": ">=9.0.0"
+  },
+  "devDependencies": {
+    "@types/eslint": "^9.0.0",
+    "@types/node": "^24.7.2",
+    "eslint": "^9.0.0",
+    "typescript": "^5.9.2",
+    "@typescript-eslint/parser": "^8.0.0"
+  }
+}
