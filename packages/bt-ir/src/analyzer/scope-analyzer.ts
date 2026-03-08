@@ -113,7 +113,7 @@ export function analyzeScopes(
   // Регистрируем все имена из исходного кода в BindingManager
   // чтобы избежать коллизий при генерации временных переменных
   // Включаем и оригинальные имена, и переименованные
-  const sourceNames = allVariables.flatMap(v => 
+  const sourceNames = allVariables.flatMap(v =>
     v.renamedTo ? [v.name, v.renamedTo] : [v.name]
   );
   bindings.registerSourceNames(sourceNames);
@@ -155,25 +155,26 @@ function recalculateDepth(scope: Scope, currentDepth: number): void {
   }
 }
 
+// TODO: зачем у нас тут _allVariables вообще?
 /**
  * Разрешает конфликты между var (hoisted) и let/const (block-scoped)
- * 
+ *
  * В BorisScript нет block scope — все переменные становятся var.
  * Если в одном function/module scope есть:
  * - var X (hoisted на function/module level)
  * - let X или const X в block scope
- * 
+ *
  * То let/const должен быть переименован чтобы избежать конфликта.
  */
-function resolveVarLetConflicts(moduleScope: Scope, allVariables: VariableInfo[]): void {
+function resolveVarLetConflicts(moduleScope: Scope, _allVariables: VariableInfo[]): void {
   // Для каждого function/module scope собираем все var имена
   const functionScopes = collectFunctionScopes(moduleScope);
-  
+
   for (const funcScope of functionScopes) {
     // Собираем все var имена в этом function scope (включая hoisted из blocks)
     const varNames = new Set<string>();
     collectVarNames(funcScope, varNames);
-    
+
     // Проверяем все let/const в block scopes внутри этой функции
     renameConflictingLetConst(funcScope, varNames);
   }
@@ -184,7 +185,7 @@ function resolveVarLetConflicts(moduleScope: Scope, allVariables: VariableInfo[]
  */
 function collectFunctionScopes(scope: Scope): Scope[] {
   const result: Scope[] = [scope];
-  
+
   for (const child of scope.children) {
     if (child.type === "function") {
       result.push(...collectFunctionScopes(child));
@@ -193,7 +194,7 @@ function collectFunctionScopes(scope: Scope): Scope[] {
       result.push(...collectFunctionScopes(child));
     }
   }
-  
+
   return result.filter(s => s.type === "function" || s.type === "module");
 }
 
@@ -206,7 +207,7 @@ function collectVarNames(scope: Scope, varNames: Set<string>): void {
       varNames.add(varInfo.name);
     }
   }
-  
+
   for (const child of scope.children) {
     // var hoists из block scopes, но не из function scopes
     if (child.type === "block") {
@@ -227,7 +228,7 @@ function renameConflictingLetConst(scope: Scope, varNames: Set<string>): void {
       }
     }
   }
-  
+
   for (const child of scope.children) {
     // Рекурсивно проверяем children (кроме function — у них свой scope)
     if (child.type !== "function") {
@@ -686,7 +687,7 @@ export function printScopeTree(scope: Scope, indent = 0): void {
  * Используется для генерации __env.__parent.__parent...
  *
  * Считает только scopes с hasCaptured (которые создают свой __env)
- * 
+ *
  * fromScope должен быть потомком toScope (или равен ему).
  * Если toScope не найден в цепочке parent, возвращает 0
  * (защита от некорректного вызова).

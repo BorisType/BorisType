@@ -11,6 +11,11 @@
       "outputs": [],
       "outputLogs": "new-only"
     },
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "cache": false
+    },
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,

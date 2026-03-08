@@ -6,20 +6,41 @@
   "packageManager": "pnpm@10.30.1",
   "scripts": {
     "test:run": "node ./packages/botest/build/index.js tests/build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
     "version": "pnpm changeset version && node scripts/postversion.js",
     "publish:all": "node scripts/publish.js",
     "publish:dry": "node scripts/publish.js --dry-run",
     "check-versions": "syncpack list-mismatches",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,mjs,cjs,js}": [
+      "prettier --write"
+    ]
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@boristype/eslint-plugin": "workspace:^",
     "@changesets/cli": "^2.29.8",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.0.0",
     "syncpack": "^13.0.4",
     "turbo": "^2.7.5",
+    "typescript-eslint": "^8.0.0",
     "vitepress": "^1.6.4",
     "vue": "^3.5.27"
   }

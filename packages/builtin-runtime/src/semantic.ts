@@ -282,10 +282,8 @@ export namespace bt {
                 return CallObjectMethod(lib3, ref3, [env3, obj3, args]);
             } else {
                 // standard object method - ?
-                const env4 = (func as FuncDescriptor).env;
                 const obj4 = (func as FuncDescriptor).obj;
                 const ref4 = (func as FuncDescriptor).ref!;
-                const argsEval4 = collectArgsToEval("args", args.length);
 
                 // return eval(`obj4.${ref4}(${argsEval4})`);
                 return CallObjectMethod(obj4, ref4, args);
@@ -343,7 +341,7 @@ export namespace bt {
             // Аргументы игнорируются пока что
             return new ctorDesc;
         }
-        
+
         const instance = { __proto: proto } as any;
 
         // Вызываем конструктор с instance как __this

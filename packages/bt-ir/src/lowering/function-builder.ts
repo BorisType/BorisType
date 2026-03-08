@@ -22,7 +22,7 @@ import {
   type IRExpression,
   type SourceLocation,
 } from "../ir/index.ts";
-import type { Scope, VariableInfo } from "../analyzer/index.ts";
+import type { VariableInfo } from "../analyzer/index.ts";
 import type { BindingManager } from "./binding.ts";
 import { buildEnvChainAccess } from "./env-resolution.ts";
 

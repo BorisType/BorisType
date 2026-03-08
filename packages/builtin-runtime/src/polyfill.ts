@@ -7,6 +7,7 @@ import {
 } from "./prelude";
 
 export namespace bt {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let polyfill: Polyfill;
 
     export function init_polyfill() {

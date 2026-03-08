@@ -21,7 +21,7 @@ import {
 import type { VisitorContext } from "./visitor.ts";
 import { visitExpression } from "./expressions.ts";
 import { visitStatementList, visitStatement } from "./statements.ts";
-import { getLoc, isTypeOnlyImport } from "./helpers.ts";
+import { getLoc } from "./helpers.ts";
 
 // ============================================================================
 // Bare Function Declaration
@@ -123,6 +123,7 @@ export function visitBareVariableStatement(
     }
     // Деструктуризация массива: const [a, b] = arr
     else if (ts.isArrayBindingPattern(decl.name) && decl.initializer) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const init = visitExpression(decl.initializer, ctx);
       let index = 0;
       for (const element of decl.name.elements) {

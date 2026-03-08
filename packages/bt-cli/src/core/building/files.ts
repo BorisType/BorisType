@@ -1,18 +1,18 @@
 /**
  * Работа с файлами для сборки
- * 
+ *
  * Отвечает за:
  * - Сбор non-TypeScript файлов из проекта
  * - Копирование non-TypeScript файлов в output директорию
  * - Watch mode для non-TypeScript файлов
- * 
+ *
  * @module build/files
  */
 
 import fs from 'node:fs';
 import { dirname, normalize, relative, resolve, join } from 'node:path';
 import type ts from 'typescript';
-import chokidar, { FSWatcher } from 'chokidar';
+import chokidar from 'chokidar';
 import { logger } from '../logger.js';
 import type { BuildContext } from './types.js';
 
@@ -32,7 +32,7 @@ function isSubpath(parent: string, child: string): boolean {
 
 /**
  * Определяет rootDir из конфигурации
- * 
+ *
  * Если rootDir не указан явно, пытается вычислить из include паттернов
  * или использует директорию tsconfig.
  */
@@ -41,7 +41,7 @@ function inferRootDir(configuration: ts.ParsedCommandLine, configDir: string): s
   if (configuration.options.rootDir) {
     return resolve(configDir, configuration.options.rootDir);
   }
-  
+
   // Пытаемся извлечь общий prefix из include паттернов
   const { include } = configuration.raw || {};
   if (include && include.length > 0) {
@@ -50,20 +50,20 @@ function inferRootDir(configuration: ts.ParsedCommandLine, configDir: string): s
     const baseDir = firstPattern.split('*')[0].replace(/\/+$/, '') || '.';
     return resolve(configDir, baseDir);
   }
-  
+
   // Fallback: директория tsconfig
   return configDir;
 }
 
 /**
  * Собирает список non-TypeScript файлов из rootDir
- * 
+ *
  * Сканирует все файлы в rootDir, исключая:
  * - TypeScript файлы (.ts, .tsx)
  * - Файлы из exclude паттернов tsconfig
  * - outDir (если находится внутри rootDir)
  * - node_modules
- * 
+ *
  * @param configuration - ParsedCommandLine от TypeScript
  * @param configDir - Директория где находится tsconfig (для resolve путей)
  * @returns Список абсолютных путей к non-TypeScript файлам
@@ -85,12 +85,12 @@ export function collectNonTypescriptFiles(
 
   const rootDir = inferRootDir(configuration, configDir);
   const absoluteOutDir = resolve(configDir, outDir);
-  
+
   // Базовые исключения
   const ignore: string[] = [
     '**/node_modules/**',
   ];
-  
+
   // Добавляем exclude из tsconfig
   const { exclude } = configuration.raw || {};
   if (exclude) {
@@ -98,7 +98,7 @@ export function collectNonTypescriptFiles(
       ignore.push(pattern);
     }
   }
-  
+
   // Исключаем outDir если он внутри rootDir
   if (isSubpath(rootDir, absoluteOutDir)) {
     const relativeOutDir = relative(rootDir, absoluteOutDir);
@@ -107,19 +107,19 @@ export function collectNonTypescriptFiles(
 
   // Сканируем rootDir
   const pattern = join(rootDir, '**', '*').replace(/\\/g, '/');
-  
+
   // Node.js fs.globSync возвращает string[], фильтруем вручную
   return fs.globSync(pattern, {
     exclude: (fileName) => {
       // Проверяем ignore паттерны
       const relativePath = relative(rootDir, fileName).replace(/\\/g, '/');
-      
+
       // Если путь выходит за пределы rootDir, пропускаем проверку
       // (fs.globSync может вызывать exclude для родительских директорий)
       if (relativePath.startsWith('..')) {
         return false;
       }
-      
+
       return ignore.some(p => {
         if (typeof p === 'string') {
           // Простая проверка glob паттернов
@@ -155,9 +155,9 @@ function selectFiles(allFiles: string[], filterFiles: string[]): string[] {
 
 /**
  * Копирует non-TypeScript файлы в output директорию
- * 
+ *
  * Сохраняет структуру директорий относительно rootDir.
- * 
+ *
  * @param context - Контекст сборки
  */
 export function copyNonTypescriptFiles(context: BuildContext): void {
@@ -171,7 +171,7 @@ export function copyNonTypescriptFiles(context: BuildContext): void {
   }
 
   const { outDir } = tsConfig.options;
-  
+
   if (!outDir) {
     logger.warning('outDir not set, skipping non-TypeScript files copy');
     return;
@@ -187,7 +187,7 @@ export function copyNonTypescriptFiles(context: BuildContext): void {
   for (const filePath of selectedFiles) {
     const relativePath = relative(rootDir, filePath);
     const outputFilePath = resolve(absoluteOutDir, relativePath);
-    
+
     fs.mkdirSync(dirname(outputFilePath), { recursive: true });
     fs.writeFileSync(outputFilePath, fs.readFileSync(resolve(filePath), 'utf-8'));
   }
@@ -195,11 +195,11 @@ export function copyNonTypescriptFiles(context: BuildContext): void {
 
 /**
  * Создаёт watcher для non-TypeScript файлов
- * 
+ *
  * Использует chokidar для отслеживания изменений в non-ts файлах
  * и копирует их в output директорию при изменении.
  * Использует ту же логику определения rootDir, что и collectNonTypescriptFiles.
- * 
+ *
  * @param context - Контекст сборки
  * @param onChange - Callback при изменении файла (опционально)
  * @returns Контроллер для остановки watch
@@ -209,7 +209,7 @@ export function watchNonTypescriptFiles(
   onChange?: (filePath: string) => void
 ): { close: () => void } {
   const { tsConfig, options, cwd } = context;
-  
+
   if (options.includeNonTsFiles === false) {
     // Возвращаем пустой контроллер если non-ts файлы отключены
     return { close: () => {} };
@@ -217,7 +217,7 @@ export function watchNonTypescriptFiles(
 
   const { outDir } = tsConfig.options;
   const configDir = cwd || process.cwd();
-  
+
   if (!outDir) {
     logger.warning('outDir not set, skipping non-TypeScript files watch');
     return { close: () => {} };
@@ -226,7 +226,7 @@ export function watchNonTypescriptFiles(
   // Используем ту же логику что и collectNonTypescriptFiles
   const rootDir = inferRootDir(tsConfig, configDir);
   const absoluteOutDir = resolve(configDir, outDir);
-  
+
   // Формируем ignored паттерны
   const { exclude } = tsConfig.raw || {};
   const ignoredPatterns: (string | RegExp | ((path: string) => boolean))[] = [
@@ -234,14 +234,14 @@ export function watchNonTypescriptFiles(
     // Игнорируем TypeScript файлы
     (filePath: string) => TS_EXTENSIONS.some(ext => filePath.endsWith(ext)),
   ];
-  
+
   // Добавляем exclude из tsconfig
   if (exclude) {
     for (const pattern of exclude) {
       ignoredPatterns.push(resolve(configDir, pattern).replace(/\\/g, '/'));
     }
   }
-  
+
   // Исключаем outDir
   if (isSubpath(rootDir, absoluteOutDir)) {
     ignoredPatterns.push((filePath: string) => isSubpath(absoluteOutDir, filePath) || filePath === absoluteOutDir);
@@ -280,16 +280,16 @@ export function watchNonTypescriptFiles(
     if (!isNonTsFile(filePath)) {
       return;
     }
-    
+
     try {
       const relativePath = relative(rootDir, filePath);
       const outputFilePath = resolve(absoluteOutDir, relativePath);
-      
+
       fs.mkdirSync(dirname(outputFilePath), { recursive: true });
       fs.copyFileSync(filePath, outputFilePath);
-      
+
       logger.info(`📄 Copied: ${relativePath}`);
-      
+
       if (onChange) {
         onChange(filePath);
       }
@@ -306,15 +306,15 @@ export function watchNonTypescriptFiles(
     if (!isNonTsFile(filePath)) {
       return;
     }
-    
+
     try {
       const relativePath = relative(rootDir, filePath);
       const outputFilePath = resolve(absoluteOutDir, relativePath);
-      
+
       if (fs.existsSync(outputFilePath)) {
         fs.unlinkSync(outputFilePath);
         logger.info(`🗑️ Deleted: ${relativePath}`);
-        
+
         if (onChange) {
           onChange(filePath);
         }

@@ -1,17 +1,17 @@
 /**
  * Кэширование для линковки
- * 
+ *
  * Управляет кэшем в директории .btc/ для оптимизации линковки:
  * - Кэширование hash от package-lock.json для node_modules
  * - Позволяет пропускать копирование если зависимости не изменились
- * 
+ *
  * @module linking/cache
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { LinkingCacheState, NodeModulesCacheEntry } from './types';
+import { LinkingCacheState } from './types';
 
 /** Текущая версия формата кэша */
 const CACHE_VERSION = 1;
@@ -24,7 +24,7 @@ const CACHE_STATE_FILE = 'linking-cache.json';
 
 /**
  * Менеджер кэша линковки
- * 
+ *
  * @remarks
  * Хранит состояние кэша в `.btc/linking-cache.json`
  * Позволяет проверять нужно ли перекопировать node_modules
@@ -38,7 +38,7 @@ export class LinkingCache {
 
   /**
    * Создаёт экземпляр менеджера кэша
-   * 
+   *
    * @param projectPath - Корневая директория проекта
    * @param enabled - Включён ли кэш (false при --no-cache)
    */
@@ -62,16 +62,16 @@ export class LinkingCache {
       if (fs.existsSync(this.stateFilePath)) {
         const content = fs.readFileSync(this.stateFilePath, 'utf-8');
         const state = JSON.parse(content) as LinkingCacheState;
-        
+
         // Проверяем версию кэша
         if (state.version !== CACHE_VERSION) {
           // Версия устарела - сбрасываем кэш
           return this.createEmptyState();
         }
-        
+
         return state;
       }
-    } catch (error) {
+    } catch (_err) {
       // Ошибка чтения - начинаем с чистого состояния
     }
 
@@ -115,7 +115,7 @@ export class LinkingCache {
 
   /**
    * Вычисляет hash от содержимого файла
-   * 
+   *
    * @param filePath - Путь к файлу
    * @returns SHA256 hash или null если файл не существует
    */
@@ -126,7 +126,7 @@ export class LinkingCache {
       }
       const content = fs.readFileSync(filePath);
       return crypto.createHash('sha256').update(content).digest('hex');
-    } catch (error) {
+    } catch (_err) {
       return null;
     }
   }
@@ -134,7 +134,7 @@ export class LinkingCache {
   /**
    * Получает hash от lockfile пакета
    * Пробует package-lock.json, затем pnpm-lock.yaml, затем package.json как fallback
-   * 
+   *
    * @param packagePath - Путь к директории пакета
    * @returns Hash от lockfile
    */
@@ -142,7 +142,7 @@ export class LinkingCache {
     // Сначала пробуем package-lock.json (npm)
     const npmLockPath = path.join(packagePath, 'package-lock.json');
     let hash = this.computeFileHash(npmLockPath);
-    
+
     if (hash) {
       return hash;
     }
@@ -150,7 +150,7 @@ export class LinkingCache {
     // Затем пробуем pnpm-lock.yaml (pnpm workspaces)
     const pnpmLockPath = path.join(packagePath, 'pnpm-lock.yaml');
     hash = this.computeFileHash(pnpmLockPath);
-    
+
     if (hash) {
       return hash;
     }
@@ -162,11 +162,11 @@ export class LinkingCache {
 
   /**
    * Проверяет нужно ли копировать node_modules для пакета
-   * 
+   *
    * @param wsName - ws:name пакета
    * @param packagePath - Путь к директории пакета (где находится package-lock.json)
    * @returns true если нужно копировать, false если можно пропустить
-   * 
+   *
    * @remarks
    * Возвращает true (нужно копировать) если:
    * - Кэш отключён (--no-cache)
@@ -180,14 +180,14 @@ export class LinkingCache {
     }
 
     const currentHash = this.getLockfileHash(packagePath);
-    
+
     if (!currentHash) {
       // Не удалось получить hash - копируем на всякий случай
       return true;
     }
 
     const cached = this.state.nodeModules[wsName];
-    
+
     if (!cached) {
       // Нет записи в кэше
       return true;
@@ -199,7 +199,7 @@ export class LinkingCache {
 
   /**
    * Обновляет запись кэша после копирования node_modules
-   * 
+   *
    * @param wsName - ws:name пакета
    * @param packagePath - Путь к директории пакета
    */
@@ -209,7 +209,7 @@ export class LinkingCache {
     }
 
     const hash = this.getLockfileHash(packagePath);
-    
+
     if (!hash) {
       // Удаляем запись если не можем вычислить hash
       delete this.state.nodeModules[wsName];
@@ -229,12 +229,12 @@ export class LinkingCache {
    */
   clear(): void {
     this.state = this.createEmptyState();
-    
+
     try {
       if (fs.existsSync(this.stateFilePath)) {
         fs.unlinkSync(this.stateFilePath);
       }
-    } catch (error) {
+    } catch (_err) {
       // Не критично
     }
   }
@@ -244,7 +244,7 @@ export class LinkingCache {
    */
   static removeAll(projectPath: string): void {
     const cachePath = path.join(projectPath, CACHE_DIR_NAME);
-    
+
     if (fs.existsSync(cachePath)) {
       fs.rmSync(cachePath, { recursive: true, force: true });
     }

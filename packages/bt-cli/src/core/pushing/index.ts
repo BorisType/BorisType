@@ -1,11 +1,11 @@
 /**
  * Модуль push — загрузка dist на WSHCM сервер и reinit модулей
- * 
+ *
  * Основные экспорты:
  * - `processPush()` — one-shot push (создаёт сессию, выполняет push, закрывает)
  * - `DeploySession` — persistent сессия для dev mode
  * - Утилиты для конфигурации и сбора init-скриптов
- * 
+ *
  * @module core/pushing
  */
 
@@ -14,14 +14,14 @@ import * as fs from 'fs';
 import { logger } from '../logger';
 import { resolvePushConnectionOptions } from './config';
 import { DeploySession } from './session';
-import type { PartialPushConnectionOptions, PushConnectionOptions } from './types';
+import type { PartialPushConnectionOptions } from './types';
 
 /**
  * Выполняет one-shot push: загрузка dist + reinit модулей
- * 
+ *
  * Создаёт DeploySession, выполняет push и закрывает сессию.
  * Для persistent использования (dev mode) используйте DeploySession напрямую.
- * 
+ *
  * @param cwd - директория проекта
  * @param cliOptions - опции подключения из CLI (опциональные)
  */

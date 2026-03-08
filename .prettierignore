@@ -1,0 +1,17 @@
+# Build outputs
+**/build/
+**/dist/
+
+# Dependencies
+**/node_modules/
+
+# Lock files
+pnpm-lock.yaml
+
+# Generated
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+.changeset/
+
+# Schemas (auto-generated)
+schemas/

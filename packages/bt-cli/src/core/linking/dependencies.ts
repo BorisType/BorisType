@@ -105,7 +105,7 @@ export async function buildDependencyTree(projectPath: string) {
     try {
       const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
       dependencies = packageJson.dependencies || {};
-    } catch (err) {
+    } catch (_err) {
       logger.warning(`Не удалось прочитать package.json для ${parentNode.name}: ${packageJsonPath}`);
       return;
     }

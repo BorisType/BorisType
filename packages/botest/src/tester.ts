@@ -81,7 +81,7 @@ export async function runTestsAsync(filePath: string, cwdPath: string, filters: 
                             tests: suiteTests
                         });
                     }
-                } catch (e) {
+                } catch (_err) {
                     console.log(`${chalk.bgRedBright(` ${relative(workdir, filePathFull)} `)} - failed to parse _suite.json`);
                 }
             }
@@ -169,6 +169,7 @@ async function runTestAsync(testCase: TestCase): Promise<TestResult> {
 
     const startTime = Date.now();
     try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         resultValue = await evalBorisScriptAsync(testCode, testCase.filePath);
     } catch (error) {
         resultError = error as Error;
@@ -352,15 +353,15 @@ function printTestReport(files: string[], startTime: Date, testResults: TestResu
     } else {
         const suiteParts = [];
         const testParts = [];
-        
+
         if (failedSuitesCount > 0) suiteParts.push(failedSuitesFormatted);
         if (skippedSuitesCount > 0) suiteParts.push(skippedSuitesFormatted);
         suiteParts.push(passedSuitesFormatted);
-        
+
         if (failedTestsCount > 0) testParts.push(failedTestsFormatted);
         if (skippedTestsCount > 0) testParts.push(skippedTestsFormatted);
         testParts.push(passedTestsFormatted);
-        
+
         testFilesFormatted = `${suiteParts.join(' | ')} (${totalFilesFormatted})`;
         testsFormatted = `${testParts.join(' | ')} (${totalTestsFormatted})`;
     }

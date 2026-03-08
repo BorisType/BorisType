@@ -4,7 +4,7 @@
     {
       "label": "Exact-pinned workspace deps in bt-cli (bt-ir, runtime)",
       "packages": ["@boristype/bt-cli"],
-      "dependencies": ["@boristype/bt-ir", "@boristype/runtime"],
+      "dependencies": ["@boristype/bt-ir", "@boristype/runtime", "@boristype/ws-client", "@boristype/ws-version"],
       "dependencyTypes": ["prod", "peer"],
       "pinVersion": "workspace:*"
     },
@@ -13,6 +13,7 @@
       "dependencies": [
         "@boristype/bt-cli",
         "@boristype/bt-ir",
+        "@boristype/eslint-plugin",
         "@boristype/runtime",
         "@boristype/ws-client",
         "@boristype/ws-version",
@@ -24,6 +25,17 @@
         "peer"
       ],
       "pinVersion": "workspace:^"
+    },
+    {
+      "label": "ESLint aligned",
+      "dependencies": ["eslint"],
+      "dependencyTypes": ["dev", "prod"],
+      "pinVersion": "^9.0.0"
+    },
+    {
+      "label": "ESLint TS parser aligned",
+      "dependencies": ["@typescript-eslint/parser"],
+      "pinVersion": "^8.0.0"
     },
     {
       "label": "TypeScript aligned to latest",

@@ -1,6 +1,6 @@
 /**
  * Statement Visitors - обработка statements TypeScript AST
- * 
+ *
  * Содержит:
  * - visitStatement (dispatch)
  * - visitFunctionDeclaration
@@ -11,7 +11,7 @@
  * - visitSwitchStatement
  * - visitTryStatement
  * - visitBlock, visitStatementList, visitStatementAsBlock
- * 
+ *
  * @module lowering/statements
  */
 
@@ -25,9 +25,8 @@ import {
   type IRObjectProperty,
   type IRIdentifier,
 } from "../ir/index.ts";
-import type { Scope } from "../analyzer/index.ts";
 import type { VisitorContext } from "./visitor.ts";
-import { visitExpression, visitIdentifier, helperEnvAccess as helperEnvAccessFromStatements, resolveCallableRef } from "./expressions.ts";
+import { visitExpression, helperEnvAccess as helperEnvAccessFromStatements, resolveCallableRef } from "./expressions.ts";
 import {
   getLoc,
   resolveVariableInScope,
@@ -311,7 +310,7 @@ function visitImportDeclaration(
 
 /**
  * Обрабатывает function declaration
- * 
+ *
  * Использует buildFunction для генерации env/desc паттерна
  */
 export function visitFunctionDeclaration(
@@ -473,12 +472,12 @@ export function visitVariableStatement(
     if (ts.isIdentifier(decl.name)) {
       const varName = decl.name.text;
       const init = decl.initializer ? visitExpression(decl.initializer, ctx, varName) : null;
-      
+
       // Проверяем является ли переменная captured и есть ли переименование
       const varInfo = resolveVariableInScope(varName, ctx.currentScope);
       const isCaptured = varInfo?.isCaptured ?? false;
       const actualName = varInfo?.renamedTo ?? varName;
-      
+
       const envRef = isCaptured ? ctx.currentEnvRef : undefined;
       results.push(IR.varDecl(actualName, init, getLoc(decl, ctx), isCaptured, envRef));
       if (isExported) {
@@ -606,7 +605,7 @@ export function visitVariableStatement(
  */
 function visitExportDeclaration(
   node: ts.ExportDeclaration,
-  ctx: VisitorContext
+  _ctx: VisitorContext
 ): IRStatement[] | null {
   const clause = node.exportClause;
   if (!clause || !ts.isNamedExports(clause)) return null;
@@ -883,10 +882,10 @@ export function visitBlock(
 ): import("../ir/index.js").IRBlockStatement {
   // Проверяем есть ли block scope для этого блока
   const blockScope = ctx.scopeAnalysis.nodeToScope.get(node);
-  
+
   if (blockScope && blockScope !== ctx.currentScope) {
     const blockCtx: VisitorContext = { ...ctx, currentScope: blockScope };
-    
+
     // Block env только если есть captured let/const
     // Для for-of тело цикла — block env создаётся в visitForOfStatement, используем ctx
     const isForOfLoopBody = node.parent && ts.isForOfStatement(node.parent) && node.parent.statement === node;
@@ -910,7 +909,7 @@ export function visitBlock(
     }
     return IR.block(visitStatementList(node.statements, blockCtx), getLoc(node, ctx));
   }
-  
+
   return IR.block(visitStatementList(node.statements, ctx), getLoc(node, ctx));
 }
 
@@ -956,20 +955,20 @@ export function visitStatementAsBlock(
   }
 
   const stmt = visitStatement(node, ctx);
-  
+
   // Pending statements (от arrow функций и т.д.) должны быть включены в блок
   const body: IRStatement[] = [];
   if (ctx.pendingStatements.length > 0) {
     body.push(...ctx.pendingStatements);
     ctx.pendingStatements.length = 0;
   }
-  
+
   if (Array.isArray(stmt)) {
     body.push(...stmt);
   } else if (stmt) {
     body.push(stmt);
   }
-  
+
   return IR.block(body, getLoc(node, ctx));
 }
 

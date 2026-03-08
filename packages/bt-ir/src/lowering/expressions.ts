@@ -1,6 +1,6 @@
 /**
  * Expression Visitors - обработка expressions TypeScript AST
- * 
+ *
  * Содержит:
  * - visitExpression (dispatch)
  * - visitIdentifier
@@ -11,7 +11,7 @@
  * - visitObjectLiteral, visitArrayLiteral
  * - visitArrowFunction, visitFunctionExpression
  * - visitNewExpression
- * 
+ *
  * @module lowering/expressions
  */
 
@@ -24,7 +24,6 @@ import {
   type IRFunctionParam,
   type IRObjectProperty,
 } from "../ir/index.ts";
-import type { Scope, VariableInfo } from "../analyzer/index.ts";
 import type { VisitorContext } from "./visitor.ts";
 import { visitStatementList } from "./statements.ts";
 import {
@@ -42,7 +41,6 @@ import {
   getAssignmentOperator,
   getUnaryOperator,
   resolveVariableInScope,
-  isScopeInsideOrEqual,
   collectCapturedVarsForArrow,
 } from "./helpers.ts";
 import { needsParentheses, getPrecedence } from "./precedence.ts";
@@ -349,7 +347,7 @@ export function visitExpression(
     if (isInternalAccess(node.expression)) {
       return IR.dot(obj, propName, loc);
     }
-    
+
     // bare mode: ?. не поддерживается → __invalid__
     if (ctx.mode === "bare") {
       if (hasQuestionDot) return IR.id("__invalid__", loc);
@@ -378,7 +376,7 @@ export function visitExpression(
     const prop = visitExpression(node.argumentExpression, ctx);
     const hasQuestionDot = !!node.questionDotToken;
     const loc = getLoc(node, ctx);
-    
+
     if (isInternalAccess(node.expression)) {
       return IR.member(obj, prop, true, loc);
     }
@@ -527,11 +525,11 @@ export function visitIdentifier(node: ts.Identifier, ctx: VisitorContext): IRExp
   if (varInfo) {
     // Используем переименованное имя если есть (block scope shadowing)
     const actualName = varInfo.renamedTo ?? name;
-    
+
     if (varInfo.isCaptured) {
       return resolveEnvAccess(varInfo.declarationScope, actualName, ctx, getLoc(node, ctx));
     }
-    
+
     // Не captured, но возможно переименована
     return IR.id(actualName, getLoc(node, ctx));
   }
@@ -646,7 +644,7 @@ export function visitBinaryExpression(
     if (ts.isPropertyAccessExpression(node.left)) {
       const obj = visitExpression(node.left.expression, ctx);
       const propName = node.left.name.text;
-      
+
       if (isInternalAccess(node.left.expression) || ctx.mode === "bare") {
         const left = IR.dot(obj, propName, getLoc(node.left, ctx));
         if (operator === "=") {
@@ -676,12 +674,12 @@ export function visitBinaryExpression(
       const newValue = IR.binary(binaryOp, currentValue, right);
       return IR.btSetProperty(obj, IR.string(propName), newValue, getLoc(node, ctx));
     }
-    
+
     // Element access assignment: obj[key] = value
     if (ts.isElementAccessExpression(node.left)) {
       const obj = visitExpression(node.left.expression, ctx);
       const key = visitExpression(node.left.argumentExpression, ctx);
-      
+
       if (isInternalAccess(node.left.expression) || ctx.mode === "bare") {
         const left = IR.member(obj, key, true, getLoc(node.left, ctx));
         if (operator === "=") {
@@ -1161,7 +1159,7 @@ function createOptionalFunctionCall(
 
 /**
  * Обрабатывает object literal
- * 
+ *
  * Spread-свойства преобразуются в вызовы ObjectUnion.
  * Если объект содержит методы:
  * 1. Создаём временную переменную __objN
@@ -1232,7 +1230,7 @@ export function visitObjectLiteral(
   }
 
   const properties: IRObjectProperty[] = [];
-  
+
   // Собираем информацию о методах для последующей установки obj
   const methodDescNames: string[] = [];
   // Функции, которые нужно вынести наверх (в начало pendingStatements)
@@ -1314,7 +1312,7 @@ export function visitObjectLiteral(
 
       // Тело метода
       let body = visitStatementList(prop.body.statements, fnCtx);
-      
+
       // Добавляем pending statements из тела (вложенные arrow/методы)
       if (fnCtx.pendingStatements.length > 0) {
         body = [...fnCtx.pendingStatements, ...body];
@@ -1345,7 +1343,7 @@ export function visitObjectLiteral(
       }
 
       // Собираем captured переменные
-      const capturedVars = methodScope 
+      const capturedVars = methodScope
         ? collectCapturedVarsForArrow(methodScope, ctx)
         : [];
 
@@ -1353,7 +1351,7 @@ export function visitObjectLiteral(
       const fnName = objectName
         ? `${methodName}__mof_${objectName}`
         : undefined;
-      
+
       const result = buildFunction({
         name: fnName,
         namePrefix: `${methodName}__method`,
@@ -1395,15 +1393,15 @@ export function visitObjectLiteral(
 
     // Создаём временную переменную для объекта
     const objVarName = ctx.bindings.create("obj");
-    
+
     // var __objN = { ... }
     ctx.pendingStatements.push(IR.varDecl(objVarName, IR.object(properties, getLoc(node, ctx))));
-    
+
     // Для каждого метода: descName.obj = __objN
     for (const descName of methodDescNames) {
       ctx.pendingStatements.push(assignDescriptorObj(descName, objVarName));
     }
-    
+
     // Возвращаем ссылку на временную переменную
     return IR.id(objVarName, getLoc(node, ctx));
   }

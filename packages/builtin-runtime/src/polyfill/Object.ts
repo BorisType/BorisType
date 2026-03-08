@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export function assign<T, U>(target: T, source: U): T & U {
     throw "Not implemented";
 }

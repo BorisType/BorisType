@@ -110,7 +110,7 @@ export namespace bt {
                                 if (moduleMainFile !== undefined && FileExists(mainFilePath) && !IsDirectory(mainFilePath)) {
                                     return mainFileUrl;
                                 }
-                            } catch (err) {
+                            } catch (_err) {
                                 // ???
                                 break;
                             }
@@ -129,7 +129,7 @@ export namespace bt {
 
                 currentDir = UrlParent(currentDir)
             }
-        } catch (err) {
+        } catch (_err) {
             // При UrlParent(currentDir) может быть ошибка, если дошли до корня,
             // поэтому просто выходим из цикла, но оставляем текущий вариант цикла
         }
@@ -182,7 +182,7 @@ export namespace bt {
 
             // иначе ждём немного и проверяем снова
             // можно даже sleep(0) или просто пустой цикл
-            for (let i = 0; i < 100; i++) { } // лёгкий спин 
+            for (let i = 0; i < 100; i++) { } // лёгкий спин
             Sleep(20);
         }
     }

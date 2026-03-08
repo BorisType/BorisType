@@ -21,13 +21,3 @@ try {
     LogEvent(LOG_CODE, 'ERROR:    bt:runtime module registration failed: ' + err);
     alert('[bt:runtime]  ERROR:     bt:runtime module registration failed: ' + err);
 }
-
-function test() {
-    alert("hello world");
-
-    function govno() {
-
-    }
-
-    alert("test")
-}

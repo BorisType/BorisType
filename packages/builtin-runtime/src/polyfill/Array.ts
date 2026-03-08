@@ -96,7 +96,7 @@ export function filter<T>(array: Array<T>, callback: (value: T, index: number, a
       result.push(value);
     }
   }
-  
+
   return result;
 }
 
@@ -112,7 +112,7 @@ export function find<T>(array: Array<T>, callback: (value: T, index: number, arr
       return value;
     }
   }
-  
+
   return undefined;
 }
 
@@ -128,7 +128,7 @@ export function findIndex<T>(array: Array<T>, callback: (value: T, index: number
       return i;
     }
   }
-  
+
   return -1;
 }
 
@@ -144,7 +144,7 @@ export function findLast<T>(array: Array<T>, callback: (value: T, index: number,
       return value;
     }
   }
-  
+
   return undefined;
 }
 
@@ -160,7 +160,7 @@ export function findLastIndex<T>(array: Array<T>, callback: (value: T, index: nu
       return i;
     }
   }
-  
+
   return -1;
 }
 
@@ -415,7 +415,7 @@ export function some<T>(array: Array<T>, callback: (value: T, index: number, arr
   return false;
 }
 
-export function sort<T>(array: Array<T>, compareFn?: (a: T, b: T) => number): Array<T> {
+export function sort<T>(_array: Array<T>, _compareFn?: (a: T, b: T) => number): Array<T> {
   throw 'Array.sort polyfill is not implemented yet';
 }
 
@@ -448,7 +448,7 @@ export function splice<T>(array: Array<T>, start: number, deleteCount: number | 
 
   var newLength = len - normalizedDeleteCount + items.length;
   var delta = ArrayCount(array) - newLength;
-  
+
   // Resize the array
   array.splice((len - normalizedDeleteCount + items.length), delta);
   // array.length = len - normalizedDeleteCount + items.length;
@@ -467,7 +467,7 @@ export function toReversed<T>(array: Array<T>): Array<T> {
   return result;
 }
 
-export function toSorted<T>(array: Array<T>, compareFn?: (a: T, b: T) => number): Array<T> {
+export function toSorted<T>(_array: Array<T>, _compareFn?: (a: T, b: T) => number): Array<T> {
   throw 'Array.toSorted polyfill is not implemented yet';
 }
 
@@ -504,7 +504,7 @@ export function unshift<T>(array: Array<T>, items: Array<T>): number {
   for (let i = len - 1; i >= 0; i--) {
     array[i + items.length] = array[i];
   }
-  
+
   // Insert new elements at the start
   for (let i = 0; i < items.length; i++) {
     array[i] = items[i];

@@ -11,6 +11,7 @@ import type {
   IRFunctionDeclaration,
   IRVariableDeclaration,
   IRReturnStatement,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IRExpressionStatement,
   IRIfStatement,
   IRForStatement,
@@ -19,8 +20,11 @@ import type {
   IRDoWhileStatement,
   IRSwitchStatement,
   IRTryStatement,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IRThrowStatement,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IRBreakStatement,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IRContinueStatement,
   IRBlockStatement,
   IRObjectExpression,
@@ -1186,6 +1190,6 @@ function emitStatementOrBlockHoisted(stmt: IRStatement, ctx: EmitContext): strin
 /**
  * Проверяет является ли строка валидным JS идентификатором
  */
-function isValidIdentifier(str: string): boolean {
+function _isValidIdentifier(str: string): boolean {
   return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(str);
 }

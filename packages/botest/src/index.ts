@@ -8,6 +8,7 @@ export type CommandLineOptions = {
 
 async function processTest(
   files: string[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   options: CommandLineOptions
 ) {
   const cwd = process.cwd();

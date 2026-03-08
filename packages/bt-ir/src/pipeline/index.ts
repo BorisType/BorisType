@@ -10,8 +10,8 @@ import * as ts from "typescript";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { transformToIR } from "../lowering/index.ts";
-import { emit, type EmitOptions, type EmitResult } from "../emitter/index.ts";
-import { analyzeScopes, printScopeTree, type ScopeAnalysisResult } from "../analyzer/index.ts";
+import { emit, type EmitOptions } from "../emitter/index.ts";
+import { analyzeScopes, printScopeTree } from "../analyzer/index.ts";
 import type { IRProgram } from "../ir/index.ts";
 
 /** Режим транспиляции: bare | script | module */

@@ -37,7 +37,7 @@ import type { VisitorContext } from "./visitor.ts";
  *
  * @param envRef - Базовое имя окружения (например `"__env"`, `"__fn0_env"`, `"__block0_env"`)
  * @param depth - Количество переходов через `__parent`
- * @param loc - Опциональная source location
+ * @param _loc - Опциональная source location
  * @returns IR-выражение для базы цепочки (без финального свойства)
  *
  * @example
@@ -48,7 +48,7 @@ import type { VisitorContext } from "./visitor.ts";
  * buildEnvChainBase("__fn0_env", 2)
  * ```
  */
-export function buildEnvChainBase(envRef: string, depth: number, loc?: SourceLocation): IRExpression {
+export function buildEnvChainBase(envRef: string, depth: number, _loc?: SourceLocation): IRExpression {
   let expr: IRExpression = IR.id(envRef);
   for (let i = 0; i < depth; i++) {
     expr = IR.dot(expr, "__parent");
