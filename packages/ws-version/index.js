@@ -1,4 +1,4 @@
-import semver from 'semver';
+import semver from "semver";
 
 /**
  * Преобразует semver версию в формат целевой системы (4 компонента)
@@ -44,32 +44,32 @@ function encodePrereleaseToNumber(prerelease) {
   // Определяем базовое значение на основе типа prerelease
   const firstComponent = prerelease[0];
   let base = 0;
-  
-  if (typeof firstComponent === 'string') {
+
+  if (typeof firstComponent === "string") {
     switch (firstComponent.toLowerCase()) {
-      case 'alpha':
+      case "alpha":
         base = 1000;
         break;
-      case 'beta':  
+      case "beta":
         base = 2000;
         break;
-      case 'rc':
+      case "rc":
         base = 3000;
         break;
       default:
         // Для неизвестных строковых компонентов используем хеш
-        base = 4000 + hashString(firstComponent) % 1000;
+        base = 4000 + (hashString(firstComponent) % 1000);
         break;
     }
-  } else if (typeof firstComponent === 'number') {
+  } else if (typeof firstComponent === "number") {
     base = 5000;
   }
 
   // Добавляем числовой компонент если есть
   let offset = 0;
-  if (prerelease.length > 1 && typeof prerelease[1] === 'number') {
+  if (prerelease.length > 1 && typeof prerelease[1] === "number") {
     offset = Math.min(prerelease[1], 999); // Ограничиваем 999
-  } else if (typeof firstComponent === 'number') {
+  } else if (typeof firstComponent === "number") {
     offset = Math.min(firstComponent, 999);
   }
 
@@ -85,30 +85,30 @@ function hashString(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Преобразуем в 32-битное целое
   }
   return Math.abs(hash);
 }
 
 /**
- * Сравнивает две версии в ws-формате 
+ * Сравнивает две версии в ws-формате
  * @param {string} version1 - Первая версия
- * @param {string} version2 - Вторая версия  
+ * @param {string} version2 - Вторая версия
  * @returns {-1|0|1} Результат сравнения (-1 если v1 < v2, 0 если равны, 1 если v1 > v2)
  */
 function compareWsVersions(version1, version2) {
-  const v1Parts = version1.split('.').map(Number);
-  const v2Parts = version2.split('.').map(Number);
-  
+  const v1Parts = version1.split(".").map(Number);
+  const v2Parts = version2.split(".").map(Number);
+
   for (let i = 0; i < 4; i++) {
     const v1Part = v1Parts[i] || 0;
     const v2Part = v2Parts[i] || 0;
-    
+
     if (v1Part < v2Part) return -1;
     if (v1Part > v2Part) return 1;
   }
-  
+
   return 0;
 }
 
@@ -118,12 +118,12 @@ function compareWsVersions(version1, version2) {
  * @returns {boolean} true если версия валидна
  */
 function isValidWsVersion(version) {
-  const parts = version.split('.');
+  const parts = version.split(".");
   if (parts.length < 3 || parts.length > 4) {
     return false;
   }
-  
-  return parts.every(part => {
+
+  return parts.every((part) => {
     // Проверяем что это строка из цифр (могут быть лидирующие нули)
     if (!/^\d+$/.test(part)) {
       return false;
@@ -142,16 +142,16 @@ function isValidWsVersion(version) {
 function convertSemverRangeToWsRange(range) {
   // Убираем лишние пробелы
   const trimmedRange = range.trim();
-  
+
   // Обрабатываем специальный случай *
-  if (trimmedRange === '*') {
-    return '^0.0.0.0';
+  if (trimmedRange === "*") {
+    return "^0.0.0.0";
   }
-  
+
   // Проверяем наличие префиксов ^ или ~
-  const hasCaretPrefix = trimmedRange.startsWith('^');
-  const hasTildePrefix = trimmedRange.startsWith('~');
-  
+  const hasCaretPrefix = trimmedRange.startsWith("^");
+  const hasTildePrefix = trimmedRange.startsWith("~");
+
   let version;
   if (hasCaretPrefix || hasTildePrefix) {
     // Убираем префикс для парсинга
@@ -160,7 +160,7 @@ function convertSemverRangeToWsRange(range) {
     // Точная версия без префикса
     version = trimmedRange;
   }
-  
+
   // Преобразуем базовую версию
   let wsVersion;
   try {
@@ -168,12 +168,12 @@ function convertSemverRangeToWsRange(range) {
   } catch (error) {
     throw new Error(`Invalid version in range "${range}": ${error.message}`);
   }
-  
+
   // Для ^ и ~ добавляем префикс ^ в ws-формате
   if (hasCaretPrefix || hasTildePrefix) {
     return `^${wsVersion}`;
   }
-  
+
   // Для точных версий возвращаем как есть
   return wsVersion;
 }
@@ -185,13 +185,13 @@ function convertSemverRangeToWsRange(range) {
  */
 function isValidWsRange(range) {
   const trimmedRange = range.trim();
-  
+
   // Проверяем наличие префикса ^
-  if (trimmedRange.startsWith('^')) {
+  if (trimmedRange.startsWith("^")) {
     const version = trimmedRange.slice(1);
     return isValidWsVersion(version);
   }
-  
+
   // Проверяем как обычную версию
   return isValidWsVersion(trimmedRange);
 }
@@ -200,8 +200,8 @@ function isValidWsRange(range) {
 export {
   convertSemverToWsVersion,
   convertSemverRangeToWsRange,
-  compareWsVersions, 
+  compareWsVersions,
   isValidWsVersion,
   isValidWsRange,
-  encodePrereleaseToNumber
+  encodePrereleaseToNumber,
 };

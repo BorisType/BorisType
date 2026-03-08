@@ -100,7 +100,7 @@ export const IR = {
     originalParams: IRFunctionParam[],
     body: IRStatement[],
     loc?: SourceLocation,
-    plainSignature?: boolean
+    plainSignature?: boolean,
   ): IRFunctionDeclaration {
     return { kind: "FunctionDeclaration", name, originalParams, body, loc, plainSignature };
   },
@@ -108,7 +108,12 @@ export const IR = {
   /**
    * Создаёт параметр функции
    */
-  param(name: string, defaultValue?: IRExpression, rest?: boolean, isCaptured?: boolean): IRFunctionParam {
+  param(
+    name: string,
+    defaultValue?: IRExpression,
+    rest?: boolean,
+    isCaptured?: boolean,
+  ): IRFunctionParam {
     return { name, defaultValue, rest, isCaptured };
   },
 
@@ -121,7 +126,7 @@ export const IR = {
     loc?: SourceLocation,
     isCaptured?: boolean,
     envRef?: string,
-    hoistOnly?: boolean
+    hoistOnly?: boolean,
   ): IRVariableDeclaration {
     return { kind: "VariableDeclaration", name, init, loc, isCaptured, envRef, hoistOnly };
   },
@@ -147,7 +152,7 @@ export const IR = {
     test: IRExpression,
     consequent: IRStatement,
     alternate: IRStatement | null = null,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRIfStatement {
     return { kind: "IfStatement", test, consequent, alternate, loc };
   },
@@ -160,7 +165,7 @@ export const IR = {
     test: IRExpression | null,
     update: IRExpression | null,
     body: IRStatement,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRForStatement {
     return { kind: "ForStatement", init, test, update, body, loc };
   },
@@ -172,7 +177,7 @@ export const IR = {
     left: IRVariableDeclaration | IRIdentifier,
     right: IRExpression,
     body: IRStatement,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRForInStatement {
     return { kind: "ForInStatement", left, right, body, loc };
   },
@@ -194,7 +199,11 @@ export const IR = {
   /**
    * Создаёт switch statement
    */
-  switch(discriminant: IRExpression, cases: IRCaseClause[], loc?: SourceLocation): IRSwitchStatement {
+  switch(
+    discriminant: IRExpression,
+    cases: IRCaseClause[],
+    loc?: SourceLocation,
+  ): IRSwitchStatement {
     return { kind: "SwitchStatement", discriminant, cases, loc };
   },
 
@@ -212,7 +221,7 @@ export const IR = {
     block: IRBlockStatement,
     handler: IRCatchClause | null = null,
     finalizer: IRBlockStatement | null = null,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRTryStatement {
     return { kind: "TryStatement", block, handler, finalizer, loc };
   },
@@ -324,7 +333,7 @@ export const IR = {
     operator: BinaryOperator,
     left: IRExpression,
     right: IRExpression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRBinaryExpression {
     return { kind: "BinaryExpression", operator, left, right, loc };
   },
@@ -336,7 +345,7 @@ export const IR = {
     operator: UnaryOperator,
     argument: IRExpression,
     prefix = true,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRUnaryExpression {
     return { kind: "UnaryExpression", operator, argument, prefix, loc };
   },
@@ -348,7 +357,7 @@ export const IR = {
     test: IRExpression,
     consequent: IRExpression,
     alternate: IRExpression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRConditionalExpression {
     return { kind: "ConditionalExpression", test, consequent, alternate, loc };
   },
@@ -360,7 +369,7 @@ export const IR = {
     operator: "&&" | "||",
     left: IRExpression,
     right: IRExpression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRLogicalExpression {
     return { kind: "LogicalExpression", operator, left, right, loc };
   },
@@ -379,7 +388,7 @@ export const IR = {
     object: IRExpression,
     property: IRExpression,
     computed = false,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRMemberExpression {
     return { kind: "MemberExpression", object, property, computed, loc };
   },
@@ -419,7 +428,7 @@ export const IR = {
     operator: AssignmentOperator,
     left: IRIdentifier | IRMemberExpression | IREnvAccess,
     right: IRExpression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRAssignmentExpression {
     return { kind: "AssignmentExpression", operator, left, right, loc };
   },
@@ -431,7 +440,7 @@ export const IR = {
     operator: "++" | "--",
     argument: IRIdentifier | IRMemberExpression,
     prefix = false,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRUpdateExpression {
     return { kind: "UpdateExpression", operator, argument, prefix, loc };
   },
@@ -469,7 +478,7 @@ export const IR = {
     method: string,
     target: IRExpression,
     args: IRExpression[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRPolyfillCall {
     return { kind: "PolyfillCall", polyfillType, method, target, arguments: args, loc };
   },
@@ -481,7 +490,7 @@ export const IR = {
     namespace: string,
     method: string,
     args: IRExpression[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRRuntimeCall {
     return { kind: "RuntimeCall", namespace, method, arguments: args, loc };
   },
@@ -514,7 +523,7 @@ export const IR = {
   btGetProperty(
     object: IRExpression,
     property: IRExpression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRBTGetProperty {
     return { kind: "BTGetProperty", object, property, loc };
   },
@@ -526,7 +535,7 @@ export const IR = {
     object: IRExpression,
     property: IRExpression,
     value: IRExpression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRBTSetProperty {
     return { kind: "BTSetProperty", object, property, value, loc };
   },
@@ -537,7 +546,7 @@ export const IR = {
   btCallFunction(
     callee: IRExpression,
     args: IRExpression[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ): IRBTCallFunction {
     return { kind: "BTCallFunction", callee, arguments: args, loc };
   },
@@ -545,10 +554,7 @@ export const IR = {
   /**
    * Создаёт bt.isFunction(value)
    */
-  btIsFunction(
-    value: IRExpression,
-    loc?: SourceLocation
-  ): IRBTIsFunction {
+  btIsFunction(value: IRExpression, loc?: SourceLocation): IRBTIsFunction {
     return { kind: "BTIsFunction", value, loc };
   },
 };

@@ -1,13 +1,13 @@
 :root {
-    --vp-c-brand-1: #9169F5;
-    --vp-c-brand-2: #A582FA;
-    --vp-c-brand-3: #B49BFA;
-    --vp-c-brand-soft: rgba(100, 149, 255, 0.14);
+  --vp-c-brand-1: #9169f5;
+  --vp-c-brand-2: #a582fa;
+  --vp-c-brand-3: #b49bfa;
+  --vp-c-brand-soft: rgba(100, 149, 255, 0.14);
 }
 
 .dark {
-    --vp-c-brand-3: #9169F5;
-    --vp-c-brand-2: #A582FA;
-    --vp-c-brand-1: #B49BFA;
-    --vp-c-brand-soft: rgba(100, 149, 255, 0.16);
+  --vp-c-brand-3: #9169f5;
+  --vp-c-brand-2: #a582fa;
+  --vp-c-brand-1: #b49bfa;
+  --vp-c-brand-soft: rgba(100, 149, 255, 0.16);
 }

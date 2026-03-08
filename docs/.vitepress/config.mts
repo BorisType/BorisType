@@ -2,14 +2,11 @@ import { defineConfig } from "vitepress";
 
 export default defineConfig({
   title: "BorisType",
-  description:
-    "Транспилятор TypeScript → BorisScript для платформы WebSoft HCM",
+  description: "Транспилятор TypeScript → BorisScript для платформы WebSoft HCM",
 
   lang: "ru-RU",
 
-  head: [
-    ["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }],
-  ],
+  head: [["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }]],
 
   // Для GitHub Pages: /<repo-name>/
   // Поменять если деплоим на кастомный домен
@@ -70,17 +67,14 @@ export default defineConfig({
       ],
     },
 
-    socialLinks: [
-      { icon: "github", link: "https://github.com/BorisType/BorisType" },
-    ],
+    socialLinks: [{ icon: "github", link: "https://github.com/BorisType/BorisType" }],
 
     search: {
       provider: "local",
     },
 
     editLink: {
-      pattern:
-        "https://github.com/BorisType/BorisType/edit/main/docs/:path",
+      pattern: "https://github.com/BorisType/BorisType/edit/main/docs/:path",
       text: "Редактировать на GitHub",
     },
 

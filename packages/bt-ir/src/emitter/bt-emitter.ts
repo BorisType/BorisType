@@ -300,14 +300,14 @@ function emitFunction(fn: IRFunctionDeclaration, ctx: EmitContext): string {
 
   // Сигнатура: BT или plain (ObjectUnion и др.)
   if (isPlain) {
-    const paramList = fn.originalParams.map(p => p.name).join(", ");
+    const paramList = fn.originalParams.map((p) => p.name).join(", ");
     lines.push(`${pad}function ${fn.name}(${paramList}) {`);
   } else {
     lines.push(`${pad}function ${fn.name}(__env, __this, __args) {`);
   }
 
   // Имена параметров (уже объявлены)
-  const paramNames = new Set(fn.originalParams.map(p => p.name));
+  const paramNames = new Set(fn.originalParams.map((p) => p.name));
 
   // Bare mode: хоистим только переменные, всё остальное по порядку
   if (ctx.noHoist && isPlain) {
@@ -346,17 +346,15 @@ function emitFunction(fn: IRFunctionDeclaration, ctx: EmitContext): string {
       // Captured-параметры назначаются в __env, обычные — в локальные var
       const target = param.isCaptured ? `__env.${param.name}` : `var ${param.name}`;
       if (param.rest) {
-        lines.push(
-          `${innerPad}${target} = bt.Array.slice(__args, ${index});`
-        );
+        lines.push(`${innerPad}${target} = bt.Array.slice(__args, ${index});`);
       } else if (param.defaultValue) {
         const defaultExpr = emitExpression(param.defaultValue, innerCtx);
         lines.push(
-          `${innerPad}${target} = __args.length > ${index} ? __args[${index}] : ${defaultExpr};`
+          `${innerPad}${target} = __args.length > ${index} ? __args[${index}] : ${defaultExpr};`,
         );
       } else {
         lines.push(
-          `${innerPad}${target} = __args.length > ${index} ? __args[${index}] : undefined;`
+          `${innerPad}${target} = __args.length > ${index} ? __args[${index}] : undefined;`,
         );
       }
     });
@@ -417,7 +415,9 @@ function emitIf(ifStmt: IRIfStatement, ctx: EmitContext): string {
   const pad = getIndent(ctx);
   const lines: string[] = [];
 
-  lines.push(`${pad}if (${emitExpression(ifStmt.test, ctx)}) ${emitStatementOrBlock(ifStmt.consequent, ctx)}`);
+  lines.push(
+    `${pad}if (${emitExpression(ifStmt.test, ctx)}) ${emitStatementOrBlock(ifStmt.consequent, ctx)}`,
+  );
 
   if (ifStmt.alternate) {
     if (ifStmt.alternate.kind === "IfStatement") {
@@ -456,9 +456,10 @@ function emitFor(forStmt: IRForStatement, ctx: EmitContext): string {
 function emitForIn(forStmt: IRForInStatement, ctx: EmitContext): string {
   const pad = getIndent(ctx);
 
-  const left = forStmt.left.kind === "VariableDeclaration"
-    ? `var ${forStmt.left.name}`
-    : emitExpression(forStmt.left, ctx);
+  const left =
+    forStmt.left.kind === "VariableDeclaration"
+      ? `var ${forStmt.left.name}`
+      : emitExpression(forStmt.left, ctx);
 
   return `${pad}for (${left} in ${emitExpression(forStmt.right, ctx)}) ${emitStatementOrBlock(forStmt.body, ctx)}`;
 }
@@ -632,7 +633,7 @@ function emitExpression(expr: IRExpression, ctx: EmitContext): string {
       return emitUpdate(expr, ctx);
 
     case "SequenceExpression":
-      return `(${expr.expressions.map(e => emitExpression(e, ctx)).join(", ")})`;
+      return `(${expr.expressions.map((e) => emitExpression(e, ctx)).join(", ")})`;
 
     case "ArgsAccess":
       return expr.originalName;
@@ -716,7 +717,7 @@ function emitLogical(expr: IRLogicalExpression, ctx: EmitContext): string {
  */
 function emitCall(expr: import("../ir/index.js").IRCallExpression, ctx: EmitContext): string {
   const callee = emitExpression(expr.callee, ctx);
-  const args = expr.arguments.map(a => emitExpression(a, ctx)).join(", ");
+  const args = expr.arguments.map((a) => emitExpression(a, ctx)).join(", ");
   return `${callee}(${args})`;
 }
 
@@ -737,7 +738,7 @@ function emitMember(expr: import("../ir/index.js").IRMemberExpression, ctx: Emit
  * Генерирует код array expression
  */
 function emitArray(expr: IRArrayExpression, ctx: EmitContext): string {
-  const elements = expr.elements.map(e => (e ? emitExpression(e, ctx) : "")).join(", ");
+  const elements = expr.elements.map((e) => (e ? emitExpression(e, ctx) : "")).join(", ");
   return `[${elements}]`;
 }
 
@@ -760,9 +761,7 @@ function emitObjectExpression(obj: IRObjectExpression, ctx: EmitContext): string
     const value = emitExpression(prop.value, innerCtx);
     // Computed keys use [], non-identifier keys need quotes
     // Все ключи объектных литералов оборачиваем в кавычки для совместимости с BorisScript
-    const key = prop.computed
-      ? `[${prop.key}]`
-      : `"${prop.key}"`;
+    const key = prop.computed ? `[${prop.key}]` : `"${prop.key}"`;
     lines.push(`${innerPad}${key}: ${value}${comma}`);
   });
 
@@ -775,9 +774,7 @@ function emitObjectExpression(obj: IRObjectExpression, ctx: EmitContext): string
  */
 function emitAssignment(expr: IRAssignmentExpression, ctx: EmitContext): string {
   const left =
-    expr.left.kind === "EnvAccess"
-      ? emitEnvAccess(expr.left)
-      : emitExpression(expr.left, ctx);
+    expr.left.kind === "EnvAccess" ? emitEnvAccess(expr.left) : emitExpression(expr.left, ctx);
   const right = emitExpression(expr.right, ctx);
   return `${left} ${expr.operator} ${right}`;
 }
@@ -840,14 +837,17 @@ function emitPolyfillCall(call: IRPolyfillCall, ctx: EmitContext): string {
  * Генерирует код runtime call
  */
 function emitRuntimeCall(call: IRRuntimeCall, ctx: EmitContext): string {
-  const args = call.arguments.map(a => emitExpression(a, ctx)).join(", ");
+  const args = call.arguments.map((a) => emitExpression(a, ctx)).join(", ");
   return `bt.${call.namespace}.${call.method}(${args})`;
 }
 
 /**
  * Генерирует код bt.getProperty(obj, prop)
  */
-function emitBTGetProperty(expr: import("../ir/index.js").IRBTGetProperty, ctx: EmitContext): string {
+function emitBTGetProperty(
+  expr: import("../ir/index.js").IRBTGetProperty,
+  ctx: EmitContext,
+): string {
   const obj = emitExpression(expr.object, ctx);
   const prop = emitExpression(expr.property, ctx);
   return `bt.getProperty(${obj}, ${prop})`;
@@ -856,7 +856,10 @@ function emitBTGetProperty(expr: import("../ir/index.js").IRBTGetProperty, ctx: 
 /**
  * Генерирует код bt.setProperty(obj, prop, value)
  */
-function emitBTSetProperty(expr: import("../ir/index.js").IRBTSetProperty, ctx: EmitContext): string {
+function emitBTSetProperty(
+  expr: import("../ir/index.js").IRBTSetProperty,
+  ctx: EmitContext,
+): string {
   const obj = emitExpression(expr.object, ctx);
   const prop = emitExpression(expr.property, ctx);
   const value = emitExpression(expr.value, ctx);
@@ -866,9 +869,12 @@ function emitBTSetProperty(expr: import("../ir/index.js").IRBTSetProperty, ctx: 
 /**
  * Генерирует код bt.callFunction(func, [args])
  */
-function emitBTCallFunction(expr: import("../ir/index.js").IRBTCallFunction, ctx: EmitContext): string {
+function emitBTCallFunction(
+  expr: import("../ir/index.js").IRBTCallFunction,
+  ctx: EmitContext,
+): string {
   const callee = emitExpression(expr.callee, ctx);
-  const args = expr.arguments.map(a => emitExpression(a, ctx)).join(", ");
+  const args = expr.arguments.map((a) => emitExpression(a, ctx)).join(", ");
   return `bt.callFunction(${callee}, [${args}])`;
 }
 
@@ -986,9 +992,7 @@ function emitStatementHoisted(stmt: IRStatement, ctx: EmitContext): string {
   if (stmt.kind === "VariableDeclaration") {
     if (stmt.hoistOnly) return ""; // не эмитим присваивание, только var в hoisting
     // Для captured переменных - присваивание в env (__env или __block0_env)
-    const target = stmt.isCaptured
-      ? `${stmt.envRef ?? "__env"}.${stmt.name}`
-      : stmt.name;
+    const target = stmt.isCaptured ? `${stmt.envRef ?? "__env"}.${stmt.name}` : stmt.name;
 
     if (stmt.init) {
       if (stmt.init.kind === "ObjectExpression") {
@@ -1059,7 +1063,9 @@ function emitIfHoisted(ifStmt: IRIfStatement, ctx: EmitContext): string {
   const pad = getIndent(ctx);
   const lines: string[] = [];
 
-  lines.push(`${pad}if (${emitExpression(ifStmt.test, ctx)}) ${emitStatementOrBlockHoisted(ifStmt.consequent, ctx)}`);
+  lines.push(
+    `${pad}if (${emitExpression(ifStmt.test, ctx)}) ${emitStatementOrBlockHoisted(ifStmt.consequent, ctx)}`,
+  );
 
   if (ifStmt.alternate) {
     if (ifStmt.alternate.kind === "IfStatement") {
@@ -1096,9 +1102,10 @@ function emitForInHoisted(forInStmt: IRForInStatement, ctx: EmitContext): string
   const pad = getIndent(ctx);
 
   // left - если это var decl, выводим только имя
-  const left = forInStmt.left.kind === "VariableDeclaration"
-    ? forInStmt.left.name
-    : emitExpression(forInStmt.left, ctx);
+  const left =
+    forInStmt.left.kind === "VariableDeclaration"
+      ? forInStmt.left.name
+      : emitExpression(forInStmt.left, ctx);
 
   const right = emitExpression(forInStmt.right, ctx);
 

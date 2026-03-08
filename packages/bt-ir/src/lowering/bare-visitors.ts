@@ -12,12 +12,7 @@
  */
 
 import * as ts from "typescript";
-import {
-  IR,
-  type IRStatement,
-  type IRExpression,
-  type IRFunctionParam,
-} from "../ir/index.ts";
+import { IR, type IRStatement, type IRExpression, type IRFunctionParam } from "../ir/index.ts";
 import type { VisitorContext } from "./visitor.ts";
 import { visitExpression } from "./expressions.ts";
 import { visitStatementList, visitStatement } from "./statements.ts";
@@ -37,7 +32,7 @@ import { getLoc } from "./helpers.ts";
  */
 export function visitBareFunctionDeclaration(
   node: ts.FunctionDeclaration,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRStatement[] | null {
   if (!node.name || !node.body) {
     return null;
@@ -59,9 +54,8 @@ export function visitBareFunctionDeclaration(
   const body = visitStatementList(node.body.statements, fnCtx);
 
   // pending statements из тела (вложенные функции и т.п.)
-  const fullBody = fnCtx.pendingStatements.length > 0
-    ? [...fnCtx.pendingStatements, ...body]
-    : body;
+  const fullBody =
+    fnCtx.pendingStatements.length > 0 ? [...fnCtx.pendingStatements, ...body] : body;
 
   return [IR.functionDecl(name, params, fullBody, getLoc(node, ctx), true)];
 }
@@ -80,10 +74,10 @@ export function visitBareFunctionDeclaration(
  */
 export function visitBareVariableStatement(
   node: ts.VariableStatement,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRStatement | IRStatement[] | null {
   // Ambient declarations (declare var/let/const) — strip completely
-  if (node.modifiers?.some(m => m.kind === ts.SyntaxKind.DeclareKeyword)) {
+  if (node.modifiers?.some((m) => m.kind === ts.SyntaxKind.DeclareKeyword)) {
     return null;
   }
 
@@ -114,7 +108,7 @@ export function visitBareVariableStatement(
                 IR.binary("!==", val, IR.id("undefined")),
                 val,
                 visitExpression(element.initializer, ctx),
-                getLoc(decl, ctx)
+                getLoc(decl, ctx),
               )
             : val;
           results.push(IR.varDecl(variableName, initExpr, getLoc(decl, ctx)));
@@ -162,7 +156,7 @@ export function visitBareVariableStatement(
  */
 export function visitBareNamespaceDeclaration(
   node: ts.ModuleDeclaration,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRStatement[] | null {
   const name = node.name.text;
   const results: IRStatement[] = [];
@@ -200,10 +194,7 @@ export function visitBareNamespaceDeclaration(
  * @param ctx - VisitorContext (mode === "bare")
  * @returns IR expression (ссылка на имя функции)
  */
-export function visitBareArrowFunction(
-  node: ts.ArrowFunction,
-  ctx: VisitorContext
-): IRExpression {
+export function visitBareArrowFunction(node: ts.ArrowFunction, ctx: VisitorContext): IRExpression {
   const params = collectBareParams(node.parameters, ctx);
   const funcName = ctx.bindings.create("arrow");
 
@@ -245,7 +236,7 @@ export function visitBareArrowFunction(
  */
 export function visitBareFunctionExpression(
   node: ts.FunctionExpression,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRExpression {
   const name = node.name?.text ?? ctx.bindings.create("func");
   const params = collectBareParams(node.parameters, ctx);
@@ -281,10 +272,7 @@ export function visitBareFunctionExpression(
  * @param ctx - VisitorContext (mode === "bare")
  * @returns имя сгенерированной функции
  */
-export function visitBareObjectMethod(
-  prop: ts.MethodDeclaration,
-  ctx: VisitorContext
-): string {
+export function visitBareObjectMethod(prop: ts.MethodDeclaration, ctx: VisitorContext): string {
   const methodName = (prop.name as ts.Identifier).text;
   const funcName = ctx.bindings.create(`${methodName}__method`);
   const params = collectBareParams(prop.parameters, ctx);
@@ -316,14 +304,12 @@ export function visitBareObjectMethod(
  */
 function collectBareParams(
   parameters: ts.NodeArray<ts.ParameterDeclaration>,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRFunctionParam[] {
   const params: IRFunctionParam[] = [];
   for (const param of parameters) {
     if (ts.isIdentifier(param.name)) {
-      const defaultValue = param.initializer
-        ? visitExpression(param.initializer, ctx)
-        : undefined;
+      const defaultValue = param.initializer ? visitExpression(param.initializer, ctx) : undefined;
       const isRest = !!param.dotDotDotToken;
       params.push(IR.param(param.name.text, defaultValue, isRest));
     }
@@ -335,10 +321,7 @@ function collectBareParams(
  * Создаёт дочерний VisitorContext для bare mode функции.
  * Без captured variables, env/desc и прочей логики script/module режимов.
  */
-function createBareFnCtx(
-  node: ts.Node,
-  ctx: VisitorContext
-): VisitorContext {
+function createBareFnCtx(node: ts.Node, ctx: VisitorContext): VisitorContext {
   const funcScope = ctx.scopeAnalysis.nodeToScope.get(node) || ctx.currentScope;
   return {
     mode: ctx.mode,

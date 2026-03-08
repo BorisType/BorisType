@@ -2,11 +2,11 @@
  * TS Visitor - преобразование TypeScript AST в IR
  *
  * Entry point модуля lowering. Координирует обход TypeScript AST и генерацию IR.
- * 
+ *
  * Структура модуля (после рефакторинга):
  * - visitor.ts — entry point, VisitorContext, transformToIR
  * - statements.ts — visitors для statements
- * - expressions.ts — visitors для expressions  
+ * - expressions.ts — visitors для expressions
  * - helpers.ts — вспомогательные функции (операторы, scope, location)
  * - function-builder.ts — построение env/desc паттерна для функций
  * - binding.ts — менеджер генерации уникальных имён
@@ -16,16 +16,8 @@
 
 import * as ts from "typescript";
 import * as path from "node:path";
-import {
-  IR,
-  type IRProgram,
-  type IRStatement,
-  type IRFunctionDeclaration,
-} from "../ir/index.ts";
-import {
-  type ScopeAnalysisResult,
-  type Scope,
-} from "../analyzer/index.ts";
+import { IR, type IRProgram, type IRStatement, type IRFunctionDeclaration } from "../ir/index.ts";
+import { type ScopeAnalysisResult, type Scope } from "../analyzer/index.ts";
 import { BindingManager } from "./binding.ts";
 import { findSymbolByName } from "./helpers.ts";
 import { visitStatement } from "./statements.ts";
@@ -45,7 +37,7 @@ export type CompileMode = "bare" | "script" | "module";
 
 /**
  * Контекст visitor'а
- * 
+ *
  * Передаётся во все visitor функции и содержит:
  * - Информацию о текущем scope
  * - Карту параметров функции
@@ -127,10 +119,10 @@ export interface HelperFlags {
 
 /**
  * Преобразует TypeScript SourceFile в IR Program
- * 
+ *
  * Основная точка входа для lowering. Создаёт контекст и координирует
  * обход всех statements исходного файла.
- * 
+ *
  * @param sourceFile - TypeScript SourceFile для преобразования
  * @param typeChecker - TypeScript TypeChecker для определения типов
  * @param scopeAnalysis - Результат анализа scopes
@@ -152,7 +144,7 @@ export function transformToIR(
   sourceFile: ts.SourceFile,
   typeChecker: ts.TypeChecker,
   scopeAnalysis: ScopeAnalysisResult,
-  options: TransformToIROptions = {}
+  options: TransformToIROptions = {},
 ): IRProgram {
   const ctx: VisitorContext = {
     mode: options.mode ?? "script",
@@ -170,8 +162,9 @@ export function transformToIR(
     xmlElemSymbol: findSymbolByName(typeChecker, sourceFile, "XmlElem"),
     importBindings: new Map(),
     fileKey: options.fileKey,
-    currentFileJs: options.currentFileJs
-      ?? ((options.mode ?? "script") === "module"
+    currentFileJs:
+      options.currentFileJs ??
+      ((options.mode ?? "script") === "module"
         ? path.basename(sourceFile.fileName).replace(/\.tsx?$/, ".js")
         : undefined),
     helperFlags: { usesImportMeta: false, usesAbsoluteUrl: false, needsObjectUnion: false },
@@ -211,7 +204,9 @@ export function transformToIR(
   }
 
   // Helper-функции (ObjectUnion при spread в объектах) — в самом начале
-  const helperFunctions: IRStatement[] = ctx.helperFlags.needsObjectUnion ? [createObjectUnionFunction()] : [];
+  const helperFunctions: IRStatement[] = ctx.helperFlags.needsObjectUnion
+    ? [createObjectUnionFunction()]
+    : [];
 
   // import.meta и AbsoluteUrl helpers: BT-функции, зарегистрированные в __env
   const helperSetupStatements: IRStatement[] = [];
@@ -224,17 +219,21 @@ export function transformToIR(
           ? IR.call(IR.id("AbsoluteUrl"), [IR.string(ctx.currentFileJs)])
           : null;
     if (fileRef) {
-      const metaHelpers: Array<{ name: string; returnExpr: import("../ir/index.ts").IRExpression }> = [
-        { name: "__ImportMeta_dirPath", returnExpr: IR.call(IR.id("UrlToFilePath"), [IR.call(IR.id("UrlParent"), [fileRef])]) },
+      const metaHelpers: Array<{
+        name: string;
+        returnExpr: import("../ir/index.ts").IRExpression;
+      }> = [
+        {
+          name: "__ImportMeta_dirPath",
+          returnExpr: IR.call(IR.id("UrlToFilePath"), [IR.call(IR.id("UrlParent"), [fileRef])]),
+        },
         { name: "__ImportMeta_dirUrl", returnExpr: IR.call(IR.id("UrlParent"), [fileRef]) },
         { name: "__ImportMeta_filePath", returnExpr: IR.call(IR.id("UrlToFilePath"), [fileRef]) },
         { name: "__ImportMeta_fileUrl", returnExpr: fileRef },
       ];
       for (const helper of metaHelpers) {
         // Функция: function __ImportMeta_X(__env, __this, __args) { return ...; }
-        ctx.hoistedFunctions.push(
-          IR.functionDecl(helper.name, [], [IR.return(helper.returnExpr)])
-        );
+        ctx.hoistedFunctions.push(IR.functionDecl(helper.name, [], [IR.return(helper.returnExpr)]));
         // Дескриптор + регистрация в __env
         const descName = `${helper.name}_desc`;
         const descProps = [
@@ -250,7 +249,7 @@ export function transformToIR(
         }
         helperSetupStatements.push(
           IR.varDecl(descName, IR.object(descProps)),
-          IR.exprStmt(IR.assign("=", IR.dot(IR.id("__env"), helper.name), IR.id(descName)))
+          IR.exprStmt(IR.assign("=", IR.dot(IR.id("__env"), helper.name), IR.id(descName))),
         );
       }
     }
@@ -260,8 +259,8 @@ export function transformToIR(
     // __AbsoluteUrl: обычная BT-функция с параметрами url, baseUrl
     const whenUndefined =
       ctx.mode === "script"
-        // Внутри __AbsoluteUrl: __env.__ImportMeta_dirUrl доступен через __env (он параметр)
-        ? IR.call(IR.id("UrlAppendPath"), [
+        ? // Внутри __AbsoluteUrl: __env.__ImportMeta_dirUrl доступен через __env (он параметр)
+          IR.call(IR.id("UrlAppendPath"), [
             IR.btCallFunction(IR.dot(IR.id("__env"), "__ImportMeta_dirUrl"), []),
             IR.id("url"),
           ])
@@ -271,11 +270,11 @@ export function transformToIR(
       IR.conditional(
         IR.binary("===", IR.id("baseUrl"), IR.id("undefined")),
         whenUndefined,
-        whenDefined
-      )
+        whenDefined,
+      ),
     );
     ctx.hoistedFunctions.push(
-      IR.functionDecl("__AbsoluteUrl", [IR.param("url"), IR.param("baseUrl")], [ret])
+      IR.functionDecl("__AbsoluteUrl", [IR.param("url"), IR.param("baseUrl")], [ret]),
     );
     // Дескриптор + регистрация
     const absDescProps = [
@@ -291,7 +290,9 @@ export function transformToIR(
     }
     helperSetupStatements.push(
       IR.varDecl("__AbsoluteUrl_desc", IR.object(absDescProps)),
-      IR.exprStmt(IR.assign("=", IR.dot(IR.id("__env"), "__AbsoluteUrl"), IR.id("__AbsoluteUrl_desc")))
+      IR.exprStmt(
+        IR.assign("=", IR.dot(IR.id("__env"), "__AbsoluteUrl"), IR.id("__AbsoluteUrl_desc")),
+      ),
     );
   }
 
@@ -308,7 +309,7 @@ export function transformToIR(
       [IR.param("__codelibrary"), IR.param("__module")],
       initBody,
       undefined,
-      true // plainSignature: __init(__codelibrary, __module)
+      true, // plainSignature: __init(__codelibrary, __module)
     );
     return IR.program([...helperFunctions, ...ctx.hoistedFunctions, initFunc], sourceFile.fileName);
   }
@@ -319,7 +320,11 @@ export function transformToIR(
   }
 
   const isBare = ctx.mode === "bare";
-  return IR.program([...helperFunctions, ...ctx.hoistedFunctions, ...body], sourceFile.fileName, isBare);
+  return IR.program(
+    [...helperFunctions, ...ctx.hoistedFunctions, ...body],
+    sourceFile.fileName,
+    isBare,
+  );
 }
 
 // ============================================================================

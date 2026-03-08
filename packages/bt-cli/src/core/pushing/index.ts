@@ -9,12 +9,12 @@
  * @module core/pushing
  */
 
-import * as path from 'path';
-import * as fs from 'fs';
-import { logger } from '../logger';
-import { resolvePushConnectionOptions } from './config';
-import { DeploySession } from './session';
-import type { PartialPushConnectionOptions } from './types';
+import * as path from "path";
+import * as fs from "fs";
+import { logger } from "../logger";
+import { resolvePushConnectionOptions } from "./config";
+import { DeploySession } from "./session";
+import type { PartialPushConnectionOptions } from "./types";
 
 /**
  * Выполняет one-shot push: загрузка dist + reinit модулей
@@ -27,15 +27,15 @@ import type { PartialPushConnectionOptions } from './types';
  */
 export async function processPush(
   cwd: string,
-  cliOptions: PartialPushConnectionOptions = {}
+  cliOptions: PartialPushConnectionOptions = {},
 ): Promise<void> {
   const options = resolvePushConnectionOptions(cwd, cliOptions);
 
   logger.info(`🚀 Pushing dist to WSHCM server...`);
-  logger.info(`📡 Server: ${options.https ? 'https' : 'http'}://${options.host}:${options.port}`);
+  logger.info(`📡 Server: ${options.https ? "https" : "http"}://${options.host}:${options.port}`);
   logger.info(`👤 User: ${options.username}`);
 
-  const distPath = path.join(cwd, 'dist');
+  const distPath = path.join(cwd, "dist");
   if (!fs.existsSync(distPath) || !fs.lstatSync(distPath).isDirectory()) {
     throw new Error(`Папка dist не найдена по пути: ${distPath}`);
   }
@@ -44,26 +44,22 @@ export async function processPush(
   try {
     await session.initialize();
     await session.push(distPath);
-    logger.info('🎉 Push completed successfully!');
+    logger.info("🎉 Push completed successfully!");
   } finally {
     await session.close();
   }
 }
 
 // Re-exports
-export { DeploySession } from './session';
-export { resolvePushConnectionOptions, parseBtConfigProperties } from './config';
-export { uploadDist } from './upload';
-export { reinitModules } from './reinit';
+export { DeploySession } from "./session";
+export { resolvePushConnectionOptions, parseBtConfigProperties } from "./config";
+export { uploadDist } from "./upload";
+export { reinitModules } from "./reinit";
 export {
   collectComponentInitScripts,
   collectStandaloneInitScripts,
   resolveXLocalPath,
   extractOnInitFromXml,
   findOnInit,
-} from './init-scripts';
-export type {
-  PushConnectionOptions,
-  PartialPushConnectionOptions,
-  InitScript,
-} from './types';
+} from "./init-scripts";
+export type { PushConnectionOptions, PartialPushConnectionOptions, InitScript } from "./types";

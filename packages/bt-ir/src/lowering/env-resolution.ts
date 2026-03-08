@@ -17,11 +17,7 @@
  * @module lowering/env-resolution
  */
 
-import {
-  IR,
-  type IRExpression,
-  type SourceLocation,
-} from "../ir/index.ts";
+import { IR, type IRExpression, type SourceLocation } from "../ir/index.ts";
 import { getEnvDepth, type Scope } from "../analyzer/index.ts";
 import type { VisitorContext } from "./visitor.ts";
 
@@ -48,7 +44,11 @@ import type { VisitorContext } from "./visitor.ts";
  * buildEnvChainBase("__fn0_env", 2)
  * ```
  */
-export function buildEnvChainBase(envRef: string, depth: number, _loc?: SourceLocation): IRExpression {
+export function buildEnvChainBase(
+  envRef: string,
+  depth: number,
+  _loc?: SourceLocation,
+): IRExpression {
   let expr: IRExpression = IR.id(envRef);
   for (let i = 0; i < depth; i++) {
     expr = IR.dot(expr, "__parent");

@@ -1,9 +1,9 @@
 /**
  * Build Pipeline
- * 
+ *
  * Основной модуль сборки TypeScript в BorisScript.
  * Предоставляет unified API для single и watch режимов.
- * 
+ *
  * @example
  * ```typescript
  * // Single build
@@ -11,29 +11,43 @@
  *   tsConfig: parsedConfig,
  *   options: btcOptions,
  * });
- * 
+ *
  * // Watch mode (будущее)
  * const watcher = BuildPipeline.watch(config, {
  *   onRebuild: (result) => console.log('Rebuilt!', result.success),
  * });
  * watcher.close();
  * ```
- * 
+ *
  * @module build
  */
 
-import { logger } from '../logger.js';
-import type { BuildContext, BuildResult, CreateContextOptions } from './types.js';
-import { createBuildContext } from './types.js';
-import { compile, createWatchProgram } from './compiler.js';
-import { copyNonTypescriptFiles, watchNonTypescriptFiles } from './files.js';
+import { logger } from "../logger.js";
+import type { BuildContext, BuildResult, CreateContextOptions } from "./types.js";
+import { createBuildContext } from "./types.js";
+import { compile, createWatchProgram } from "./compiler.js";
+import { copyNonTypescriptFiles, watchNonTypescriptFiles } from "./files.js";
 
 // Re-exports
-export { createBuildContext } from './types.js';
-export type { BuildContext, BuildResult, BuildMode, CreateContextOptions, ExecutableObjectSourceFileInfo, BtcCompileOptions, CompileMode, BtcConfiguration } from './types.js';
-export { transformOutput, stripControlChars, indentString, decodeUnicodeEscapes } from './output.js';
-export { compile } from './compiler.js';
-export { collectNonTypescriptFiles, copyNonTypescriptFiles } from './files.js';
+export { createBuildContext } from "./types.js";
+export type {
+  BuildContext,
+  BuildResult,
+  BuildMode,
+  CreateContextOptions,
+  ExecutableObjectSourceFileInfo,
+  BtcCompileOptions,
+  CompileMode,
+  BtcConfiguration,
+} from "./types.js";
+export {
+  transformOutput,
+  stripControlChars,
+  indentString,
+  decodeUnicodeEscapes,
+} from "./output.js";
+export { compile } from "./compiler.js";
+export { collectNonTypescriptFiles, copyNonTypescriptFiles } from "./files.js";
 
 /**
  * Опции для watch режима
@@ -61,14 +75,15 @@ export interface WatchController {
 export const BuildPipeline = {
   /**
    * Выполняет однократную сборку проекта
-   * 
+   *
    * @param contextOrOptions - Контекст сборки или опции для его создания
    * @returns Результат сборки
    */
   run(contextOrOptions: BuildContext | CreateContextOptions): BuildResult {
-    const context: BuildContext = 'mode' in contextOrOptions && contextOrOptions.mode !== undefined
-      ? contextOrOptions as BuildContext
-      : createBuildContext(contextOrOptions);
+    const context: BuildContext =
+      "mode" in contextOrOptions && contextOrOptions.mode !== undefined
+        ? (contextOrOptions as BuildContext)
+        : createBuildContext(contextOrOptions);
 
     logger.info(`🔨 ${new Date().toLocaleTimeString()} Build started`);
 
@@ -89,18 +104,19 @@ export const BuildPipeline = {
 
   /**
    * Запускает watch режим для инкрементальной сборки
-   * 
+   *
    * @param contextOrOptions - Контекст сборки или опции для его создания
    * @param watchOptions - Опции watch режима
    * @returns Контроллер для остановки watch
    */
   watch(
     contextOrOptions: BuildContext | CreateContextOptions,
-    watchOptions?: WatchOptions
+    watchOptions?: WatchOptions,
   ): WatchController {
-    const context: BuildContext = 'mode' in contextOrOptions && contextOrOptions.mode !== undefined
-      ? contextOrOptions as BuildContext
-      : createBuildContext({ ...contextOrOptions, mode: 'watch' });
+    const context: BuildContext =
+      "mode" in contextOrOptions && contextOrOptions.mode !== undefined
+        ? (contextOrOptions as BuildContext)
+        : createBuildContext({ ...contextOrOptions, mode: "watch" });
 
     logger.info(`👀 ${new Date().toLocaleTimeString()} Watch mode started`);
 
@@ -110,8 +126,10 @@ export const BuildPipeline = {
 
     // Запускаем TypeScript watch для инкрементальной компиляции
     const tsWatcher = createWatchProgram(context, (result) => {
-      logger.warning(`🔄 ${new Date().toLocaleTimeString()} Rebuild completed. Success: ${result.success}`);
-      
+      logger.warning(
+        `🔄 ${new Date().toLocaleTimeString()} Rebuild completed. Success: ${result.success}`,
+      );
+
       // Вызываем пользовательский callback
       watchOptions?.onRebuild?.(result);
     });

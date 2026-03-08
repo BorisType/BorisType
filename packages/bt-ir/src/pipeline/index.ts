@@ -124,7 +124,9 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
     if (scopeAnalysis.capturedVariables.length > 0) {
       console.log("\n=== Captured Variables ===");
       for (const v of scopeAnalysis.capturedVariables) {
-        console.log(`  ${v.name} (declared in ${v.declarationScope.name || v.declarationScope.type})`);
+        console.log(
+          `  ${v.name} (declared in ${v.declarationScope.name || v.declarationScope.type})`,
+        );
       }
     }
   }
@@ -153,9 +155,7 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
 
   const result = emit(ir, options.emitOptions);
 
-  const outputPath = options.filename
-    ? options.filename.replace(/\.tsx?$/, ".js")
-    : "output.js";
+  const outputPath = options.filename ? options.filename.replace(/\.tsx?$/, ".js") : "output.js";
 
   return {
     success: errors.length === 0,
@@ -209,7 +209,7 @@ export function compileFile(filePath: string, options: CompileOptions = {}): Com
 export function compileSourceFile(
   sourceFile: ts.SourceFile,
   program: ts.Program,
-  options: CompileOptions = {}
+  options: CompileOptions = {},
 ): CompileResult {
   const typeChecker = program.getTypeChecker();
   const errors: string[] = [];
@@ -259,8 +259,7 @@ export function compileSourceFile(
   const result = emit(ir, options.emitOptions);
 
   const outputPath =
-    options.outputPath ??
-    (options.filename ?? sourceFile.fileName).replace(/\.tsx?$/, ".js");
+    options.outputPath ?? (options.filename ?? sourceFile.fileName).replace(/\.tsx?$/, ".js");
 
   return {
     success: errors.length === 0,
@@ -282,7 +281,7 @@ export function compileSourceFile(
 function createVirtualCompilerHost(
   filename: string,
   content: string,
-  options: ts.CompilerOptions
+  options: ts.CompilerOptions,
 ): ts.CompilerHost {
   const host = ts.createCompilerHost(options);
   const originalGetSourceFile = host.getSourceFile;

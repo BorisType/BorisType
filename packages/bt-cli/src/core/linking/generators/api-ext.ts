@@ -3,19 +3,19 @@
  * @module linking/generators/api-ext
  */
 
-import { xmlBuilderKeepEmpty } from '../../utils/xml';
-import { ApiExtEntry } from '../types';
+import { xmlBuilderKeepEmpty } from "../../utils/xml";
+import { ApiExtEntry } from "../types";
 
 /**
  * Генерирует содержимое api_ext.xml файла
- * 
+ *
  * @param entries - Массив записей для api_ext.xml
  * @returns Содержимое api_ext.xml файла
- * 
+ *
  * @remarks
  * api_ext.xml содержит список модулей и их библиотек (libs).
  * Создаётся один раз для всего проекта в dist/source/api_ext.xml.
- * 
+ *
  * Структура:
  * ```xml
  * <api_ext>
@@ -29,7 +29,7 @@ import { ApiExtEntry } from '../types';
  *   </apis>
  * </api_ext>
  * ```
- * 
+ *
  * @example
  * ```ts
  * const entries = [
@@ -41,13 +41,13 @@ import { ApiExtEntry } from '../types';
  */
 export function buildApiExt(entries: ApiExtEntry[]): string {
   const xmlObj = {
-    '?xml': { '@_version': '1.0', '@_encoding': 'utf-8' },
-    'api_ext': {
-      'apis': {
-        'api': entries.map(entry => ({
-          'name': entry.name,
-          'libs': {
-            'lib': entry.libs.map(libPath => ({ 'path': libPath })),
+    "?xml": { "@_version": "1.0", "@_encoding": "utf-8" },
+    api_ext: {
+      apis: {
+        api: entries.map((entry) => ({
+          name: entry.name,
+          libs: {
+            lib: entry.libs.map((libPath) => ({ path: libPath })),
           },
         })),
       },

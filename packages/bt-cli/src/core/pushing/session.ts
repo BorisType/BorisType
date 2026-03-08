@@ -1,25 +1,25 @@
 /**
  * DeploySession — persistent сессия для push-операций
- * 
+ *
  * Управляет lifecycle одного WshcmClient + Evaluator.
  * Используется в dev mode для переиспользования соединения между push-ами,
  * а также в one-shot push через processPush().
- * 
+ *
  * @module core/pushing/session
  */
 
-import { WshcmClient, Evaluator, WshcmException } from '@boristype/ws-client';
-import { logger } from '../logger';
-import { uploadDist } from './upload';
-import { reinitModules } from './reinit';
-import type { PushConnectionOptions } from './types';
+import { WshcmClient, Evaluator, WshcmException } from "@boristype/ws-client";
+import { logger } from "../logger";
+import { uploadDist } from "./upload";
+import { reinitModules } from "./reinit";
+import type { PushConnectionOptions } from "./types";
 
 /**
  * Persistent сессия для push-операций на WSHCM сервер
- * 
+ *
  * Держит один WshcmClient + один Evaluator на всё время жизни сессии.
  * Поддерживает reconnect при network-ошибках (1 retry).
- * 
+ *
  * @example
  * ```typescript
  * // One-shot
@@ -27,7 +27,7 @@ import type { PushConnectionOptions } from './types';
  * await session.initialize();
  * await session.push(distPath);
  * await session.close();
- * 
+ *
  * // Dev mode (persistent)
  * const session = new DeploySession(connectionOptions);
  * await session.initialize();
@@ -54,7 +54,7 @@ export class DeploySession {
   /**
    * Инициализирует сессию: создаёт клиент, проверяет авторизацию,
    * создаёт и инициализирует evaluator.
-   * 
+   *
    * Должен быть вызван перед первым push().
    */
   async initialize(): Promise<void> {
@@ -75,21 +75,21 @@ export class DeploySession {
 
   /**
    * Выполняет push: загрузка dist + reinit модулей
-   * 
+   *
    * При network-ошибке пытается выполнить reconnect и повторный push (1 retry).
-   * 
+   *
    * @param distPath - путь к папке dist
    */
   async push(distPath: string): Promise<void> {
     if (!this.initialized || !this.evaluator) {
-      throw new Error('DeploySession is not initialized. Call initialize() first.');
+      throw new Error("DeploySession is not initialized. Call initialize() first.");
     }
 
     try {
       await this.executePush(distPath);
     } catch (error) {
       if (this.isNetworkError(error)) {
-        logger.warning('⚠️ Network error during push, attempting reconnect...');
+        logger.warning("⚠️ Network error during push, attempting reconnect...");
         try {
           await this.reconnect();
           await this.executePush(distPath);
@@ -153,7 +153,7 @@ export class DeploySession {
     this.evaluator = this.client.createEvaluator();
     await this.evaluator.initialize();
 
-    logger.info('🔄 Reconnected to WSHCM server');
+    logger.info("🔄 Reconnected to WSHCM server");
   }
 
   /**
@@ -162,12 +162,14 @@ export class DeploySession {
   private isNetworkError(error: unknown): boolean {
     if (error instanceof WshcmException) {
       const message = error.message.toLowerCase();
-      return message.includes('request failed') ||
-             message.includes('request timed out') ||
-             message.includes('econnrefused') ||
-             message.includes('econnreset') ||
-             message.includes('etimedout') ||
-             message.includes('socket hang up');
+      return (
+        message.includes("request failed") ||
+        message.includes("request timed out") ||
+        message.includes("econnrefused") ||
+        message.includes("econnreset") ||
+        message.includes("etimedout") ||
+        message.includes("socket hang up")
+      );
     }
     return false;
   }

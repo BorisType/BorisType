@@ -1,24 +1,24 @@
-import * as fs from 'fs';
-import { logger } from '../../logger';
-import type { ArtifactContext } from '../types';
+import * as fs from "fs";
+import { logger } from "../../logger";
+import type { ArtifactContext } from "../types";
 
 /**
  * Stage 1: Валидация и подготовка
- * 
+ *
  * - Проверяет существование директории dist
  * - Очищает или создаёт директорию artifact
- * 
+ *
  * @param ctx - Контекст artifact pipeline
  * @returns Контекст (без изменений)
  * @throws Error если dist не существует
  */
 export function stageValidate(ctx: ArtifactContext): ArtifactContext {
-  logger.info('📋 Stage: Validate');
+  logger.info("📋 Stage: Validate");
 
   // Проверяем существование директории dist
   if (!fs.existsSync(ctx.distPath)) {
     logger.error(`Директория dist не найдена: ${ctx.distPath}`);
-    throw new Error('Directory dist does not exist');
+    throw new Error("Directory dist does not exist");
   }
   logger.info(`  ✓ Директория dist найдена`);
 

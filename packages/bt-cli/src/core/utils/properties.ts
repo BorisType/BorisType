@@ -8,7 +8,7 @@
  * @module core/utils/properties
  */
 
-import * as fs from 'node:fs';
+import * as fs from "node:fs";
 
 /**
  * Парсит содержимое в формате `.properties` (key=value).
@@ -22,10 +22,10 @@ export function parseProperties(content: string): Record<string, string> {
 
   for (const line of lines) {
     const trimmedLine = line.trim();
-    if (trimmedLine === '' || trimmedLine.startsWith('#')) {
+    if (trimmedLine === "" || trimmedLine.startsWith("#")) {
       continue;
     }
-    const [key, value] = trimmedLine.split('=', 2);
+    const [key, value] = trimmedLine.split("=", 2);
     if (key && value !== undefined) {
       result[key.trim()] = value.trim();
     }
@@ -44,6 +44,6 @@ export function parsePropertiesFile(filePath: string): Record<string, string> {
   if (!fs.existsSync(filePath) || !fs.lstatSync(filePath).isFile()) {
     return {};
   }
-  const content = fs.readFileSync(filePath, 'utf-8');
+  const content = fs.readFileSync(filePath, "utf-8");
   return parseProperties(content);
 }

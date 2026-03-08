@@ -3,17 +3,17 @@ const callableArray: any[] = [];
 const someCaptured = "captured";
 
 for (var item1 of arr) {
-    callableArray.push(() => {
-        alert(someCaptured);
-        alert(item1);
-    });
+  callableArray.push(() => {
+    alert(someCaptured);
+    alert(item1);
+  });
 }
 
 for (const item2 of arr) {
-    callableArray.push(() => {
-        alert(someCaptured);
-        alert(item2);
-    });
+  callableArray.push(() => {
+    alert(someCaptured);
+    alert(item2);
+  });
 }
 
-export {}
+export {};

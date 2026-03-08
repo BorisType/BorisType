@@ -30,17 +30,17 @@ export interface ComponentPackageJson {
 
 /**
  * Генерирует package.json для компонента
- * 
+ *
  * @param info - Информация о компоненте
  * @returns Объект package.json для компонента
- * 
+ *
  * @remarks
  * Компоненты имеют специфичный формат package.json:
  * - enableByDefault: true
  * - type: 'standard'
  * - tags: ['#public']
  * - dependencies: {} (пустой)
- * 
+ *
  * @example
  * ```ts
  * const pkgJson = buildComponentPackageJson({
@@ -52,21 +52,21 @@ export interface ComponentPackageJson {
  */
 export function buildComponentPackageJson(info: ComponentPackageInfo): ComponentPackageJson {
   return {
-    name: info.name || 'unknown',
-    version: info.version || '1.0.0.0',
-    description: info.description || info.name || 'unknown',
+    name: info.name || "unknown",
+    version: info.version || "1.0.0.0",
+    description: info.description || info.name || "unknown",
     enableByDefault: true,
     dependencies: {
-      "bt-runtime":"^0.0.0.0",
+      "bt-runtime": "^0.0.0.0",
     },
-    type: 'standard',
-    tags: ['#public']
+    type: "standard",
+    tags: ["#public"],
   };
 }
 
 /**
  * Генерирует package.json как JSON-строку
- * 
+ *
  * @param info - Информация о компоненте
  * @returns JSON-строка package.json
  */

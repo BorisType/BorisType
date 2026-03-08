@@ -9,25 +9,25 @@
  * @module build/files
  */
 
-import fs from 'node:fs';
-import { dirname, normalize, relative, resolve, join } from 'node:path';
-import type ts from 'typescript';
-import chokidar from 'chokidar';
-import { logger } from '../logger.js';
-import type { BuildContext } from './types.js';
+import fs from "node:fs";
+import { dirname, normalize, relative, resolve, join } from "node:path";
+import type ts from "typescript";
+import chokidar from "chokidar";
+import { logger } from "../logger.js";
+import type { BuildContext } from "./types.js";
 
 /**
  * Расширения TypeScript файлов (исключаются из копирования)
  */
-const TS_EXTENSIONS = ['.ts', '.tsx'];
+const TS_EXTENSIONS = [".ts", ".tsx"];
 
 /**
  * Проверяет, является ли путь вложенным в другой путь
  */
 function isSubpath(parent: string, child: string): boolean {
-  const normalizedParent = normalize(parent).replace(/\\/g, '/');
-  const normalizedChild = normalize(child).replace(/\\/g, '/');
-  return normalizedChild.startsWith(normalizedParent + '/');
+  const normalizedParent = normalize(parent).replace(/\\/g, "/");
+  const normalizedChild = normalize(child).replace(/\\/g, "/");
+  return normalizedChild.startsWith(normalizedParent + "/");
 }
 
 /**
@@ -47,7 +47,7 @@ function inferRootDir(configuration: ts.ParsedCommandLine, configDir: string): s
   if (include && include.length > 0) {
     // Берём первый паттерн и извлекаем базовую директорию
     const firstPattern = include[0] as string;
-    const baseDir = firstPattern.split('*')[0].replace(/\/+$/, '') || '.';
+    const baseDir = firstPattern.split("*")[0].replace(/\/+$/, "") || ".";
     return resolve(configDir, baseDir);
   }
 
@@ -70,26 +70,24 @@ function inferRootDir(configuration: ts.ParsedCommandLine, configDir: string): s
  */
 export function collectNonTypescriptFiles(
   configuration: ts.ParsedCommandLine,
-  configDir: string = process.cwd()
+  configDir: string = process.cwd(),
 ): string[] {
   const { outDir } = configuration.options;
 
   if (outDir === undefined) {
-    throw new Error('The outDir option is not set in the tsconfig.json file.');
+    throw new Error("The outDir option is not set in the tsconfig.json file.");
   }
 
   // fs.globSync доступен только в Node.js 22+
-  if (parseInt(process.versions.node.split('.')[0]) < 22) {
-    throw new Error('Non-TypeScript files processing requires Node.js v22 or later');
+  if (parseInt(process.versions.node.split(".")[0]) < 22) {
+    throw new Error("Non-TypeScript files processing requires Node.js v22 or later");
   }
 
   const rootDir = inferRootDir(configuration, configDir);
   const absoluteOutDir = resolve(configDir, outDir);
 
   // Базовые исключения
-  const ignore: string[] = [
-    '**/node_modules/**',
-  ];
+  const ignore: string[] = ["**/node_modules/**"];
 
   // Добавляем exclude из tsconfig
   const { exclude } = configuration.raw || {};
@@ -106,41 +104,44 @@ export function collectNonTypescriptFiles(
   }
 
   // Сканируем rootDir
-  const pattern = join(rootDir, '**', '*').replace(/\\/g, '/');
+  const pattern = join(rootDir, "**", "*").replace(/\\/g, "/");
 
   // Node.js fs.globSync возвращает string[], фильтруем вручную
-  return fs.globSync(pattern, {
-    exclude: (fileName) => {
-      // Проверяем ignore паттерны
-      const relativePath = relative(rootDir, fileName).replace(/\\/g, '/');
+  return (
+    fs
+      .globSync(pattern, {
+        exclude: (fileName) => {
+          // Проверяем ignore паттерны
+          const relativePath = relative(rootDir, fileName).replace(/\\/g, "/");
 
-      // Если путь выходит за пределы rootDir, пропускаем проверку
-      // (fs.globSync может вызывать exclude для родительских директорий)
-      if (relativePath.startsWith('..')) {
-        return false;
-      }
-
-      return ignore.some(p => {
-        if (typeof p === 'string') {
-          // Простая проверка glob паттернов
-          if (p.includes('**')) {
-            // Для паттернов типа "**/node_modules/**" проверяем вхождение
-            const innerPattern = p.replace(/\*\*/g, '').replace(/^\/+|\/+$/g, '');
-            if (innerPattern) {
-              return relativePath.includes(innerPattern);
-            }
-            return false; // Паттерн только из ** - игнорируем
+          // Если путь выходит за пределы rootDir, пропускаем проверку
+          // (fs.globSync может вызывать exclude для родительских директорий)
+          if (relativePath.startsWith("..")) {
+            return false;
           }
-          return relativePath === p || relativePath.startsWith(p + '/');
-        }
-        return false;
-      });
-    },
-  })
-    // Фильтруем директории
-    .filter(f => fs.statSync(f).isFile())
-    // Фильтруем TypeScript файлы
-    .filter(f => !TS_EXTENSIONS.some(ext => f.endsWith(ext)));
+
+          return ignore.some((p) => {
+            if (typeof p === "string") {
+              // Простая проверка glob паттернов
+              if (p.includes("**")) {
+                // Для паттернов типа "**/node_modules/**" проверяем вхождение
+                const innerPattern = p.replace(/\*\*/g, "").replace(/^\/+|\/+$/g, "");
+                if (innerPattern) {
+                  return relativePath.includes(innerPattern);
+                }
+                return false; // Паттерн только из ** - игнорируем
+              }
+              return relativePath === p || relativePath.startsWith(p + "/");
+            }
+            return false;
+          });
+        },
+      })
+      // Фильтруем директории
+      .filter((f) => fs.statSync(f).isFile())
+      // Фильтруем TypeScript файлы
+      .filter((f) => !TS_EXTENSIONS.some((ext) => f.endsWith(ext)))
+  );
 }
 
 /**
@@ -150,7 +151,7 @@ function selectFiles(allFiles: string[], filterFiles: string[]): string[] {
   if (filterFiles.length === 0) {
     return allFiles;
   }
-  return allFiles.filter(x => filterFiles.includes(x));
+  return allFiles.filter((x) => filterFiles.includes(x));
 }
 
 /**
@@ -164,16 +165,16 @@ export function copyNonTypescriptFiles(context: BuildContext): void {
   const { tsConfig, options, files, cwd } = context;
   const configDir = cwd || process.cwd();
 
-  logger.warning('📁 Copying non-TypeScript files...');
+  logger.warning("📁 Copying non-TypeScript files...");
   if (options.includeNonTsFiles === false) {
-    logger.warning('Non-TypeScript files copy is disabled');
+    logger.warning("Non-TypeScript files copy is disabled");
     return;
   }
 
   const { outDir } = tsConfig.options;
 
   if (!outDir) {
-    logger.warning('outDir not set, skipping non-TypeScript files copy');
+    logger.warning("outDir not set, skipping non-TypeScript files copy");
     return;
   }
 
@@ -182,14 +183,16 @@ export function copyNonTypescriptFiles(context: BuildContext): void {
 
   const entries = collectNonTypescriptFiles(tsConfig, configDir);
   const selectedFiles = selectFiles(entries, files);
-  logger.warning(`📁 Found ${entries.length} non-TypeScript files, copying ${selectedFiles.length} files...`);
+  logger.warning(
+    `📁 Found ${entries.length} non-TypeScript files, copying ${selectedFiles.length} files...`,
+  );
 
   for (const filePath of selectedFiles) {
     const relativePath = relative(rootDir, filePath);
     const outputFilePath = resolve(absoluteOutDir, relativePath);
 
     fs.mkdirSync(dirname(outputFilePath), { recursive: true });
-    fs.writeFileSync(outputFilePath, fs.readFileSync(resolve(filePath), 'utf-8'));
+    fs.writeFileSync(outputFilePath, fs.readFileSync(resolve(filePath), "utf-8"));
   }
 }
 
@@ -206,7 +209,7 @@ export function copyNonTypescriptFiles(context: BuildContext): void {
  */
 export function watchNonTypescriptFiles(
   context: BuildContext,
-  onChange?: (filePath: string) => void
+  onChange?: (filePath: string) => void,
 ): { close: () => void } {
   const { tsConfig, options, cwd } = context;
 
@@ -219,7 +222,7 @@ export function watchNonTypescriptFiles(
   const configDir = cwd || process.cwd();
 
   if (!outDir) {
-    logger.warning('outDir not set, skipping non-TypeScript files watch');
+    logger.warning("outDir not set, skipping non-TypeScript files watch");
     return { close: () => {} };
   }
 
@@ -232,19 +235,21 @@ export function watchNonTypescriptFiles(
   const ignoredPatterns: (string | RegExp | ((path: string) => boolean))[] = [
     /node_modules/,
     // Игнорируем TypeScript файлы
-    (filePath: string) => TS_EXTENSIONS.some(ext => filePath.endsWith(ext)),
+    (filePath: string) => TS_EXTENSIONS.some((ext) => filePath.endsWith(ext)),
   ];
 
   // Добавляем exclude из tsconfig
   if (exclude) {
     for (const pattern of exclude) {
-      ignoredPatterns.push(resolve(configDir, pattern).replace(/\\/g, '/'));
+      ignoredPatterns.push(resolve(configDir, pattern).replace(/\\/g, "/"));
     }
   }
 
   // Исключаем outDir
   if (isSubpath(rootDir, absoluteOutDir)) {
-    ignoredPatterns.push((filePath: string) => isSubpath(absoluteOutDir, filePath) || filePath === absoluteOutDir);
+    ignoredPatterns.push(
+      (filePath: string) => isSubpath(absoluteOutDir, filePath) || filePath === absoluteOutDir,
+    );
   }
 
   logger.info(`📁 Watching non-TS files in: ${rootDir}`);
@@ -257,10 +262,10 @@ export function watchNonTypescriptFiles(
   });
 
   // Debug events
-  watcher.on('ready', () => {
-    logger.info('📁 Non-TS watcher ready');
+  watcher.on("ready", () => {
+    logger.info("📁 Non-TS watcher ready");
   });
-  watcher.on('error', (error) => {
+  watcher.on("error", (error) => {
     logger.error(`📁 Non-TS watcher error: ${error}`);
   });
 
@@ -269,7 +274,7 @@ export function watchNonTypescriptFiles(
    * (дополнительная проверка, т.к. chokidar ignored может пропустить)
    */
   const isNonTsFile = (filePath: string): boolean => {
-    return !TS_EXTENSIONS.some(ext => filePath.endsWith(ext));
+    return !TS_EXTENSIONS.some((ext) => filePath.endsWith(ext));
   };
 
   /**
@@ -325,9 +330,9 @@ export function watchNonTypescriptFiles(
   };
 
   // Обработчики событий
-  watcher.on('add', copyFile);
-  watcher.on('change', copyFile);
-  watcher.on('unlink', deleteFile);
+  watcher.on("add", copyFile);
+  watcher.on("change", copyFile);
+  watcher.on("unlink", deleteFile);
 
   return {
     close: () => {

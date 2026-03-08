@@ -8,19 +8,19 @@
  * @module linking/cache
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
-import { LinkingCacheState } from './types';
+import * as fs from "fs";
+import * as path from "path";
+import * as crypto from "crypto";
+import { LinkingCacheState } from "./types";
 
 /** Текущая версия формата кэша */
 const CACHE_VERSION = 1;
 
 /** Имя директории кэша */
-const CACHE_DIR_NAME = '.btc';
+const CACHE_DIR_NAME = ".btc";
 
 /** Имя файла состояния кэша */
-const CACHE_STATE_FILE = 'linking-cache.json';
+const CACHE_STATE_FILE = "linking-cache.json";
 
 /**
  * Менеджер кэша линковки
@@ -60,7 +60,7 @@ export class LinkingCache {
 
     try {
       if (fs.existsSync(this.stateFilePath)) {
-        const content = fs.readFileSync(this.stateFilePath, 'utf-8');
+        const content = fs.readFileSync(this.stateFilePath, "utf-8");
         const state = JSON.parse(content) as LinkingCacheState;
 
         // Проверяем версию кэша
@@ -84,7 +84,7 @@ export class LinkingCache {
   private createEmptyState(): LinkingCacheState {
     return {
       version: CACHE_VERSION,
-      nodeModules: {}
+      nodeModules: {},
     };
   }
 
@@ -102,14 +102,10 @@ export class LinkingCache {
         fs.mkdirSync(this.cachePath, { recursive: true });
       }
 
-      fs.writeFileSync(
-        this.stateFilePath,
-        JSON.stringify(this.state, null, 2),
-        'utf-8'
-      );
+      fs.writeFileSync(this.stateFilePath, JSON.stringify(this.state, null, 2), "utf-8");
     } catch (error) {
       // Не критично если не удалось сохранить кэш
-      console.warn('Warning: Failed to save linking cache:', error);
+      console.warn("Warning: Failed to save linking cache:", error);
     }
   }
 
@@ -125,7 +121,7 @@ export class LinkingCache {
         return null;
       }
       const content = fs.readFileSync(filePath);
-      return crypto.createHash('sha256').update(content).digest('hex');
+      return crypto.createHash("sha256").update(content).digest("hex");
     } catch (_err) {
       return null;
     }
@@ -140,7 +136,7 @@ export class LinkingCache {
    */
   private getLockfileHash(packagePath: string): string | null {
     // Сначала пробуем package-lock.json (npm)
-    const npmLockPath = path.join(packagePath, 'package-lock.json');
+    const npmLockPath = path.join(packagePath, "package-lock.json");
     let hash = this.computeFileHash(npmLockPath);
 
     if (hash) {
@@ -148,7 +144,7 @@ export class LinkingCache {
     }
 
     // Затем пробуем pnpm-lock.yaml (pnpm workspaces)
-    const pnpmLockPath = path.join(packagePath, 'pnpm-lock.yaml');
+    const pnpmLockPath = path.join(packagePath, "pnpm-lock.yaml");
     hash = this.computeFileHash(pnpmLockPath);
 
     if (hash) {
@@ -156,7 +152,7 @@ export class LinkingCache {
     }
 
     // Fallback на package.json
-    const packageJsonPath = path.join(packagePath, 'package.json');
+    const packageJsonPath = path.join(packagePath, "package.json");
     return this.computeFileHash(packageJsonPath);
   }
 
@@ -217,7 +213,7 @@ export class LinkingCache {
       this.state.nodeModules[wsName] = {
         lockfileHash: hash,
         linkedAt: new Date().toISOString(),
-        version: CACHE_VERSION
+        version: CACHE_VERSION,
       };
     }
 

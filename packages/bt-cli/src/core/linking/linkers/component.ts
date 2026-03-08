@@ -3,19 +3,19 @@
  * @module linking/linkers/component
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { PackageLinker, LinkedPackage, PackageInfo, LinkingContext } from '../types';
-import { copyRecursive } from '../utils/copy';
-import { copyNodeModulesWithCache } from '../utils/node-modules';
-import { writeIfChanged } from '../utils/write';
-import { buildComponentXml, buildComponentJs } from '../generators/component';
-import { buildComponentPackageJsonString } from '../generators/package-json';
-import { generateFilemapJson } from '../generators/filemap';
+import * as fs from "fs";
+import * as path from "path";
+import { PackageLinker, LinkedPackage, PackageInfo, LinkingContext } from "../types";
+import { copyRecursive } from "../utils/copy";
+import { copyNodeModulesWithCache } from "../utils/node-modules";
+import { writeIfChanged } from "../utils/write";
+import { buildComponentXml, buildComponentJs } from "../generators/component";
+import { buildComponentPackageJsonString } from "../generators/package-json";
+import { generateFilemapJson } from "../generators/filemap";
 
 /**
  * Linker для component пакетов
- * 
+ *
  * @remarks
  * Component пакеты:
  * - Помещаются в ./components/<ws:name>
@@ -26,7 +26,7 @@ import { generateFilemapJson } from '../generators/filemap';
  * - Копируют node_modules
  */
 export const componentLinker: PackageLinker = {
-  type: 'component',
+  type: "component",
 
   link(pkg: PackageInfo, ctx: LinkingContext): LinkedPackage {
     const { sourceDir, targetPath, packageJson, rootUrl, projectPath, wsName } = pkg;
@@ -45,7 +45,7 @@ export const componentLinker: PackageLinker = {
       for (const srcFile of changedFiles) {
         const relativePath = path.relative(sourceDir, srcFile);
         // Пропускаем файлы не из sourceDir (например, из другого пакета)
-        if (relativePath.startsWith('..')) {
+        if (relativePath.startsWith("..")) {
           continue;
         }
         const dstFile = path.join(fullTargetPath, relativePath);
@@ -66,12 +66,12 @@ export const componentLinker: PackageLinker = {
         targetDir: fullTargetPath,
         wsName,
         cache,
-        logger
+        logger,
       });
     }
 
     // 3. Проверяем существование spxml файлов
-    const spxmlDir = path.join(fullTargetPath, 'spxml');
+    const spxmlDir = path.join(fullTargetPath, "spxml");
     const xmlPath = path.join(spxmlDir, `${componentName}.xml`);
     const jsPath = path.join(spxmlDir, `${componentName}.js`);
     const xmlExists = fs.existsSync(xmlPath);
@@ -107,7 +107,7 @@ export const componentLinker: PackageLinker = {
         if (!xmlExists) generated.push(`${componentName}.xml`);
         if (!jsExists && mainFile) generated.push(`${componentName}.js`);
         if (generated.length > 0) {
-          logger.success(`  ├─ Generated spxml/${generated.join(', spxml/')}`);
+          logger.success(`  ├─ Generated spxml/${generated.join(", spxml/")}`);
         }
       } else {
         logger.success(`  ├─ Using existing spxml/${componentName}.xml, spxml/${componentName}.js`);
@@ -118,11 +118,11 @@ export const componentLinker: PackageLinker = {
     const componentPkgJson = buildComponentPackageJsonString({
       name: wsName,
       version: packageJson.version,
-      description: packageJson.description
+      description: packageJson.description,
     });
-    const pkgJsonPath = path.join(fullTargetPath, 'package.json');
+    const pkgJsonPath = path.join(fullTargetPath, "package.json");
     if (writeIfChanged(pkgJsonPath, componentPkgJson)) {
-      generatedFiles.push('package.json');
+      generatedFiles.push("package.json");
       if (!devMode) {
         logger.success(`  ├─ Generated package.json`);
       }
@@ -131,9 +131,9 @@ export const componentLinker: PackageLinker = {
     // 7. Создаём .filemap.json (per-module)
     if (executables.size > 0) {
       const filemapContent = generateFilemapJson(executables);
-      const filemapPath = path.join(fullTargetPath, '.filemap.json');
+      const filemapPath = path.join(fullTargetPath, ".filemap.json");
       if (writeIfChanged(filemapPath, filemapContent)) {
-        generatedFiles.push('.filemap.json');
+        generatedFiles.push(".filemap.json");
         logger.success(`  ├─ Generated .filemap.json`);
       }
     }
@@ -145,7 +145,7 @@ export const componentLinker: PackageLinker = {
       info: pkg,
       outputPath: fullTargetPath,
       apiext: undefined,
-      generatedFiles
+      generatedFiles,
     };
-  }
+  },
 };

@@ -9,8 +9,8 @@ export {
   artifactCommand,
   devCommand,
   pushCommand,
-} from './commands';
+} from "./commands";
 
 // Реэкспорт типов для обратной совместимости
-export type { BtcCompileOptions, BtcConfiguration } from '../core/building/types';
-export type { PushCommandOptions } from '../core/pushing/types';
+export type { BtcCompileOptions, BtcConfiguration } from "../core/building/types";
+export type { PushCommandOptions } from "../core/pushing/types";

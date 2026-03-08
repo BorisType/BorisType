@@ -17,7 +17,12 @@
     "dev": "tsc --watch",
     "prepublishOnly": "pnpm build"
   },
-  "keywords": ["boristype", "compiler", "transpiler", "ir"],
+  "keywords": [
+    "boristype",
+    "compiler",
+    "transpiler",
+    "ir"
+  ],
   "author": "punkhomov",
   "license": "MIT",
   "repository": {

@@ -5,6 +5,6 @@ export default [
     files: ["src/**/*.ts"],
     languageOptions: {
       parser: tsParser,
-    }
+    },
   },
 ];

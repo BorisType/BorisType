@@ -7,11 +7,11 @@
  * @module linking/dependencies
  */
 
-import { promises as fs } from 'node:fs';
-import * as path from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { createRequire } from 'node:module';
-import { logger } from '../utils/logger';
+import { promises as fs } from "node:fs";
+import * as path from "node:path";
+import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
+import { logger } from "../utils/logger";
 
 /**
  * Узел дерева зависимостей
@@ -23,7 +23,10 @@ export class DependencyNode {
   projectPath: string;
   hash: string;
 
-  constructor(public packageJson: { name: string; version: string }, projectPath: string = '') {
+  constructor(
+    public packageJson: { name: string; version: string },
+    projectPath: string = "",
+  ) {
     this.name = packageJson.name;
     this.version = packageJson.version;
     this.dependencies = [];
@@ -43,8 +46,8 @@ export class DependencyNode {
  * @returns массив узлов зависимостей с ws:package === "system"
  */
 export async function getSystemDependencies(projectPath: string): Promise<DependencyNode[]> {
-  const rootPackageJsonPath = path.join(projectPath, 'package.json');
-  const rootPackageJson = JSON.parse(await fs.readFile(rootPackageJsonPath, 'utf-8'));
+  const rootPackageJsonPath = path.join(projectPath, "package.json");
+  const rootPackageJson = JSON.parse(await fs.readFile(rootPackageJsonPath, "utf-8"));
 
   // Собираем все зависимости проекта (dependencies + devDependencies)
   const allDeps: Record<string, string> = {
@@ -54,7 +57,7 @@ export async function getSystemDependencies(projectPath: string): Promise<Depend
 
   // Создаём require с контекстом проекта для корректного resolve
   // (работает с npm, pnpm, yarn — следует Node resolution algorithm)
-  const projectRequire = createRequire(path.join(projectPath, 'package.json'));
+  const projectRequire = createRequire(path.join(projectPath, "package.json"));
 
   const result: DependencyNode[] = [];
 
@@ -62,10 +65,10 @@ export async function getSystemDependencies(projectPath: string): Promise<Depend
     try {
       // Резолвим package.json пакета через Node resolution
       const depPackageJsonPath = projectRequire.resolve(`${depName}/package.json`);
-      const depPackageJson = JSON.parse(await fs.readFile(depPackageJsonPath, 'utf-8'));
+      const depPackageJson = JSON.parse(await fs.readFile(depPackageJsonPath, "utf-8"));
 
-      const wsPackage = depPackageJson['ws:package'];
-      if (wsPackage === 'system') {
+      const wsPackage = depPackageJson["ws:package"];
+      if (wsPackage === "system") {
         const depProjectPath = path.dirname(depPackageJsonPath);
         logger.info(`Найден system-пакет: ${depName} в ${depProjectPath}`);
         const depNode = new DependencyNode(depPackageJson, depProjectPath);
@@ -86,10 +89,10 @@ export async function getSystemDependencies(projectPath: string): Promise<Depend
  * @returns корневой узел дерева
  */
 export async function buildDependencyTree(projectPath: string) {
-  const rootPackageJsonPath = path.join(projectPath, 'package.json');
-  const nodeModulesPath = path.join(projectPath, 'node_modules');
+  const rootPackageJsonPath = path.join(projectPath, "package.json");
+  const nodeModulesPath = path.join(projectPath, "node_modules");
 
-  const rootPackageJson = JSON.parse(await fs.readFile(rootPackageJsonPath, 'utf-8'));
+  const rootPackageJson = JSON.parse(await fs.readFile(rootPackageJsonPath, "utf-8"));
   const rootNode = new DependencyNode(rootPackageJson, projectPath);
 
   const processedModules = new Map<string, DependencyNode>();
@@ -98,15 +101,17 @@ export async function buildDependencyTree(projectPath: string) {
     parentNode: DependencyNode,
     nodeModulesDir: string,
     packageJsonPath: string,
-    visited = new Set<string>()
+    visited = new Set<string>(),
   ) {
     let dependencies: Record<string, string> = {};
 
     try {
-      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
+      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
       dependencies = packageJson.dependencies || {};
     } catch (_err) {
-      logger.warning(`Не удалось прочитать package.json для ${parentNode.name}: ${packageJsonPath}`);
+      logger.warning(
+        `Не удалось прочитать package.json для ${parentNode.name}: ${packageJsonPath}`,
+      );
       return;
     }
 
@@ -121,8 +126,8 @@ export async function buildDependencyTree(projectPath: string) {
       const depPath = path.join(nodeModulesDir, depName);
 
       try {
-        const depPackageJsonPath = path.join(depPath, 'package.json');
-        const depPackageJson = JSON.parse(await fs.readFile(depPackageJsonPath, 'utf-8'));
+        const depPackageJsonPath = path.join(depPath, "package.json");
+        const depPackageJson = JSON.parse(await fs.readFile(depPackageJsonPath, "utf-8"));
 
         const processedKey = `${depPackageJson.name}@${depPackageJson.version}`;
 
@@ -177,7 +182,7 @@ export function flattenDependencyTreeIterative(rootNode: DependencyNode): Depend
       continue;
     }
 
-    const unprocessedDeps = node.dependencies.filter(dep => !visited.has(dep.hash));
+    const unprocessedDeps = node.dependencies.filter((dep) => !visited.has(dep.hash));
 
     if (unprocessedDeps.length === 0) {
       visited.add(node.hash);
@@ -203,11 +208,11 @@ export function flattenDependencyTreeIterative(rootNode: DependencyNode): Depend
  * Выводит дерево зависимостей в консоль.
  */
 export function printDependencyTree(node: DependencyNode, depth = 0) {
-  logger.info('\n📦 Дерево зависимостей:');
+  logger.info("\n📦 Дерево зависимостей:");
 
   function printInternal(node: DependencyNode, depth: number) {
-    logger.info('='.repeat(50));
-    logger.info(`${' '.repeat(depth * 2)}${node.name}@${node.version}  [${node.hash}]`);
+    logger.info("=".repeat(50));
+    logger.info(`${" ".repeat(depth * 2)}${node.name}@${node.version}  [${node.hash}]`);
     for (const dep of node.dependencies) {
       printInternal(dep, depth + 1);
     }
@@ -220,10 +225,12 @@ export function printDependencyTree(node: DependencyNode, depth = 0) {
  * Выводит плоский список зависимостей в консоль.
  */
 export function printFlattenedTree(flatTree: DependencyNode[]) {
-  logger.info('\n📦 Плоский список зависимостей (в порядке загрузки):');
-  logger.info('='.repeat(50));
+  logger.info("\n📦 Плоский список зависимостей (в порядке загрузки):");
+  logger.info("=".repeat(50));
   flatTree.forEach((node, index) => {
-    logger.info(`${(index + 1).toString().padStart(2)}. ${node.name}@${node.version}  [${node.hash}]`);
+    logger.info(
+      `${(index + 1).toString().padStart(2)}. ${node.name}@${node.version}  [${node.hash}]`,
+    );
   });
 }
 
@@ -231,8 +238,8 @@ export function printFlattenedTree(flatTree: DependencyNode[]) {
  * Извлекает только ws:package зависимости из плоского списка.
  */
 export function extractBorisTypeDependencies(flatTree: DependencyNode[]): DependencyNode[] {
-  return flatTree.filter(node => {
-    const wsPackage = (node.packageJson as any)['ws:package'] as any;
-    return typeof wsPackage === 'string';
+  return flatTree.filter((node) => {
+    const wsPackage = (node.packageJson as any)["ws:package"] as any;
+    return typeof wsPackage === "string";
   });
 }

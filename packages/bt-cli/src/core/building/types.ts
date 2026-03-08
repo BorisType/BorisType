@@ -3,7 +3,7 @@
  * @module build/types
  */
 
-import type ts from 'typescript';
+import type ts from "typescript";
 
 /**
  * Информация об исполняемом объекте, найденном в исходном файле
@@ -17,7 +17,7 @@ export type ExecutableObjectSourceFileInfo = {
 // ─── Compile options ────────────────────────────────────────────
 
 /** Режим транспиляции: bare | script | module */
-export type CompileMode = 'bare' | 'script' | 'module';
+export type CompileMode = "bare" | "script" | "module";
 
 /**
  * Опции компиляции btc
@@ -52,7 +52,7 @@ export type BtcConfiguration = {
 /**
  * Режим сборки
  */
-export type BuildMode = 'single' | 'watch';
+export type BuildMode = "single" | "watch";
 
 /**
  * Контекст сборки - хранит состояние между компиляциями
@@ -110,7 +110,7 @@ export interface CreateContextOptions {
  */
 export function createBuildContext(opts: CreateContextOptions): BuildContext {
   return {
-    mode: opts.mode ?? 'single',
+    mode: opts.mode ?? "single",
     tsConfig: opts.tsConfig,
     options: opts.options,
     files: opts.files ?? [],

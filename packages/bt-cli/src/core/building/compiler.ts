@@ -34,7 +34,7 @@ function selectFiles(rawFileNames: string[], files: string[]): string[] {
   if (files.length === 0) {
     return rawFileNames;
   }
-  return rawFileNames.filter(x => files.includes(x));
+  return rawFileNames.filter((x) => files.includes(x));
 }
 
 /**
@@ -42,13 +42,13 @@ function selectFiles(rawFileNames: string[], files: string[]): string[] {
  */
 function getOutputDirectory(program: ts.Program): string {
   const options = program.getCompilerOptions();
-  const outDir = options.outDir || '';
-  
+  const outDir = options.outDir || "";
+
   // Если outDir уже абсолютный путь, используем его напрямую
   if (path.isAbsolute(outDir)) {
     return path.normalize(outDir);
   }
-  
+
   return path.normalize(path.join(program.getCurrentDirectory(), outDir));
 }
 
@@ -56,16 +56,16 @@ function getOutputDirectory(program: ts.Program): string {
  * Выводит диагностику TypeScript в лог
  */
 function reportDiagnostics(diagnostics: readonly ts.Diagnostic[]): void {
-  diagnostics.forEach(diagnostic => {
+  diagnostics.forEach((diagnostic) => {
     if (diagnostic.file) {
       const { line, character } = ts.getLineAndCharacterOfPosition(
-        diagnostic.file, 
-        diagnostic.start!
+        diagnostic.file,
+        diagnostic.start!,
       );
-      const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
+      const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
       logger.error(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
     } else {
-      logger.error(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+      logger.error(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
     }
   });
 }
@@ -77,7 +77,9 @@ function getOutputPath(sourceFile: ts.SourceFile, program: ts.Program): string {
   const opts = program.getCompilerOptions();
   const cwd = program.getCurrentDirectory();
   const outDir = path.resolve(cwd, opts.outDir || ".");
-  const rootDir = opts.rootDir ? path.resolve(cwd, opts.rootDir) : path.dirname(program.getRootFileNames()[0] || sourceFile.fileName);
+  const rootDir = opts.rootDir
+    ? path.resolve(cwd, opts.rootDir)
+    : path.dirname(program.getRootFileNames()[0] || sourceFile.fileName);
   const rel = path.relative(rootDir, sourceFile.fileName);
   const outFile = rel.replace(/\.tsx?$/, ".js");
   return path.join(outDir, outFile);
@@ -94,9 +96,7 @@ function buildCompilerOptions(tsOptions: ts.CompilerOptions): ts.CompilerOptions
   return {
     ...tsOptions,
     noEmitOnError: true,
-    ...(tsOptions.declaration
-      ? { emitDeclarationOnly: true }
-      : { noEmit: true }),
+    ...(tsOptions.declaration ? { emitDeclarationOnly: true } : { noEmit: true }),
   };
 }
 
@@ -104,9 +104,7 @@ function buildCompilerOptions(tsOptions: ts.CompilerOptions): ts.CompilerOptions
  * Фильтрует source files: убирает declaration files и файлы из node_modules
  */
 function filterUserSourceFiles(sourceFiles: readonly ts.SourceFile[]): ts.SourceFile[] {
-  return sourceFiles.filter(
-    (sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules")
-  );
+  return sourceFiles.filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
 }
 
 /**
@@ -139,7 +137,11 @@ function emitSourceFiles(
     });
 
     for (const output of result.outputs) {
-      const { fileName: finalFileName, content } = transformOutput(output.path, output.code, options);
+      const { fileName: finalFileName, content } = transformOutput(
+        output.path,
+        output.code,
+        options,
+      );
       const dir = path.dirname(finalFileName);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -174,9 +176,7 @@ export function compile(context: BuildContext): BuildResult {
   const sourceFiles =
     fileNames.length === 0
       ? allSourceFiles
-      : fileNames
-          .map((fn) => program.getSourceFile(fn))
-          .filter((sf): sf is ts.SourceFile => !!sf);
+      : fileNames.map((fn) => program.getSourceFile(fn)).filter((sf): sf is ts.SourceFile => !!sf);
 
   const { executables, paths: executablePaths } = collectExecutables(program, sourceFiles);
   const outputDir = getOutputDirectory(program);
@@ -187,7 +187,7 @@ export function compile(context: BuildContext): BuildResult {
   fs.writeFileSync(
     path.join(outputDir, ".executables.json"),
     JSON.stringify(executables, null, 2),
-    "utf-8"
+    "utf-8",
   );
 
   // Emit d.ts через tsc (noEmitOnError предотвратит emit при ошибках)
@@ -219,18 +219,14 @@ export function compile(context: BuildContext): BuildResult {
  */
 export function createWatchProgram(
   context: BuildContext,
-  onRebuild?: (result: BuildResult) => void
+  onRebuild?: (result: BuildResult) => void,
 ): { close: () => void } {
   const { tsConfig, options, cwd } = context;
 
-  const configPath = ts.findConfigFile(
-    cwd || process.cwd(),
-    ts.sys.fileExists,
-    'tsconfig.json'
-  );
+  const configPath = ts.findConfigFile(cwd || process.cwd(), ts.sys.fileExists, "tsconfig.json");
 
   if (!configPath) {
-    throw new Error('Could not find tsconfig.json');
+    throw new Error("Could not find tsconfig.json");
   }
 
   let currentExecutables: ExecutableObjectSourceFileInfo[] = [];
@@ -247,11 +243,11 @@ export function createWatchProgram(
     ts.createEmitAndSemanticDiagnosticsBuilderProgram,
     (diagnostic) => {
       hasErrors = true;
-      const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
+      const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
       if (diagnostic.file) {
         const { line, character } = ts.getLineAndCharacterOfPosition(
           diagnostic.file,
-          diagnostic.start!
+          diagnostic.start!,
         );
         logger.error(`${diagnostic.file.fileName}:${line + 1}:${character + 1} - ${message}`);
       } else {
@@ -259,7 +255,7 @@ export function createWatchProgram(
       }
     },
     (diagnostic) => {
-      const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
+      const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
 
       // 6031 = "Starting compilation in watch mode..."
       // 6032 / 6193 = "File change detected. Starting incremental compilation..."
@@ -274,9 +270,9 @@ export function createWatchProgram(
 
         const outputDir = tsConfig.options.outDir || cwd || process.cwd();
         fs.writeFileSync(
-          path.join(outputDir, '.executables.json'),
+          path.join(outputDir, ".executables.json"),
           JSON.stringify(currentExecutables, null, 2),
-          'utf-8'
+          "utf-8",
         );
 
         if (onRebuild) {
@@ -294,7 +290,7 @@ export function createWatchProgram(
       } else {
         logger.info(message);
       }
-    }
+    },
   );
 
   const originalAfterProgramCreate = host.afterProgramCreate;
@@ -314,12 +310,12 @@ export function createWatchProgram(
 
     // На первой сборке — все файлы, далее — только affected
     const filesToEmit = filterUserSourceFiles(
-      isFirstBuild ? [...program.getSourceFiles()] : affectedFiles
+      isFirstBuild ? [...program.getSourceFiles()] : affectedFiles,
     );
     isFirstBuild = false;
 
     if (filesToEmit.length === 0) {
-      logger.info('No files to emit');
+      logger.info("No files to emit");
       if (originalAfterProgramCreate) {
         originalAfterProgramCreate(builderProgram);
       }
@@ -327,7 +323,7 @@ export function createWatchProgram(
     }
 
     logger.info(
-      `Emitting ${filesToEmit.length} file(s): ${filesToEmit.map((f) => path.basename(f.fileName)).join(", ")}`
+      `Emitting ${filesToEmit.length} file(s): ${filesToEmit.map((f) => path.basename(f.fileName)).join(", ")}`,
     );
 
     const { executables, paths: executablePaths } = collectExecutables(program, filesToEmit);
@@ -349,4 +345,3 @@ export function createWatchProgram(
     close: () => watchProgram.close(),
   };
 }
-

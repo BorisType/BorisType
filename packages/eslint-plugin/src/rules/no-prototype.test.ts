@@ -21,7 +21,7 @@ ruleTester.run("no-prototype", rule, {
     "function createFoo() { return { bar: function() {} }; }",
 
     // Property named 'prototype' in an object literal (not member access)
-    'var obj = { prototype: 1 };',
+    "var obj = { prototype: 1 };",
 
     // Regular method call on Object
     "Object.keys(obj);",
@@ -92,10 +92,7 @@ ruleTester.run("no-prototype", rule, {
         Foo.prototype.bar = 1;
         Foo.prototype.baz = 2;
       `,
-      errors: [
-        { messageId: "noPrototypeAccess" },
-        { messageId: "noPrototypeAccess" },
-      ],
+      errors: [{ messageId: "noPrototypeAccess" }, { messageId: "noPrototypeAccess" }],
     },
   ],
 });

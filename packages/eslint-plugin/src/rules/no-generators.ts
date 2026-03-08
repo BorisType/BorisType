@@ -25,8 +25,7 @@ const rule: Rule.RuleModule = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Disallow generator functions and yield (not supported in BorisScript)",
+      description: "Disallow generator functions and yield (not supported in BorisScript)",
       recommended: true,
       url: "https://github.com/BorisType/BorisType/blob/main/packages/eslint-plugin/docs/rules/no-generators.md",
     },
@@ -34,8 +33,7 @@ const rule: Rule.RuleModule = {
     messages: {
       noGeneratorFunction:
         "Generator functions are not supported in BorisScript. Use arrays or callbacks instead.",
-      noYieldExpression:
-        "Yield expressions are not supported in BorisScript.",
+      noYieldExpression: "Yield expressions are not supported in BorisScript.",
     },
   },
 
@@ -43,9 +41,7 @@ const rule: Rule.RuleModule = {
     /**
      * Reports a function node if it is a generator.
      */
-    function checkGenerator(
-      node: Rule.Node & { generator?: boolean }
-    ) {
+    function checkGenerator(node: Rule.Node & { generator?: boolean }) {
       if (node.generator) {
         context.report({
           node,

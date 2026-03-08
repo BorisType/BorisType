@@ -21,7 +21,12 @@
     "@types/node": "^24.7.2",
     "typescript": "^5.9.2"
   },
-  "keywords": ["wshcm", "soap", "websoft", "hcm"],
+  "keywords": [
+    "wshcm",
+    "soap",
+    "websoft",
+    "hcm"
+  ],
   "author": "BorisType Project",
   "license": "MIT",
   "repository": {

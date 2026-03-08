@@ -15,3 +15,8 @@ docs/.vitepress/dist/
 
 # Schemas (auto-generated)
 schemas/
+
+# TEMP
+tests/
+examples/
+**/*.md

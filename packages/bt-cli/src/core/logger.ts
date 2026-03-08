@@ -3,4 +3,4 @@
  * Основная реализация: {@link ./utils/logger.ts}
  * @module core/logger
  */
-export { logger } from './utils/logger.js';
+export { logger } from "./utils/logger.js";

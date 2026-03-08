@@ -7,9 +7,9 @@
 export function convertSemverToWsVersion(version: string): string;
 
 /**
- * Сравнивает две версии в ws-формате 
+ * Сравнивает две версии в ws-формате
  * @param version1 - Первая версия
- * @param version2 - Вторая версия  
+ * @param version2 - Вторая версия
  * @returns Результат сравнения (-1 если v1 < v2, 0 если равны, 1 если v1 > v2)
  */
 export function compareWsVersions(version1: string, version2: string): -1 | 0 | 1;

@@ -4,7 +4,7 @@
  * Структура модуля:
  * - visitor.ts — entry point, VisitorContext, transformToIR
  * - statements.ts — visitors для statements
- * - expressions.ts — visitors для expressions  
+ * - expressions.ts — visitors для expressions
  * - helpers.ts — вспомогательные функции (операторы, scope, location)
  * - function-builder.ts — построение env/desc паттерна для функций
  * - binding.ts — менеджер генерации уникальных имён

@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 
-import { program } from 'commander';
-import { runTestsAsync } from './tester';
+import { program } from "commander";
+import { runTestsAsync } from "./tester";
 
-export type CommandLineOptions = {
-}
+export type CommandLineOptions = {};
 
 async function processTest(
   files: string[],
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  options: CommandLineOptions
+  options: CommandLineOptions,
 ) {
   const cwd = process.cwd();
 
@@ -21,10 +20,10 @@ async function processTest(
 }
 
 program
-  .name('botest')
-  .description('Basic TypeScript CLI utility for file processing')
-  .version('0.0.1')
-  .arguments('[files...]')
+  .name("botest")
+  .description("Basic TypeScript CLI utility for file processing")
+  .version("0.0.1")
+  .arguments("[files...]")
   .action(async (files: string[], options: any) => {
     await processTest(files, options);
   });

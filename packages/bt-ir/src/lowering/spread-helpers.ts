@@ -19,30 +19,24 @@ export function createObjectUnionFunction(): IRFunctionDeclaration {
       IR.id("obj1"),
       IR.block([
         IR.exprStmt(
-          IR.call(
-            IR.dot(IR.id("newObject"), "SetProperty"),
-            [
-              IR.id("key"),
-              IR.call(IR.dot(IR.id("obj1"), "GetProperty"), [IR.id("key")]),
-            ]
-          )
+          IR.call(IR.dot(IR.id("newObject"), "SetProperty"), [
+            IR.id("key"),
+            IR.call(IR.dot(IR.id("obj1"), "GetProperty"), [IR.id("key")]),
+          ]),
         ),
-      ])
+      ]),
     ),
     IR.forIn(
       IR.id("key"),
       IR.id("obj2"),
       IR.block([
         IR.exprStmt(
-          IR.call(
-            IR.dot(IR.id("newObject"), "SetProperty"),
-            [
-              IR.id("key"),
-              IR.call(IR.dot(IR.id("obj2"), "GetProperty"), [IR.id("key")]),
-            ]
-          )
+          IR.call(IR.dot(IR.id("newObject"), "SetProperty"), [
+            IR.id("key"),
+            IR.call(IR.dot(IR.id("obj2"), "GetProperty"), [IR.id("key")]),
+          ]),
         ),
-      ])
+      ]),
     ),
     IR.return(IR.id("newObject")),
   ];
@@ -52,6 +46,6 @@ export function createObjectUnionFunction(): IRFunctionDeclaration {
     [IR.param("obj1"), IR.param("obj2")],
     body,
     undefined,
-    true // plainSignature
+    true, // plainSignature
   );
 }

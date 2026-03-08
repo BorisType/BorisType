@@ -31,8 +31,7 @@ const rule: Rule.RuleModule = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Disallow async/await syntax (not supported in BorisScript)",
+      description: "Disallow async/await syntax (not supported in BorisScript)",
       recommended: true,
       url: "https://github.com/BorisType/BorisType/blob/main/packages/eslint-plugin/docs/rules/no-async-await.md",
     },
@@ -42,8 +41,7 @@ const rule: Rule.RuleModule = {
         "Async functions are not supported in BorisScript. Use callbacks or synchronous code instead.",
       noAwaitExpression:
         "Await expressions are not supported in BorisScript. Use callbacks or synchronous code instead.",
-      noForAwaitOf:
-        "For-await-of loops are not supported in BorisScript.",
+      noForAwaitOf: "For-await-of loops are not supported in BorisScript.",
     },
   },
 
@@ -51,9 +49,7 @@ const rule: Rule.RuleModule = {
     /**
      * Reports async function if it has async modifier.
      */
-    function checkAsyncFunction(
-      node: Rule.Node & { async?: boolean }
-    ) {
+    function checkAsyncFunction(node: Rule.Node & { async?: boolean }) {
       if (node.async) {
         context.report({
           node,

@@ -16,12 +16,6 @@
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true
   },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "build",
-    "example"
-  ]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "build", "example"]
 }

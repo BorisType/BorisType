@@ -5,7 +5,7 @@
 
 /**
  * Опции подключения к WSHCM серверу
- * 
+ *
  * Все поля обязательны — мерж CLI/config/defaults выполняется до создания этого объекта.
  */
 export interface PushConnectionOptions {
@@ -23,7 +23,7 @@ export interface PushConnectionOptions {
 
 /**
  * Частичные опции подключения (из CLI или btconfig.properties)
- * 
+ *
  * Все поля опциональны — будут дополнены дефолтами.
  */
 export type PartialPushConnectionOptions = Partial<PushConnectionOptions>;
@@ -33,7 +33,7 @@ export type PartialPushConnectionOptions = Partial<PushConnectionOptions>;
  */
 export interface InitScript {
   /** Тип модуля */
-  type: 'standalone' | 'component';
+  type: "standalone" | "component";
   /** Имя модуля */
   name: string;
   /** Код для выполнения */

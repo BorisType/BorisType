@@ -3,18 +3,18 @@
  * @module linking/linkers/standalone
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { PackageLinker, LinkedPackage, PackageInfo, LinkingContext, ApiExtEntry } from '../types';
-import { copyRecursive } from '../utils/copy';
-import { copyNodeModulesWithCache } from '../utils/node-modules';
-import { writeIfChanged } from '../utils/write';
-import { buildInitXml } from '../generators/init-xml';
-import { generateFilemapJson } from '../generators/filemap';
+import * as fs from "fs";
+import * as path from "path";
+import { PackageLinker, LinkedPackage, PackageInfo, LinkingContext, ApiExtEntry } from "../types";
+import { copyRecursive } from "../utils/copy";
+import { copyNodeModulesWithCache } from "../utils/node-modules";
+import { writeIfChanged } from "../utils/write";
+import { buildInitXml } from "../generators/init-xml";
+import { generateFilemapJson } from "../generators/filemap";
 
 /**
  * Linker для standalone пакетов
- * 
+ *
  * @remarks
  * Standalone пакеты:
  * - Генерируют init.xml
@@ -23,7 +23,7 @@ import { generateFilemapJson } from '../generators/filemap';
  * - Копируют node_modules (с кэшированием)
  */
 export const standaloneLinker: PackageLinker = {
-  type: 'standalone',
+  type: "standalone",
 
   link(pkg: PackageInfo, ctx: LinkingContext): LinkedPackage {
     const { sourceDir, targetPath, packageJson, rootUrl, projectPath, wsName } = pkg;
@@ -40,7 +40,7 @@ export const standaloneLinker: PackageLinker = {
       for (const srcFile of changedFiles) {
         const relativePath = path.relative(sourceDir, srcFile);
         // Пропускаем файлы не из sourceDir (например, из другого пакета)
-        if (relativePath.startsWith('..')) {
+        if (relativePath.startsWith("..")) {
           continue;
         }
         const dstFile = path.join(fullTargetPath, relativePath);
@@ -61,19 +61,19 @@ export const standaloneLinker: PackageLinker = {
         targetDir: fullTargetPath,
         wsName,
         cache,
-        logger
+        logger,
       });
     }
 
     // 3. Создаём init.xml (только если его нет в build/)
     const mainFile = packageJson.main;
-    const initXmlPath = path.join(fullTargetPath, 'init.xml');
+    const initXmlPath = path.join(fullTargetPath, "init.xml");
     const initXmlExists = fs.existsSync(initXmlPath);
-    
+
     if (mainFile && !initXmlExists) {
       const initXmlContent = buildInitXml(mainFile, rootUrl);
       if (writeIfChanged(initXmlPath, initXmlContent)) {
-        generatedFiles.push('init.xml');
+        generatedFiles.push("init.xml");
         logger.success(`  ├─ Generated init.xml`);
       }
     } else if (initXmlExists && !devMode) {
@@ -83,28 +83,28 @@ export const standaloneLinker: PackageLinker = {
     // 4. Создаём .filemap.json (per-module)
     if (executables.size > 0) {
       const filemapContent = generateFilemapJson(executables);
-      const filemapPath = path.join(fullTargetPath, '.filemap.json');
+      const filemapPath = path.join(fullTargetPath, ".filemap.json");
       if (writeIfChanged(filemapPath, filemapContent)) {
-        generatedFiles.push('.filemap.json');
+        generatedFiles.push(".filemap.json");
         logger.success(`  ├─ Generated .filemap.json`);
       }
     }
 
     // 5. Формируем apiext запись
     let apiext: ApiExtEntry | undefined;
-    
-    const wsApiext = packageJson['ws:apiext'];
+
+    const wsApiext = packageJson["ws:apiext"];
     if (wsApiext) {
       // Явно указано в package.json
       apiext = {
         name: wsApiext.name,
-        libs: wsApiext.libs.map((lib: string) => rootUrl + '/' + path.posix.normalize(lib))
+        libs: wsApiext.libs.map((lib: string) => rootUrl + "/" + path.posix.normalize(lib)),
       };
     } else if (mainFile) {
       // Автоматически по main, используем wsName
       apiext = {
         name: `module:${wsName}`,
-        libs: [rootUrl + '/init.xml']
+        libs: [rootUrl + "/init.xml"],
       };
     }
 
@@ -114,7 +114,7 @@ export const standaloneLinker: PackageLinker = {
       info: pkg,
       outputPath: fullTargetPath,
       apiext,
-      generatedFiles
+      generatedFiles,
     };
-  }
+  },
 };

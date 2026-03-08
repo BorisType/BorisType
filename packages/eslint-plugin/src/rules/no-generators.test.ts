@@ -52,10 +52,7 @@ ruleTester.run("no-generators", rule, {
     // Yield expression inside generator
     {
       code: "function* gen() { yield 1; }",
-      errors: [
-        { messageId: "noGeneratorFunction" },
-        { messageId: "noYieldExpression" },
-      ],
+      errors: [{ messageId: "noGeneratorFunction" }, { messageId: "noYieldExpression" }],
     },
 
     // Multiple yield expressions
@@ -78,19 +75,13 @@ ruleTester.run("no-generators", rule, {
     // yield* delegation
     {
       code: "function* gen() { yield* otherGen(); }",
-      errors: [
-        { messageId: "noGeneratorFunction" },
-        { messageId: "noYieldExpression" },
-      ],
+      errors: [{ messageId: "noGeneratorFunction" }, { messageId: "noYieldExpression" }],
     },
 
     // Named generator expression
     {
       code: "var gen = function* myGen() { yield 1; };",
-      errors: [
-        { messageId: "noGeneratorFunction" },
-        { messageId: "noYieldExpression" },
-      ],
+      errors: [{ messageId: "noGeneratorFunction" }, { messageId: "noYieldExpression" }],
     },
   ],
 });

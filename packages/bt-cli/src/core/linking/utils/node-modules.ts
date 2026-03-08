@@ -3,11 +3,11 @@
  * @module linking/utils/node-modules
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { copyRecursive } from './copy';
-import type { LinkingCache } from '../cache';
-import type { Logger } from '../types';
+import * as fs from "fs";
+import * as path from "path";
+import { copyRecursive } from "./copy";
+import type { LinkingCache } from "../cache";
+import type { Logger } from "../types";
 
 /**
  * Опции для копирования node_modules с кэшированием
@@ -27,10 +27,10 @@ export interface CopyNodeModulesOptions {
 
 /**
  * Копирует структуру node_modules с поддержкой кэширования
- * 
+ *
  * @param options - Опции копирования
  * @returns true если копирование было выполнено, false если пропущено (из кэша)
- * 
+ *
  * @remarks
  * - Проверяет кэш по hash от package-lock.json
  * - Если hash не изменился - пропускает копирование
@@ -38,7 +38,7 @@ export interface CopyNodeModulesOptions {
  */
 export function copyNodeModulesWithCache(options: CopyNodeModulesOptions): boolean {
   const { searchDir, targetDir, wsName, cache, logger } = options;
-  
+
   // Проверяем нужно ли копировать
   if (!cache.shouldCopyNodeModules(wsName, searchDir)) {
     logger.success(`  ├─ node_modules skipped (cached)`);
@@ -47,20 +47,20 @@ export function copyNodeModulesWithCache(options: CopyNodeModulesOptions): boole
 
   // Копируем
   copyNodeModules(searchDir, targetDir);
-  
+
   // Обновляем кэш
   cache.updateNodeModulesCache(wsName, searchDir);
-  
+
   logger.success(`  ├─ Copied node_modules`);
   return true;
 }
 
 /**
  * Копирует структуру node_modules из исходной директории в целевую
- * 
+ *
  * @param searchDir - Директория для поиска node_modules
  * @param targetDir - Директория куда нужно скопировать найденные пакеты
- * 
+ *
  * @remarks
  * - Копирует только пакеты с свойством `ws:package` в package.json
  * - Поддерживает scoped packages (@scope/package)
@@ -68,15 +68,15 @@ export function copyNodeModulesWithCache(options: CopyNodeModulesOptions): boole
  * - Рекурсивно обрабатывает вложенные node_modules
  */
 export function copyNodeModules(searchDir: string, targetDir: string): void {
-  const nodeModulesPath = path.join(searchDir, 'node_modules');
-  
+  const nodeModulesPath = path.join(searchDir, "node_modules");
+
   // Проверяем существование node_modules в исходной директории
   if (!fs.existsSync(nodeModulesPath)) {
     return;
   }
 
-  const targetNodeModulesPath = path.join(targetDir, 'node_modules');
-  
+  const targetNodeModulesPath = path.join(targetDir, "node_modules");
+
   // Создаем целевую директорию node_modules если её нет
   if (!fs.existsSync(targetNodeModulesPath)) {
     fs.mkdirSync(targetNodeModulesPath, { recursive: true });
@@ -87,7 +87,7 @@ export function copyNodeModules(searchDir: string, targetDir: string): void {
 
   for (const itemName of items) {
     // Пропускаем служебные директории и файлы (например .bin, .package-lock.json и т.д.)
-    if (itemName.startsWith('.')) {
+    if (itemName.startsWith(".")) {
       continue;
     }
 
@@ -98,7 +98,7 @@ export function copyNodeModules(searchDir: string, targetDir: string): void {
     const lstat = fs.lstatSync(sourcePath);
 
     // Если это директория, начинающаяся с @ (scoped packages)
-    if (lstat.isDirectory() && itemName.startsWith('@')) {
+    if (lstat.isDirectory() && itemName.startsWith("@")) {
       // Scoped директория - это просто контейнер для пакетов
       // Создаем её только если в ней будут валидные пакеты
       const scopedItems = fs.readdirSync(sourcePath);
@@ -120,7 +120,7 @@ export function copyNodeModules(searchDir: string, targetDir: string): void {
           }
         }
       }
-    } 
+    }
     // Если это обычная директория или symlink (потенциально пакет)
     else if (lstat.isDirectory() || lstat.isSymbolicLink()) {
       processPackageDirectory(sourcePath, targetPath);
@@ -130,11 +130,11 @@ export function copyNodeModules(searchDir: string, targetDir: string): void {
 
 /**
  * Обрабатывает директорию пакета - проверяет наличие ws:package и копирует
- * 
+ *
  * @param packagePath - Путь к пакету (может быть symlink)
  * @param targetPath - Целевой путь для копирования
  * @returns true если пакет был скопирован, false иначе
- * 
+ *
  * @remarks
  * - Следует по symlink для получения реального пути
  * - Проверяет наличие package.json и свойства ws:package
@@ -145,7 +145,7 @@ export function processPackageDirectory(packagePath: string, targetPath: string)
   // Проверяем является ли путь symlink
   const lstat = fs.lstatSync(packagePath);
   const isSymlink = lstat.isSymbolicLink();
-  
+
   // Получаем реальный путь (следуем по symlink если есть)
   let realPackagePath: string;
   try {
@@ -162,7 +162,7 @@ export function processPackageDirectory(packagePath: string, targetPath: string)
   }
 
   // Проверяем наличие package.json
-  const packageJsonPath = path.join(realPackagePath, 'package.json');
+  const packageJsonPath = path.join(realPackagePath, "package.json");
   if (!fs.existsSync(packageJsonPath)) {
     return false;
   }
@@ -170,33 +170,33 @@ export function processPackageDirectory(packagePath: string, targetPath: string)
   // Читаем и парсим package.json
   let packageJson: any;
   try {
-    packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
   } catch (error) {
     console.error(`Error reading ${packageJsonPath}:`, error);
     return false;
   }
 
   // Копируем только library-пакеты (остальные типы линкуются отдельно)
-  const wsPackage = packageJson['ws:package'];
-  if (wsPackage !== 'library') {
+  const wsPackage = packageJson["ws:package"];
+  if (wsPackage !== "library") {
     return false;
   }
 
   // Копируем содержимое пакета (кроме вложенного node_modules)
   copyPackageContent(realPackagePath, targetPath);
-  
+
   // Рекурсивно обрабатываем вложенный node_modules
   copyNodeModules(realPackagePath, targetPath);
-  
+
   return true;
 }
 
 /**
  * Копирует содержимое пакета, исключая вложенную папку node_modules
- * 
+ *
  * @param sourcePath - Путь к исходному пакету
  * @param targetPath - Целевой путь
- * 
+ *
  * @remarks
  * - Исключает директорию node_modules (обрабатывается отдельно)
  * - Исключает директорию .git
@@ -212,11 +212,11 @@ export function copyPackageContent(sourcePath: string, targetPath: string): void
 
   for (const itemName of items) {
     // Пропускаем вложенную папку node_modules
-    if (itemName === 'node_modules') {
+    if (itemName === "node_modules") {
       continue;
     }
 
-    if (itemName === '.git') {
+    if (itemName === ".git") {
       continue;
     }
 

@@ -1,4 +1,4 @@
 /**
  * Реэкспорт утилит для artifact
  */
-export { createZipArchive, addDirectoryToArchive, addFileToArchive } from './zip';
+export { createZipArchive, addDirectoryToArchive, addFileToArchive } from "./zip";

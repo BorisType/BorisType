@@ -78,10 +78,7 @@ ruleTester.run("no-class-declaration", rule, {
         class Foo {}
         class Bar {}
       `,
-      errors: [
-        { messageId: "noClassDeclaration" },
-        { messageId: "noClassDeclaration" },
-      ],
+      errors: [{ messageId: "noClassDeclaration" }, { messageId: "noClassDeclaration" }],
     },
   ],
 });

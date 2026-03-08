@@ -3,18 +3,18 @@
  * @module linking/generators/component
  */
 
-import { xmlBuilderKeepEmpty } from '../../utils/xml';
+import { xmlBuilderKeepEmpty } from "../../utils/xml";
 
 /**
  * Генерирует содержимое XML файла компонента (spxml/<name>.xml)
- * 
+ *
  * @param componentName - Имя компонента (обычно name из package.json)
  * @returns Содержимое XML файла компонента
- * 
+ *
  * @remarks
  * XML файл компонента создаётся в директории spxml/.
  * Содержит определение компонента с атрибутом CODE-LIB="1".
- * 
+ *
  * @example
  * ```ts
  * buildComponentXml('my-component')
@@ -23,10 +23,10 @@ import { xmlBuilderKeepEmpty } from '../../utils/xml';
  */
 export function buildComponentXml(componentName: string): string {
   const xmlObj = {
-    '?xml': { '@_version': '1.0', '@_encoding': 'utf-8' },
-    'SPXML-INLINE-FORM': {
-      '@_CODE-LIB': '1',
-      [componentName]: '',
+    "?xml": { "@_version": "1.0", "@_encoding": "utf-8" },
+    "SPXML-INLINE-FORM": {
+      "@_CODE-LIB": "1",
+      [componentName]: "",
     },
   };
 
@@ -35,18 +35,18 @@ export function buildComponentXml(componentName: string): string {
 
 /**
  * Генерирует содержимое JS файла компонента (spxml/<name>.js)
- * 
+ *
  * @param componentName - Имя компонента (обычно name из package.json)
  * @param mainFile - Путь к главному файлу (main из package.json)
  * @param rootUrl - URL корневой директории пакета (x-local://...)
  * @returns Содержимое JS файла компонента
- * 
+ *
  * @remarks
  * JS файл компонента содержит функцию init(), которая:
  * - Загружает модуль через bt.require
  * - Логирует состояние инициализации
  * - Обрабатывает ошибки
- * 
+ *
  * @example
  * ```ts
  * buildComponentJs('my-component', './index.js', 'x-local://components/my-component')
@@ -81,20 +81,20 @@ export interface ComponentFiles {
 
 /**
  * Генерирует все файлы для компонента
- * 
+ *
  * @param componentName - Имя компонента
  * @param mainFile - Путь к главному файлу
  * @param rootUrl - URL корневой директории
  * @returns Объект с содержимым XML и JS файлов
  */
 export function buildComponentFiles(
-  componentName: string, 
-  mainFile: string, 
-  rootUrl: string
+  componentName: string,
+  mainFile: string,
+  rootUrl: string,
 ): ComponentFiles {
   return {
     xml: buildComponentXml(componentName),
     js: buildComponentJs(componentName, mainFile, rootUrl),
-    fileName: componentName
+    fileName: componentName,
   };
 }

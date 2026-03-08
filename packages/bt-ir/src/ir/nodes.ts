@@ -56,10 +56,7 @@ export interface IRNodeBase {
 /**
  * Объединение всех типов нод
  */
-export type IRNode =
-  | IRProgram
-  | IRStatement
-  | IRExpression;
+export type IRNode = IRProgram | IRStatement | IRExpression;
 
 /**
  * Объединение всех statement нод
@@ -404,12 +401,27 @@ export interface IRBinaryExpression extends IRNodeBase {
 }
 
 export type BinaryOperator =
-  | "+" | "-" | "*" | "/" | "%"
-  | "==" | "!=" | "===" | "!=="
-  | "<" | "<=" | ">" | ">="
-  | "<<" | ">>" | ">>>"
-  | "&" | "|" | "^"
-  | "in" | "instanceof";
+  | "+"
+  | "-"
+  | "*"
+  | "/"
+  | "%"
+  | "=="
+  | "!="
+  | "==="
+  | "!=="
+  | "<"
+  | "<="
+  | ">"
+  | ">="
+  | "<<"
+  | ">>"
+  | ">>>"
+  | "&"
+  | "|"
+  | "^"
+  | "in"
+  | "instanceof";
 
 /**
  * Unary expression (!a, -a, typeof a, etc.)
@@ -424,9 +436,7 @@ export interface IRUnaryExpression extends IRNodeBase {
   prefix: boolean;
 }
 
-export type UnaryOperator =
-  | "-" | "+" | "!" | "~"
-  | "typeof" | "void" | "delete";
+export type UnaryOperator = "-" | "+" | "!" | "~" | "typeof" | "void" | "delete";
 
 /**
  * Conditional expression (a ? b : c)
@@ -523,9 +533,18 @@ export interface IRAssignmentExpression extends IRNodeBase {
 }
 
 export type AssignmentOperator =
-  | "=" | "+=" | "-=" | "*=" | "/=" | "%="
-  | "<<=" | ">>=" | ">>>="
-  | "&=" | "|=" | "^=";
+  | "="
+  | "+="
+  | "-="
+  | "*="
+  | "/="
+  | "%="
+  | "<<="
+  | ">>="
+  | ">>>="
+  | "&="
+  | "|="
+  | "^=";
 
 /**
  * Update expression (++a, a++, --a, a--)

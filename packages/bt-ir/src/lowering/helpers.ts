@@ -1,13 +1,13 @@
 /**
  * Helper функции для visitor
- * 
+ *
  * Содержит вспомогательные функции:
  * - Работа с позициями (SourceLocation)
  * - Определение типов polyfill
  * - Операторы (assignment, unary)
  * - Проверки (isInternalAccess, isBuiltinFunction)
  * - Scope utilities
- * 
+ *
  * @module lowering/helpers
  */
 
@@ -67,10 +67,7 @@ export function getPolyfillType(type: ts.Type, checker: ts.TypeChecker): string 
  * Проверяет, является ли импорт только типом (type, interface и т.д.)
  * Используется для Bundler mode, где не обязательно писать type в импорте.
  */
-export function isTypeOnlyImport(
-  typeChecker: ts.TypeChecker,
-  node: ts.Identifier
-): boolean {
+export function isTypeOnlyImport(typeChecker: ts.TypeChecker, node: ts.Identifier): boolean {
   let symbol = typeChecker.getSymbolAtLocation(node);
   if (!symbol) return false;
 
@@ -97,12 +94,17 @@ export function isTypeOnlyImport(
 export function findSymbolByName(
   typeChecker: ts.TypeChecker,
   sourceFile: ts.SourceFile,
-  name: string
+  name: string,
 ): ts.Symbol | undefined {
-  return typeChecker.getSymbolsInScope(
-    sourceFile,
-    ts.SymbolFlags.Class | ts.SymbolFlags.Interface | ts.SymbolFlags.TypeAlias | ts.SymbolFlags.Value
-  ).find((symbol) => symbol.getName() === name);
+  return typeChecker
+    .getSymbolsInScope(
+      sourceFile,
+      ts.SymbolFlags.Class |
+        ts.SymbolFlags.Interface |
+        ts.SymbolFlags.TypeAlias |
+        ts.SymbolFlags.Value,
+    )
+    .find((symbol) => symbol.getName() === name);
 }
 
 /**
@@ -114,7 +116,7 @@ export function isXmlRelatedType(
   typeChecker: ts.TypeChecker,
   node: ts.Node,
   xmlDocumentSymbol: ts.Symbol | undefined,
-  xmlElemSymbol: ts.Symbol | undefined
+  xmlElemSymbol: ts.Symbol | undefined,
 ): boolean {
   if (!xmlDocumentSymbol && !xmlElemSymbol) {
     return false;
@@ -218,17 +220,17 @@ export function isInternalAccess(expr: ts.Expression): boolean {
   if (ts.isIdentifier(expr) && expr.text === "__env") {
     return true;
   }
-  
+
   // Любой идентификатор начинающийся с __
   if (ts.isIdentifier(expr) && expr.text.startsWith("__")) {
     return true;
   }
-  
+
   // Цепочка доступа: __env.something.else
   if (ts.isPropertyAccessExpression(expr)) {
     return isInternalAccess(expr.expression);
   }
-  
+
   return false;
 }
 
@@ -242,7 +244,7 @@ export function isBuiltinFunction(name: string, ctx: VisitorContext): boolean {
       return false; // Объявлена в файле — не встроенная
     }
   }
-  
+
   return true; // Не найдена в файле — встроенная
 }
 
@@ -274,7 +276,7 @@ export function isAssignmentOperator(kind: ts.SyntaxKind): boolean {
  * Получает строку assignment оператора
  */
 export function getAssignmentOperator(
-  kind: ts.SyntaxKind
+  kind: ts.SyntaxKind,
 ): import("../ir/index.js").AssignmentOperator {
   switch (kind) {
     case ts.SyntaxKind.EqualsToken:
@@ -310,7 +312,7 @@ export function getAssignmentOperator(
  * Получает строку unary оператора
  */
 export function getUnaryOperator(
-  kind: ts.PrefixUnaryOperator
+  kind: ts.PrefixUnaryOperator,
 ): import("../ir/index.js").UnaryOperator {
   switch (kind) {
     case ts.SyntaxKind.MinusToken:
@@ -364,14 +366,14 @@ export function isScopeInsideOrEqual(scope: Scope, targetScope: Scope): boolean 
  */
 export function getAllScopes(analysis: ScopeAnalysisResult): Scope[] {
   const result: Scope[] = [analysis.moduleScope];
-  
+
   function collectScopes(scope: Scope) {
     for (const child of scope.children) {
       result.push(child);
       collectScopes(child);
     }
   }
-  
+
   collectScopes(analysis.moduleScope);
   return result;
 }
@@ -397,7 +399,7 @@ export function getCapturedVariablesInScope(scope: Scope): VariableInfo[] {
  */
 export function collectCapturedVarsForArrow(
   funcScope: Scope,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): Array<{ name: string; kind: VariableInfo["kind"]; renamedTo?: string }> {
   const result: Array<{ name: string; kind: VariableInfo["kind"]; renamedTo?: string }> = [];
 
@@ -407,13 +409,13 @@ export function collectCapturedVarsForArrow(
     if (!capturedVar.usedInScopes.has(funcScope)) {
       continue;
     }
-    
+
     // Проверяем что переменная объявлена ВНЕ этой функции
     // (declarationScope не должен быть funcScope или его потомком)
     if (isScopeInsideOrEqual(capturedVar.declarationScope, funcScope)) {
       continue;
     }
-    
+
     result.push({
       name: capturedVar.name,
       kind: capturedVar.kind,

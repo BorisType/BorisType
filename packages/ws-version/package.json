@@ -22,7 +22,11 @@
     "@types/semver": "^7.0.0",
     "typescript": "^5.9.2"
   },
-  "keywords": ["version", "semver", "conversion"],
+  "keywords": [
+    "version",
+    "semver",
+    "conversion"
+  ],
   "author": "BorisType Project",
   "license": "MIT",
   "repository": {

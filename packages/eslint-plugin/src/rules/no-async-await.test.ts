@@ -73,10 +73,7 @@ ruleTester.run("no-async-await", rule, {
     // Await expression (also triggers async function error)
     {
       code: "async function foo() { await bar(); }",
-      errors: [
-        { messageId: "noAsyncFunction" },
-        { messageId: "noAwaitExpression" },
-      ],
+      errors: [{ messageId: "noAsyncFunction" }, { messageId: "noAwaitExpression" }],
     },
 
     // Multiple await expressions
@@ -97,19 +94,13 @@ ruleTester.run("no-async-await", rule, {
     // For-await-of loop
     {
       code: "async function foo() { for await (const x of iter) {} }",
-      errors: [
-        { messageId: "noAsyncFunction" },
-        { messageId: "noForAwaitOf" },
-      ],
+      errors: [{ messageId: "noAsyncFunction" }, { messageId: "noForAwaitOf" }],
     },
 
     // Async IIFE
     {
       code: "(async () => { await fetch(); })();",
-      errors: [
-        { messageId: "noAsyncFunction" },
-        { messageId: "noAwaitExpression" },
-      ],
+      errors: [{ messageId: "noAsyncFunction" }, { messageId: "noAwaitExpression" }],
     },
   ],
 });

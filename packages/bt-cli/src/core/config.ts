@@ -7,10 +7,10 @@
  * @module core/config
  */
 
-import ts from 'typescript';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { logger } from './utils/logger.js';
+import ts from "typescript";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { logger } from "./utils/logger.js";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -106,11 +106,13 @@ export type BtConfig = {
  * @param project - Имя файла конфигурации (по умолчанию tsconfig.json)
  * @returns Распарсенная конфигурация TypeScript
  */
-export function getTSConfig(cwd: string, project: string = 'tsconfig.json'): ts.ParsedCommandLine {
+export function getTSConfig(cwd: string, project: string = "tsconfig.json"): ts.ParsedCommandLine {
   const tsconfigPath = ts.findConfigFile(cwd, ts.sys.fileExists, project);
 
   if (!tsconfigPath) {
-    logger.error(`There is no any configuration files at "${cwd}". Execute npx tsc -init to create a new one.`);
+    logger.error(
+      `There is no any configuration files at "${cwd}". Execute npx tsc -init to create a new one.`,
+    );
     process.exit(1);
   }
 
@@ -126,7 +128,7 @@ export function getTSConfig(cwd: string, project: string = 'tsconfig.json'): ts.
   const configFileContent = ts.parseJsonConfigFileContent(config, ts.sys, configDir);
 
   if (configFileContent.errors.length > 0) {
-    configFileContent.errors.forEach(diagnostic => {
+    configFileContent.errors.forEach((diagnostic) => {
       logger.error(diagnostic.messageText.toString());
     });
 
@@ -173,19 +175,19 @@ export function generateDefaultTSConfig(cwd: string = process.cwd()): boolean {
 }
 `;
 
-  const tsconfigPath = path.join(cwd, 'tsconfig.json');
+  const tsconfigPath = path.join(cwd, "tsconfig.json");
 
   if (fs.existsSync(tsconfigPath)) {
-    logger.warning('⚠️  tsconfig.json already exists. Skipping generation.');
+    logger.warning("⚠️  tsconfig.json already exists. Skipping generation.");
     return false;
   }
 
   try {
-    fs.writeFileSync(tsconfigPath, tsconfigContent, 'utf8');
-    logger.success('Created a new tsconfig.json');
+    fs.writeFileSync(tsconfigPath, tsconfigContent, "utf8");
+    logger.success("Created a new tsconfig.json");
     return true;
   } catch (error) {
-    logger.error('❌ Failed to create tsconfig.json');
+    logger.error("❌ Failed to create tsconfig.json");
     throw error;
   }
 }
@@ -199,7 +201,7 @@ export function generateDefaultTSConfig(cwd: string = process.cwd()): boolean {
  * @param project - Имя файла конфигурации (по умолчанию btconfig.json)
  * @returns Объект конфигурации BtConfig или undefined если файл не найден
  */
-export function getBTConfig(cwd: string, project: string = 'btconfig.json'): BtConfig | undefined {
+export function getBTConfig(cwd: string, project: string = "btconfig.json"): BtConfig | undefined {
   const btconfigPath = path.join(cwd, project);
 
   if (!fs.existsSync(btconfigPath)) {
@@ -207,7 +209,7 @@ export function getBTConfig(cwd: string, project: string = 'btconfig.json'): BtC
   }
 
   try {
-    const configContent = fs.readFileSync(btconfigPath, 'utf-8');
+    const configContent = fs.readFileSync(btconfigPath, "utf-8");
     const config: BtConfig = JSON.parse(configContent);
     return config;
   } catch (error) {

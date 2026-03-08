@@ -31,16 +31,16 @@
 export class BindingManager {
   /** Счётчики для каждого префикса */
   private counters: Map<string, number> = new Map();
-  
+
   /** Имена из исходного кода (для проверки коллизий) */
   private sourceNames: Set<string> = new Set();
-  
+
   /** Все сгенерированные имена (для проверки коллизий) */
   private generatedNames: Set<string> = new Set();
 
   /**
    * Регистрирует имена из исходного кода для проверки коллизий
-   * 
+   *
    * @param names - Массив имён переменных/функций из исходного файла
    */
   registerSourceNames(names: Iterable<string>): void {
@@ -58,7 +58,7 @@ export class BindingManager {
 
   /**
    * Создаёт уникальное имя с заданным префиксом
-   * 
+   *
    * Гарантирует что имя не конфликтует с:
    * - Именами из исходного кода
    * - Ранее сгенерированными именами
@@ -73,13 +73,13 @@ export class BindingManager {
   create(prefix: string): string {
     let count = this.counters.get(prefix) ?? 0;
     let name: string;
-    
+
     // Ищем свободное имя
     do {
       name = `__${prefix}${count}`;
       count++;
     } while (this.isNameTaken(name));
-    
+
     this.counters.set(prefix, count);
     this.generatedNames.add(name);
     return name;
@@ -112,13 +112,13 @@ export class BindingManager {
     const key = `shadow:${original}`;
     let count = this.counters.get(key) ?? 0;
     let name: string;
-    
+
     // Ищем свободное имя
     do {
       name = `${original}__${count}`;
       count++;
     } while (this.isNameTaken(name));
-    
+
     this.counters.set(key, count);
     this.generatedNames.add(name);
     return name;

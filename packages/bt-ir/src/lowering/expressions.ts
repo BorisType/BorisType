@@ -26,11 +26,7 @@ import {
 } from "../ir/index.ts";
 import type { VisitorContext } from "./visitor.ts";
 import { visitStatementList } from "./statements.ts";
-import {
-  resolveEnvAccess,
-  resolveModuleLevelAccess,
-  getModuleEnvDepth,
-} from "./env-resolution.ts";
+import { resolveEnvAccess, resolveModuleLevelAccess, getModuleEnvDepth } from "./env-resolution.ts";
 import {
   getLoc,
   getPolyfillType,
@@ -44,11 +40,7 @@ import {
   collectCapturedVarsForArrow,
 } from "./helpers.ts";
 import { needsParentheses, getPrecedence } from "./precedence.ts";
-import {
-  buildFunction,
-  assignDescriptorObj,
-  getEnvFunctionRef,
-} from "./function-builder.ts";
+import { buildFunction, assignDescriptorObj, getEnvFunctionRef } from "./function-builder.ts";
 import {
   visitBareArrowFunction,
   visitBareFunctionExpression,
@@ -67,7 +59,9 @@ import {
  * Проверяет, является ли IR выражение результатом optional chaining.
  * Определяется по структуре: ConditionalExpression с consequent === IR.id("undefined").
  */
-function isOptionalChainResult(expr: IRExpression): expr is import("../ir/index.ts").IRConditionalExpression {
+function isOptionalChainResult(
+  expr: IRExpression,
+): expr is import("../ir/index.ts").IRConditionalExpression {
   return (
     expr.kind === "ConditionalExpression" &&
     expr.consequent.kind === "Identifier" &&
@@ -113,7 +107,7 @@ function maybeExtract(expr: IRExpression, ctx: VisitorContext): IRExpression {
   const tmpName = ctx.bindings.create("oc");
   ctx.pendingStatements.push(IR.varDecl(tmpName, null));
   ctx.pendingStatements.push(
-    IR.exprStmt(IR.assign("=", IR.id(tmpName) as import("../ir/index.ts").IRIdentifier, expr))
+    IR.exprStmt(IR.assign("=", IR.id(tmpName) as import("../ir/index.ts").IRIdentifier, expr)),
   );
   return IR.id(tmpName);
 }
@@ -127,7 +121,9 @@ function maybeExtract(expr: IRExpression, ctx: VisitorContext): IRExpression {
  * @param expr - ConditionalExpression от optional chaining
  * @returns Имя temp переменной или undefined если структура не распознана
  */
-function extractOptionalChainTempName(expr: import("../ir/index.ts").IRConditionalExpression): string | undefined {
+function extractOptionalChainTempName(
+  expr: import("../ir/index.ts").IRConditionalExpression,
+): string | undefined {
   // test = LogicalExpression("||", left, right)
   if (expr.test.kind !== "LogicalExpression" || expr.test.operator !== "||") return undefined;
 
@@ -166,7 +162,7 @@ function createOptionalCheck(
   buildAlternate: (tempRef: IRExpression) => IRExpression,
   ctx: VisitorContext,
   loc?: import("../ir/index.ts").SourceLocation,
-  reuseTempName?: string
+  reuseTempName?: string,
 ): IRExpression {
   const tempName = reuseTempName ?? ctx.bindings.create("tmp");
   // Объявляем временную переменную (только если новая)
@@ -202,7 +198,7 @@ function chainOptionalAccess(
   hasQuestionDot: boolean,
   buildAccess: (baseRef: IRExpression) => IRExpression,
   ctx: VisitorContext,
-  loc?: import("../ir/index.ts").SourceLocation
+  loc?: import("../ir/index.ts").SourceLocation,
 ): IRExpression {
   if (hasQuestionDot) {
     // Новый ?. — создаём optional check
@@ -214,12 +210,7 @@ function chainOptionalAccess(
   // Обычный доступ, но base может быть результатом optional chaining
   if (isOptionalChainResult(base)) {
     // Встраиваем в alternate ветку
-    return IR.conditional(
-      base.test,
-      base.consequent,
-      buildAccess(base.alternate),
-      loc ?? base.loc
-    );
+    return IR.conditional(base.test, base.consequent, buildAccess(base.alternate), loc ?? base.loc);
   }
 
   // Обычный доступ без optional chaining
@@ -233,7 +224,7 @@ function chainOptionalAccess(
 export function visitExpression(
   node: ts.Expression,
   ctx: VisitorContext,
-  objectName?: string
+  objectName?: string,
 ): IRExpression {
   // Identifier
   if (ts.isIdentifier(node)) {
@@ -323,10 +314,7 @@ export function visitExpression(
     const propName = node.name.text;
 
     // import.meta.dirPath, import.meta.dirUrl, import.meta.filePath, import.meta.fileUrl
-    if (
-      ts.isMetaProperty(node.expression) &&
-      node.expression.name.text === "meta"
-    ) {
+    if (ts.isMetaProperty(node.expression) && node.expression.name.text === "meta") {
       const metaProps = ["dirPath", "dirUrl", "filePath", "fileUrl"];
       if (metaProps.includes(propName)) {
         if (ctx.mode === "bare") {
@@ -355,7 +343,12 @@ export function visitExpression(
     }
 
     // XML с ?. → переключаемся на bt.getProperty для этого выражения
-    const isXml = isXmlRelatedType(ctx.typeChecker, node.expression, ctx.xmlDocumentSymbol, ctx.xmlElemSymbol);
+    const isXml = isXmlRelatedType(
+      ctx.typeChecker,
+      node.expression,
+      ctx.xmlDocumentSymbol,
+      ctx.xmlElemSymbol,
+    );
     if (isXml && !hasQuestionDot) {
       return IR.dot(obj, propName, loc);
     }
@@ -366,7 +359,7 @@ export function visitExpression(
       hasQuestionDot,
       (baseRef) => IR.btGetProperty(baseRef, IR.string(propName), loc),
       ctx,
-      loc
+      loc,
     );
   }
 
@@ -388,7 +381,12 @@ export function visitExpression(
     }
 
     // XML с ?. → переключаемся на bt.getProperty для этого выражения
-    const isXml = isXmlRelatedType(ctx.typeChecker, node.expression, ctx.xmlDocumentSymbol, ctx.xmlElemSymbol);
+    const isXml = isXmlRelatedType(
+      ctx.typeChecker,
+      node.expression,
+      ctx.xmlDocumentSymbol,
+      ctx.xmlElemSymbol,
+    );
     if (isXml && !hasQuestionDot) {
       return IR.member(obj, prop, true, loc);
     }
@@ -399,7 +397,7 @@ export function visitExpression(
       hasQuestionDot,
       (baseRef) => IR.btGetProperty(baseRef, prop, loc),
       ctx,
-      loc
+      loc,
     );
   }
 
@@ -430,7 +428,11 @@ export function visitExpression(
   if (ts.isParenthesizedExpression(node)) {
     const inner = unwrapTypeExpressions(node.expression);
     // Если после снятия типовых обёрток осталось простое выражение — скобки не нужны
-    if (ts.isIdentifier(inner) || ts.isPropertyAccessExpression(inner) || ts.isElementAccessExpression(inner)) {
+    if (
+      ts.isIdentifier(inner) ||
+      ts.isPropertyAccessExpression(inner) ||
+      ts.isElementAccessExpression(inner)
+    ) {
       return visitExpression(inner, ctx);
     }
     return IR.grouping(visitExpression(inner, ctx), getLoc(node, ctx));
@@ -463,7 +465,9 @@ export function visitExpression(
 
   // This keyword
   if (node.kind === ts.SyntaxKind.ThisKeyword) {
-    return ctx.mode === "bare" ? IR.id("this", getLoc(node, ctx)) : IR.id("__this", getLoc(node, ctx));
+    return ctx.mode === "bare"
+      ? IR.id("this", getLoc(node, ctx))
+      : IR.id("__this", getLoc(node, ctx));
   }
 
   // Type assertion (as T) — strip type, return inner expression
@@ -588,7 +592,7 @@ export function resolveCallableRef(
  */
 export function visitTemplateExpression(
   node: ts.TemplateExpression,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRExpression {
   const parts: IRExpression[] = [];
 
@@ -628,7 +632,7 @@ export function visitTemplateExpression(
  */
 export function visitBinaryExpression(
   node: ts.BinaryExpression,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRExpression {
   const operatorToken = node.operatorToken.kind;
 
@@ -656,7 +660,14 @@ export function visitBinaryExpression(
         return IR.assign("=", left, newValue, getLoc(node, ctx));
       }
       // XML-типы: прямое присваивание без bt.setProperty (оптимизация)
-      if (isXmlRelatedType(ctx.typeChecker, node.left.expression, ctx.xmlDocumentSymbol, ctx.xmlElemSymbol)) {
+      if (
+        isXmlRelatedType(
+          ctx.typeChecker,
+          node.left.expression,
+          ctx.xmlDocumentSymbol,
+          ctx.xmlElemSymbol,
+        )
+      ) {
         const left = IR.dot(obj, propName, getLoc(node.left, ctx));
         if (operator === "=") {
           return IR.assign(operator, left, right, getLoc(node, ctx));
@@ -691,7 +702,14 @@ export function visitBinaryExpression(
         return IR.assign("=", left, newValue, getLoc(node, ctx));
       }
       // XML-типы: прямое присваивание без bt.setProperty (оптимизация)
-      if (isXmlRelatedType(ctx.typeChecker, node.left.expression, ctx.xmlDocumentSymbol, ctx.xmlElemSymbol)) {
+      if (
+        isXmlRelatedType(
+          ctx.typeChecker,
+          node.left.expression,
+          ctx.xmlDocumentSymbol,
+          ctx.xmlElemSymbol,
+        )
+      ) {
         const left = IR.member(obj, key, true, getLoc(node.left, ctx));
         if (operator === "=") {
           return IR.assign(operator, left, right, getLoc(node, ctx));
@@ -716,7 +734,11 @@ export function visitBinaryExpression(
     if (left.kind === "ArgsAccess") {
       left = IR.id(left.originalName, left.loc);
     }
-    if (left.kind === "Identifier" || left.kind === "MemberExpression" || left.kind === "EnvAccess") {
+    if (
+      left.kind === "Identifier" ||
+      left.kind === "MemberExpression" ||
+      left.kind === "EnvAccess"
+    ) {
       return IR.assign(operator, left as any, right, getLoc(node, ctx));
     }
 
@@ -772,7 +794,7 @@ export function visitBinaryExpression(
  */
 export function visitPrefixUnaryExpression(
   node: ts.PrefixUnaryExpression,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRExpression {
   const operator = node.operator;
 
@@ -785,7 +807,7 @@ export function visitPrefixUnaryExpression(
         operator === ts.SyntaxKind.PlusPlusToken ? "++" : "--",
         IR.id(arg.originalName, arg.loc),
         true,
-        getLoc(node, ctx)
+        getLoc(node, ctx),
       );
     }
     if (arg.kind === "Identifier" || arg.kind === "MemberExpression") {
@@ -793,7 +815,7 @@ export function visitPrefixUnaryExpression(
         operator === ts.SyntaxKind.PlusPlusToken ? "++" : "--",
         arg as any,
         true,
-        getLoc(node, ctx)
+        getLoc(node, ctx),
       );
     }
   }
@@ -808,7 +830,7 @@ export function visitPrefixUnaryExpression(
  */
 export function visitPostfixUnaryExpression(
   node: ts.PostfixUnaryExpression,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRExpression {
   const arg = visitExpression(node.operand, ctx);
 
@@ -818,7 +840,7 @@ export function visitPostfixUnaryExpression(
       node.operator === ts.SyntaxKind.PlusPlusToken ? "++" : "--",
       IR.id(arg.originalName, arg.loc),
       false,
-      getLoc(node, ctx)
+      getLoc(node, ctx),
     );
   }
 
@@ -827,7 +849,7 @@ export function visitPostfixUnaryExpression(
       node.operator === ts.SyntaxKind.PlusPlusToken ? "++" : "--",
       arg as any,
       false,
-      getLoc(node, ctx)
+      getLoc(node, ctx),
     );
   }
 
@@ -857,7 +879,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     return IR.call(
       IR.dot(IR.id("bt"), "callWithThis"),
       [baseCtorDesc, IR.id("__this"), IR.array(args)],
-      loc
+      loc,
     );
   }
 
@@ -878,13 +900,13 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
       return IR.call(
         IR.dot(IR.id("bt"), "callWithThis"),
         [method, IR.id("__this"), IR.array(args)],
-        loc
+        loc,
       );
     }
 
     const obj = visitExpression(targetExpr, ctx);
     const propHasQuestionDot = !!node.expression.questionDotToken; // obj?.method
-    const callHasQuestionDot = !!node.questionDotToken;            // method?.()
+    const callHasQuestionDot = !!node.questionDotToken; // method?.()
 
     // bare mode: без polyfill, прямой вызов obj.method(...)
     if (ctx.mode === "bare") {
@@ -893,7 +915,12 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     }
 
     // XML-типы без optional: прямой вызов obj.method(...)
-    const isXml = isXmlRelatedType(ctx.typeChecker, targetExpr, ctx.xmlDocumentSymbol, ctx.xmlElemSymbol);
+    const isXml = isXmlRelatedType(
+      ctx.typeChecker,
+      targetExpr,
+      ctx.xmlDocumentSymbol,
+      ctx.xmlElemSymbol,
+    );
     if (isXml && !propHasQuestionDot && !callHasQuestionDot) {
       return IR.call(IR.dot(obj, methodName, getLoc(node.expression, ctx)), args, loc);
     }
@@ -917,13 +944,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
           }
           polyfillArgs = [...paddedPositional, IR.array(rest, loc)];
         }
-        return IR.polyfillCall(
-          polyfillType,
-          methodName,
-          obj,
-          polyfillArgs,
-          loc
-        );
+        return IR.polyfillCall(polyfillType, methodName, obj, polyfillArgs, loc);
       }
 
       // -----------------------------------------------------------------------
@@ -938,11 +959,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
       // -----------------------------------------------------------------------
       const typeString = ctx.typeChecker.typeToString(type);
       if (typeString === "GlobalCache" && ["get", "set", "has"].includes(methodName)) {
-        return IR.call(
-          IR.dot(IR.dot(IR.id("bt"), "cache"), methodName),
-          args,
-          loc
-        );
+        return IR.call(IR.dot(IR.dot(IR.id("bt"), "cache"), methodName), args, loc);
       }
     }
 
@@ -962,7 +979,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
           return IR.btCallFunction(method, args, loc);
         },
         ctx,
-        loc
+        loc,
       );
     }
 
@@ -975,7 +992,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
           return IR.btCallFunction(method, args, loc);
         },
         ctx,
-        loc
+        loc,
       );
     }
 
@@ -990,7 +1007,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
           return createOptionalFunctionCall(method, args, ctx, loc);
         },
         ctx,
-        loc
+        loc,
       );
     }
 
@@ -1003,7 +1020,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
           return createOptionalFunctionCall(method, args, ctx, loc);
         },
         ctx,
-        loc
+        loc,
       );
     }
   }
@@ -1035,7 +1052,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
           return IR.btCallFunction(method, args, loc);
         },
         ctx,
-        loc
+        loc,
       );
     }
 
@@ -1048,7 +1065,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
           return IR.btCallFunction(method, args, loc);
         },
         ctx,
-        loc
+        loc,
       );
     }
 
@@ -1062,7 +1079,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
           return createOptionalFunctionCall(method, args, ctx, loc);
         },
         ctx,
-        loc
+        loc,
       );
     }
 
@@ -1075,7 +1092,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
           return createOptionalFunctionCall(method, args, ctx, loc);
         },
         ctx,
-        loc
+        loc,
       );
     }
   }
@@ -1087,7 +1104,11 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     // Если импорт captured, доступ к moduleVar через __env цепочку
     const importBinding = ctx.importBindings.get(funcName);
     if (importBinding) {
-      const moduleRef = importModuleVarAccess(importBinding.moduleVar, importBinding.isCaptured, ctx);
+      const moduleRef = importModuleVarAccess(
+        importBinding.moduleVar,
+        importBinding.isCaptured,
+        ctx,
+      );
       const callee =
         importBinding.exportedName === ""
           ? moduleRef
@@ -1101,11 +1122,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
       ctx.helperFlags.usesImportMeta = true; // __AbsoluteUrl использует __ImportMeta_dirUrl
       const url = args[0] ?? IR.id("undefined", loc);
       const baseUrl = args[1] ?? IR.id("undefined", loc);
-      return IR.btCallFunction(
-        helperEnvAccess("__AbsoluteUrl", ctx),
-        [url, baseUrl],
-        loc
-      );
+      return IR.btCallFunction(helperEnvAccess("__AbsoluteUrl", ctx), [url, baseUrl], loc);
     }
 
     if (ctx.mode === "bare" || isBuiltinFunction(funcName, ctx)) {
@@ -1117,11 +1134,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     return IR.btCallFunction(callee, args, loc);
   }
 
-  return IR.call(
-    visitExpression(node.expression, ctx),
-    args,
-    loc
-  );
+  return IR.call(visitExpression(node.expression, ctx), args, loc);
 }
 
 /**
@@ -1136,21 +1149,20 @@ function createOptionalFunctionCall(
   methodExpr: IRExpression,
   args: IRExpression[],
   ctx: VisitorContext,
-  loc?: import("../ir/index.ts").SourceLocation
+  loc?: import("../ir/index.ts").SourceLocation,
 ): IRExpression {
   const tempName = ctx.bindings.create("tmp");
   ctx.pendingStatements.push(IR.varDecl(tempName, null));
   const tempRef = IR.id(tempName);
 
-  const assignExpr = IR.assign("=", IR.id(tempName) as import("../ir/index.ts").IRIdentifier, methodExpr);
+  const assignExpr = IR.assign(
+    "=",
+    IR.id(tempName) as import("../ir/index.ts").IRIdentifier,
+    methodExpr,
+  );
   const check = IR.btIsFunction(IR.grouping(assignExpr));
 
-  return IR.conditional(
-    check,
-    IR.btCallFunction(tempRef, args, loc),
-    IR.id("undefined"),
-    loc
-  );
+  return IR.conditional(check, IR.btCallFunction(tempRef, args, loc), IR.id("undefined"), loc);
 }
 
 // ============================================================================
@@ -1170,7 +1182,7 @@ function createOptionalFunctionCall(
 export function visitObjectLiteral(
   node: ts.ObjectLiteralExpression,
   ctx: VisitorContext,
-  objectName?: string
+  objectName?: string,
 ): IRExpression {
   // Проверяем наличие spread
   const hasSpread = node.properties.some((prop) => ts.isSpreadAssignment(prop));
@@ -1199,7 +1211,9 @@ export function visitObjectLiteral(
         } else {
           continue;
         }
-        currentProperties.push(IR.prop(key, maybeExtract(visitExpression(prop.initializer, ctx), ctx)));
+        currentProperties.push(
+          IR.prop(key, maybeExtract(visitExpression(prop.initializer, ctx), ctx)),
+        );
       } else if (ts.isShorthandPropertyAssignment(prop)) {
         currentProperties.push(IR.prop(prop.name.text, visitIdentifier(prop.name, ctx)));
       }
@@ -1217,7 +1231,7 @@ export function visitObjectLiteral(
       return IR.call(
         IR.id("ObjectUnion"),
         [IR.object([], getLoc(node, ctx)), parts[0]],
-        getLoc(node, ctx)
+        getLoc(node, ctx),
       );
     }
 
@@ -1305,7 +1319,9 @@ export function visitObjectLiteral(
           const paramName = param.name.text;
           const varInfo = resolveVariableInScope(paramName, methodScopeResolved);
           const isCaptured = varInfo?.isCaptured ?? false;
-          params.push(IR.param(paramName, undefined, undefined, needsPerCallEnv ? false : isCaptured));
+          params.push(
+            IR.param(paramName, undefined, undefined, needsPerCallEnv ? false : isCaptured),
+          );
           fnCtx.functionParams.set(paramName, index);
         }
       });
@@ -1322,7 +1338,7 @@ export function visitObjectLiteral(
       if (needsPerCallEnv && perCallEnvName) {
         const perCallEnvCreation = IR.varDecl(
           perCallEnvName,
-          IR.object([IR.prop("__parent", IR.id("__env"))])
+          IR.object([IR.prop("__parent", IR.id("__env"))]),
         );
 
         const capturedParamAssignments: IRStatement[] = [];
@@ -1332,8 +1348,12 @@ export function visitObjectLiteral(
             if (paramVarInfo?.isCaptured) {
               capturedParamAssignments.push(
                 IR.exprStmt(
-                  IR.assign("=", IR.dot(IR.id(perCallEnvName), param.name.text), IR.id(param.name.text))
-                )
+                  IR.assign(
+                    "=",
+                    IR.dot(IR.id(perCallEnvName), param.name.text),
+                    IR.id(param.name.text),
+                  ),
+                ),
               );
             }
           }
@@ -1343,14 +1363,10 @@ export function visitObjectLiteral(
       }
 
       // Собираем captured переменные
-      const capturedVars = methodScope
-        ? collectCapturedVarsForArrow(methodScope, ctx)
-        : [];
+      const capturedVars = methodScope ? collectCapturedVarsForArrow(methodScope, ctx) : [];
 
       // Используем buildFunction для генерации env/desc паттерна
-      const fnName = objectName
-        ? `${methodName}__mof_${objectName}`
-        : undefined;
+      const fnName = objectName ? `${methodName}__mof_${objectName}` : undefined;
 
       const result = buildFunction({
         name: fnName,
@@ -1379,7 +1395,9 @@ export function visitObjectLiteral(
       methodDescNames.push(result.descName);
 
       // В объекте — ссылка на env.fnName
-      properties.push(IR.prop(methodName, getEnvFunctionRef(result.name, undefined, ctx.currentEnvRef)));
+      properties.push(
+        IR.prop(methodName, getEnvFunctionRef(result.name, undefined, ctx.currentEnvRef)),
+      );
     }
   }
 
@@ -1415,7 +1433,7 @@ export function visitObjectLiteral(
  */
 export function visitArrayLiteral(
   node: ts.ArrayLiteralExpression,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRExpression {
   const hasSpread = node.elements.some((el) => ts.isSpreadElement(el));
 
@@ -1527,7 +1545,7 @@ export function visitArrowFunction(node: ts.ArrowFunction, ctx: VisitorContext):
   if (needsPerCallEnv && perCallEnvName) {
     const perCallEnvCreation = IR.varDecl(
       perCallEnvName,
-      IR.object([IR.prop("__parent", IR.id("__env"))])
+      IR.object([IR.prop("__parent", IR.id("__env"))]),
     );
 
     const capturedParamAssignments: IRStatement[] = [];
@@ -1537,8 +1555,12 @@ export function visitArrowFunction(node: ts.ArrowFunction, ctx: VisitorContext):
         if (paramVarInfo?.isCaptured) {
           capturedParamAssignments.push(
             IR.exprStmt(
-              IR.assign("=", IR.dot(IR.id(perCallEnvName), param.name.text), IR.id(param.name.text))
-            )
+              IR.assign(
+                "=",
+                IR.dot(IR.id(perCallEnvName), param.name.text),
+                IR.id(param.name.text),
+              ),
+            ),
           );
         }
       }
@@ -1584,7 +1606,7 @@ export function visitArrowFunction(node: ts.ArrowFunction, ctx: VisitorContext):
  */
 export function visitFunctionExpression(
   node: ts.FunctionExpression,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRExpression {
   // Bare mode: plain function без env/desc
   if (ctx.mode === "bare") return visitBareFunctionExpression(node, ctx);
@@ -1642,7 +1664,7 @@ export function visitFunctionExpression(
   if (needsPerCallEnv && perCallEnvName) {
     const perCallEnvCreation = IR.varDecl(
       perCallEnvName,
-      IR.object([IR.prop("__parent", IR.id("__env"))])
+      IR.object([IR.prop("__parent", IR.id("__env"))]),
     );
 
     const capturedParamAssignments: IRStatement[] = [];
@@ -1652,8 +1674,12 @@ export function visitFunctionExpression(
         if (paramVarInfo?.isCaptured) {
           capturedParamAssignments.push(
             IR.exprStmt(
-              IR.assign("=", IR.dot(IR.id(perCallEnvName), param.name.text), IR.id(param.name.text))
-            )
+              IR.assign(
+                "=",
+                IR.dot(IR.id(perCallEnvName), param.name.text),
+                IR.id(param.name.text),
+              ),
+            ),
           );
         }
       }
@@ -1721,11 +1747,7 @@ export function visitNewExpression(node: ts.NewExpression, ctx: VisitorContext):
     callee = visitExpression(node.expression, ctx);
   }
 
-  return IR.call(
-    IR.dot(IR.id("bt"), "createInstance"),
-    [callee, IR.array(args)],
-    loc
-  );
+  return IR.call(IR.dot(IR.id("bt"), "createInstance"), [callee, IR.array(args)], loc);
 }
 
 // ============================================================================
@@ -1748,7 +1770,7 @@ export function visitNewExpression(node: ts.NewExpression, ctx: VisitorContext):
 export function importModuleVarAccess(
   moduleVar: string,
   isCapturedImport: boolean,
-  ctx: VisitorContext
+  ctx: VisitorContext,
 ): IRExpression {
   if (!isCapturedImport) {
     return IR.id(moduleVar);

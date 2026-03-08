@@ -7,14 +7,14 @@
  * @module core/utils/xml
  */
 
-import { XMLBuilder, XMLParser } from 'fast-xml-parser';
+import { XMLBuilder, XMLParser } from "fast-xml-parser";
 
 /** Общие опции для всех XML builder'ов */
 const BASE_BUILDER_OPTIONS = {
   ignoreAttributes: false,
-  attributeNamePrefix: '@_',
+  attributeNamePrefix: "@_",
   format: true,
-  indentBy: '\t',
+  indentBy: "\t",
   processEntities: true,
 } as const;
 
@@ -42,5 +42,5 @@ export const xmlBuilderKeepEmpty = new XMLBuilder({
  */
 export const xmlParser = new XMLParser({
   ignoreAttributes: false,
-  attributeNamePrefix: '@_',
+  attributeNamePrefix: "@_",
 });

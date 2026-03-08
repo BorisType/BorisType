@@ -7,7 +7,7 @@
  * @module core/utils/logger
  */
 
-import util from 'node:util';
+import util from "node:util";
 
 class Logger {
   #styleText: Function = (_color: string, message: string) => message;
@@ -18,26 +18,26 @@ class Logger {
 
   /** Вывод ошибки (красный) */
   error(message: string) {
-    console.error(this.#styleText('red', message));
+    console.error(this.#styleText("red", message));
   }
 
   /** Вывод успешного результата (зелёный) */
   success(message: string) {
-    console.log(this.#styleText('greenBright', message));
+    console.log(this.#styleText("greenBright", message));
   }
 
   /** Вывод предупреждения (жёлтый) */
   warning(message: string) {
-    console.warn(this.#styleText('yellow', message));
+    console.warn(this.#styleText("yellow", message));
   }
 
   /** Вывод информации (голубой) */
   info(message: string) {
-    console.log(this.#styleText('cyan', message));
+    console.log(this.#styleText("cyan", message));
   }
 
   #reimplementStyleText() {
-    const nodeVersionArray = process.versions.node.split('.');
+    const nodeVersionArray = process.versions.node.split(".");
 
     if (
       Number(nodeVersionArray[0]) > 21 ||

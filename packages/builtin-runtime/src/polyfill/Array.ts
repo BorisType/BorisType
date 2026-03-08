@@ -15,7 +15,12 @@ export function at<T>(array: Array<T>, index: number): T | undefined {
 
 // function Concat = ArrayUnion
 
-export function copyWithin<T>(array: Array<T>, target: number, start: number, end: number): Array<T> {
+export function copyWithin<T>(
+  array: Array<T>,
+  target: number,
+  start: number,
+  end: number,
+): Array<T> {
   //   if (array === undefined || array === null || !IsArray(array)) throw 'arrayCopyWithin: first argument is not an array');
 
   const len = ArrayCount(array);
@@ -52,14 +57,24 @@ export function entries<T>(array: Array<T>): Array<[number, T]> {
 }
 
 // TODO: Implement Array.every with correct thisArg handling
-export function every<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): boolean {
+export function every<T>(
+  array: Array<T>,
+  callback: (value: T, index: number, array: Array<T>) => boolean,
+): boolean {
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (likeBoolResult === false || likeBoolResult === 0 || likeBoolResult === -0 || likeBoolResult === '' || likeBoolResult === null || likeBoolResult === undefined) {
+    if (
+      likeBoolResult === false ||
+      likeBoolResult === 0 ||
+      likeBoolResult === -0 ||
+      likeBoolResult === "" ||
+      likeBoolResult === null ||
+      likeBoolResult === undefined
+    ) {
       return false;
     }
   }
@@ -84,7 +99,10 @@ export function fill<T>(array: Array<T>, value: T, start?: number, end?: number)
 }
 
 // TODO: Implement Array.filter with correct thisArg handling
-export function filter<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): Array<T> {
+export function filter<T>(
+  array: Array<T>,
+  callback: (value: T, index: number, array: Array<T>) => boolean,
+): Array<T> {
   const result: Array<T> = [];
   const len = ArrayCount(array);
 
@@ -92,7 +110,16 @@ export function filter<T>(array: Array<T>, callback: (value: T, index: number, a
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (!(likeBoolResult === false || likeBoolResult === 0 || likeBoolResult === -0 || likeBoolResult === '' || likeBoolResult === null || likeBoolResult === undefined)) {
+    if (
+      !(
+        likeBoolResult === false ||
+        likeBoolResult === 0 ||
+        likeBoolResult === -0 ||
+        likeBoolResult === "" ||
+        likeBoolResult === null ||
+        likeBoolResult === undefined
+      )
+    ) {
       result.push(value);
     }
   }
@@ -101,14 +128,26 @@ export function filter<T>(array: Array<T>, callback: (value: T, index: number, a
 }
 
 // TODO: Implement Array.find with correct thisArg handling
-export function find<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): T | undefined {
+export function find<T>(
+  array: Array<T>,
+  callback: (value: T, index: number, array: Array<T>) => boolean,
+): T | undefined {
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (!(likeBoolResult === false || likeBoolResult === 0 || likeBoolResult === -0 || likeBoolResult === '' || likeBoolResult === null || likeBoolResult === undefined)) {
+    if (
+      !(
+        likeBoolResult === false ||
+        likeBoolResult === 0 ||
+        likeBoolResult === -0 ||
+        likeBoolResult === "" ||
+        likeBoolResult === null ||
+        likeBoolResult === undefined
+      )
+    ) {
       return value;
     }
   }
@@ -117,14 +156,26 @@ export function find<T>(array: Array<T>, callback: (value: T, index: number, arr
 }
 
 // TODO: Implement Array.findIndex with correct thisArg handling
-export function findIndex<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): number {
+export function findIndex<T>(
+  array: Array<T>,
+  callback: (value: T, index: number, array: Array<T>) => boolean,
+): number {
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (!(likeBoolResult === false || likeBoolResult === 0 || likeBoolResult === -0 || likeBoolResult === '' || likeBoolResult === null || likeBoolResult === undefined)) {
+    if (
+      !(
+        likeBoolResult === false ||
+        likeBoolResult === 0 ||
+        likeBoolResult === -0 ||
+        likeBoolResult === "" ||
+        likeBoolResult === null ||
+        likeBoolResult === undefined
+      )
+    ) {
       return i;
     }
   }
@@ -133,14 +184,26 @@ export function findIndex<T>(array: Array<T>, callback: (value: T, index: number
 }
 
 // TODO: Implement Array.findLast with correct thisArg handling
-export function findLast<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): T | undefined {
+export function findLast<T>(
+  array: Array<T>,
+  callback: (value: T, index: number, array: Array<T>) => boolean,
+): T | undefined {
   const len = ArrayCount(array);
 
   for (let i = len - 1; i >= 0; i--) {
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (!(likeBoolResult === false || likeBoolResult === 0 || likeBoolResult === -0 || likeBoolResult === '' || likeBoolResult === null || likeBoolResult === undefined)) {
+    if (
+      !(
+        likeBoolResult === false ||
+        likeBoolResult === 0 ||
+        likeBoolResult === -0 ||
+        likeBoolResult === "" ||
+        likeBoolResult === null ||
+        likeBoolResult === undefined
+      )
+    ) {
       return value;
     }
   }
@@ -149,14 +212,26 @@ export function findLast<T>(array: Array<T>, callback: (value: T, index: number,
 }
 
 // TODO: Implement Array.findLastIndex with correct thisArg handling
-export function findLastIndex<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): number {
+export function findLastIndex<T>(
+  array: Array<T>,
+  callback: (value: T, index: number, array: Array<T>) => boolean,
+): number {
   const len = ArrayCount(array);
 
   for (let i = len - 1; i >= 0; i--) {
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (!(likeBoolResult === false || likeBoolResult === 0 || likeBoolResult === -0 || likeBoolResult === '' || likeBoolResult === null || likeBoolResult === undefined)) {
+    if (
+      !(
+        likeBoolResult === false ||
+        likeBoolResult === 0 ||
+        likeBoolResult === -0 ||
+        likeBoolResult === "" ||
+        likeBoolResult === null ||
+        likeBoolResult === undefined
+      )
+    ) {
       return i;
     }
   }
@@ -185,7 +260,10 @@ export function flat<T>(array: Array<T>, depth?: number): Array<T> {
 }
 
 // TODO: Implement Array.flatMap with correct thisArg handling
-export function flatMap<T, U>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => U): Array<U> {
+export function flatMap<T, U>(
+  array: Array<T>,
+  callback: (value: T, index: number, array: Array<T>) => U,
+): Array<U> {
   const result: Array<U> = [];
   const len = ArrayCount(array);
 
@@ -205,7 +283,10 @@ export function flatMap<T, U>(array: Array<T>, callback: (value: T, index: numbe
 }
 
 // TODO: Implement Array.forEach with correct thisArg handling
-export function forEach<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => void): void {
+export function forEach<T>(
+  array: Array<T>,
+  callback: (value: T, index: number, array: Array<T>) => void,
+): void {
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
@@ -245,9 +326,9 @@ export function indexOf<T>(array: Array<T>, searchElement: T, fromIndex?: number
 }
 
 export function join<T>(array: Array<T>, separator?: string): string {
-  separator = separator === undefined ? ',' : separator;
+  separator = separator === undefined ? "," : separator;
 
-  let result = '';
+  let result = "";
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
@@ -285,7 +366,10 @@ export function lastIndexOf<T>(array: Array<T>, searchElement: T, fromIndex?: nu
 }
 
 // TODO: Implement Array.map with correct thisArg handling
-export function map<T, U>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => U): Array<U> {
+export function map<T, U>(
+  array: Array<T>,
+  callback: (value: T, index: number, array: Array<T>) => U,
+): Array<U> {
   const result: Array<U> = [];
   const len = ArrayCount(array);
 
@@ -315,7 +399,11 @@ export function push<T>(array: Array<T>, other: Array<T>) {
   }
 }
 
-export function reduce<T, U>(array: Array<T>, callback: (accumulator: U, value: T, index: number, array: Array<T>) => U, initialValue?: U): U {
+export function reduce<T, U>(
+  array: Array<T>,
+  callback: (accumulator: U, value: T, index: number, array: Array<T>) => U,
+  initialValue?: U,
+): U {
   const len = ArrayCount(array);
   let accumulator: U;
   let startIndex: number;
@@ -324,7 +412,7 @@ export function reduce<T, U>(array: Array<T>, callback: (accumulator: U, value: 
     accumulator = initialValue;
     startIndex = 0;
   } else {
-    if (len === 0) throw 'Reduce of empty array with no initial value';
+    if (len === 0) throw "Reduce of empty array with no initial value";
     accumulator = array[0] as unknown as U;
     startIndex = 1;
   }
@@ -337,7 +425,11 @@ export function reduce<T, U>(array: Array<T>, callback: (accumulator: U, value: 
   return accumulator;
 }
 
-export function reduceRight<T, U>(array: Array<T>, callback: (accumulator: U, value: T, index: number, array: Array<T>) => U, initialValue?: U): U {
+export function reduceRight<T, U>(
+  array: Array<T>,
+  callback: (accumulator: U, value: T, index: number, array: Array<T>) => U,
+  initialValue?: U,
+): U {
   const len = ArrayCount(array);
   let accumulator: U;
   let startIndex: number;
@@ -346,7 +438,7 @@ export function reduceRight<T, U>(array: Array<T>, callback: (accumulator: U, va
     accumulator = initialValue;
     startIndex = len - 1;
   } else {
-    if (len === 0) throw 'Reduce of empty array with no initial value';
+    if (len === 0) throw "Reduce of empty array with no initial value";
     accumulator = array[len - 1] as unknown as U;
     startIndex = len - 2;
   }
@@ -400,14 +492,26 @@ export function slice<T>(array: Array<T>, start?: number, end?: number): Array<T
 }
 
 // TODO: Implement Array.some with correct thisArg handling
-export function some<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): boolean {
+export function some<T>(
+  array: Array<T>,
+  callback: (value: T, index: number, array: Array<T>) => boolean,
+): boolean {
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (!(likeBoolResult === false || likeBoolResult === 0 || likeBoolResult === -0 || likeBoolResult === '' || likeBoolResult === null || likeBoolResult === undefined)) {
+    if (
+      !(
+        likeBoolResult === false ||
+        likeBoolResult === 0 ||
+        likeBoolResult === -0 ||
+        likeBoolResult === "" ||
+        likeBoolResult === null ||
+        likeBoolResult === undefined
+      )
+    ) {
       return true;
     }
   }
@@ -416,10 +520,15 @@ export function some<T>(array: Array<T>, callback: (value: T, index: number, arr
 }
 
 export function sort<T>(_array: Array<T>, _compareFn?: (a: T, b: T) => number): Array<T> {
-  throw 'Array.sort polyfill is not implemented yet';
+  throw "Array.sort polyfill is not implemented yet";
 }
 
-export function splice<T>(array: Array<T>, start: number, deleteCount: number | undefined, items: Array<T>): Array<T> {
+export function splice<T>(
+  array: Array<T>,
+  start: number,
+  deleteCount: number | undefined,
+  items: Array<T>,
+): Array<T> {
   deleteCount = deleteCount === undefined ? ArrayCount(array) - start : Int(deleteCount);
 
   const len = ArrayCount(array);
@@ -450,7 +559,7 @@ export function splice<T>(array: Array<T>, start: number, deleteCount: number | 
   var delta = ArrayCount(array) - newLength;
 
   // Resize the array
-  array.splice((len - normalizedDeleteCount + items.length), delta);
+  array.splice(len - normalizedDeleteCount + items.length, delta);
   // array.length = len - normalizedDeleteCount + items.length;
 
   return removed;
@@ -468,10 +577,15 @@ export function toReversed<T>(array: Array<T>): Array<T> {
 }
 
 export function toSorted<T>(_array: Array<T>, _compareFn?: (a: T, b: T) => number): Array<T> {
-  throw 'Array.toSorted polyfill is not implemented yet';
+  throw "Array.toSorted polyfill is not implemented yet";
 }
 
-export function toSpliced<T>(array: Array<T>, start: number, deleteCount: number | undefined, items: Array<T>): Array<T> {
+export function toSpliced<T>(
+  array: Array<T>,
+  start: number,
+  deleteCount: number | undefined,
+  items: Array<T>,
+): Array<T> {
   deleteCount = deleteCount === undefined ? ArrayCount(array) - start : Int(deleteCount);
 
   const len = ArrayCount(array);

@@ -3,14 +3,14 @@
  * @module linking/linkers/system
  */
 
-import * as path from 'path';
-import { PackageLinker, LinkedPackage, PackageInfo, LinkingContext } from '../types';
-import { copyRecursive } from '../utils/copy';
-import { copyNodeModulesWithCache } from '../utils/node-modules';
+import * as path from "path";
+import { PackageLinker, LinkedPackage, PackageInfo, LinkingContext } from "../types";
+import { copyRecursive } from "../utils/copy";
+import { copyNodeModulesWithCache } from "../utils/node-modules";
 
 /**
  * Linker для system пакетов
- * 
+ *
  * @remarks
  * System пакеты (ранее назывались 'bt'):
  * - Уже **полностью готовы** к линковке
@@ -20,11 +20,11 @@ import { copyNodeModulesWithCache } from '../utils/node-modules';
  *   - `component` (по умолчанию): копируются в components/<ws:name>, НЕ добавляются в api_ext.xml
  *   - `standalone`: копируются по ws:root, добавляются в api_ext.xml
  * - Копируют node_modules
- * 
+ *
  * Примеры: polyfill, runtime
  */
 export const systemLinker: PackageLinker = {
-  type: 'system',
+  type: "system",
 
   link(pkg: PackageInfo, ctx: LinkingContext): LinkedPackage {
     const { sourceDir, targetPath, packageJson, projectPath, apiext, wsName } = pkg;
@@ -43,17 +43,19 @@ export const systemLinker: PackageLinker = {
       targetDir: fullTargetPath,
       wsName,
       cache,
-      logger
+      logger,
     });
 
-    logger.success(`  └─ System package linked as ${systemLinkMode}: ${packageJson.name} (ws:name=${wsName})`);
+    logger.success(
+      `  └─ System package linked as ${systemLinkMode}: ${packageJson.name} (ws:name=${wsName})`,
+    );
 
     // apiext уже определён в PackageInfo в зависимости от режима
     return {
       info: pkg,
       outputPath: fullTargetPath,
       apiext,
-      generatedFiles: [] // System пакеты ничего не генерируют
+      generatedFiles: [], // System пакеты ничего не генерируют
     };
-  }
+  },
 };

@@ -29,8 +29,7 @@ const rule: Rule.RuleModule = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Disallow prototype usage (not supported in BorisScript)",
+      description: "Disallow prototype usage (not supported in BorisScript)",
       recommended: true,
       url: "https://github.com/BorisType/BorisType/blob/main/packages/eslint-plugin/docs/rules/no-prototype.md",
     },
@@ -47,11 +46,7 @@ const rule: Rule.RuleModule = {
 
   create(context) {
     /** Names of Object methods that manipulate prototypes. */
-    const FORBIDDEN_OBJECT_METHODS = new Set([
-      "create",
-      "getPrototypeOf",
-      "setPrototypeOf",
-    ]);
+    const FORBIDDEN_OBJECT_METHODS = new Set(["create", "getPrototypeOf", "setPrototypeOf"]);
 
     return {
       /**
@@ -77,10 +72,7 @@ const rule: Rule.RuleModule = {
         ) {
           context.report({
             node,
-            messageId:
-              prop.value === "prototype"
-                ? "noPrototypeAccess"
-                : "noDunderProto",
+            messageId: prop.value === "prototype" ? "noPrototypeAccess" : "noDunderProto",
           });
         }
       },

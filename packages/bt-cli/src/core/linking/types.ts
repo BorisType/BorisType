@@ -3,8 +3,8 @@
  * @module linking/types
  */
 
-import type { DependencyNode } from './dependencies';
-import type { logger } from '../logger';
+import type { DependencyNode } from "./dependencies";
+import type { logger } from "../logger";
 
 /**
  * Тип логгера (typeof logger из core/logger)
@@ -18,7 +18,7 @@ export type Logger = typeof logger;
  * - system: системный пакет (бывший bt), готов к линковке без генерации
  * - library: библиотека, копируется в node_modules
  */
-export type PackageType = 'standalone' | 'component' | 'system' | 'library';
+export type PackageType = "standalone" | "component" | "system" | "library";
 
 /**
  * Конфигурация API extension для api_ext.xml
@@ -74,7 +74,7 @@ export type LinkedPackage = {
 };
 
 // Forward declaration для избежания циклических импортов
-import type { LinkingCache } from './cache';
+import type { LinkingCache } from "./cache";
 
 /**
  * Контекст линковки - общее состояние для всех этапов
@@ -85,7 +85,7 @@ export type LinkingContext = {
   /** Путь к директории dist */
   distPath: string;
   /** Режим линковки system пакетов */
-  systemLinkMode: 'standalone' | 'component';
+  systemLinkMode: "standalone" | "component";
   /** Кэш линковки */
   cache: LinkingCache;
   /** Слинкованные пакеты */
@@ -108,7 +108,7 @@ export type LinkingContext = {
 export interface PackageLinker {
   /** Тип пакета который обрабатывает этот линковщик */
   readonly type: PackageType;
-  
+
   /**
    * Выполняет линковку пакета
    * @param pkg - Информация о пакете
@@ -123,7 +123,7 @@ export interface PackageLinker {
  * - standalone: регистрируются в api_ext.xml
  * - component: НЕ регистрируются в api_ext.xml (своя логика загрузки)
  */
-export type SystemLinkMode = 'standalone' | 'component';
+export type SystemLinkMode = "standalone" | "component";
 
 /**
  * Информация о кэше node_modules для пакета

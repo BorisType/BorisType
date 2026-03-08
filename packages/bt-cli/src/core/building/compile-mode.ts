@@ -75,7 +75,7 @@ function getCompileModeFromOptions(options: BtcCompileOptions): CompileMode {
 export function resolveCompileMode(
   sourceFile: ts.SourceFile,
   options: BtcCompileOptions,
-  executablePaths?: Set<string>
+  executablePaths?: Set<string>,
 ): CompileMode {
   const directive = getDirectiveMode(sourceFile);
   if (directive) {
@@ -95,7 +95,7 @@ export function resolveCompileMode(
  */
 export function collectExecutables(
   program: ts.Program,
-  sourceFiles: ts.SourceFile[]
+  sourceFiles: ts.SourceFile[],
 ): { executables: ExecutableObjectSourceFileInfo[]; paths: Set<string> } {
   const paths = new Set<string>();
   const executables: ExecutableObjectSourceFileInfo[] = [];
@@ -118,7 +118,9 @@ export function collectExecutables(
   return { executables, paths };
 }
 
-function getPackageJson(program: ts.Program): { name: string; version: string; root: string } | null {
+function getPackageJson(
+  program: ts.Program,
+): { name: string; version: string; root: string } | null {
   let root = program.getCurrentDirectory();
   while (root !== path.dirname(root)) {
     const p = path.join(root, "package.json");
@@ -139,10 +141,7 @@ function getPackageJson(program: ts.Program): { name: string; version: string; r
  * Вычисляет fileKey для script mode: packageName+version+relativePath
  * Используется для import.meta и bt.getFileUrl
  */
-export function computeFileKey(
-  sourceFile: ts.SourceFile,
-  program: ts.Program
-): string | undefined {
+export function computeFileKey(sourceFile: ts.SourceFile, program: ts.Program): string | undefined {
   const pkg = getPackageJson(program);
   if (!pkg) return undefined;
   const rel = path.relative(pkg.root, sourceFile.fileName).replace(/\\/g, "/");

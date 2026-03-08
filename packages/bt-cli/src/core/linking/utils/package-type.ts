@@ -3,29 +3,34 @@
  * @module linking/utils/package-type
  */
 
-import { PackageType } from '../types';
+import { PackageType } from "../types";
 
 /**
  * Маппинг устаревших типов пакетов на новые
  * Поддерживает обратную совместимость со старыми конфигурациями
  */
 const LEGACY_TYPE_MAPPING: Record<string, PackageType> = {
-  'app': 'standalone',
-  'lib': 'library',
-  'bt': 'system', // bt переименован в system
+  app: "standalone",
+  lib: "library",
+  bt: "system", // bt переименован в system
 };
 
 /**
  * Валидные типы пакетов
  */
-const VALID_PACKAGE_TYPES: readonly PackageType[] = ['standalone', 'component', 'library', 'system'];
+const VALID_PACKAGE_TYPES: readonly PackageType[] = [
+  "standalone",
+  "component",
+  "library",
+  "system",
+];
 
 /**
  * Нормализует тип пакета, мапит старые значения на новые для обратной совместимости
- * 
+ *
  * @param wsPackage - значение ws:package из package.json
  * @returns нормализованный тип или null если не является BT пакетом
- * 
+ *
  * @example
  * ```ts
  * normalizePackageType('app')       // -> 'standalone'
@@ -56,14 +61,14 @@ export function normalizePackageType(wsPackage: string | undefined): PackageType
 
 /**
  * Проверяет, является ли тип пакета исполняемым (требует полной линковки)
- * 
+ *
  * @param packageType - тип пакета
  * @returns true если пакет требует полной линковки
- * 
+ *
  * @remarks
  * - standalone, component, system - полная линковка (node_modules, init.xml/spxml, api_ext.xml)
  * - library - только копирование в node_modules родительского пакета
- * 
+ *
  * @example
  * ```ts
  * isExecutablePackageType('standalone') // -> true
@@ -73,7 +78,7 @@ export function normalizePackageType(wsPackage: string | undefined): PackageType
  * ```
  */
 export function isExecutablePackageType(packageType: PackageType): boolean {
-  return packageType === 'standalone' || packageType === 'component' || packageType === 'system';
+  return packageType === "standalone" || packageType === "component" || packageType === "system";
 }
 
 /**
@@ -92,15 +97,15 @@ export function getLegacyPackageTypes(): string[] {
 
 /**
  * Форматирует список валидных типов для вывода в сообщения об ошибках
- * 
+ *
  * @example
  * ```ts
- * formatValidPackageTypes() 
+ * formatValidPackageTypes()
  * // -> 'standalone, component, system, library (or legacy: app, lib, bt)'
  * ```
  */
 export function formatValidPackageTypes(): string {
-  const validTypes = VALID_PACKAGE_TYPES.join(', ');
-  const legacyTypes = Object.keys(LEGACY_TYPE_MAPPING).join(', ');
+  const validTypes = VALID_PACKAGE_TYPES.join(", ");
+  const legacyTypes = Object.keys(LEGACY_TYPE_MAPPING).join(", ");
   return `${validTypes} (or legacy: ${legacyTypes})`;
 }

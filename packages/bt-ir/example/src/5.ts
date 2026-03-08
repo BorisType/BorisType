@@ -1,17 +1,17 @@
 function createFunctions() {
-    const funcs = [];
+  const funcs = [];
 
-    let x = 10;
-    const y = 20;
+  let x = 10;
+  const y = 20;
 
-    funcs.push(() => console.log(x, y));
+  funcs.push(() => console.log(x, y));
 
-    x = 100;    // можно
-    // y = 200; // ошибка!
+  x = 100; // можно
+  // y = 200; // ошибка!
 
-    funcs.push(() => console.log(x, y));
+  funcs.push(() => console.log(x, y));
 
-    return funcs;
+  return funcs;
 }
 
 const [f1, f2] = createFunctions();

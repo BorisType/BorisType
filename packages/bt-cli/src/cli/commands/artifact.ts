@@ -1,4 +1,4 @@
-import { processArtifact } from '../../core/artifacting';
+import { processArtifact } from "../../core/artifacting";
 
 /**
  * Опции команды artifact
@@ -6,12 +6,12 @@ import { processArtifact } from '../../core/artifacting';
 export type ArtifactCommandOptions = {
   /** Очистить директорию artifact перед созданием архивов */
   clean?: boolean;
-}
+};
 
 /**
  * Команда artifact - создание архивов для поставки
  * Создаёт zip-архив из директории dist
- * 
+ *
  * @param options - Опции команды
  */
 export async function artifactCommand(options: ArtifactCommandOptions = {}): Promise<void> {

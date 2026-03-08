@@ -92,7 +92,7 @@ function isRightAssociative(kind: ts.SyntaxKind): boolean {
 export function needsParentheses(
   parent: ts.BinaryExpression,
   child: ts.BinaryExpression,
-  isLeft: boolean
+  isLeft: boolean,
 ): boolean {
   const parentOp = parent.operatorToken.kind;
   const childOp = child.operatorToken.kind;

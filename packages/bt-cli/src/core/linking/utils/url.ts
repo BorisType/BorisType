@@ -19,12 +19,10 @@ export function UrlAppenPath(url: string, appendPath: string): string {
   var addPath;
 
   parsedUrl = BmParseUrl(url);
-  if (!parsedUrl.path.endsWith("/"))
-    parsedUrl.path += '/';
+  if (!parsedUrl.path.endsWith("/")) parsedUrl.path += "/";
 
   addPath = appendPath;
-  if (addPath.charAt(0) == '/')
-    addPath = addPath.slice(1);
+  if (addPath.charAt(0) == "/") addPath = addPath.slice(1);
 
   parsedUrl.path += addPath;
   return BmParsedUrl__GetStrValue(parsedUrl);
@@ -36,48 +34,42 @@ function BmParseUrl(urlStr: string): any {
   var pos: number;
 
   tempStr = urlStr;
-  pos = String(tempStr).indexOf(':');
+  pos = String(tempStr).indexOf(":");
 
   if (pos >= 0) {
     obj.schema = tempStr.slice(0, pos);
     tempStr = tempStr.slice(pos + 1);
   }
 
-  if (tempStr.startsWith('//')) {
-    pos = String(tempStr).indexOf('/', 2);
-    if (pos < 0)
-      pos = tempStr.length;
+  if (tempStr.startsWith("//")) {
+    pos = String(tempStr).indexOf("/", 2);
+    if (pos < 0) pos = tempStr.length;
     obj.host = tempStr.slice(2, pos);
     tempStr = tempStr.slice(pos);
   }
 
-  if ((pos = String(tempStr).lastIndexOf('#')) > 0) {
+  if ((pos = String(tempStr).lastIndexOf("#")) > 0) {
     obj.anchor = tempStr.slice(pos + 1);
     tempStr = tempStr.slice(0, pos);
   }
 
-  if ((pos = String(tempStr).lastIndexOf('?')) > 0) {
+  if ((pos = String(tempStr).lastIndexOf("?")) > 0) {
     obj.param = tempStr.slice(pos + 1);
     tempStr = tempStr.slice(0, pos);
   }
 
   obj.path = tempStr;
-  if (obj.path == "" && obj.host)
-    obj.path = "/";
+  if (obj.path == "" && obj.host) obj.path = "/";
 
   return obj;
 }
 
 function BmParsedUrl__GetStrValue(url: any): string {
   var tempStr = "";
-  if (url.schema)
-    tempStr = url.schema + ":";
-  if (url.host || url.schema == "file")
-    tempStr += "//" + url.host;
+  if (url.schema) tempStr = url.schema + ":";
+  if (url.host || url.schema == "file") tempStr += "//" + url.host;
   tempStr += url.path;
-  if (url.param)
-    tempStr += "?" + url.param;
-  if (url.fragment)
-    tempStr += "#" + url.fragment;
+  if (url.param) tempStr += "?" + url.param;
+  if (url.fragment) tempStr += "#" + url.fragment;
   return tempStr;
 }

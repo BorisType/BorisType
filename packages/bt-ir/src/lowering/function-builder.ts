@@ -162,7 +162,9 @@ export function buildFunction(options: FunctionBuildOptions): FunctionBuildResul
   // env.name = name_desc (опционально)
   if (registerInEnv) {
     setupStatements.push(
-      IR.exprStmt(IR.assign("=", IR.dot(IR.id(registrationEnvRef), envRegistrationName), IR.id(descName)))
+      IR.exprStmt(
+        IR.assign("=", IR.dot(IR.id(registrationEnvRef), envRegistrationName), IR.id(descName)),
+      ),
     );
   }
 
@@ -170,8 +172,8 @@ export function buildFunction(options: FunctionBuildOptions): FunctionBuildResul
   if (exportAs) {
     setupStatements.push(
       IR.exprStmt(
-        IR.assign("=", IR.dot(IR.dot(IR.id("__module"), "exports"), exportAs), IR.id(descName))
-      )
+        IR.assign("=", IR.dot(IR.dot(IR.id("__module"), "exports"), exportAs), IR.id(descName)),
+      ),
     );
   }
 
@@ -194,9 +196,7 @@ export function buildFunction(options: FunctionBuildOptions): FunctionBuildResul
  * ```
  */
 export function assignDescriptorObj(descName: string, objVarName: string): IRStatement {
-  return IR.exprStmt(
-    IR.assign("=", IR.dot(IR.id(descName), "obj"), IR.id(objVarName))
-  );
+  return IR.exprStmt(IR.assign("=", IR.dot(IR.id(descName), "obj"), IR.id(objVarName)));
 }
 
 /**
@@ -208,6 +208,10 @@ export function assignDescriptorObj(descName: string, objVarName: string): IRSta
  * const ref = getEnvFunctionRef("myFunc");
  * ```
  */
-export function getEnvFunctionRef(name: string, loc?: SourceLocation, envRef = "__env"): IRExpression {
+export function getEnvFunctionRef(
+  name: string,
+  loc?: SourceLocation,
+  envRef = "__env",
+): IRExpression {
   return IR.dot(IR.id(envRef), name, loc);
 }
