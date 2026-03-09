@@ -1,0 +1,8 @@
+{
+  "name": "Logical operators (||, &&, ??)",
+  "tests": {
+    "or-values.test.js": "|| value return semantics and chaining",
+    "or-shortCircuit.test.js": "|| short-circuit evaluation",
+    "or-booleanContext.test.js": "|| in boolean contexts (if, while, for, ternary)"
+  }
+}
