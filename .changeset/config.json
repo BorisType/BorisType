@@ -3,9 +3,7 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [],
-  "linked": [
-    ["@boristype/bt-cli", "@boristype/bt-ir", "@boristype/runtime"]
-  ],
+  "linked": [["@boristype/bt-cli", "@boristype/bt-ir", "@boristype/runtime"]],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
