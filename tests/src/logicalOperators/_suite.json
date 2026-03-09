@@ -3,6 +3,10 @@
   "tests": {
     "or-values.test.js": "|| value return semantics and chaining",
     "or-shortCircuit.test.js": "|| short-circuit evaluation",
-    "or-booleanContext.test.js": "|| in boolean contexts (if, while, for, ternary)"
+    "or-booleanContext.test.js": "|| in boolean contexts (if, while, for, ternary)",
+    "and-values.test.js": "&& value return semantics and chaining",
+    "and-shortCircuit.test.js": "&& short-circuit evaluation",
+    "and-booleanContext.test.js": "&& in boolean contexts (if, while, for, ternary)",
+    "nullishCoalescing.test.js": "?? nullish coalescing semantics"
   }
 }
