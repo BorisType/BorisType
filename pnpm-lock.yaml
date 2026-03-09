@@ -122,21 +122,15 @@ importers:
       '@boristype/bt-cli':
         specifier: workspace:^
         version: link:../../packages/bt-cli
-      '@boristype/eslint-plugin':
-        specifier: workspace:^
-        version: link:../../packages/eslint-plugin
+      '@boristype/http-handler':
+        specifier: ^1.0.0-alpha.5
+        version: 1.0.0-alpha.5
       '@boristype/runtime':
         specifier: workspace:^
         version: link:../../packages/builtin-runtime
       '@boristype/types':
         specifier: ^1.0.0-alpha.3
         version: 1.0.0-alpha.3
-      '@typescript-eslint/parser':
-        specifier: ^8.0.0
-        version: 8.54.0(eslint@9.39.2)(typescript@5.9.3)
-      eslint:
-        specifier: ^9.0.0
-        version: 9.39.2
 
   packages/botest:
     dependencies:
@@ -385,6 +379,9 @@ packages:
   '@babel/types@7.29.0':
     resolution: {integrity: sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A==}
     engines: {node: '>=6.9.0'}
+
+  '@boristype/http-handler@1.0.0-alpha.5':
+    resolution: {integrity: sha512-ZuJ8Tit9/aZ7TKyQUliMm5EfmmhunYOVfR6OWCbGQRIvdE3RBdlkvi1Tfcq4b/UQ5DuuTDvj+oShp2SYD182AA==}
 
   '@boristype/types@1.0.0-alpha.3':
     resolution: {integrity: sha512-MLjcFr7WYuKgF2/CYa8XVcNYQqbflc+CZ3txgF1tFLXiIruxEBmmgYdFZP56jloq5lwSNv/TRWOeTOzSSiwNcg==}
@@ -2577,6 +2574,8 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
+
+  '@boristype/http-handler@1.0.0-alpha.5': {}
 
   '@boristype/types@1.0.0-alpha.3': {}
 

@@ -6,10 +6,9 @@
   "main": "index.js",
   "scripts": {
     "build": "npx btc build",
-    "link": "npx btc link",
-    "dev": "npx btc dev",
+    "link": "npx btc link --no-cache",
     "push": "npx btc push",
-    "lint": "eslint src/"
+    "dev": "npx btc dev"
   },
   "author": "",
   "license": "ISC",
@@ -18,11 +17,9 @@
   "ws:root": "./wt/myapp",
   "devDependencies": {
     "@boristype/bt-cli": "workspace:^",
-    "@boristype/eslint-plugin": "workspace:^",
     "@boristype/runtime": "workspace:^",
     "@boristype/types": "^1.0.0-alpha.3",
-    "@typescript-eslint/parser": "^8.0.0",
-    "eslint": "^9.0.0"
+    "@boristype/http-handler": "^1.0.0-alpha.5"
   },
   "dependencies": {
     "boristype-example-library": "workspace:^"

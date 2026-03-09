@@ -82,7 +82,7 @@ function copyContentToDestination() {
         var sResolvedDestPath = resolveDestPath();
         var sFilesPath = FilePath(sTempPath, "files");
         var sarrUrls = [];
-        
+
         var sFilePath;
         var sSrcPath;
         var sDstPath;
@@ -93,7 +93,7 @@ function copyContentToDestination() {
             deleteAnyFile(sSrcPath);
             sarrUrls.push(FilePathToUrl(sDstPath));
         }
-        
+
         return ok(sarrUrls);
     }
 }
@@ -106,13 +106,13 @@ function getUploadedFileUrls() {
         // glob режим (dir/*): возвращаем URL'ы всех файлов
         var sFilesPath = FilePath(sTempPath, "files");
         var sarrUrls = [];
-        
+
         var sFilePath;
         for (sFilePath in sarrFileList) {
             var sContentPath = UrlToFilePath(UrlAppendPath(FilePathToUrl(sFilesPath), sFilePath));
             sarrUrls.push(FilePathToUrl(sContentPath));
         }
-        
+
         return ok(sarrUrls);
     }
 }
@@ -163,7 +163,7 @@ function getFinalDestinationFilePath(sContentPath) {
             // sDestPath - файл (существует)
 
             if (IsDirectory(sContentPath)) {
-                // sContentPath - директория 
+                // sContentPath - директория
 
                 // 3. директория -> файл (существует)
                 // ERR: нельзя перезаписать директорию в существующий файл
@@ -206,7 +206,7 @@ function getFinalDestinationFilePath(sContentPath) {
             // sDestPath - файл или директория
 
             if (IsDirectory(sContentPath)) {
-                // sContentPath - директория 
+                // sContentPath - директория
 
                 // 7. директория -> файл или директория (не существует)
                 // директория sContentPath будет записана по пути sDestPath
@@ -224,7 +224,7 @@ function getFinalDestinationFilePath(sContentPath) {
 
 function copyAnyFile(sSrcPath, sDstPath) {
     if (IsDirectory(sSrcPath)) {
-        ObtainDirectory(sDstPath);
+        ObtainDirectory(sDstPath, true);
 
         var sarrFiles = ReadDirectoryByPath(sSrcPath);
 
@@ -235,7 +235,7 @@ function copyAnyFile(sSrcPath, sDstPath) {
             copyAnyFile(sFile, sFileDest);
         }
     } else if (FilePathExists(sSrcPath)) {
-        ObtainDirectory(ParentDirectory(sDstPath));
+        ObtainDirectory(ParentDirectory(sDstPath), true);
         CopyFile(sSrcPath, sDstPath);
     } else {
         throw "No such file.";

@@ -16,4 +16,5 @@ minimumReleaseAgeExclude:
   - "@boristype/runtime"
   - "@boristype/ws-client"
   - "@boristype/ws-version"
+  - "@boristype/http-handler"
 trustPolicy: strict
