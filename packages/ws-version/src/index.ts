@@ -1,12 +1,22 @@
 import semver from "semver";
 
 /**
+ * Тип для версии в ws-формате
+ */
+export type WsVersion = string;
+
+/**
+ * Тип для промежутка версий в ws-формате
+ */
+export type WsVersionRange = string;
+
+/**
  * Преобразует semver версию в формат целевой системы (4 компонента)
- * @param {string} version - Версия в формате semver
- * @returns {string} Версия в формате x.y.z.w
+ * @param version - Версия в формате semver
+ * @returns Версия в формате x.y.z.w
  * @throws {Error} Если версия невалидна или содержит компоненты > 999
  */
-function convertSemverToWsVersion(version) {
+export function convertSemverToWsVersion(version: string): string {
   // Парсим semver версию
   const parsed = semver.parse(version);
   if (!parsed) {
@@ -33,10 +43,10 @@ function convertSemverToWsVersion(version) {
 /**
  * Кодирует prerelease информацию в число, сохраняя порядок сортировки
  * Обычные релизы получают значение 9999, prerelease - меньшие значения
- * @param {Array} prerelease - Массив prerelease компонентов
- * @returns {number} Закодированный номер
+ * @param prerelease - Массив prerelease компонентов
+ * @returns Закодированный номер
  */
-function encodePrereleaseToNumber(prerelease) {
+export function encodePrereleaseToNumber(prerelease: readonly (string | number)[]): number {
   if (!prerelease || prerelease.length === 0) {
     return 9999; // Обычные версии имеют максимальный приоритет
   }
@@ -78,10 +88,10 @@ function encodePrereleaseToNumber(prerelease) {
 
 /**
  * Простая хеш-функция для строк
- * @param {string} str - Строка для хеширования
- * @returns {number} Хеш-код
+ * @param str - Строка для хеширования
+ * @returns Хеш-код
  */
-function hashString(str) {
+function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
@@ -93,11 +103,11 @@ function hashString(str) {
 
 /**
  * Сравнивает две версии в ws-формате
- * @param {string} version1 - Первая версия
- * @param {string} version2 - Вторая версия
- * @returns {-1|0|1} Результат сравнения (-1 если v1 < v2, 0 если равны, 1 если v1 > v2)
+ * @param version1 - Первая версия
+ * @param version2 - Вторая версия
+ * @returns Результат сравнения (-1 если v1 < v2, 0 если равны, 1 если v1 > v2)
  */
-function compareWsVersions(version1, version2) {
+export function compareWsVersions(version1: string, version2: string): -1 | 0 | 1 {
   const v1Parts = version1.split(".").map(Number);
   const v2Parts = version2.split(".").map(Number);
 
@@ -114,10 +124,10 @@ function compareWsVersions(version1, version2) {
 
 /**
  * Проверяет валидность ws-версии
- * @param {string} version - Версия для проверки
- * @returns {boolean} true если версия валидна
+ * @param version - Версия для проверки
+ * @returns true если версия валидна
  */
-function isValidWsVersion(version) {
+export function isValidWsVersion(version: string): boolean {
   const parts = version.split(".");
   if (parts.length < 3 || parts.length > 4) {
     return false;
@@ -135,11 +145,11 @@ function isValidWsVersion(version) {
 
 /**
  * Преобразует промежуток версий semver в формат ws
- * @param {string} range - Промежуток версий в формате semver (например, "^1.2.3", "~1.2.3", "*")
- * @returns {string} Промежуток версий в формате ws
+ * @param range - Промежуток версий в формате semver (например, "^1.2.3", "~1.2.3", "*")
+ * @returns Промежуток версий в формате ws
  * @throws {Error} Если промежуток невалиден
  */
-function convertSemverRangeToWsRange(range) {
+export function convertSemverRangeToWsRange(range: string): string {
   // Убираем лишние пробелы
   const trimmedRange = range.trim();
 
@@ -166,7 +176,9 @@ function convertSemverRangeToWsRange(range) {
   try {
     wsVersion = convertSemverToWsVersion(version);
   } catch (error) {
-    throw new Error(`Invalid version in range "${range}": ${error.message}`);
+    throw new Error(
+      `Invalid version in range "${range}": ${error instanceof Error ? error.message : error}`,
+    );
   }
 
   // Для ^ и ~ добавляем префикс ^ в ws-формате
@@ -180,10 +192,10 @@ function convertSemverRangeToWsRange(range) {
 
 /**
  * Проверяет валидность ws-промежутка версий
- * @param {string} range - Промежуток версий для проверки
- * @returns {boolean} true если промежуток валиден
+ * @param range - Промежуток версий для проверки
+ * @returns true если промежуток валиден
  */
-function isValidWsRange(range) {
+export function isValidWsRange(range: string): boolean {
   const trimmedRange = range.trim();
 
   // Проверяем наличие префикса ^
@@ -195,13 +207,3 @@ function isValidWsRange(range) {
   // Проверяем как обычную версию
   return isValidWsVersion(trimmedRange);
 }
-
-// Экспортируем функции
-export {
-  convertSemverToWsVersion,
-  convertSemverRangeToWsRange,
-  compareWsVersions,
-  isValidWsVersion,
-  isValidWsRange,
-  encodePrereleaseToNumber,
-};
