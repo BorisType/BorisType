@@ -19,10 +19,10 @@ var createTrieNode_env = { __parent: __env };
 
 ```javascript
 // Второй вызов перезаписывал переменные первого
-createTrieNode_env.node = {};  // потеря предыдущего node
+createTrieNode_env.node = {}; // потеря предыдущего node
 ```
 
-### Баг 2: __codelibrary depth
+### Баг 2: \_\_codelibrary depth
 
 В module mode каждая функция получает доступ к `__codelibrary` через env chain. Для вычисления глубины использовалась отдельная функция `getCodelibraryDepth()`, которая считала только `block` scopes с `hasCaptured`. После введения per-call env **function** scopes тоже создают env-объект, но `getCodelibraryDepth` их не учитывала — глубина вычислялась неправильно:
 
@@ -52,9 +52,9 @@ createTrieNode_env.node = {};  // потеря предыдущего node
 
 ```javascript
 function createTrieNode(__env, __this, __args) {
-    var __fn0_env = { __parent: __env };  // новый env при каждом вызове
-    // ...
-    __fn0_env.node = {};  // каждый вызов имеет изолированный env
+  var __fn0_env = { __parent: __env }; // новый env при каждом вызове
+  // ...
+  __fn0_env.node = {}; // каждый вызов имеет изолированный env
 }
 ```
 
@@ -71,13 +71,13 @@ function createTrieNode(__env, __this, __args) {
 
 Создан модуль `src/lowering/env-resolution.ts` с унифицированными хелперами:
 
-| Функция | Назначение |
-|---------|-----------|
-| `buildEnvChainBase(envRef, depth)` | Строит IR цепочку `__env.__parent.__parent...` заданной глубины |
-| `buildEnvChainAccess(envRef, depth, property)` | Строит `envChain.property` — цепочка + доступ к свойству |
+| Функция                                        | Назначение                                                                                                                           |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `buildEnvChainBase(envRef, depth)`             | Строит IR цепочку `__env.__parent.__parent...` заданной глубины                                                                      |
+| `buildEnvChainAccess(envRef, depth, property)` | Строит `envChain.property` — цепочка + доступ к свойству                                                                             |
 | `resolveEnvAccess(targetScope, property, ctx)` | Унифицированный доступ к captured переменной: определяет closureEnv vs currentEnvRef, вычисляет depth через `getEnvDepth`, строит IR |
-| `resolveModuleLevelAccess(property, ctx)` | Shorthand для доступа к module-scope переменным (import vars, helpers) |
-| `getModuleEnvDepth(ctx)` | Глубина от текущего scope до module scope (для `__codelibrary`) |
+| `resolveModuleLevelAccess(property, ctx)`      | Shorthand для доступа к module-scope переменным (import vars, helpers)                                                               |
+| `getModuleEnvDepth(ctx)`                       | Глубина от текущего scope до module scope (для `__codelibrary`)                                                                      |
 
 ### 3. Единый getEnvDepth
 
@@ -104,14 +104,14 @@ function createTrieNode(__env, __this, __args) {
 
 ### Затронутые файлы
 
-| Файл | Изменение |
-|------|-----------|
-| `lowering/env-resolution.ts` | **НОВЫЙ** — унифицированные хелперы |
-| `lowering/expressions.ts` | Рефакторинг: все env access через `resolveEnvAccess`; fix `visitCallExpression` |
-| `lowering/statements.ts` | Per-call env в `visitFunctionDeclaration`; `getModuleEnvDepth` для codelibrary |
-| `lowering/function-builder.ts` | `registrationEnvRef` param; `buildEnvChainAccess` для `__codelibrary` |
-| `analyzer/scope-analyzer.ts` | Удалена `getCodelibraryDepth`; safety check в `getEnvDepth` |
-| `analyzer/index.ts` | Удалён экспорт `getCodelibraryDepth` |
+| Файл                           | Изменение                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| `lowering/env-resolution.ts`   | **НОВЫЙ** — унифицированные хелперы                                             |
+| `lowering/expressions.ts`      | Рефакторинг: все env access через `resolveEnvAccess`; fix `visitCallExpression` |
+| `lowering/statements.ts`       | Per-call env в `visitFunctionDeclaration`; `getModuleEnvDepth` для codelibrary  |
+| `lowering/function-builder.ts` | `registrationEnvRef` param; `buildEnvChainAccess` для `__codelibrary`           |
+| `analyzer/scope-analyzer.ts`   | Удалена `getCodelibraryDepth`; safety check в `getEnvDepth`                     |
+| `analyzer/index.ts`            | Удалён экспорт `getCodelibraryDepth`                                            |
 
 ## Alternatives Considered
 

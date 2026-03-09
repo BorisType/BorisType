@@ -39,6 +39,7 @@ const result = await BuildPipeline.run(packagePath, options);
 ```
 
 **Процесс:**
+
 1. Загрузка tsconfig.json
 2. Создание TypeScript Program
 3. Получение диагностики (ошибки/предупреждения)
@@ -54,6 +55,7 @@ await BuildPipeline.watch(packagePath, options, onChange);
 ```
 
 **Процесс:**
+
 1. Создание ts.createWatchProgram (noEmit: true)
 2. Настройка chokidar для не-TS файлов
 3. При изменении TypeScript:
@@ -80,6 +82,7 @@ await BuildPipeline.watch(packagePath, options, onChange);
 ### Определение Executable объектов
 
 Проверяет импорты из `@boristype/types`:
+
 ```typescript
 const EXECUTABLE_OBJECTS = new Set([
   "remoteAction",
@@ -94,6 +97,7 @@ const EXECUTABLE_OBJECTS = new Set([
 Если найдено → устанавливает CompileMode в `script`
 
 Генерирует `.executables.json`:
+
 ```json
 {
   "myAction.js": "remoteAction",
@@ -146,19 +150,20 @@ Start Dev Mode
 ### Фильтрация пакетов
 
 Отслеживаются только пакеты с:
+
 - Полем `ws:package` в package.json
 - НЕ library тип
 
 ```typescript
-const packagesToWatch = packages.filter(pkg =>
-  pkg.wsPackage !== undefined &&
-  pkg.type !== "library"
+const packagesToWatch = packages.filter(
+  (pkg) => pkg.wsPackage !== undefined && pkg.type !== "library",
 );
 ```
 
 ### Инкрементальная линковка
 
 После начальной сборки:
+
 - Только изменённые файлы из BuildResult.emittedFiles
 - Пропуск копирования node_modules (уже сделано)
 - Быстрая relink (~10x быстрее)
@@ -168,19 +173,21 @@ const packagesToWatch = packages.filter(pkg =>
 ### TypeScript Files
 
 Uses `ts.createWatchProgram`:
+
 ```typescript
 const host = ts.createWatchCompilerHost(
   tsconfig.path,
   { noEmit: true }, // No emit in watch program
   ts.sys,
   createProgram,
-  reportDiagnostic
+  reportDiagnostic,
 );
 
 const watchProgram = ts.createWatchProgram(host);
 ```
 
 **On change:**
+
 1. Watch program reports changed files
 2. Create incremental Program (for emit only)
 3. Compile changed SourceFiles via bt-ir
@@ -189,18 +196,20 @@ const watchProgram = ts.createWatchProgram(host);
 ### Non-TypeScript Files
 
 Uses chokidar:
+
 ```typescript
-const watcher = chokidar.watch('src/**/*', {
-  ignored: ['**/*.ts', '**/*.tsx']
+const watcher = chokidar.watch("src/**/*", {
+  ignored: ["**/*.ts", "**/*.tsx"],
 });
 
-watcher.on('change', (path) => {
+watcher.on("change", (path) => {
   copyFile(path, buildDir);
   onChange([path]);
 });
 ```
 
 **Watched:**
+
 - .json (except tsconfig)
 - .js (if any)
 - .bs (BorisScript)
@@ -209,21 +218,23 @@ watcher.on('change', (path) => {
 ## Интеграция с bt-ir
 
 Каждый SourceFile компилируется через:
+
 ```typescript
 import { compileSourceFile } from "bt-ir";
 
 const result = compileSourceFile(sourceFile, program, {
   compileMode: resolveCompileMode(sourceFile, options),
-  cwd: packagePath
+  cwd: packagePath,
 });
 
 // result.outputs[0].code → запись в build/
 ```
 
 **CompileMode**, переданный в bt-ir, определяет:
+
 - bare: минимальный вывод
 - script: env/desc + polyfills
-- module: __init обёртка
+- module: \_\_init обёртка
 
 ## Build Result
 
@@ -231,7 +242,7 @@ const result = compileSourceFile(sourceFile, program, {
 interface BuildResult {
   success: boolean;
   diagnostics: ts.Diagnostic[];
-  emittedFiles: string[];      // Относительные пути
+  emittedFiles: string[]; // Относительные пути
   executables?: ExecutablesMap; // Содержимое .executables.json
 }
 ```
@@ -245,7 +256,7 @@ interface BuildResult {
 ```typescript
 const queue = new DebouncedPushQueue(deploySession, 500);
 
-coordinator.on('linked', () => {
+coordinator.on("linked", () => {
   queue.schedulePush(distPath, btconfig);
 });
 ```
@@ -257,16 +268,19 @@ coordinator.on('linked', () => {
 ## Обработка ошибок
 
 ### Ошибки компиляции
+
 - Логируются через ts.formatDiagnostic
 - Сборка продолжается (частичный emit)
 - BuildResult.success = false
 
 ### Ошибки копирования файлов
+
 - Логируются как warning
 - Сборка продолжается
 - Отсутствующие файлы не в emittedFiles
 
 ### Ошибки отслеживания
+
 - Ошибки Program → report diagnostic
 - Ошибки файловой системы → лог-warning
 - Отслеживание продолжается
@@ -274,16 +288,19 @@ coordinator.on('linked', () => {
 ## Оптимизации производительности
 
 ### Инкрементальная компиляция
+
 - Инкрементальный режим TypeScript
 - Перекомпилируются только изменённые файлы
 - Повторное использование результатов проверки типов
 
 ### Селективное копирование
+
 - Копируются только изменённые файлы
 - node_modules копируются один раз (начальная сборка)
 - Glob-паттерны кешируются
 
 ### Параллельные сборки
+
 - Мультипакетные сборки выполняются параллельно
 - Компиляция отдельных файлов параллелизуема (будущее)
 
@@ -292,6 +309,7 @@ coordinator.on('linked', () => {
 ### tsconfig.json
 
 BuildPipeline учитывает:
+
 - `compilerOptions.outDir` (но переопределяет на build/)
 - `include` / `exclude` паттерны
 - Список `files`
@@ -308,13 +326,13 @@ interface BuildOptions {
 
 ## Файлы
 
-| Файл | Назначение | Строк |
-|------|---------|-------|
-| [index.ts](../../btc/src/core/building/index.ts) | BuildPipeline facade | ~150 |
-| [compiler.ts](../../btc/src/core/building/compiler.ts) | TS compilation | ~200 |
-| [files.ts](../../btc/src/core/building/files.ts) | Копирование файлов | ~100 |
-| [coordinator.ts](../../btc/src/core/building/coordinator.ts) | DevCoordinator | ~300 |
-| [compile-mode.ts](../../btc/src/core/building/compile-mode.ts) | Определение режима | ~150 |
+| Файл                                                           | Назначение           | Строк |
+| -------------------------------------------------------------- | -------------------- | ----- |
+| [index.ts](../../btc/src/core/building/index.ts)               | BuildPipeline facade | ~150  |
+| [compiler.ts](../../btc/src/core/building/compiler.ts)         | TS compilation       | ~200  |
+| [files.ts](../../btc/src/core/building/files.ts)               | Копирование файлов   | ~100  |
+| [coordinator.ts](../../btc/src/core/building/coordinator.ts)   | DevCoordinator       | ~300  |
+| [compile-mode.ts](../../btc/src/core/building/compile-mode.ts) | Определение режима   | ~150  |
 
 ## См. также
 

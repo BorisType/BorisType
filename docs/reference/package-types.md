@@ -7,6 +7,7 @@
 > **Важно:** Поле `ws:name` является **обязательным** для всех пакетов кроме `library`.
 
 `ws:name` — это "чистое" имя пакета, используемое:
+
 - В путях (`components/<ws:name>`, `./wt/<ws:name>`)
 - В `api_ext.xml` (`module:<ws:name>`)
 - В именах файлов (`spxml/<ws:name>.xml`)
@@ -14,6 +15,7 @@
 Это позволяет использовать scoped npm имена (`@scope/package`) без проблем с путями.
 
 **Пример:**
+
 ```json
 {
   "name": "@boristype/runtime",
@@ -23,7 +25,6 @@
 ```
 
 Пакет `@boristype/runtime` будет линковаться как `bt-runtime` в `components/bt-runtime`.
-
 
 ## Standalone
 
@@ -46,22 +47,24 @@
 ```
 
 **Обязательные поля:**
+
 - `ws:package`: `"standalone"` (или legacy `"app"`)
 - `ws:name`: имя для путей и api_ext
 
 **Опциональные поля:**
+
 - `ws:root`: путь внутри `dist/` (по умолчанию `./wt/<ws:name>`)
 - `main`: точка входа (например `"index.js"`)
 - `ws:apiext`: явная конфигурация для `api_ext.xml`
 
 ### Логика генерации init.xml
 
-| `ws:apiext` | `main` | init.xml в build/ | Результат |
-|-------------|--------|-------------------|-----------|
-| ✅ указан | любой | любой | Используем `ws:apiext`, ничего не генерируем |
-| ❌ не указан | ✅ указан | ❌ нет | Генерируем `init.xml`, добавляем в `api_ext.xml` |
-| ❌ не указан | ✅ указан | ✅ есть | Используем существующий `init.xml`, добавляем в `api_ext.xml` |
-| ❌ не указан | ❌ не указан | любой | Ничего не генерируем, нет записи в `api_ext.xml` |
+| `ws:apiext`  | `main`       | init.xml в build/ | Результат                                                     |
+| ------------ | ------------ | ----------------- | ------------------------------------------------------------- |
+| ✅ указан    | любой        | любой             | Используем `ws:apiext`, ничего не генерируем                  |
+| ❌ не указан | ✅ указан    | ❌ нет            | Генерируем `init.xml`, добавляем в `api_ext.xml`              |
+| ❌ не указан | ✅ указан    | ✅ есть           | Используем существующий `init.xml`, добавляем в `api_ext.xml` |
+| ❌ не указан | ❌ не указан | любой             | Ничего не генерируем, нет записи в `api_ext.xml`              |
 
 ### Генерируемый init.xml
 
@@ -105,10 +108,12 @@ dist/
 ```
 
 **Обязательные поля:**
+
 - `ws:package`: `"component"`
 - `ws:name`: используется для определения целевой папки и именования файлов
 
 **Запрещённые поля:**
+
 - `ws:root`: компоненты не могут иметь это поле (путь `components/<ws:name>` определяется автоматически)
 
 ### Файлы инициализации
@@ -116,6 +121,7 @@ dist/
 Располагаются в `spxml/`. Генерируются только если отсутствуют в `build/`.
 
 **`spxml/<name>.xml`:**
+
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <SPXML-INLINE-FORM CODE-LIB="1">
@@ -127,14 +133,15 @@ dist/
 ```
 
 **`spxml/<name>.js`:**
+
 ```js
 function init() {
   try {
-    alert('Component other-app initializing...');
-    bt.require('index.js', 'x-local://components/other-app/spxml')
-    alert('Component other-app initialized');
+    alert("Component other-app initializing...");
+    bt.require("index.js", "x-local://components/other-app/spxml");
+    alert("Component other-app initialized");
   } catch (g_err) {
-    alert('ERROR: Component initializing: other-app:\r\n' + g_err);
+    alert("ERROR: Component initializing: other-app:\r\n" + g_err);
     throw g_err;
   }
 }
@@ -187,10 +194,10 @@ dist/
 
 ### Режимы линковки
 
-| Режим | Целевой путь | api_ext.xml |
-|-------|--------------|-------------|
-| `component` (по умолчанию) | `components/<ws:name>` | ❌ Нет |
-| `standalone` | из `ws:root` | ✅ Да |
+| Режим                      | Целевой путь           | api_ext.xml |
+| -------------------------- | ---------------------- | ----------- |
+| `component` (по умолчанию) | `components/<ws:name>` | ❌ Нет      |
+| `standalone`               | из `ws:root`           | ✅ Да       |
 
 ## Library
 
@@ -223,7 +230,6 @@ dist/
 5. Поддерживаются symlink'и (для `npm link`)
 6. Пропускаются служебные директории (`.bin`, `.git` и т.д.)
 
-
 ## Общие механизмы
 
 ### Executables и Filemap
@@ -231,6 +237,7 @@ dist/
 Компилятор генерирует `.executables.json` для пакетов с executable objects.
 
 **При линковке:**
+
 - Читается `.executables.json` из `build/`
 - Генерируется `.filemap.json` **per-module** (в каждом модуле отдельно)
 
@@ -239,23 +246,24 @@ dist/
 Общий файл конфигурации. Располагается в `dist/source/api_ext.xml`.
 
 **Содержит записи для:**
+
 - System пакетов в режиме `standalone`
 - Standalone пакетов
 
 **Не содержит:**
+
 - Component пакеты
 - System пакеты в режиме `component`
 - Library пакеты
 
 ## Сводная таблица типов
 
-| Тип | ws:package | ws:name | ws:root | Целевой путь | Init файлы | api_ext.xml | node_modules |
-|-----|------------|---------|---------|--------------|------------|-------------|--------------|
-| **Standalone** | `standalone`, `app` | ✅ обязательно | опционально (по умолчанию `./wt/<ws:name>`) | из `ws:root` | `init.xml` (если нужен) | ✅ Да | ✅ Копируются |
-| **Component** | `component` | ✅ обязательно | ❌ запрещено | `components/<ws:name>` | `spxml/*` (если нужны) | ❌ Нет | ✅ Копируются |
-| **System** | `system`, `bt` | ✅ обязательно | для standalone | зависит от режима | ❌ Не генерируются | зависит от режима | ✅ Копируются |
-| **Library** | `library`, `lib` | ❌ не нужно | — | — | — | — | Является зависимостью |
-
+| Тип            | ws:package          | ws:name        | ws:root                                     | Целевой путь           | Init файлы              | api_ext.xml       | node_modules          |
+| -------------- | ------------------- | -------------- | ------------------------------------------- | ---------------------- | ----------------------- | ----------------- | --------------------- |
+| **Standalone** | `standalone`, `app` | ✅ обязательно | опционально (по умолчанию `./wt/<ws:name>`) | из `ws:root`           | `init.xml` (если нужен) | ✅ Да             | ✅ Копируются         |
+| **Component**  | `component`         | ✅ обязательно | ❌ запрещено                                | `components/<ws:name>` | `spxml/*` (если нужны)  | ❌ Нет            | ✅ Копируются         |
+| **System**     | `system`, `bt`      | ✅ обязательно | для standalone                              | зависит от режима      | ❌ Не генерируются      | зависит от режима | ✅ Копируются         |
+| **Library**    | `library`, `lib`    | ❌ не нужно    | —                                           | —                      | —                       | —                 | Является зависимостью |
 
 ## CLI опции
 
@@ -263,13 +271,14 @@ dist/
 btc link [options]
 ```
 
-| Опция | Описание | По умолчанию |
-|--------|------------|---------------|
-| `--clean` | Очистить `dist/` перед линковкой | `false` |
-| `--linking-system-as <mode>` | Режим линковки system пакетов: `standalone` или `component` | `component` |
-| `--external-runtime` | Пропустить линковку system-пакетов (runtime управляется извне) | `false` |
+| Опция                        | Описание                                                       | По умолчанию |
+| ---------------------------- | -------------------------------------------------------------- | ------------ |
+| `--clean`                    | Очистить `dist/` перед линковкой                               | `false`      |
+| `--linking-system-as <mode>` | Режим линковки system пакетов: `standalone` или `component`    | `component`  |
+| `--external-runtime`         | Пропустить линковку system-пакетов (runtime управляется извне) | `false`      |
 
 **Примеры:**
+
 ```bash
 btc link                              # System как component
 btc link --clean                      # Очистить dist

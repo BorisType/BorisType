@@ -14,22 +14,24 @@
 ### Как это работало (раньше)
 
 **Режим одиночного пакета:**
+
 ```typescript
 // btconfig.json не найден
 processSinglePackageLinking({
   packageRoot: process.cwd(),
   buildDir: "build/",
-  distDir: "dist/"
+  distDir: "dist/",
 });
 // Жёстко: копирование build/ → dist/main/, нет разрешения зависимостей
 ```
 
 **Мультипакетный режим:**
+
 ```typescript
 // btconfig.json существует
 processMultiPackageLinking({
   config: loadBtConfig(),
-  packages: findPackages(config)
+  packages: findPackages(config),
 });
 // Разрешение зависимостей, линковка модулей, создание единого dist/
 ```
@@ -73,12 +75,12 @@ processMultiPackageLinking({
 // btc/core/linking/index.ts
 export async function link(options: LinkOptions) {
   const config = options.btconfig || createVirtualConfig(options);
-  
+
   // Single code path for all projects
   await processLinking({
     config,
     packages: resolvePackages(config),
-    incrementalState: options.incremental ? loadState() : undefined
+    incrementalState: options.incremental ? loadState() : undefined,
   });
 }
 ```
@@ -88,19 +90,22 @@ export async function link(options: LinkOptions) {
 ```typescript
 function createVirtualConfig(options: LinkOptions): BtConfig {
   return {
-    packages: [{
-      name: options.packageName || "main",
-      path: ".",
-      buildDir: options.buildDir || "build",
-      dependencies: []  // No external deps by default
-    }],
+    packages: [
+      {
+        name: options.packageName || "main",
+        path: ".",
+        buildDir: options.buildDir || "build",
+        dependencies: [], // No external deps by default
+      },
+    ],
     platformDir: options.platformDir,
-    outputRoot: options.distDir || "dist"
+    outputRoot: options.distDir || "dist",
   };
 }
 ```
 
 **Результат:** Проекты с одним пакетом получают те же возможности, что и мультипакетные:
+
 - Разрешение зависимостей (даже если deps = [])
 - Маппинг модулей
 - Поддержка инкрементальной линковки
@@ -109,26 +114,29 @@ function createVirtualConfig(options: LinkOptions): BtConfig {
 ## Реализация
 
 **Изменённые файлы:**
+
 - `btc/core/linking/index.ts` — удалён processSinglePackageLinking
 - `btc/cli/link.ts` — всегда вызывает единый link()
 - `btc/core/building/coordinator.ts` — DevCoordinator использует единый путь
 
 **Логика виртуального конфига:**
+
 ```typescript
 // btc/cli/link.ts (simplified)
 const btconfig = fs.existsSync("btconfig.json")
   ? JSON.parse(fs.readFileSync("btconfig.json", "utf-8"))
-  : undefined;  // link() will create virtual config
+  : undefined; // link() will create virtual config
 
 await link({
   btconfig,
   buildDir: flags.buildDir,
   distDir: flags.distDir,
-  platformDir: flags.platformDir
+  platformDir: flags.platformDir,
 });
 ```
 
 **Обратная совместимость:**
+
 - Проекты без btconfig.json продолжают работать (виртуальный конфиг создаётся автоматически)
 - Проекты с btconfig.json работают идентично прежнему
 - CLI флаги переопределяют значения btconfig (как раньше)
@@ -138,38 +146,45 @@ await link({
 ### Положительные
 
 ✅ **Простота**
+
 - Один путь в коде для поддержки
 - Нет вопросов "в каком я режиме?"
 - Документация объясняет один механизм, а не два
 
 ✅ **Согласованность**
+
 - Все проекты имеют одинаковые возможности
 - Проекты с одним пакетом могут использовать разрешение зависимостей при необходимости
 - Поведение предсказуемо
 
 ✅ **Поддерживаемость**
+
 - Исправления багов применяются ко всем проектам автоматически
 - Новые фичи (инкрементальная линковка) работают везде
 - Test suite проще (один путь для тестирования)
 
 ✅ **Расширяемость**
+
 - Будущие фичи (напр., удалённые зависимости) работают для всех типов проектов
 - Не нужно спрашивать "это только для одиночного режима?"
 
 ### Негативные
 
 ❌ **Небольшой overhead**
+
 - Создание виртуального конфига добавляет незначительную стоимость во время выполнения
 - Выделяется больше объектов (но линковка не критична к производительности)
 
 ### Trade-offs
 
 **Виртуальный конфиг против отсутствия конфига:**
+
 - Могли бы оставить "нет btconfig = пропустить линковку"
 - **Отклонено:** Пользователи хотят вывод dist/ даже для проектов с одним пакетом
 - Виртуальный конфиг делает линковку **всегда доступной**
 
 **CLI флаги против обязательного btconfig.json:**
+
 - Могли бы потребовать btconfig.json для всех проектов
 - **Отклонено:** Избыточно для простых проектов (examples/single/)
 - CLI флаги + виртуальный конфиг = лучшее из обоих миров
@@ -181,6 +196,7 @@ await link({
 **Идея:** Создать функцию `linkCommon()`, вызываемую обоими путями
 
 **Отклонено, потому что:**
+
 - Не решает проблему "двух моделей пользователя"
 - Остаются две точки входа для документирования
 - Пользователи всё равно спрашивают "какой режим мне нужен?"
@@ -190,6 +206,7 @@ await link({
 **Идея:** Сделать btconfig.json обязательным, убрать CLI флаги
 
 **Отклонено, потому что:**
+
 - Не нужно для простых проектов (examples/single/)
 - Бремя шаблонного кода для пользователей
 - CLI флаги более эргономичны для маленьких проектов
@@ -199,6 +216,7 @@ await link({
 **Идея:** Явные команды для каждого режима
 
 **Отклонено, потому что:**
+
 - Раскрывает детали реализации пользователям
 - Больше команд = больше документации
 - Автоопределение (btconfig присутствует?) — более чистый UX
@@ -208,6 +226,7 @@ await link({
 **Идея:** @boristype/simple-link и @boristype/multi-link
 
 **Отклонено, потому что:**
+
 - Экстремальная версия "двойного режима"
 - Взрыв количества пакетов
 - Заставляет пользователей выбирать заранее (нельзя мигрировать инкрементально)
@@ -217,15 +236,18 @@ await link({
 **Реализовано:** v0.2.1 (октябрь 2024)
 
 **Миграция:**
+
 - Нет breaking changes
 - Проекты без btconfig.json продолжили работать
 - Документация обновлена для удаления формулировки "два режима"
 
 **Удалённый код:**
+
 - `btc/core/linking/single-package.ts` (удалён)
 - Ссылки в `docs/Компоновщик.md` (теперь в `deprecated/`) (удалено)
 
 **Обновлённая документация:**
+
 - [Руководство по линковке](../../docs/Linking.md) — удалена секция "два режима"
 - [Архитектура линковки](../architecture/linking-system.md) — описывает единый механизм
 
@@ -253,4 +275,5 @@ await link({
 
 **Заменяет:** processSinglePackageLinking (удалён)  
 **Связанные ADR:**
+
 - [ADR 001: IR вместо трансформеров](001-ir-over-transformers.md) — также фокус на унификации

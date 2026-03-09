@@ -3,18 +3,19 @@
 ## Текущая архитектура
 
 ### Pipeline
+
 ```
 TS Source → Scope Analyzer → IR Lowering → BT Emitter → BS Output
 ```
 
 ### Ключевые компоненты
 
-| Компонент | Роль |
-|-----------|------|
+| Компонент          | Роль                                                                              |
+| ------------------ | --------------------------------------------------------------------------------- |
 | **Scope Analyzer** | Строит дерево scopes, определяет captured переменные, разрешает var/let конфликты |
-| **BindingManager** | Генерация уникальных имён (`__item0`, `a__0`, `__tmp0`) |
-| **Lowering** | TS AST → IR с учётом scope, captured, renamed |
-| **Emitter** | IR → BS с hoisting, env chain |
+| **BindingManager** | Генерация уникальных имён (`__item0`, `a__0`, `__tmp0`)                           |
+| **Lowering**       | TS AST → IR с учётом scope, captured, renamed                                     |
+| **Emitter**        | IR → BS с hoisting, env chain                                                     |
 
 ---
 
@@ -32,9 +33,7 @@ TS Source → Scope Analyzer → IR Lowering → BT Emitter → BS Output
 
 ```typescript
 // scope-analyzer.ts, после resolveVarLetConflicts
-const sourceNames = allVariables.flatMap(v => 
-  v.renamedTo ? [v.name, v.renamedTo] : [v.name]
-);
+const sourceNames = allVariables.flatMap((v) => (v.renamedTo ? [v.name, v.renamedTo] : [v.name]));
 bindings.registerSourceNames(sourceNames);
 ```
 
@@ -68,10 +67,12 @@ bindings.registerSourceNames(sourceNames);
 ### Проблемы
 
 1. **For-of с `var`**: переменная цикла (`var item`) объявляется в function/module scope, а не в scope тела цикла. В `visitForOfStatement`:
+
    ```typescript
    const loopBodyScope = ctx.scopeAnalysis.nodeToScope.get(node.statement);
    const varInfo = loopBodyScope?.variables.get(itemVar);
    ```
+
    Для `var` `loopBodyScope.variables` не содержит переменную цикла → `varInfo === undefined` → `isCaptured` всегда false.
 
 2. **Следствие**: для `for (var item1 of arr)` с замыканием, использующим `item1`, не генерируется `__env.item1 = __item10`, а только `item1 = __item10`. Замыкание ожидает `__env.__parent.item1`, но `item1` — обычная var, не в `__env` → неверное поведение.
@@ -136,7 +137,7 @@ function outer() {
   const x = 1;
   function inner() {
     function middle() {
-      return x;  // x используется в middle
+      return x; // x используется в middle
     }
   }
 }
@@ -148,7 +149,7 @@ function outer() {
 
 ```typescript
 const usedInFuncOrNested = Array.from(capturedVar.usedInScopes).some(
-  scope => scope === funcScope || isScopeNestedIn(scope, funcScope)
+  (scope) => scope === funcScope || isScopeNestedIn(scope, funcScope),
 );
 if (!usedInFuncOrNested) continue;
 ```
@@ -178,7 +179,7 @@ return IR.envAccess(depth, actualName, ...);
 var x = 1;
 function a() {
   function b() {
-    return x;  // нужен __env.__parent.__parent.x
+    return x; // нужен __env.__parent.__parent.x
   }
 }
 ```
@@ -193,10 +194,10 @@ function a() {
 
 ### Текущее поведение
 
-| Тип | Scope переменной | loopBodyScope.variables | isCaptured | Генерация |
-|-----|-------------------|-------------------------|------------|-----------|
-| let/const | block (тело цикла) | есть | корректно | `__env.item = __itemN` или `var item = __itemN` |
-| var | function/module | нет | всегда false | всегда `var item = __itemN` |
+| Тип       | Scope переменной   | loopBodyScope.variables | isCaptured   | Генерация                                       |
+| --------- | ------------------ | ----------------------- | ------------ | ----------------------------------------------- |
+| let/const | block (тело цикла) | есть                    | корректно    | `__env.item = __itemN` или `var item = __itemN` |
+| var       | function/module    | нет                     | всегда false | всегда `var item = __itemN`                     |
 
 ### Что нужно
 
@@ -217,7 +218,7 @@ if (!varInfo && loopBodyScope) {
 
 ## 7. Оптимизации
 
-### 7.1. Избыточные __env при отсутствии captured
+### 7.1. Избыточные \_\_env при отсутствии captured
 
 Сейчас `hasCaptured` помечаются scopes с captured. Можно не создавать env для функций без captured (кроме нужных для регистрации в `__env`).
 
@@ -225,7 +226,7 @@ if (!varInfo && loopBodyScope) {
 
 Для const/let копируется значение в env замыкания. Если переменная только читается и не меняется, копия достаточна. Если переприсваивается — нужна запись обратно в родительский env (уже поддерживается через `IR.envAccess` и assignment).
 
-### 7.3. var и __env
+### 7.3. var и \_\_env
 
 Для `var` в module scope при captured нужно гарантировать, что значение хранится в `__env`, а не только в обычной var. Сейчас для module-level var это не обеспечивается.
 
@@ -237,14 +238,14 @@ if (!varInfo && loopBodyScope) {
 
 ## 8. Сводка проблем
 
-| # | Проблема | Серьёзность | Где |
-|---|----------|-------------|-----|
-| 1 | For-of с `var` и captured: `varInfo` не находится в loopBodyScope | Высокая | statements.ts |
-| 2 | `collectCapturedVarsForArrow` не учитывает использование во вложенных функциях | Высокая | helpers.ts |
-| 3 | Depth для `var` захардкожен как 1 | Средняя | expressions.ts |
-| 4 | Module-level var при captured не попадает в `__env` | Высокая | visitor, statements |
-| 5 | Block scope в `analyzeUsages` может влиять на привязку переменных | Низкая | scope-analyzer.ts |
-| 6 | Коллизия shadow: если в scope уже есть явная переменная `a__0`, а `shadow("a")` тоже даёт `a__0` — перезапись и неверная семантика | Средняя | scope-analyzer, binding |
+| #   | Проблема                                                                                                                           | Серьёзность | Где                     |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------- | ----------------------- |
+| 1   | For-of с `var` и captured: `varInfo` не находится в loopBodyScope                                                                  | Высокая     | statements.ts           |
+| 2   | `collectCapturedVarsForArrow` не учитывает использование во вложенных функциях                                                     | Высокая     | helpers.ts              |
+| 3   | Depth для `var` захардкожен как 1                                                                                                  | Средняя     | expressions.ts          |
+| 4   | Module-level var при captured не попадает в `__env`                                                                                | Высокая     | visitor, statements     |
+| 5   | Block scope в `analyzeUsages` может влиять на привязку переменных                                                                  | Низкая      | scope-analyzer.ts       |
+| 6   | Коллизия shadow: если в scope уже есть явная переменная `a__0`, а `shadow("a")` тоже даёт `a__0` — перезапись и неверная семантика | Средняя     | scope-analyzer, binding |
 
 ---
 

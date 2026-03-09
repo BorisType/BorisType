@@ -5,12 +5,14 @@
 ### Проблема
 
 Файл `visitor.ts` вырос до ~1600 строк и содержал всю логику преобразования TypeScript AST в IR:
+
 - Statement visitors (12 функций)
 - Expression visitors (10+ функций)
 - Helper функции (операторы, scope, location)
 - Entry point
 
 Это создавало проблемы:
+
 - Сложность навигации по коду
 - Трудности для AI-агентов (большой контекст)
 - Риск конфликтов при параллельной работе
@@ -33,17 +35,20 @@ lowering/
 ### Детали разделения
 
 #### visitor.ts (entry point)
+
 - `VisitorContext` interface — экспортируется как тип
 - `transformToIR()` — главная функция
 - Re-exports всех публичных функций для удобства
 
 #### statements.ts
+
 - `visitStatement()` — главный dispatcher
 - Declaration statements: `visitFunctionDeclaration`, `visitVariableStatement`, `visitReturnStatement`
 - Control flow: `visitIfStatement`, `visitFor*`, `visitWhile*`, `visitSwitch*`, `visitTry*`
 - Block helpers: `visitBlock`, `visitStatementList`, `visitStatementAsBlock`
 
 #### expressions.ts
+
 - `visitExpression()` — главный dispatcher
 - Literals: string, number, boolean, null
 - `visitIdentifier`, `visitTemplateExpression`
@@ -53,6 +58,7 @@ lowering/
 - Functions: `visitArrowFunction`, `visitFunctionExpression`
 
 #### helpers.ts
+
 - Location: `getLoc`
 - Polyfill/Runtime: `getPolyfillType`, `isInternalAccess`, `isBuiltinFunction`
 - Operators: `isAssignmentOperator`, `getAssignmentOperator`, `getUnaryOperator`
@@ -62,11 +68,11 @@ lowering/
 
 ## Преимущества текущего подхода
 
-| Критерий | До | После |
-|----------|-----|-------|
-| Размер файлов | 1600 строк | 130-550 строк |
-| Навигация | Сложная | Интуитивная |
-| AI-контекст | Перегружен | Оптимальный |
+| Критерий            | До               | После            |
+| ------------------- | ---------------- | ---------------- |
+| Размер файлов       | 1600 строк       | 130-550 строк    |
+| Навигация           | Сложная          | Интуитивная      |
+| AI-контекст         | Перегружен       | Оптимальный      |
 | Понимание структуры | Требует изучения | Очевидно из имён |
 
 ---
@@ -97,17 +103,20 @@ lowering/
 ```
 
 ### Преимущества подхода C:
+
 - Ещё меньшие файлы (~100-200 строк)
 - Логические группы внутри категорий
 - Легко расширять (добавить `expressions/classes.ts`)
 - Для AI: чёткая иерархия + маленькие файлы
 
 ### Недостатки подхода C:
+
 - Больше файлов (12 вместо 6)
 - Больше импортов
 - Overhead для небольших изменений
 
 ### Когда применять C:
+
 - `expressions.ts` > 600 строк
 - Добавляются новые крупные фичи (классы, декораторы)
 - Команда растёт и нужна параллельная работа
@@ -127,6 +136,7 @@ statements.ts ←→ expressions.ts
 ```
 
 Note: `statements.ts` и `expressions.ts` имеют взаимную зависимость:
+
 - statements импортирует `visitExpression` для обработки выражений
 - expressions импортирует `visitStatementList` для тел функций
 

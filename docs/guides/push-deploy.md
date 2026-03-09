@@ -62,11 +62,13 @@ npx btc dev --no-push    # отключить авто-push
 **⚠️ Никогда не коммитьте `btconfig.properties` с credentials в git!**
 
 Добавьте в `.gitignore`:
+
 ```
 btconfig.properties
 ```
 
 Используйте конфигурационные файлы для разных окружений:
+
 - `btconfig.dev.properties`
 - `btconfig.test.properties`
 - `btconfig.prod.properties`
@@ -74,15 +76,18 @@ btconfig.properties
 ## Устранение проблем
 
 ### Connection refused
+
 - Проверьте host/port
 - Убедитесь что сервер WebSoft HCM запущен
 - Проверьте правила файрвола
 
 ### Authentication failed
+
 - Проверьте username/password
 - Проверьте логи сервера на статус аккаунта
 
 ### Модули не перезагружаются
+
 - Проверьте init-скрипты в компонентах
 - Проверьте поле `ws:package` в package.json
 - Проверьте логи evaluator на сервере

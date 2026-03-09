@@ -15,6 +15,7 @@
 **BorisType** — это **первый и единственный инструмент в своем роде**, который преодолевает эти ограничения, позволяя разработчикам накапливать поддерживаемый и типизированный код вместо сложных скриптов.
 
 Теперь вы можете:
+
 - **Писать** привычный код на TypeScript с полной типизацией и современными возможностями
 - **Собирать** мультипакетные проекты с зависимостями как в обычном npm
 - **Генерировать** готовые артефакты для поставки на платформу
@@ -39,9 +40,10 @@ TypeScript → bt-ir (компиляция) → Linking (сборка) → Artif
 ### Пример
 
 Вы пишете:
+
 ```typescript
 const items = [1, 2, 3];
-const doubled = items.map(x => x * 2);
+const doubled = items.map((x) => x * 2);
 
 for (const item of doubled) {
   alert(item);
@@ -49,11 +51,17 @@ for (const item of doubled) {
 ```
 
 BorisType транспилирует в:
+
 ```javascript
 var items = [1, 2, 3];
-var doubled = bt_Array_map(items, function(__env) {
-  return function(x) { return x * 2; };
-}(__env));
+var doubled = bt_Array_map(
+  items,
+  (function (__env) {
+    return function (x) {
+      return x * 2;
+    };
+  })(__env),
+);
 
 for (var __i = 0; __i < ArrayCount(doubled); __i++) {
   var item = doubled[__i];
@@ -64,17 +72,20 @@ for (var __i = 0; __i < ArrayCount(doubled); __i++) {
 ## Ключевые возможности
 
 ### Build Pipeline
+
 - **Компиляция** с IR-based подходом — современное промежуточное представление
 - **Linking** — умная сборка модулей и зависимостей
 - **Генерация артефактов** — готовый код для поставки на платформу
 - Три [режима компиляции](../reference/compile-modes): `bare`, `script`, `module`
 
 ### Модульная система
+
 - `import`/`export` → встроенный `require` (работает в BorisScript)
 - npm-зависимости как в обычных проектах (`package.json`)
 - Мультипакетные проекты (monorepo) с чистой архитектурой
 
 ### Developer Experience
+
 - [Dev mode](./dev-mode) — watch + инкрементальная сборка + авто-деплой
 - [Push на WebSoft HCM](./push-deploy) с автоматической реинициализацией
 - Быстрый feedback цикл для итеративной разработки
@@ -83,17 +94,18 @@ for (var __i = 0; __i < ArrayCount(doubled); __i++) {
 
 BorisType организован как **pnpm monorepo**:
 
-| Пакет | Назначение |
-|---|---|
-| `@boristype/bt-cli` | CLI компилятор (btc) |
-| `@boristype/bt-ir` | IR pipeline (транспиляция) |
-| `@boristype/runtime` | BorisScript polyfills |
-| `@boristype/ws-client` | WebSoft HCM клиент |
-| `@boristype/ws-version` | Конверсия версий |
+| Пакет                   | Назначение                 |
+| ----------------------- | -------------------------- |
+| `@boristype/bt-cli`     | CLI компилятор (btc)       |
+| `@boristype/bt-ir`      | IR pipeline (транспиляция) |
+| `@boristype/runtime`    | BorisScript polyfills      |
+| `@boristype/ws-client`  | WebSoft HCM клиент         |
+| `@boristype/ws-version` | Конверсия версий           |
 
 ## О Performance
 
 Код после транспиляции проигрывает в производительности по сравнению с чистым BorisScript из-за необходимости дополнительных обёрток и вызовов runtime это не **zero-cost**, но:
+
 - Overhead не столь значителен для большинства реальных сценариев использования
 - Для критичных по производительности участков можно использовать `bare` режим для ручной оптимизации
 - Выигрыш в поддерживаемости и скорости разработки значительно превышает cost

@@ -53,9 +53,3 @@ alwaysApply: false
 - `DevCoordinator` (`core/building/coordinator.ts`) координирует multi-package сборку.
 - `DebouncedPushQueue` (`core/pushing/queue.ts`) debounce-ит авто-push.
 - `BuildPipeline.watch()` использует `ts.createWatchProgram` с `noEmit: true` + emit через bt-ir для изменённых файлов.
-
-## См. также
-
-- [BT-CLI Architecture](../../ref/architecture/btc.md) — детальная архитектура
-- [Build Pipeline](../../docs/guides/dev-mode.md) — как работает компиляция
-- [Linking System](../../docs/Linking.md) — линковка модулей

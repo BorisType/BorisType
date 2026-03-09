@@ -68,10 +68,10 @@ node ./botest/build/index.js tests/build array/at.test.js
 node ./botest/build/index.js tests/build precedence propSemantic/nested.test.js
 ```
 
-| Аргумент | Результат |
-|----------|-----------|
-| `array` | Запустить весь сьют array |
-| `array/at.test.js` | Запустить только этот тест |
+| Аргумент             | Результат                  |
+| -------------------- | -------------------------- |
+| `array`              | Запустить весь сьют array  |
+| `array/at.test.js`   | Запустить только этот тест |
 | `array propSemantic` | Запустить несколько сьютов |
 
 ## Соглашения
@@ -80,7 +80,3 @@ node ./botest/build/index.js tests/build precedence propSemantic/nested.test.js
 - Обязательно `botest.assertOk()` в конце
 - Уникальные сообщения или `undefined`
 - Тесты должны быть независимыми
-
-## См. также
-
-- [Testing Guide](../../docs/guides/testing.md) — пользовательская документация

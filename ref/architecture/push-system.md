@@ -5,6 +5,7 @@
 Система push загружает скомпилированный код на сервер WebSoft HCM и реинициализирует модули.
 
 **Компоненты:**
+
 - [btc/src/core/pushing/](../../btc/src/core/pushing/) — модуль
 - [@boristype/ws-client](../../ws-client/) — библиотека клиента WebSoft HCM
 
@@ -75,6 +76,7 @@ await session.close();
 ### Автоповтор
 
 Сетевые ошибки вызывают автоматический retry (макс. 1):
+
 ```typescript
 try {
   await uploadFile(file);
@@ -102,6 +104,7 @@ try {
    - Очистка
 
 **Файлы:** [btc/resources/](../../btc/resources/)
+
 - `upload_prepare.bs`
 - `upload_finish.bs`
 
@@ -112,6 +115,7 @@ try {
 ### 1. Сбор init-скриптов
 
 Из:
+
 - Компоненты: `dist/scripts/init.js`
 - Standalone модули: `dist/init.js`
 
@@ -138,6 +142,7 @@ for (const script of initScripts) {
 ### btconfig.properties
 
 Формат:
+
 ```properties
 https=true
 host=example.com
@@ -163,6 +168,7 @@ password=secret
 Dev mode использует `DebouncedPushQueue` ([core/pushing/queue.ts](../../btc/src/core/pushing/queue.ts))
 
 Debounce для частых push (500мс):
+
 ```typescript
 queue.schedulePush(distPath, btconfig);
 // Ожидание 500мс
@@ -175,14 +181,17 @@ queue.schedulePush(distPath, btconfig);
 ## Обработка ошибок
 
 ### Сетевые ошибки
+
 - WshcmException с сетевой ошибкой → автоповтор (макс. 1)
 - Reconnect: новый WshcmClient + Evaluator
 
 ### Ошибки аутентификации
+
 - Неверные credentials → немедленный fail
 - Без retry
 
 ### Ошибки загрузки
+
 - Ошибка чтения файла → пропуск файла, лог-warning
 - Ошибка Evaluator → fail всего push
 
@@ -193,6 +202,7 @@ queue.schedulePush(distPath, btconfig);
 btconfig.properties НЕ должен коммититься в git.
 
 **Рекомендации:**
+
 - Добавьте в .gitignore
 - Используйте конфиги для разных окружений
 - Рассмотрите использование environment variables (будущее)
@@ -202,6 +212,7 @@ btconfig.properties НЕ должен коммититься в git.
 ### @boristype/ws-client
 
 Предоставляет:
+
 - `WshcmClient` — HTTP/HTTPS клиент для WebSoft HCM
 - `Evaluator` — исполнение кода на сервере
 - `WshcmException` — типы ошибок
@@ -214,20 +225,19 @@ btconfig.properties НЕ должен коммититься в git.
 
 ## Файлы
 
-| Файл | Назначение |
-|------|---------|
-| [index.ts](../../btc/src/core/pushing/index.ts) | Facade API |
-| [session.ts](../../btc/src/core/pushing/session.ts) | Класс DeploySession |
-| [config.ts](../../btc/src/core/pushing/config.ts) | Загрузка + слияние конфига |
-| [upload.ts](../../btc/src/core/pushing/upload.ts) | Логика загрузки файлов |
-| [reinit.ts](../../btc/src/core/pushing/reinit.ts) | Реинициализация модулей |
-| [init-scripts.ts](../../btc/src/core/pushing/init-scripts.ts) | Сбор init-скриптов |
-| [queue.ts](../../btc/src/core/pushing/queue.ts) | Debounced очередь |
-| [types.ts](../../btc/src/core/pushing/types.ts) | TypeScript типы |
+| Файл                                                          | Назначение                 |
+| ------------------------------------------------------------- | -------------------------- |
+| [index.ts](../../btc/src/core/pushing/index.ts)               | Facade API                 |
+| [session.ts](../../btc/src/core/pushing/session.ts)           | Класс DeploySession        |
+| [config.ts](../../btc/src/core/pushing/config.ts)             | Загрузка + слияние конфига |
+| [upload.ts](../../btc/src/core/pushing/upload.ts)             | Логика загрузки файлов     |
+| [reinit.ts](../../btc/src/core/pushing/reinit.ts)             | Реинициализация модулей    |
+| [init-scripts.ts](../../btc/src/core/pushing/init-scripts.ts) | Сбор init-скриптов         |
+| [queue.ts](../../btc/src/core/pushing/queue.ts)               | Debounced очередь          |
+| [types.ts](../../btc/src/core/pushing/types.ts)               | TypeScript типы            |
 
 ## См. также
 
 - [Руководство: Push & Deploy](../../docs/guides/push-deploy.md)
 - [Архитектура Dev Mode](build-pipeline.md#dev-mode)
 - [Справка btconfig.properties](../../docs/reference/btconfig-properties.md)
-

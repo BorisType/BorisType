@@ -50,15 +50,15 @@ expression (`(__tmp = ...) == null || __tmp == undefined ? undefined : ...`).
 
 `maybeExtract` применяется во всех контекстах, где inline conditional может сломать парсер:
 
-| Контекст | Почему опасно |
-|----------|---------------|
-| Template literal spans | Ternary внутри `+` конкатенации |
-| Binary operators (`+`, `-`, `===`, ...) | `?:` перехватывает операнд |
-| Logical operators (`&&`, `||`) | `||` в null-check конфликтует с внешним `||` |
-| Conditional expression (condition, branches) | Вложенный ternary `? : ?:` |
-| Array literal elements | `?:` коллизия с `,` парсером |
-| Object literal values | `?:` коллизия с парсером |
-| Call expression arguments | Превентивная мера |
+| Контекст                                     | Почему опасно                   |
+| -------------------------------------------- | ------------------------------- | --- | --- | --- | ------------------------------------ | --- | --- |
+| Template literal spans                       | Ternary внутри `+` конкатенации |
+| Binary operators (`+`, `-`, `===`, ...)      | `?:` перехватывает операнд      |
+| Logical operators (`&&`, `                   |                                 | `)  | `   |     | `в null-check конфликтует с внешним` |     | `   |
+| Conditional expression (condition, branches) | Вложенный ternary `? : ?:`      |
+| Array literal elements                       | `?:` коллизия с `,` парсером    |
+| Object literal values                        | `?:` коллизия с парсером        |
+| Call expression arguments                    | Превентивная мера               |
 
 ### 3. Оптимизация temp переменных optional chaining
 
@@ -66,6 +66,7 @@ expression (`(__tmp = ...) == null || __tmp == undefined ? undefined : ...`).
 создания отдельной для каждого `?.` (`__tmp0`, `__tmp1`, `__tmp2`).
 
 Реализовано через:
+
 - `extractOptionalChainTempName()` — извлекает имя temp из existing conditional
 - `createOptionalCheck(..., reuseTempName?)` — принимает имя для переиспользования
 - `chainOptionalAccess()` — передаёт reuse name когда base уже optional chain result
@@ -73,12 +74,14 @@ expression (`(__tmp = ...) == null || __tmp == undefined ? undefined : ...`).
 ## Consequences
 
 ### Pros
+
 - Корректная работа optional chaining во всех expression-контекстах
 - Уменьшение количества временных переменных (1 temp + 1 extraction вместо N temps)
 - Общий механизм, расширяемый на новые паттерны
 - Не влияет на простые выражения (zero-cost path)
 
 ### Cons
+
 - Дополнительные statements для extraction (var decl + assignment)
 - Немного больший размер output для сложных выражений
 - `isUnsafeInlineExpression` проверяет только `ConditionalExpression` —

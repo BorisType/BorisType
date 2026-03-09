@@ -27,20 +27,24 @@ npm install bt-ir
 ```typescript
 import { compile } from "bt-ir";
 
-const result = compile(`
+const result = compile(
+  `
   const greet = (name: string) => {
     alert(\`Hello, \${name}!\`);
   };
   greet("World");
-`, {
-  filename: "test.ts",
-  compileMode: "script"
-});
+`,
+  {
+    filename: "test.ts",
+    compileMode: "script",
+  },
+);
 
 console.log(result.outputs[0].code);
 ```
 
 **Параметры:**
+
 - `sourceCode: string` — TypeScript код для компиляции
 - `options?: CompileOptions` — Опции компиляции
 
@@ -54,13 +58,14 @@ console.log(result.outputs[0].code);
 import { compileFile } from "bt-ir";
 
 const result = compileFile("./src/index.ts", {
-  compileMode: "module"
+  compileMode: "module",
 });
 
 console.log(result.outputs[0].code);
 ```
 
 **Параметры:**
+
 - `filePath: string` — Путь к TypeScript файлу
 - `options?: CompileOptions` — Опции компиляции
 
@@ -79,15 +84,16 @@ const sourceFile = program.getSourceFile("src/index.ts")!;
 
 const result = compileSourceFile(sourceFile, program, {
   compileMode: "module",
-  cwd: process.cwd()
+  cwd: process.cwd(),
 });
 
 console.log(result.outputs[0].code);
 ```
 
 **Параметры:**
+
 - `sourceFile: ts.SourceFile` — TypeScript SourceFile для компиляции
-- `program: ts.Program` — Экземпляр TypeScript Program  
+- `program: ts.Program` — Экземпляр TypeScript Program
 - `options?: CompileOptions` — Опции компиляции
 
 **Возвращает:** `CompileResult`
@@ -100,10 +106,10 @@ console.log(result.outputs[0].code);
 interface CompileOptions {
   /** Режим компиляции: bare, script или module */
   compileMode?: "bare" | "script" | "module";
-  
+
   /** Текущая рабочая директория (для разрешения относительных путей) */
   cwd?: string;
-  
+
   /** Имя исходного файла (для функции compile()) */
   filename?: string;
 }
@@ -115,10 +121,10 @@ interface CompileOptions {
 interface CompileResult {
   /** Результаты компиляции (обычно один файл) */
   outputs: CompileOutput[];
-  
+
   /** Диагностика TypeScript (ошибки/предупреждения) */
   diagnostics: ts.Diagnostic[];
-  
+
   /** Флаг успеха */
   success: boolean;
 }
@@ -130,10 +136,10 @@ interface CompileResult {
 interface CompileOutput {
   /** Путь к выходному файлу (относительно входного) */
   path: string;
-  
+
   /** Сгенерированный BorisScript код */
   code: string;
-  
+
   /** Source map (если включено) */
   map?: string;
 }
@@ -143,11 +149,11 @@ interface CompileOutput {
 
 bt-ir поддерживает три режима компиляции:
 
-| Режим | Назначение | Возможности |
-|------|----------|-------|
-| **bare** | Runtime polyfills, встроенные модули | Минимальный вывод, нет bt.* обёрток |
-| **script** | Тестовые файлы, executable объекты | Полные возможности с bt.getProperty, polyfills |
-| **module** | Codelibrary пакеты (по умолчанию) | Обёрнуто в __init(), hoisting переменных |
+| Режим      | Назначение                           | Возможности                                    |
+| ---------- | ------------------------------------ | ---------------------------------------------- |
+| **bare**   | Runtime polyfills, встроенные модули | Минимальный вывод, нет bt.\* обёрток           |
+| **script** | Тестовые файлы, executable объекты   | Полные возможности с bt.getProperty, polyfills |
+| **module** | Codelibrary пакеты (по умолчанию)    | Обёрнуто в \_\_init(), hoisting переменных     |
 
 См. [Справка по режимам компиляции](../docs/reference/compile-modes.md) для деталей.
 
@@ -178,24 +184,33 @@ if (result.success) {
 import { compile } from "bt-ir";
 
 // Bare mode - минимальный overhead
-const bareResult = compile(`
+const bareResult = compile(
+  `
   export function fastHash(str: string): number {
     return str.length;
   }
-`, { compileMode: "bare" });
+`,
+  { compileMode: "bare" },
+);
 
 // Script mode - полные возможности
-const scriptResult = compile(`
+const scriptResult = compile(
+  `
   const obj = { foo: "bar" };
   alert(obj.foo);
-`, { compileMode: "script" });
+`,
+  { compileMode: "script" },
+);
 
 // Module mode - codelibrary
-const moduleResult = compile(`
+const moduleResult = compile(
+  `
   export function greet(name: string) {
     alert("Hello " + name);
   }
-`, { compileMode: "module" });
+`,
+  { compileMode: "module" },
+);
 ```
 
 ### Интеграция с TypeScript Watch
@@ -209,13 +224,13 @@ const host = ts.createWatchCompilerHost(
   { noEmit: true }, // TypeScript только для диагностики
   ts.sys,
   ts.createProgram,
-  (diagnostic) => console.log(diagnostic.messageText)
+  (diagnostic) => console.log(diagnostic.messageText),
 );
 
 const originalAfterProgramCreate = host.afterProgramCreate;
 host.afterProgramCreate = (program) => {
   originalAfterProgramCreate?.(program);
-  
+
   // Emit через bt-ir
   for (const sourceFile of program.getSourceFiles()) {
     if (!sourceFile.isDeclarationFile) {
@@ -245,6 +260,7 @@ BorisScript Output
 ```
 
 Для детальной архитектуры, см.:
+
 - [Архитектура IR Pipeline](../ref/architecture/ir-pipeline.md)
 - [Ограничения BorisScript](../docs/reference/borisscript-constraints.md)
 
@@ -256,13 +272,14 @@ BorisScript Output
 - **Шаблонные литералы** → Конкатенация строк
 - **for...of** → for...in (массивы BorisScript)
 - **let/const** → var с hoisting
-- **Замыкания** → цепочка __env для captured переменных
+- **Замыкания** → цепочка \_\_env для captured переменных
 - **Доступ к свойствам** → bt.getProperty() (script/module mode)
 - **Вызовы методов** → bt.callFunction() (script/module mode)
 
 ### Polyfills
 
 Автоматическое внедрение polyfill для:
+
 - Методы массивов: map, filter, reduce, forEach, ...
 - Методы строк: split, trim, substring, ...
 - Методы чисел: toFixed, toString, ...
@@ -270,7 +287,7 @@ BorisScript Output
 ### Анализ Scope
 
 - Обнаруживает captured переменные в замыканиях
-- Генерирует минимальную цепочку __env
+- Генерирует минимальную цепочку \_\_env
 - Правильный variable hoisting
 
 ## CLI (Разработка)

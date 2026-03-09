@@ -10,11 +10,11 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 
 ## Режимы транспиляции (CompileMode)
 
-| Режим | Семантика |
-|-------|-----------|
-| **bare** | Минимальный: без bt.getProperty, без polyfill. Для runtime, botest. |
+| Режим      | Семантика                                                                          |
+| ---------- | ---------------------------------------------------------------------------------- |
+| **bare**   | Минимальный: без bt.getProperty, без polyfill. Для runtime, botest.                |
 | **script** | Eval-скрипт: env/desc, bt.getProperty, polyfill. Для .test.ts, executable objects. |
-| **module** | Codelibrary: hoist, __init. Default для проектов. |
+| **module** | Codelibrary: hoist, \_\_init. Default для проектов.                                |
 
 Определение: директива `/// @bt-mode` > .test.ts / executable > options.compileMode.
 
@@ -26,13 +26,13 @@ TS Source → Scope Analyzer → IR Lowering → BT Emitter → BS Output
 
 ## Структура модулей
 
-| Модуль | Путь | Роль |
-|--------|------|------|
+| Модуль       | Путь            | Роль                        |
+| ------------ | --------------- | --------------------------- |
 | **Analyzer** | `src/analyzer/` | Scopes, captured переменные |
-| **IR** | `src/ir/` | IR ноды, builders |
-| **Lowering** | `src/lowering/` | TS AST → IR |
-| **Emitter** | `src/emitter/` | IR → BorisScript текст |
-| **Pipeline** | `src/pipeline/` | Координация этапов |
+| **IR**       | `src/ir/`       | IR ноды, builders           |
+| **Lowering** | `src/lowering/` | TS AST → IR                 |
+| **Emitter**  | `src/emitter/`  | IR → BorisScript текст      |
+| **Pipeline** | `src/pipeline/` | Координация этапов          |
 
 ### API
 
@@ -60,10 +60,11 @@ lowering/
 ### BindingManager
 
 Генерация уникальных имён без коллизий:
+
 ```typescript
 bindings.registerSourceNames(["__item", "foo"]);
-bindings.create("item");  // → "__item0"
-bindings.shadow("x");     // → "x__0" для shadowed
+bindings.create("item"); // → "__item0"
+bindings.shadow("x"); // → "x__0" для shadowed
 ```
 
 ### CapturedVarInfo
@@ -73,6 +74,7 @@ bindings.shadow("x");     // → "x__0" для shadowed
 ### Function desc паттерн
 
 Все функции в BS:
+
 ```javascript
 function myFunc(__env, __this, __args) { ... }
 var myFunc_desc = { "@descriptor": "function", callable: myFunc, env: __env, obj: undefined };

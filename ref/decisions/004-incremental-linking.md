@@ -48,6 +48,7 @@ interface BuildResult {
 **Файл:** `btc/src/core/building/compiler.ts`
 
 В `createWatchProgram`:
+
 - В `customWriteFile` собирать все записанные `.js` файлы в массив
 - Передавать `emittedFiles` в `onRebuild` callback
 
@@ -80,7 +81,7 @@ onRebuild({
 ```typescript
 interface LinkingOptions {
   // ... существующие опции
-  
+
   /** Режим dev (инкрементальная линковка) */
   devMode?: boolean;
   /** Изменённые файлы (абсолютные пути в build/) — только для devMode */
@@ -95,27 +96,28 @@ interface LinkingOptions {
 ```typescript
 /**
  * Записывает файл только если содержимое изменилось
- * 
+ *
  * @param filePath - Путь к файлу
  * @param content - Новое содержимое
  * @returns true если файл был записан, false если содержимое не изменилось
  */
 export function writeIfChanged(filePath: string, content: string): boolean {
   if (fs.existsSync(filePath)) {
-    const existing = fs.readFileSync(filePath, 'utf-8');
+    const existing = fs.readFileSync(filePath, "utf-8");
     if (existing === content) {
       return false;
     }
   }
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content, 'utf-8');
+  fs.writeFileSync(filePath, content, "utf-8");
   return true;
 }
 ```
 
 ### 5. Изменить линкеры
 
-**Файлы:** 
+**Файлы:**
+
 - `btc/src/core/linking/linkers/standalone.ts`
 - `btc/src/core/linking/linkers/component.ts`
 
@@ -124,7 +126,7 @@ export function writeIfChanged(filePath: string, content: string): boolean {
 ```typescript
 link(pkg: PackageInfo, ctx: LinkingContext): LinkedPackage {
   const { devMode, changedFiles } = ctx;
-  
+
   // 1. Копирование файлов
   if (devMode && changedFiles && changedFiles.length > 0) {
     // Инкрементальное копирование
@@ -138,12 +140,12 @@ link(pkg: PackageInfo, ctx: LinkingContext): LinkedPackage {
     // Полное копирование
     copyRecursive(sourceDir, fullTargetPath);
   }
-  
+
   // 2. node_modules — только при полной линковке
   if (!devMode) {
     copyNodeModulesWithCache(...);
   }
-  
+
   // 3. Генерация файлов — всегда, но с writeIfChanged
   if (mainFile && !initXmlExists) {
     const initXmlContent = buildInitXml(mainFile, rootUrl);
@@ -151,7 +153,7 @@ link(pkg: PackageInfo, ctx: LinkingContext): LinkedPackage {
       generatedFiles.push('init.xml');
     }
   }
-  
+
   // 4. .filemap.json — всегда с writeIfChanged
   if (executables.size > 0) {
     const filemapContent = generateFilemapJson(executables);
@@ -188,17 +190,23 @@ interface LinkingContext {
 onRebuild: (result) => {
   if (result.success) {
     logger.success(`✅ [${pkg.wsName}] Build successful (${result.duration}ms)`);
-    
+
     // Инкрементальная линковка
-    processPackagesLinking(projectPath, [{
-      name: pkg.name,
-      // source/target определятся автоматически из package.json
-    }], {
-      devMode: true,
-      changedFiles: result.emittedFiles,
-    });
+    processPackagesLinking(
+      projectPath,
+      [
+        {
+          name: pkg.name,
+          // source/target определятся автоматически из package.json
+        },
+      ],
+      {
+        devMode: true,
+        changedFiles: result.emittedFiles,
+      },
+    );
   }
-}
+};
 ```
 
 ---

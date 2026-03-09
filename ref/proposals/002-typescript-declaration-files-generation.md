@@ -14,10 +14,10 @@ BorisType использует TypeScript Compiler API для диагности
 
 Единый `ts.Program` instance используется и для диагностики, и для генерации d.ts, и для bt-ir emit. Ключевая идея — разделение ответственности через compiler options:
 
-| `declaration` в tsconfig | Compiler options | tsc делает | bt-ir делает |
-|---|---|---|---|
-| `false` | `noEmit: true` | Только диагностика | Генерация .js |
-| `true` | `emitDeclarationOnly: true`, `noEmitOnError: true` | Диагностика + генерация .d.ts | Генерация .js |
+| `declaration` в tsconfig | Compiler options                                   | tsc делает                    | bt-ir делает  |
+| ------------------------ | -------------------------------------------------- | ----------------------------- | ------------- |
+| `false`                  | `noEmit: true`                                     | Только диагностика            | Генерация .js |
+| `true`                   | `emitDeclarationOnly: true`, `noEmitOnError: true` | Диагностика + генерация .d.ts | Генерация .js |
 
 Флаг `noEmitOnError: true` гарантирует, что tsc не сгенерирует d.ts при наличии ошибок.
 
@@ -28,9 +28,7 @@ function buildCompilerOptions(tsOptions: ts.CompilerOptions): ts.CompilerOptions
   return {
     ...tsOptions,
     noEmitOnError: true,
-    ...(tsOptions.declaration
-      ? { emitDeclarationOnly: true }
-      : { noEmit: true }),
+    ...(tsOptions.declaration ? { emitDeclarationOnly: true } : { noEmit: true }),
   };
 }
 ```
@@ -56,6 +54,7 @@ if (tsConfig.options.declaration) {
 ### Общие хелперы
 
 В ходе рефакторинга выделены:
+
 - `buildCompilerOptions()` — формирование compiler options (общее для compile и watch)
 - `filterUserSourceFiles()` — фильтрация declaration/node_modules файлов
 - `emitSourceFiles()` — bt-ir emit цикл (ранее дублировался)
@@ -63,12 +62,15 @@ if (tsConfig.options.declaration) {
 ## Рассмотренные альтернативы
 
 ### Две Program instance
+
 Создавать отдельный `ts.Program` с `emitDeclarationOnly` для d.ts. Отклонено — лишний overhead по памяти и времени, один program справляется.
 
 ### Custom writeFile в program.emit()
+
 Передавать custom `writeFile` callback, фильтрующий только d.ts. Не нужно — `emitDeclarationOnly` делает то же самое нативно.
 
 ### Внешний tsc процесс
+
 Запускать `tsc --emitDeclarationOnly` как subprocess. Отклонено — spawn overhead, сложная интеграция с watch mode, дублирование парсинга конфигурации.
 
 ## Поддерживаемые tsconfig.json опции
@@ -76,9 +78,9 @@ if (tsConfig.options.declaration) {
 ```json
 {
   "compilerOptions": {
-    "declaration": true,        // ✅ включает генерацию .d.ts
-    "declarationMap": true,     // ✅ генерирует .d.ts.map
-    "stripInternal": true,      // ✅ скрывает @internal из .d.ts
+    "declaration": true, // ✅ включает генерацию .d.ts
+    "declarationMap": true, // ✅ генерирует .d.ts.map
+    "stripInternal": true, // ✅ скрывает @internal из .d.ts
     "declarationDir": "./types" // ✅ отдельная директория для .d.ts
   }
 }
@@ -97,4 +99,3 @@ if (tsConfig.options.declaration) {
 
 - [compiler.ts](../../packages/bt-cli/src/core/building/compiler.ts) — реализация
 - [TypeScript Handbook - Declaration Files](https://www.typescriptlang.org/docs/handbook/declaration-files/introduction.html)
-

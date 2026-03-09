@@ -7,8 +7,9 @@
 ## Проблема
 
 BorisScript предоставляет встроенные методы для работы со свойствами объектов:
+
 - `GetProperty(key)` — получить свойство
-- `GetOptProperty(key)` — получить свойство с fallback на undefined  
+- `GetOptProperty(key)` — получить свойство с fallback на undefined
 - `SetProperty(key, value)` — установить свойство
 - `AddProperty(key, value)` — добавить свойство
 - `HasProperty(key)` — проверить наличие свойства
@@ -36,17 +37,21 @@ var value = bt.callFunction(bt.getProperty(obj, "GetProperty"), ["name"]);
 ## Варианты решения
 
 ### 1. Оставить как есть
+
 Не делать специальной обработки, обрабатывать как обычные вызовы методов.
 
 **Плюсы:**
+
 - Нет изменений, нет рисков
 - Универсальный подход
 
 **Минусы:**
+
 - Избыточная обёртка (двойной вызов)
 - Несогласованность: spread использует нативный `obj.GetProperty()`, а явные вызовы — через bt.callFunction
 
 ### 2. Заменять на bt.getProperty()
+
 Распознавать вызовы встроенных методов и заменять на runtime helpers.
 
 ```typescript
@@ -58,15 +63,18 @@ var value = bt.getProperty(obj, "name");
 ```
 
 **Плюсы:**
+
 - Единообразие с автоматической генерацией доступа к свойствам
 - Использование проверенных runtime helpers
 - Поддержка всех режимов компиляции
 
 **Минусы:**
+
 - Меняет семантику (если GetProperty имеет специфичное поведение)
 - Нужно распознавать эти методы в lowering
 
 ### 3. Оставить нативные вызовы
+
 Транслировать напрямую без обёрток.
 
 ```typescript
@@ -78,15 +86,19 @@ var value = obj.GetProperty("name");
 ```
 
 **Плюсы:**
+
 - Прямое соответствие, нет overhead
 - Согласованность со spread-генерацией
 
 **Минусы:**
+
 - Не работает с null/undefined объектами
 - Требует понимания семантики BS методов
 
 ### 4. Гибридный подход
+
 Разная обработка для разных методов:
+
 - `GetOptProperty` → заменять на `bt.getProperty` (с null-check)
 - `SetProperty` → заменять на `bt.setProperty` (runtime helper для установки свойства)
 - `GetProperty` → оставить как есть (или создать специальную функцию `bt.getRequiredProperty` с выбросом ошибки при отсутствии)
@@ -122,4 +134,3 @@ var value = obj.GetProperty("name");
 - [lowering/spread-helpers.ts](../../packages/bt-ir/src/lowering/spread-helpers.ts#L23) — использование GetProperty/SetProperty
 - [ir/nodes.ts](../../packages/bt-ir/src/ir/nodes.ts#L686) — определение IRBTGetProperty
 - [docs/reference/borisscript-constraints.md](../../docs/reference/borisscript-constraints.md) — ограничения BS
-

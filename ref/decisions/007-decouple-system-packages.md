@@ -50,7 +50,7 @@ bt-cli ──(dependencies)──→ @boristype/runtime
 ```typescript
 export async function getSystemDependencies(projectPath: string): Promise<DependencyNode[]> {
   // 1. Читаем package.json проекта (не bt-cli!)
-  const rootPackageJson = JSON.parse(await fs.readFile(rootPackageJsonPath, 'utf-8'));
+  const rootPackageJson = JSON.parse(await fs.readFile(rootPackageJsonPath, "utf-8"));
 
   // 2. Собираем все зависимости проекта
   const allDeps: Record<string, string> = {
@@ -59,14 +59,14 @@ export async function getSystemDependencies(projectPath: string): Promise<Depend
   };
 
   // 3. Используем createRequire с контекстом проекта
-  const projectRequire = createRequire(path.join(projectPath, 'package.json'));
+  const projectRequire = createRequire(path.join(projectPath, "package.json"));
 
   // 4. Ищем пакеты с ws:package === "system"
   for (const [depName] of Object.entries(allDeps)) {
     const depPackageJsonPath = projectRequire.resolve(`${depName}/package.json`);
-    const depPackageJson = JSON.parse(await fs.readFile(depPackageJsonPath, 'utf-8'));
-    
-    if (depPackageJson['ws:package'] === 'system') {
+    const depPackageJson = JSON.parse(await fs.readFile(depPackageJsonPath, "utf-8"));
+
+    if (depPackageJson["ws:package"] === "system") {
       result.push(new DependencyNode(depPackageJson, depProjectPath));
     }
   }
@@ -146,6 +146,7 @@ btc link --external-runtime
 ### 🔄 Обратная совместимость
 
 Система поддерживает оба сценария:
+
 - **Новый:** runtime в зависимостях проекта (рекомендуется)
 - **Legacy:** можно пропустить runtime через `--external-runtime`
 
@@ -161,12 +162,12 @@ btc link --external-runtime
 
 ## Метрики реализации
 
-| Метрика | До | После |
-|---------|-----|-------|
-| Циклические зависимости | 1 (bt-cli ↔ runtime) | 0 |
-| Размер bt-cli (node_modules) | ~X MB | ~Y MB (↓) |
-| Время bootstrap monorepo | Manual order | Auto (Turborepo) |
-| Гибкость версий runtime | Фиксированная (через bt-cli) | Любая (в проекте) |
+| Метрика                      | До                           | После             |
+| ---------------------------- | ---------------------------- | ----------------- |
+| Циклические зависимости      | 1 (bt-cli ↔ runtime)         | 0                 |
+| Размер bt-cli (node_modules) | ~X MB                        | ~Y MB (↓)         |
+| Время bootstrap monorepo     | Manual order                 | Auto (Turborepo)  |
+| Гибкость версий runtime      | Фиксированная (через bt-cli) | Любая (в проекте) |
 
 ---
 

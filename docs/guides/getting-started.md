@@ -58,7 +58,8 @@ my-project/
 }
 ```
 
-::: tip Поля ws:*
+::: tip Поля ws:\*
+
 - `ws:name` — имя пакета для путей в WebSoft HCM
 - `ws:package` — тип пакета (`standalone`, `component`, `system`, `library`)
 - `ws:root` — путь внутри `dist/` куда будет скопирован `build/`
@@ -105,6 +106,7 @@ npx btc dev
 ```
 
 Это запустит:
+
 - Отслеживание изменений файлов
 - Инкрементальную компиляцию
 - Автоматическую линковку
@@ -119,10 +121,7 @@ npx btc dev
 ```json
 {
   "linking": {
-    "packages": [
-      { "name": "backend" },
-      { "name": "frontend" }
-    ]
+    "packages": [{ "name": "backend" }, { "name": "frontend" }]
   }
 }
 ```

@@ -47,10 +47,11 @@ import { botest } from "@boristype/botest";
 
 const result = myFunction(42);
 botest.assertValueEquals(result, 84, "should double the value");
-botest.assertOk();  // ОБЯЗАТЕЛЬНО в конце каждого теста
+botest.assertOk(); // ОБЯЗАТЕЛЬНО в конце каждого теста
 ```
 
 **Ключевые правила:**
+
 - Каждый файл = один тест
 - Необходимо вызывать `botest.assertOk()` в конце
 - Используйте описательные сообщения для assertion или `undefined`
@@ -75,6 +76,7 @@ botest.assertValueEquals(result, 5, "add function works");
 ```
 
 **Параметры:**
+
 - `actual` — фактическое значение
 - `expected` — ожидаемое значение
 - `message` — опциональное описание (используйте `undefined`, если конкретное сообщение не нужно)
@@ -84,7 +86,7 @@ botest.assertValueEquals(result, 5, "add function works");
 Сравнивает массивы на равенство.
 
 ```typescript
-const arr = [1, 2, 3].map(x => x * 2);
+const arr = [1, 2, 3].map((x) => x * 2);
 botest.assertJsArrayEquals(arr, [2, 4, 6], "map doubles values");
 ```
 
@@ -118,7 +120,7 @@ tests/
 └── build/                     # Скомпилированные тесты
 ```
 
-### Конфигурация набора (_suite.json)
+### Конфигурация набора (\_suite.json)
 
 ```json
 {
@@ -138,10 +140,11 @@ tests/
 ### Новый тест в существующем наборе
 
 1. Добавьте тестовый файл в директорию набора:
+
    ```typescript
    // tests/src/array/includes.test.ts
    import { botest } from "@boristype/botest";
-   
+
    const arr = [1, 2, 3];
    botest.assertValueEquals(arr.includes(2), true, "includes finds element");
    botest.assertValueEquals(arr.includes(5), false, "includes returns false for missing");
@@ -149,6 +152,7 @@ tests/
    ```
 
 2. Зарегистрируйте в `_suite.json`:
+
    ```json
    {
      "name": "Array Methods",
@@ -166,11 +170,13 @@ tests/
 ### Новый набор тестов
 
 1. Создайте директорию в `tests/src/`:
+
    ```
    tests/src/my-feature/
    ```
 
 2. Создайте `_suite.json`:
+
    ```json
    {
      "name": "My Feature",
@@ -181,10 +187,11 @@ tests/
    ```
 
 3. Добавьте тестовые файлы:
+
    ```typescript
    // tests/src/my-feature/basic.test.ts
    import { botest } from "@boristype/botest";
-   
+
    // Код теста здесь
    botest.assertOk();
    ```
@@ -221,7 +228,7 @@ botest.assertValueEquals(x, y, "");
 
 // Дублирующиеся сообщения в одном файле
 botest.assertValueEquals(a, 1, "test");
-botest.assertValueEquals(b, 2, "test");  // Одинаковое сообщение!
+botest.assertValueEquals(b, 2, "test"); // Одинаковое сообщение!
 ```
 
 ## Как это работает
@@ -232,9 +239,9 @@ botest эмулирует BorisScript runtime-функции:
 
 ```javascript
 // BorisScript код (скомпилированный)
-bt.getProperty(obj, "foo")
-bt.setProperty(obj, "bar", 42)
-bt.callFunction(func, [arg1, arg2])
+bt.getProperty(obj, "foo");
+bt.setProperty(obj, "bar", 42);
+bt.callFunction(func, [arg1, arg2]);
 
 // botest реализация
 // Предоставляет bt.* функции, которые работают в Node.js
@@ -261,11 +268,13 @@ node ./botest/build/index.js <build-dir> [suite1] [suite2/test.js] ...
 ```
 
 **Аргументы:**
+
 - `build-dir` — путь к скомпилированным тестам (обычно `tests/build`)
 - `suite1` — имя набора (имя директории)
 - `suite2/test.js` — конкретный тестовый файл в наборе
 
 **Примеры:**
+
 ```bash
 # Все тесты
 node ./botest/build/index.js tests/build

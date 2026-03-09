@@ -62,12 +62,14 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 **Расположение:** `src/analyzer/`
 
 **Функции:**
+
 - Анализ областей видимости (scope tree)
 - Определение **captured переменных** (замыкания)
 - Построение `__env` chain для closures
 - Определение каких переменных нужно поднять в env
 
 **Алгоритм:**
+
 1. **Pass 1:** Собираем все scopes и объявления переменных
 2. **Pass 2:** Анализируем использования — если переменная используется во вложенном scope, она "captured"
 
@@ -78,15 +80,17 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 **Расположение:** `src/lowering/`
 
 **Ключевые файлы:**
+
 - `visitor.ts` — entry point, `transformToIR()`
 - `statements.ts` — lowering для statements
 - `expressions.ts` — lowering для expressions
 - `helpers.ts` — scope, operators, polyfills
 - `function-builder.ts` — desc паттерн для функций
-- `env-resolution.ts` — унифицированные хелперы для доступа к __env chain (см. [ADR-006](../decisions/006-unified-env-resolution.md))
+- `env-resolution.ts` — унифицированные хелперы для доступа к \_\_env chain (см. [ADR-006](../decisions/006-unified-env-resolution.md))
 - `binding.ts` — генерация уникальных имён
 
 **Процесс:**
+
 - Преобразование TypeScript AST в IR
 - Использует данные scope analyzer
 - Использует TypeChecker для определения polyfills
@@ -98,6 +102,7 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 **Расположение:** `src/emitter/`
 
 **Функции:**
+
 - Генерация текста BorisScript из IR
 - Форматирование кода
 - Source maps (planned)
@@ -115,7 +120,7 @@ IR
 ├── Program
 ├── Statements
 │   ├── FunctionDeclaration
-│   ├── VariableDeclaration  
+│   ├── VariableDeclaration
 │   ├── ReturnStatement
 │   ├── IfStatement
 │   ├── ForStatement
@@ -160,14 +165,15 @@ IR
 **Location:** `src/ir/builders.ts`
 
 Фабричные функции для создания IR:
+
 ```typescript
-IR.id("name")                           // Identifier
-IR.lit(value)                           // Literal
-IR.call(callee, args)                   // CallExpression
-IR.bin(op, left, right)                 // BinaryExpression
-IR.member(obj, property)                // MemberExpression
-IR.func(name, params, body)             // FunctionDeclaration
-IR.ret(expr)                            // ReturnStatement
+IR.id("name"); // Identifier
+IR.lit(value); // Literal
+IR.call(callee, args); // CallExpression
+IR.bin(op, left, right); // BinaryExpression
+IR.member(obj, property); // MemberExpression
+IR.func(name, params, body); // FunctionDeclaration
+IR.ret(expr); // ReturnStatement
 // ... и т.д.
 ```
 
@@ -191,9 +197,9 @@ function add(a: number, b: number): number {
 
 // BorisScript
 function add(__env, __this, __args) {
-    var a = __args.length > 0 ? __args[0] : undefined;
-    var b = __args.length > 1 ? __args[1] : undefined;
-    return a + b;
+  var a = __args.length > 0 ? __args[0] : undefined;
+  var b = __args.length > 1 ? __args[1] : undefined;
+  return a + b;
 }
 ```
 
@@ -203,10 +209,10 @@ function add(__env, __this, __args) {
 
 ```javascript
 var funcName_desc = {
-    "@descriptor": "function",
-    callable: funcName,
-    env: __env,              // ссылка на текущий env напрямую
-    obj: undefined           // для методов — ссылка на объект
+  "@descriptor": "function",
+  callable: funcName,
+  env: __env, // ссылка на текущий env напрямую
+  obj: undefined, // для методов — ссылка на объект
 };
 __env.funcName = funcName_desc;
 ```
@@ -220,9 +226,9 @@ __env.funcName = funcName_desc;
 
 ```javascript
 function createTrieNode(__env, __this, __args) {
-    var __fn0_env = { __parent: __env };  // per-call env, создаётся при каждом вызове
-    // captured переменные хранятся в __fn0_env
-    __fn0_env.node = {};
+  var __fn0_env = { __parent: __env }; // per-call env, создаётся при каждом вызове
+  // captured переменные хранятся в __fn0_env
+  __fn0_env.node = {};
 }
 
 // При инициализации (дескриптор ссылается на __env напрямую):
@@ -243,9 +249,9 @@ const multiply = (x, y) => x * y;
 
 // BorisScript
 function __arrow0(__env, __this, __args) {
-    var x = __args[0];
-    var y = __args[1];
-    return x * y;
+  var x = __args[0];
+  var y = __args[1];
+  return x * y;
 }
 var __arrow0_desc;
 var multiply;
@@ -260,16 +266,18 @@ multiply = __env.__arrow0;
 ```typescript
 // TypeScript
 const myObj = {
-    sayHello() { alert("Hi"); }
+  sayHello() {
+    alert("Hi");
+  },
 };
 
 // BorisScript
 function sayHello__method0(__env, __this, __args) {
-    alert("Hi");
+  alert("Hi");
 }
 // ... env/desc setup ...
 var __obj1 = { sayHello: __env.sayHello__method0 };
-sayHello__method0_desc.obj = __obj1;  // backlink
+sayHello__method0_desc.obj = __obj1; // backlink
 ```
 
 ---
@@ -292,11 +300,12 @@ var arr;
 var i;
 arr = [1, 2, 3];
 for (i in arr) {
-    console.log(i);
+  console.log(i);
 }
 ```
 
 **Порядок hoisting:**
+
 1. Функции (declarations)
 2. Переменные (declarations)
 3. Остальной код (assignments)
@@ -320,7 +329,7 @@ for (const item of arr) {
 // BorisScript
 var item;
 for (item in arr) {
-    console.log(item);
+  console.log(item);
 }
 ```
 
@@ -334,9 +343,9 @@ for (item in arr) {
 
 #### 4.1 Template literals
 
-``` `Hello ${name}` ``` → `"Hello " + name`
+`` `Hello ${name}` `` → `"Hello " + name`
 
-#### 4.2 this → __this
+#### 4.2 this → \_\_this
 
 Параметр функции.
 
@@ -382,13 +391,14 @@ bt.setProperty(config, "setting", 42);
 
 ```typescript
 // TypeScript
-arr.map(x => x * 2)
+arr.map((x) => x * 2);
 
 // BorisScript
-__bt.polyfill.array.map(arr, __arrow0)
+__bt.polyfill.array.map(arr, __arrow0);
 ```
 
 **Поддерживаемые категории:**
+
 - **Array:** map, filter, reduce, find, forEach, includes, slice, ...
 - **String:** split, trim, toLowerCase, substring, replace, ...
 - **Number:** toFixed, toString, toPrecision, ...
@@ -396,7 +406,7 @@ __bt.polyfill.array.map(arr, __arrow0)
 
 ---
 
-### 6. Замыкания и __env chain
+### 6. Замыкания и \_\_env chain
 
 #### 6.1 Scope Analysis
 
@@ -406,13 +416,13 @@ __bt.polyfill.array.map(arr, __arrow0)
 // TypeScript
 const arr = [1, 2, 3];
 for (let item of arr) {
-    callbacks.push(() => alert(item));  // item is captured
+  callbacks.push(() => alert(item)); // item is captured
 }
 ```
 
 **Результат:** `item` помечается как captured.
 
-#### 6.2 Создание __env
+#### 6.2 Создание \_\_env
 
 Scopes с captured переменными создают `__env`:
 
@@ -426,11 +436,11 @@ var __env = {};
 
 ```typescript
 // TypeScript (arrow внутри for-of)
-() => alert(item)
+() => alert(item);
 
 // BorisScript
 function __arrow0(__env, __this, __args) {
-    alert(__env.item);  // читаем из __env
+  alert(__env.item); // читаем из __env
 }
 ```
 
@@ -438,8 +448,8 @@ function __arrow0(__env, __this, __args) {
 
 ```javascript
 for (__item0 in arr) {
-    __env.item = __item0;  // записываем в __env
-    callbacks.push(__arrow0);
+  __env.item = __item0; // записываем в __env
+  callbacks.push(__arrow0);
 }
 ```
 
@@ -451,7 +461,7 @@ for (__item0 in arr) {
 
 См. [ADR-006](../decisions/006-unified-env-resolution.md).
 
-#### 6.4 __env hoisting
+#### 6.4 \_\_env hoisting
 
 Captured переменные **НЕ** hoistятся как обычные `var` — они живут в `__env`.
 
@@ -470,6 +480,7 @@ IR lowering учитывает режим компиляции:
 - **env/desc:** Не создаются
 
 **Пример:**
+
 ```javascript
 function add(a, b) {
   return a + b;
@@ -484,27 +495,30 @@ function add(a, b) {
 - **Function calls:** `bt.callFunction(desc, args)`
 - **Polyfills:** Включены
 - **env/desc:** Создаются
-- **NO __init wrapper**
+- **NO \_\_init wrapper**
 
 ### module mode
 
 - **Цель:** Codelibrary с изоляцией
 - **Всё как в script mode** +
-- **__init wrapper:** `function __init(__env) { ... }`
-- **Variable hoisting:** В начало __init
+- **\_\_init wrapper:** `function __init(__env) { ... }`
+- **Variable hoisting:** В начало \_\_init
 - **Exports:** `__env.exports = { ... }`
 
 **Пример:**
+
 ```javascript
 function __init(__env) {
-  function greet(__env, __this, __args) { /*...*/ }
+  function greet(__env, __this, __args) {
+    /*...*/
+  }
   // hoisted vars
   var name;
-  
+
   // env/desc setup
   var greet_env = { __parent: __env };
   // ...
-  
+
   // code
   name = "World";
   bt.callFunction(__env.greet, [name]);
@@ -569,14 +583,15 @@ import { compileSourceFile } from "bt-ir";
 for (const sourceFile of program.getSourceFiles()) {
   const result = compileSourceFile(sourceFile, program, {
     compileMode: resolveCompileMode(sourceFile, options),
-    cwd: packagePath
+    cwd: packagePath,
   });
-  
+
   // result.outputs[0].code → writeFileSync
 }
 ```
 
 **TypeScript Program:**
+
 - Создаётся в btc с `noEmit: true`
 - Используется только для диагностики
 - bt-ir получает готовый Program + SourceFile
@@ -591,8 +606,8 @@ for (const sourceFile of program.getSourceFiles()) {
 
 ```typescript
 interface SourceLocation {
-  start: { line: number; column: number; };
-  end: { line: number; column: number; };
+  start: { line: number; column: number };
+  end: { line: number; column: number };
   source: string;
 }
 
@@ -611,19 +626,23 @@ Emitter генерирует source map используя эти позиции
 ## Не реализовано (Future)
 
 ### Деструктуризация
+
 - `const { a, b } = obj` → отдельные присваивания
 - Статус: 🔲 Planned
 
 ### Spread оператор
+
 - `[...arr]` → `__bt.array.concat([], arr)`
 - `{ ...obj }` → `__bt.object.assign({}, obj)`
 - Статус: 🔲 Planned
 
 ### Классы
+
 - TypeScript classes → функции-конструкторы + прототипы
 - Статус: 🔲 Future
 
 ### IR Optimizer
+
 - Dead code elimination
 - Constant folding
 - Inline expansion
