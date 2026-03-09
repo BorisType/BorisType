@@ -18,7 +18,6 @@ export default tseslint.config(
       "**/*.d.ts",
       "packages/bt-ir/example/**/*",
       "packages/botest/src/borisscript/patch.ts",
-      "examples/**/*",
       "tests/**/*",
     ],
   },

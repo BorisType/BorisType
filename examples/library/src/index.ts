@@ -1,6 +1,3 @@
-const test1 = 52;
-const test2 = "Hello, World!";
-
 const arrayExample = [1, 2, 3, 4, 5];
 const callableArray: Array<() => void> = [];
 
