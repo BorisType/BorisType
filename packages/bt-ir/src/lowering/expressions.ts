@@ -748,27 +748,109 @@ export function visitBinaryExpression(
 
   // Logical operators — maybeExtract для безопасного инлайна conditional
   if (operatorToken === ts.SyntaxKind.AmpersandAmpersandToken) {
-    let left = maybeExtract(visitExpression(node.left, ctx), ctx);
-    let right = maybeExtract(visitExpression(node.right, ctx), ctx);
-    if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
-      left = IR.grouping(left, getLoc(node.left, ctx));
+    // In bare mode, emit native && (no bt.isTrue available)
+    if (ctx.mode === "bare") {
+      let left = maybeExtract(visitExpression(node.left, ctx), ctx);
+      let right = maybeExtract(visitExpression(node.right, ctx), ctx);
+      if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
+        left = IR.grouping(left, getLoc(node.left, ctx));
+      }
+      if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
+        right = IR.grouping(right, getLoc(node.right, ctx));
+      }
+      return IR.logical("&&", left, right, getLoc(node, ctx));
     }
+
+    // Lowering: a && b → bt.isTrue((__la = a)) ? b : __la
+    // BS native && works only with booleans; ternary preserves short-circuit semantics.
+    // Inverse of ||: truthy left → evaluate right; falsy left → return left.
+    // Assignment is inline (not in pendingStatements) so it works correctly
+    // inside if/while/for conditions where pendingStatements would be misplaced.
+    const leftExpr = maybeExtract(visitExpression(node.left, ctx), ctx);
+    const tmpName = ctx.bindings.create("la");
+    ctx.pendingStatements.push(IR.varDecl(tmpName, null));
+    const assignExpr = IR.assign(
+      "=",
+      IR.id(tmpName) as import("../ir/index.ts").IRIdentifier,
+      leftExpr,
+    );
+    let right = maybeExtract(visitExpression(node.right, ctx), ctx);
     if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
       right = IR.grouping(right, getLoc(node.right, ctx));
     }
-    return IR.logical("&&", left, right, getLoc(node, ctx));
+    return IR.conditional(
+      IR.btIsTrue(IR.grouping(assignExpr, getLoc(node.left, ctx)), getLoc(node.left, ctx)),
+      right,
+      IR.id(tmpName),
+      getLoc(node, ctx),
+    );
   }
 
   if (operatorToken === ts.SyntaxKind.BarBarToken) {
-    let left = maybeExtract(visitExpression(node.left, ctx), ctx);
-    let right = maybeExtract(visitExpression(node.right, ctx), ctx);
-    if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
-      left = IR.grouping(left, getLoc(node.left, ctx));
+    // In bare mode, emit native || (no bt.isTrue available)
+    if (ctx.mode === "bare") {
+      let left = maybeExtract(visitExpression(node.left, ctx), ctx);
+      let right = maybeExtract(visitExpression(node.right, ctx), ctx);
+      if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
+        left = IR.grouping(left, getLoc(node.left, ctx));
+      }
+      if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
+        right = IR.grouping(right, getLoc(node.right, ctx));
+      }
+      return IR.logical("||", left, right, getLoc(node, ctx));
     }
+
+    // Lowering: a || b → bt.isTrue((__lo = a)) ? __lo : b
+    // BS native || works only with booleans; ternary preserves short-circuit semantics.
+    // Assignment is inline (not in pendingStatements) so it works correctly
+    // inside if/while/for conditions where pendingStatements would be misplaced.
+    const leftExpr = maybeExtract(visitExpression(node.left, ctx), ctx);
+    const tmpName = ctx.bindings.create("lo");
+    ctx.pendingStatements.push(IR.varDecl(tmpName, null));
+    const assignExpr = IR.assign(
+      "=",
+      IR.id(tmpName) as import("../ir/index.ts").IRIdentifier,
+      leftExpr,
+    );
+    let right = maybeExtract(visitExpression(node.right, ctx), ctx);
     if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
       right = IR.grouping(right, getLoc(node.right, ctx));
     }
-    return IR.logical("||", left, right, getLoc(node, ctx));
+    return IR.conditional(
+      IR.btIsTrue(IR.grouping(assignExpr, getLoc(node.left, ctx)), getLoc(node.left, ctx)),
+      IR.id(tmpName),
+      right,
+      getLoc(node, ctx),
+    );
+  }
+
+  if (operatorToken === ts.SyntaxKind.QuestionQuestionToken) {
+    // ?? не существует в BS — в bare mode выдаём ошибку
+    if (ctx.mode === "bare") {
+      console.warn("?? is not supported in bare mode");
+      return IR.id("__invalid__");
+    }
+
+    // Lowering: a ?? b → (__nc = a) == null || __nc == undefined ? b : __nc
+    // Uses null/undefined comparison (same pattern as optional chaining).
+    // The || in the condition is IR-level — emits native BS || with boolean operands (safe).
+    // Assignment is inline so it works correctly inside if/while/for conditions.
+    const leftExpr = maybeExtract(visitExpression(node.left, ctx), ctx);
+    const tmpName = ctx.bindings.create("nc");
+    ctx.pendingStatements.push(IR.varDecl(tmpName, null));
+    const assignExpr = IR.assign(
+      "=",
+      IR.id(tmpName) as import("../ir/index.ts").IRIdentifier,
+      leftExpr,
+    );
+    const nullCheck = IR.binary("==", IR.grouping(assignExpr, getLoc(node.left, ctx)), IR.null());
+    const undefinedCheck = IR.binary("==", IR.id(tmpName), IR.id("undefined"));
+    const test = IR.logical("||", nullCheck, undefinedCheck);
+    let right = maybeExtract(visitExpression(node.right, ctx), ctx);
+    if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
+      right = IR.grouping(right, getLoc(node.right, ctx));
+    }
+    return IR.conditional(test, right, IR.id(tmpName), getLoc(node, ctx));
   }
 
   // Binary operators — maybeExtract для безопасного инлайна conditional

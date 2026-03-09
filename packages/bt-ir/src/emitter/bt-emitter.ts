@@ -659,6 +659,9 @@ function emitExpression(expr: IRExpression, ctx: EmitContext): string {
     case "BTIsFunction":
       return emitBTIsFunction(expr, ctx);
 
+    case "BTIsTrue":
+      return emitBTIsTrue(expr, ctx);
+
     case "GroupingExpression":
       return `(${emitExpression(expr.expression, ctx)})`;
 
@@ -884,6 +887,14 @@ function emitBTCallFunction(
 function emitBTIsFunction(expr: import("../ir/index.js").IRBTIsFunction, ctx: EmitContext): string {
   const value = emitExpression(expr.value, ctx);
   return `bt.isFunction(${value})`;
+}
+
+/**
+ * Генерирует код bt.isTrue(value)
+ */
+function emitBTIsTrue(expr: import("../ir/index.js").IRBTIsTrue, ctx: EmitContext): string {
+  const value = emitExpression(expr.value, ctx);
+  return `bt.isTrue(${value})`;
 }
 
 // =========================================================================
