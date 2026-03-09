@@ -110,6 +110,7 @@ export type IRExpression =
   | IRBTSetProperty
   | IRBTCallFunction
   | IRBTIsFunction
+  | IRBTIsTrue
   | IRGroupingExpression;
 
 // ============================================================================
@@ -715,6 +716,17 @@ export interface IRBTCallFunction extends IRNodeBase {
  */
 export interface IRBTIsFunction extends IRNodeBase {
   kind: "BTIsFunction";
+  /** Проверяемое значение */
+  value: IRExpression;
+}
+
+/**
+ * Приведение значения к boolean через bt.isTrue
+ *
+ * `bt.isTrue(value)`
+ */
+export interface IRBTIsTrue extends IRNodeBase {
+  kind: "BTIsTrue";
   /** Проверяемое значение */
   value: IRExpression;
 }

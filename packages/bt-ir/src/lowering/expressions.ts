@@ -760,15 +760,37 @@ export function visitBinaryExpression(
   }
 
   if (operatorToken === ts.SyntaxKind.BarBarToken) {
-    let left = maybeExtract(visitExpression(node.left, ctx), ctx);
-    let right = maybeExtract(visitExpression(node.right, ctx), ctx);
-    if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
-      left = IR.grouping(left, getLoc(node.left, ctx));
+    // In bare mode, emit native || (no bt.isTrue available)
+    if (ctx.mode === "bare") {
+      let left = maybeExtract(visitExpression(node.left, ctx), ctx);
+      let right = maybeExtract(visitExpression(node.right, ctx), ctx);
+      if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
+        left = IR.grouping(left, getLoc(node.left, ctx));
+      }
+      if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
+        right = IR.grouping(right, getLoc(node.right, ctx));
+      }
+      return IR.logical("||", left, right, getLoc(node, ctx));
     }
+
+    // Lowering: a || b → ((__lo = a), bt.isTrue(__lo) ? __lo : b)
+    // BS native || works only with booleans; ternary preserves short-circuit semantics
+    const leftExpr = maybeExtract(visitExpression(node.left, ctx), ctx);
+    const tmpName = ctx.bindings.create("lo");
+    ctx.pendingStatements.push(IR.varDecl(tmpName, null));
+    ctx.pendingStatements.push(
+      IR.exprStmt(IR.assign("=", IR.id(tmpName) as import("../ir/index.ts").IRIdentifier, leftExpr)),
+    );
+    let right = maybeExtract(visitExpression(node.right, ctx), ctx);
     if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
       right = IR.grouping(right, getLoc(node.right, ctx));
     }
-    return IR.logical("||", left, right, getLoc(node, ctx));
+    return IR.conditional(
+      IR.btIsTrue(IR.id(tmpName), getLoc(node.left, ctx)),
+      IR.id(tmpName),
+      right,
+      getLoc(node, ctx),
+    );
   }
 
   // Binary operators — maybeExtract для безопасного инлайна conditional

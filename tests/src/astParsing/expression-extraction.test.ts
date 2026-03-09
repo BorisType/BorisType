@@ -110,20 +110,17 @@ botest.assertValueEquals(case4b.key, 42, "4b: optional chain as object value");
 // Group 5: Optional chaining in logical expressions
 // =============================================================================
 
-// НЕ БУДЕТ РАБОТАТЬ потому что || и && работают исключительно с булевыми значениями
-// надо писать polyfill для них, который будет поддерживать любые типы и не будет приводить к булевому
+// 5a. obj?.x || fallback
+const case5a = nullObj?.x || "fallback";
+botest.assertValueEquals(case5a, "fallback", "5a: null optional chain || fallback");
 
-// // 5a. obj?.x || fallback
-// const case5a = nullObj?.x || "fallback";
-// botest.assertValueEquals(case5a, "fallback", "5a: null optional chain || fallback");
-
-// // 5b. obj?.x && next
+// 5b. obj?.x && next — disabled, && lowering not yet implemented
 // const case5b = obj?.a?.b?.c && "found";
 // botest.assertValueEquals(case5b, "found", "5b: optional chain && 'found'");
 
-// // 5c. Logical inside binary
-// const case5c = "result:" + (nullObj?.x || "default");
-// botest.assertValueEquals(case5c, "result:default", "5c: (optional chain || fallback) in concat");
+// 5c. Logical inside binary
+const case5c = "result:" + (nullObj?.x || "default");
+botest.assertValueEquals(case5c, "result:default", "5c: (optional chain || fallback) in concat");
 
 // =============================================================================
 // Group 6: Ternary (non-optional-chaining) inside expressions

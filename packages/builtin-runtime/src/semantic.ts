@@ -343,6 +343,14 @@ export namespace bt {
     }
   }
 
+  export function isTrue(value: any): boolean {
+    return !(value === false || value === 0 || value === "" || value === null || value === undefined);
+  }
+
+  export function isFalse(value: any): boolean {
+    return value === false || value === 0 || value === "" || value === null || value === undefined;
+  }
+
   /**
    * Вызывает функцию-дескриптор с подменённым `__this`.
    *

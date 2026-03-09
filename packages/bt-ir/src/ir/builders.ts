@@ -59,6 +59,7 @@ import type {
   IRBTSetProperty,
   IRBTCallFunction,
   IRBTIsFunction,
+  IRBTIsTrue,
   IRGroupingExpression,
   IRStatement,
   IRExpression,
@@ -556,6 +557,13 @@ export const IR = {
    */
   btIsFunction(value: IRExpression, loc?: SourceLocation): IRBTIsFunction {
     return { kind: "BTIsFunction", value, loc };
+  },
+
+  /**
+   * Создаёт bt.isTrue(value)
+   */
+  btIsTrue(value: IRExpression, loc?: SourceLocation): IRBTIsTrue {
+    return { kind: "BTIsTrue", value, loc };
   },
 };
 
