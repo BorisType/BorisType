@@ -1,12 +1,11 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "esnext",
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
     "rootDir": "./src",
     "outDir": "./build",
     "allowJs": true,
-    "strict": true
+    "declaration": false,
+    "declarationMap": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
