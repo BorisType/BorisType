@@ -1,12 +1,12 @@
 // Comprehensive optional chaining test with method calls
 function ff() {
-    return {
-        prop: 2
-    };
+  return {
+    prop: 2,
+  };
 }
 
 const obj2: any = {
-    func: ff
+  func: ff,
 };
 
 // Direct method call
@@ -23,7 +23,6 @@ const v4 = obj2?.func()?.prop;
 // Optional method call on optional object
 const v5 = obj2?.func?.();
 const v6 = obj2?.func?.()?.prop;
-
 
 botest.assertOk();
 

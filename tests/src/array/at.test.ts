@@ -12,11 +12,23 @@ botest.assertValueEquals(arr.at(-4), 10, "at(-4) should return first element fro
 // Out of bounds positive
 const smallArr = [1, 2, 3];
 botest.assertValueEquals(smallArr.at(3), undefined, "at(3) out of bounds should return undefined");
-botest.assertValueEquals(smallArr.at(100), undefined, "at(100) out of bounds should return undefined");
+botest.assertValueEquals(
+  smallArr.at(100),
+  undefined,
+  "at(100) out of bounds should return undefined",
+);
 
 // Out of bounds negative
-botest.assertValueEquals(smallArr.at(-4), undefined, "at(-4) out of bounds negative should return undefined");
-botest.assertValueEquals(smallArr.at(-100), undefined, "at(-100) out of bounds negative should return undefined");
+botest.assertValueEquals(
+  smallArr.at(-4),
+  undefined,
+  "at(-4) out of bounds negative should return undefined",
+);
+botest.assertValueEquals(
+  smallArr.at(-100),
+  undefined,
+  "at(-100) out of bounds negative should return undefined",
+);
 
 // Empty array
 const emptyArr: any[] = [];
@@ -41,9 +53,16 @@ botest.assertValueEquals(stringArr.at(0), "a", "string array at(0) should return
 botest.assertValueEquals(stringArr.at(-1), "c", "string array at(-1) should return 'c'");
 
 // Very large index
-botest.assertValueEquals(smallArr.at(999999), undefined, "at(999999) very large index should return undefined");
-botest.assertValueEquals(smallArr.at(-999999), undefined, "at(-999999) very large negative index should return undefined");
-
+botest.assertValueEquals(
+  smallArr.at(999999),
+  undefined,
+  "at(999999) very large index should return undefined",
+);
+botest.assertValueEquals(
+  smallArr.at(-999999),
+  undefined,
+  "at(-999999) very large negative index should return undefined",
+);
 
 botest.assertOk();
 

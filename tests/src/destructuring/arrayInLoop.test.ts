@@ -1,7 +1,10 @@
 // Array destructuring with loops
 // TODO: пока не работает
 
-const arrarr = [[10, 20], [30, 40]];
+const arrarr = [
+  [10, 20],
+  [30, 40],
+];
 const result = [];
 
 for (const [key, value] of arrarr) {
@@ -10,7 +13,6 @@ for (const [key, value] of arrarr) {
 }
 
 botest.assertJsArrayEquals(result, [30, 70], "sums should be [30, 70]");
-
 
 botest.assertOk();
 

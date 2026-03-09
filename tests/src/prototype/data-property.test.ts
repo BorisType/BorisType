@@ -1,12 +1,12 @@
 // Тест: Поиск data-свойства через __proto
 const proto = {
-    kind: "animal",
-    legs: 4,
+  kind: "animal",
+  legs: 4,
 };
 
 const instance: any = {
-    __proto: proto,
-    name: "Rex",
+  __proto: proto,
+  name: "Rex",
 };
 
 // Собственное свойство — находится напрямую

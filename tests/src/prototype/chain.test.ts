@@ -1,22 +1,22 @@
 // Тест: Многоуровневая цепочка прототипов
 const base: any = {
-    type: "base",
-    getType(): string {
-        return this.type;
-    },
+  type: "base",
+  getType(): string {
+    return this.type;
+  },
 };
 
 const middle: any = {
-    __proto: base,
-    level: "middle",
-    getLevel(): string {
-        return this.level;
-    },
+  __proto: base,
+  level: "middle",
+  getLevel(): string {
+    return this.level;
+  },
 };
 
 const leaf: any = {
-    __proto: middle,
-    name: "leaf-node",
+  __proto: middle,
+  name: "leaf-node",
 };
 
 // Собственное свойство

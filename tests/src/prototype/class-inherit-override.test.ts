@@ -3,26 +3,26 @@
  */
 
 class Animal {
-    name: string;
-    constructor(name: string) {
-        this.name = name;
-    }
-    speak(): string {
-        return this.name + " speaks";
-    }
-    getType(): string {
-        return "animal";
-    }
+  name: string;
+  constructor(name: string) {
+    this.name = name;
+  }
+  speak(): string {
+    return this.name + " speaks";
+  }
+  getType(): string {
+    return "animal";
+  }
 }
 
 class Cat extends Animal {
-    constructor(name: string) {
-        super(name);
-    }
-    // Переопределяем speak
-    speak(): string {
-        return this.name + " meows";
-    }
+  constructor(name: string) {
+    super(name);
+  }
+  // Переопределяем speak
+  speak(): string {
+    return this.name + " meows";
+  }
 }
 
 const animal: any = new Animal("Generic");

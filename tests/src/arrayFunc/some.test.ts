@@ -4,7 +4,6 @@ const result2 = arr.some((x) => x === 4);
 botest.assertValueEquals(result1, true, undefined);
 botest.assertValueEquals(result2, false, undefined);
 
-
 botest.assertOk();
 
-export { };
+export {};

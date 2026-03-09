@@ -1,16 +1,16 @@
 // Тест: Class property initializers (поля с инициализаторами)
 class Config {
-    host: string = "localhost";
-    port: number = 8080;
-    debug: boolean = false;
+  host: string = "localhost";
+  port: number = 8080;
+  debug: boolean = false;
 
-    constructor(host: string) {
-        this.host = host;
-    }
+  constructor(host: string) {
+    this.host = host;
+  }
 
-    getUrl(): string {
-        return this.host + ":" + this.port;
-    }
+  getUrl(): string {
+    return this.host + ":" + this.port;
+  }
 }
 
 const cfg = new Config("example.com");

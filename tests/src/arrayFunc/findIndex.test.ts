@@ -4,7 +4,6 @@ const result2 = arr.findIndex((x) => x === 4);
 botest.assertValueEquals(result1, 1, undefined);
 botest.assertValueEquals(result2, -1, undefined);
 
-
 botest.assertOk();
 
-export { };
+export {};

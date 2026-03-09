@@ -1,7 +1,7 @@
 {
-    "name": "Spread operator",
-    "tests": {
-        "arrays.test.js": "spread operator with arrays",
-        "objects.test.js": "spread operator with objects"
-    }
+  "name": "Spread operator",
+  "tests": {
+    "arrays.test.js": "spread operator with arrays",
+    "objects.test.js": "spread operator with objects"
+  }
 }

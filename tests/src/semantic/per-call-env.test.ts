@@ -11,16 +11,16 @@
 // === 1. Shared-state: два вызова одной функции не расшаривают state ===
 
 function createCounter(initial: number) {
-    let count = initial;
+  let count = initial;
 
-    return {
-        increment() {
-            count = count + 1;
-        },
-        getCount(): number {
-            return count;
-        }
-    };
+  return {
+    increment() {
+      count = count + 1;
+    },
+    getCount(): number {
+      return count;
+    },
+  };
 }
 
 const counter1 = createCounter(0);
@@ -36,28 +36,36 @@ botest.assertValueEquals(counter2.getCount(), 101, "counter2 should be 101 after
 // === 2. Captured param + captured local variable ===
 
 function makeGreeter(prefix: string) {
-    const suffix = "!";
+  const suffix = "!";
 
-    return (name: string): string => {
-        return prefix + " " + name + suffix;
-    };
+  return (name: string): string => {
+    return prefix + " " + name + suffix;
+  };
 }
 
 const greetHello = makeGreeter("Hello");
 const greetBye = makeGreeter("Bye");
 
-botest.assertValueEquals(greetHello("World"), "Hello World!", "greetHello('World') should be 'Hello World!'");
-botest.assertValueEquals(greetBye("World"), "Bye World!", "greetBye('World') should be 'Bye World!'");
+botest.assertValueEquals(
+  greetHello("World"),
+  "Hello World!",
+  "greetHello('World') should be 'Hello World!'",
+);
+botest.assertValueEquals(
+  greetBye("World"),
+  "Bye World!",
+  "greetBye('World') should be 'Bye World!'",
+);
 
 // === 3. Per-call env с доступом к parent scope ===
 
 const globalMultiplier = 10;
 
 function createMultiplier(base: number) {
-    const fn = (x: number): number => {
-        return base * x * globalMultiplier;
-    };
-    return fn;
+  const fn = (x: number): number => {
+    return base * x * globalMultiplier;
+  };
+  return fn;
 }
 
 const mul2 = createMultiplier(2);
@@ -69,15 +77,14 @@ botest.assertValueEquals(mul3(5), 150, "mul3(5) should be 3*5*10=150");
 // === 4. Nested function declarations with per-call env ===
 
 function outer(x: number) {
-    function inner(y: number): number {
-        return x + y;
-    }
-    return inner(10);
+  function inner(y: number): number {
+    return x + y;
+  }
+  return inner(10);
 }
 
 botest.assertValueEquals(outer(5), 15, "outer(5) should return 5+10=15");
 botest.assertValueEquals(outer(20), 30, "outer(20) should return 20+10=30");
-
 
 botest.assertOk();
 

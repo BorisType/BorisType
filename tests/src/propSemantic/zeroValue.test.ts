@@ -5,7 +5,6 @@ const value = obj.a?.b;
 
 botest.assertValueEquals(value, 0, "optional chaining should return 0");
 
-
 botest.assertOk();
 
 export {};

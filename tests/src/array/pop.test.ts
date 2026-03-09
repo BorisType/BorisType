@@ -6,7 +6,11 @@ botest.assertValueEquals(arr1.pop(), 2, "arr1.pop() should return 2");
 botest.assertJsArrayEquals(arr1, [1], "arr1 after second pop should be [1]");
 botest.assertValueEquals(arr1.pop(), 1, "arr1.pop() should return 1");
 botest.assertJsArrayEquals(arr1, [], "arr1 after third pop should be empty");
-botest.assertValueEquals(arr1.pop(), undefined, "arr1.pop() on empty array should return undefined");
+botest.assertValueEquals(
+  arr1.pop(),
+  undefined,
+  "arr1.pop() on empty array should return undefined",
+);
 botest.assertJsArrayEquals(arr1, [], "arr1 should remain empty");
 
 // Empty array
@@ -18,12 +22,20 @@ botest.assertJsArrayEquals(emptyArr, [], "emptyArr should remain empty");
 const singleArr = [42];
 botest.assertValueEquals(singleArr.pop(), 42, "singleArr.pop() should return 42");
 botest.assertJsArrayEquals(singleArr, [], "singleArr after pop should be empty");
-botest.assertValueEquals(singleArr.pop(), undefined, "singleArr.pop() on empty should return undefined");
+botest.assertValueEquals(
+  singleArr.pop(),
+  undefined,
+  "singleArr.pop() on empty should return undefined",
+);
 
 // Array with undefined and null
 const arr2 = [undefined, null, 0];
 botest.assertValueEquals(arr2.pop(), 0, "arr2.pop() should return 0");
-botest.assertJsArrayEquals(arr2, [undefined, null], "arr2 after first pop should be [undefined, null]");
+botest.assertJsArrayEquals(
+  arr2,
+  [undefined, null],
+  "arr2 after first pop should be [undefined, null]",
+);
 botest.assertValueEquals(arr2.pop(), null, "arr2.pop() should return null");
 botest.assertJsArrayEquals(arr2, [undefined], "arr2 after second pop should be [undefined]");
 botest.assertValueEquals(arr2.pop(), undefined, "arr2.pop() should return undefined");
@@ -54,7 +66,6 @@ const arr4 = [[1], [2, 3], []];
 // botest.assertJsArrayEquals(arr7, []);
 // botest.assertValueEquals(arr7.pop(), undefined);
 
-
 botest.assertOk();
 
-export { };
+export {};

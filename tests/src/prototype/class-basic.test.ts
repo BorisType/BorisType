@@ -1,18 +1,18 @@
 // Тест: Базовый класс с конструктором и методом
 class Animal {
-    name: string;
+  name: string;
 
-    constructor(name: string) {
-        this.name = name;
-    }
+  constructor(name: string) {
+    this.name = name;
+  }
 
-    speak(): string {
-        return this.name + " speaks";
-    }
+  speak(): string {
+    return this.name + " speaks";
+  }
 
-    getName(): string {
-        return this.name;
-    }
+  getName(): string {
+    return this.name;
+  }
 }
 
 const dog = new Animal("Rex");

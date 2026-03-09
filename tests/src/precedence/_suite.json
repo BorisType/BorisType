@@ -1,1 +1,4 @@
-{"name": "Operator precedence", "tests": {"precedence.test.js": "operator precedence and parentheses"}}
+{
+  "name": "Operator precedence",
+  "tests": { "precedence.test.js": "operator precedence and parentheses" }
+}

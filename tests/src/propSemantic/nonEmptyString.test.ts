@@ -5,7 +5,6 @@ const value = obj.a?.b.length;
 
 botest.assertValueEquals(value, 3, "string length should be 3");
 
-
 botest.assertOk();
 
 export {};

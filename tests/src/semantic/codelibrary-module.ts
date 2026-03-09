@@ -18,16 +18,16 @@
  * Методы => дескрипторы с lib, которые должны корректно ссылаться на __codelibrary.
  */
 export function createCounter(initial: number) {
-    let count = initial;
+  let count = initial;
 
-    return {
-        increment() {
-            count = count + 1;
-        },
-        getCount(): number {
-            return count;
-        },
-    };
+  return {
+    increment() {
+      count = count + 1;
+    },
+    getCount(): number {
+      return count;
+    },
+  };
 }
 
 /**
@@ -35,24 +35,26 @@ export function createCounter(initial: number) {
  * Двойная вложенность env: __fn_env → __block_env → дескриптор.
  */
 export function createBlockFactory(prefix: string) {
-    let state = prefix;
+  let state = prefix;
 
-    if (true) {
-        let blockLocal = "!";
+  if (true) {
+    let blockLocal = "!";
 
-        return {
-            append(suffix: string) {
-                state = state + suffix + blockLocal;
-            },
-            getState(): string {
-                return state;
-            },
-        };
-    }
-
-    // fallback (недоступен)
     return {
-        append(_suffix: string) { },
-        getState(): string { return ""; },
+      append(suffix: string) {
+        state = state + suffix + blockLocal;
+      },
+      getState(): string {
+        return state;
+      },
     };
+  }
+
+  // fallback (недоступен)
+  return {
+    append(_suffix: string) {},
+    getState(): string {
+      return "";
+    },
+  };
 }

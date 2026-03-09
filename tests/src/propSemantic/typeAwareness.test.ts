@@ -2,14 +2,13 @@
 // This test verifies type-aware property access without runtime assertions
 
 function dummy(xml: CollaboratorDocument) {
-    xml.TopElem.code.Value;
-    const code: XmlElem<unknown> = xml.TopElem.code;
+  xml.TopElem.code.Value;
+  const code: XmlElem<unknown> = xml.TopElem.code;
 }
 
 function dd(d: XmlElem<unknown>) {
-    // Type check function
+  // Type check function
 }
-
 
 botest.assertOk();
 

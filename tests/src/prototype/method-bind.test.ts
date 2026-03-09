@@ -1,21 +1,21 @@
 // Тест: Метод из прототипа биндится к реальному экземпляру
 const proto: any = {
-    getName(): string {
-        return this.name;
-    },
-    greet(): string {
-        return "Hello, " + this.name + "!";
-    },
+  getName(): string {
+    return this.name;
+  },
+  greet(): string {
+    return "Hello, " + this.name + "!";
+  },
 };
 
 const dog: any = {
-    __proto: proto,
-    name: "Rex",
+  __proto: proto,
+  name: "Rex",
 };
 
 const cat: any = {
-    __proto: proto,
-    name: "Whiskers",
+  __proto: proto,
+  name: "Whiskers",
 };
 
 // Вызов метода из прототипа — this должен быть экземпляром, а не прототипом

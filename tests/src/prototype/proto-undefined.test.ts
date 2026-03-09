@@ -1,11 +1,11 @@
 // Тест: Отсутствующее свойство возвращает undefined даже при наличии __proto
 const proto = {
-    existing: "yes",
+  existing: "yes",
 };
 
 const instance = {
-    __proto: proto,
-    name: "test",
+  __proto: proto,
+  name: "test",
 };
 
 // Свойство которого нет ни в экземпляре, ни в прототипе
@@ -18,7 +18,11 @@ botest.assertValueEquals((instance as any).existing, "yes", "proto property shou
 // Объект без __proto — обычное поведение
 const plain = { a: 1 };
 const plainMissing = (plain as any).b;
-botest.assertValueEquals(plainMissing, undefined, "plain object missing property should be undefined");
+botest.assertValueEquals(
+  plainMissing,
+  undefined,
+  "plain object missing property should be undefined",
+);
 
 botest.assertOk();
 

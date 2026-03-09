@@ -4,22 +4,22 @@
  */
 
 class Animal {
-    name: string;
-    constructor(name: string) {
-        this.name = name;
-    }
-    speak(): string {
-        return this.name + " speaks";
-    }
+  name: string;
+  constructor(name: string) {
+    this.name = name;
+  }
+  speak(): string {
+    return this.name + " speaks";
+  }
 }
 
 class Dog extends Animal {
-    constructor(name: string) {
-        super(name);
-    }
-    bark(): string {
-        return this.name + " barks";
-    }
+  constructor(name: string) {
+    super(name);
+  }
+  bark(): string {
+    return this.name + " barks";
+  }
 }
 
 const dog: any = new Dog("Rex");

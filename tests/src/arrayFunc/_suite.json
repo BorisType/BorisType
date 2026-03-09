@@ -1,19 +1,19 @@
 {
-    "name": "Array (Functional)",
-    "tests": {
-        "every.test.js": "Array.every()",
-        "filter.test.js": "Array.filter()",
-        "find.test.js": "Array.find()",
-        "findIndex.test.js": "Array.findIndex()",
-        "findLast.test.js": "Array.findLast()",
-        "findLastIndex.test.js": "Array.findLastIndex()",
-        "flatMap.test.js": "Array.flatMap()",
-        "forEach.test.js": "Array.forEach()",
-        "map.test.js": "Array.map()",
-        "reduce.test.js": "Array.reduce()",
-        "reduceRight.test.js": "Array.reduceRight()",
-        "some.test.js": "Array.some()",
-        "1.chained.test.js": "Chained array methods",
-        "2.usages.test.js": "Usages array methods"
-    }
+  "name": "Array (Functional)",
+  "tests": {
+    "every.test.js": "Array.every()",
+    "filter.test.js": "Array.filter()",
+    "find.test.js": "Array.find()",
+    "findIndex.test.js": "Array.findIndex()",
+    "findLast.test.js": "Array.findLast()",
+    "findLastIndex.test.js": "Array.findLastIndex()",
+    "flatMap.test.js": "Array.flatMap()",
+    "forEach.test.js": "Array.forEach()",
+    "map.test.js": "Array.map()",
+    "reduce.test.js": "Array.reduce()",
+    "reduceRight.test.js": "Array.reduceRight()",
+    "some.test.js": "Array.some()",
+    "1.chained.test.js": "Chained array methods",
+    "2.usages.test.js": "Usages array methods"
+  }
 }

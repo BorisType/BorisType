@@ -4,7 +4,6 @@ const result2 = arr.flatMap((x) => (x === 2 ? [x, x * 2] : []));
 botest.assertJsArrayEquals(result1, [1, 2, 2, 4, 3, 6], undefined);
 botest.assertJsArrayEquals(result2, [2, 4], undefined);
 
-
 botest.assertOk();
 
-export { };
+export {};

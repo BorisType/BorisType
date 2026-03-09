@@ -10,7 +10,6 @@ botest.assertJsArrayEquals(test1, [10, 11, 12, 1, 2, 3, 4, 5, 6], "Arrays should
 botest.assertJsArrayEquals(test2, [10, 1, 2, 3, 11, 4, 5, 6, 12], "Arrays should be combined");
 botest.assertJsArrayEquals(test3, [4, 5, 6], "Arrays should be combined");
 
-
 botest.assertOk();
 
 export {};

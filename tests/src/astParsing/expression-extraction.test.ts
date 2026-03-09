@@ -7,12 +7,12 @@
 
 // ---- Setup ----
 const obj: any = {
-    a: {
-        b: {
-            c: 42,
-            d: "hello"
-        }
-    }
+  a: {
+    b: {
+      c: 42,
+      d: "hello",
+    },
+  },
 };
 
 const nullObj: any = null;
@@ -64,18 +64,28 @@ botest.assertValueEquals(case1i, 84, "1i: optional chain * number");
 
 // 2a. Null chain in concat: should produce "PREFIX undefined SUFFIX"
 const case2a = "PREFIX " + nullObj?.x + " SUFFIX";
-botest.assertValueEquals(case2a, "PREFIX undefined SUFFIX", "2a: null optional chain in string concat");
+botest.assertValueEquals(
+  case2a,
+  "PREFIX undefined SUFFIX",
+  "2a: null optional chain in string concat",
+);
 
 // 2b. Null chain in template
 const case2b = `PREFIX ${nullObj?.x} SUFFIX`;
-botest.assertValueEquals(case2b, "PREFIX undefined SUFFIX", "2b: null optional chain in template literal");
+botest.assertValueEquals(
+  case2b,
+  "PREFIX undefined SUFFIX",
+  "2b: null optional chain in template literal",
+);
 
 // =============================================================================
 // Group 3: Optional chaining inside function call arguments
 // =============================================================================
 
 // 3a. As argument to function call
-function identity(val: any): any { return val; }
+function identity(val: any): any {
+  return val;
+}
 const case3a = identity(obj?.a?.b?.c);
 botest.assertValueEquals(case3a, 42, "3a: optional chain as call argument");
 
@@ -165,7 +175,6 @@ botest.assertValueEquals(case9a, "hello", "9a: multi-level optional chain to str
 // 9b. Template with string optional chain result
 const case9b = `GOT ${obj?.a?.b?.d} !`;
 botest.assertValueEquals(case9b, "GOT hello !", "9b: optional chain string in template");
-
 
 botest.assertOk();
 

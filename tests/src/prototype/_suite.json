@@ -1,18 +1,18 @@
 {
-    "name": "Prototype chain & method binding",
-    "tests": {
-        "data-property.test.js": "data property lookup via __proto",
-        "method-bind.test.js": "method binding to real instance",
-        "chain.test.js": "multi-level prototype chain",
-        "own-over-proto.test.js": "own property shadows prototype",
-        "proto-undefined.test.js": "missing property returns undefined",
-        "class-basic.test.js": "basic class with constructor and method",
-        "class-no-ctor.test.js": "class without explicit constructor",
-        "class-multi-instance.test.js": "multiple instances share prototype",
-        "class-prop-init.test.js": "class property initializers",
-        "class-inherit.test.js": "basic class inheritance",
-        "class-inherit-override.test.js": "child overrides parent method",
-        "class-inherit-chain.test.js": "three-level inheritance chain",
-        "class-super-method.test.js": "super.method() calls parent method"
-    }
+  "name": "Prototype chain & method binding",
+  "tests": {
+    "data-property.test.js": "data property lookup via __proto",
+    "method-bind.test.js": "method binding to real instance",
+    "chain.test.js": "multi-level prototype chain",
+    "own-over-proto.test.js": "own property shadows prototype",
+    "proto-undefined.test.js": "missing property returns undefined",
+    "class-basic.test.js": "basic class with constructor and method",
+    "class-no-ctor.test.js": "class without explicit constructor",
+    "class-multi-instance.test.js": "multiple instances share prototype",
+    "class-prop-init.test.js": "class property initializers",
+    "class-inherit.test.js": "basic class inheritance",
+    "class-inherit-override.test.js": "child overrides parent method",
+    "class-inherit-chain.test.js": "three-level inheritance chain",
+    "class-super-method.test.js": "super.method() calls parent method"
+  }
 }

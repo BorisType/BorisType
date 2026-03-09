@@ -48,7 +48,6 @@ const arr9 = [1, 2, 3];
 arr9.fill("x", 0, 2);
 botest.assertJsArrayEquals(arr9, ["x", "x", 3], "fill with string should work");
 
-
 botest.assertOk();
 
 export {};

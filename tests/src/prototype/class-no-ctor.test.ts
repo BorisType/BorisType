@@ -1,11 +1,11 @@
 // Тест: Класс без явного конструктора (default constructor)
 class Point {
-    x: number = 0;
-    y: number = 0;
+  x: number = 0;
+  y: number = 0;
 
-    toString(): string {
-        return "(" + this.x + ", " + this.y + ")";
-    }
+  toString(): string {
+    return "(" + this.x + ", " + this.y + ")";
+  }
 }
 
 const p = new Point();

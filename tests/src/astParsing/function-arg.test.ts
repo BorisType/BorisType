@@ -1,8 +1,8 @@
 function testComplexExpressions(aaa: number, bbb: number) {
-    return {
-        aaa: aaa,
-        bbb: bbb,
-    }
+  return {
+    aaa: aaa,
+    bbb: bbb,
+  };
 }
 
 const a = 1;

@@ -1,18 +1,18 @@
 // Тест: Несколько экземпляров одного класса
 class Counter {
-    count: number;
+  count: number;
 
-    constructor(initial: number) {
-        this.count = initial;
-    }
+  constructor(initial: number) {
+    this.count = initial;
+  }
 
-    increment(): void {
-        this.count = this.count + 1;
-    }
+  increment(): void {
+    this.count = this.count + 1;
+  }
 
-    getCount(): number {
-        return this.count;
-    }
+  getCount(): number {
+    return this.count;
+  }
 }
 
 const a = new Counter(0);

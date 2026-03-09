@@ -5,7 +5,6 @@ const { a, b } = input;
 botest.assertValueEquals(a, 1, "a should be 1");
 botest.assertValueEquals(b, 2, "b should be 2");
 
-
 botest.assertOk();
 
 export {};

@@ -15,4 +15,4 @@ botest.assertValueEquals(instance.counter, 0, "after decrement");
 
 botest.assertOk();
 
-export {}
+export {};

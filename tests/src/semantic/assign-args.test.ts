@@ -1,13 +1,13 @@
 function matchRoute(newUrl: string): string {
-    newUrl = Trim(newUrl);
-    if (StrBegins(newUrl, "/")) {
-        newUrl = newUrl.substr(1);
-    }
-    if (StrEnds(newUrl, "/")) {
-        newUrl = newUrl.substr(0, StrCharCount(newUrl) - 1);
-    }
+  newUrl = Trim(newUrl);
+  if (StrBegins(newUrl, "/")) {
+    newUrl = newUrl.substr(1);
+  }
+  if (StrEnds(newUrl, "/")) {
+    newUrl = newUrl.substr(0, StrCharCount(newUrl) - 1);
+  }
 
-    return newUrl;
+  return newUrl;
 }
 
 const result = matchRoute("/my/app/");

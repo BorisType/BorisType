@@ -1,21 +1,21 @@
 {
-    "name": "Property semantic & optional chaining",
-    "tests": {
-        "nested.test.js": "nested property access",
-        "undefinedProperty.test.js": "undefined optional property",
-        "optionalChainingValue.test.js": "optional chaining returns value",
-        "optionalChainingUndefined.test.js": "optional chaining returns undefined",
-        "lengthProperty.test.js": "length property access",
-        "deeplyNestedUndefined.test.js": "optional chaining with deeply nested undefined",
-        "arrayElement.test.js": "optional chaining with array elements",
-        "multipleProperties.test.js": "optional chaining with multiple missing properties",
-        "nullValue.test.js": "optional chaining with null value",
-        "zeroValue.test.js": "optional chaining with zero value",
-        "falseValue.test.js": "optional chaining with false value",
-        "emptyString.test.js": "optional chaining with empty string",
-        "methodCall.test.js": "optional chaining with method call",
-        "nonEmptyString.test.js": "optional chaining with non-empty string",
-        "typeAwareness.test.js": "type awareness with optional chaining",
-        "comprehensive.test.js": "comprehensive optional chaining with method calls"
-    }
+  "name": "Property semantic & optional chaining",
+  "tests": {
+    "nested.test.js": "nested property access",
+    "undefinedProperty.test.js": "undefined optional property",
+    "optionalChainingValue.test.js": "optional chaining returns value",
+    "optionalChainingUndefined.test.js": "optional chaining returns undefined",
+    "lengthProperty.test.js": "length property access",
+    "deeplyNestedUndefined.test.js": "optional chaining with deeply nested undefined",
+    "arrayElement.test.js": "optional chaining with array elements",
+    "multipleProperties.test.js": "optional chaining with multiple missing properties",
+    "nullValue.test.js": "optional chaining with null value",
+    "zeroValue.test.js": "optional chaining with zero value",
+    "falseValue.test.js": "optional chaining with false value",
+    "emptyString.test.js": "optional chaining with empty string",
+    "methodCall.test.js": "optional chaining with method call",
+    "nonEmptyString.test.js": "optional chaining with non-empty string",
+    "typeAwareness.test.js": "type awareness with optional chaining",
+    "comprehensive.test.js": "comprehensive optional chaining with method calls"
+  }
 }

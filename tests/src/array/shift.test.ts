@@ -16,13 +16,21 @@ botest.assertJsArrayEquals(emptyArr, [], "emptyArr should remain empty");
 const singleArr = [42];
 botest.assertValueEquals(singleArr.shift(), 42, "singleArr.shift() should return 42");
 botest.assertJsArrayEquals(singleArr, [], "singleArr after shift should be empty");
-botest.assertValueEquals(singleArr.shift(), undefined, "singleArr.shift() on empty should return undefined");
+botest.assertValueEquals(
+  singleArr.shift(),
+  undefined,
+  "singleArr.shift() on empty should return undefined",
+);
 botest.assertJsArrayEquals(singleArr, [], "singleArr should remain empty");
 
 // Array with undefined and null
 const arr2 = [undefined, null, 0, false];
 botest.assertValueEquals(arr2.shift(), undefined, "arr2.shift() should return undefined");
-botest.assertJsArrayEquals(arr2, [null, 0, false], "arr2 after first shift should be [null, 0, false]");
+botest.assertJsArrayEquals(
+  arr2,
+  [null, 0, false],
+  "arr2 after first shift should be [null, 0, false]",
+);
 botest.assertValueEquals(arr2.shift(), null, "arr2.shift() should return null");
 botest.assertJsArrayEquals(arr2, [0, false], "arr2 after second shift should be [0, false]");
 botest.assertValueEquals(arr2.shift(), 0, "arr2.shift() should return 0");
@@ -49,11 +57,23 @@ botest.assertJsArrayEquals(arr3, [], "arr3 after second shift should be empty");
 // Array with mixed types
 const arr5 = [1, "a", null, undefined, true];
 botest.assertValueEquals(arr5.shift(), 1, "arr5.shift() should return 1");
-botest.assertJsArrayEquals(arr5, ["a", null, undefined, true], "arr5 after first shift should be ['a', null, undefined, true]");
+botest.assertJsArrayEquals(
+  arr5,
+  ["a", null, undefined, true],
+  "arr5 after first shift should be ['a', null, undefined, true]",
+);
 botest.assertValueEquals(arr5.shift(), "a", "arr5.shift() should return 'a'");
-botest.assertJsArrayEquals(arr5, [null, undefined, true], "arr5 after second shift should be [null, undefined, true]");
+botest.assertJsArrayEquals(
+  arr5,
+  [null, undefined, true],
+  "arr5 after second shift should be [null, undefined, true]",
+);
 botest.assertValueEquals(arr5.shift(), null, "arr5.shift() should return null");
-botest.assertJsArrayEquals(arr5, [undefined, true], "arr5 after third shift should be [undefined, true]");
+botest.assertJsArrayEquals(
+  arr5,
+  [undefined, true],
+  "arr5 after third shift should be [undefined, true]",
+);
 
 // Array with strings
 const arr6 = ["a", "b", "c"];
@@ -68,7 +88,6 @@ const removed = arr7.shift();
 botest.assertValueEquals(removed, 1, "removed should be 1");
 botest.assertJsArrayEquals(arr7, [2, 3], "arr7 after shift should be [2, 3]");
 
-
 botest.assertOk();
 
-export { };
+export {};

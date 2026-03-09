@@ -1,16 +1,16 @@
 {
-    "name": "General semantic",
-    "tests": {
-        "functions.test.js": "functions",
-        "imports.test.js": "imports (live binding)",
-        "trycatch.test.js": "try/catch hoisting",
-        "object-keys.test.js": "object keys rules",
-        "captured-args.test.js": "captured arguments",
-        "assign-args.test.js": "assigned arguments",
-        "per-call-env.test.js": "per-call env isolation",
-        "codelibrary-module.test.js": "module codelibrary resolution",
-        "module-func-calls.test.js": "module-level function calls from per-call env",
-        "global-cache.test.js": "global cache",
-        "func-expr.test.js": "function expression vs arrow function parity"
-    }
+  "name": "General semantic",
+  "tests": {
+    "functions.test.js": "functions",
+    "imports.test.js": "imports (live binding)",
+    "trycatch.test.js": "try/catch hoisting",
+    "object-keys.test.js": "object keys rules",
+    "captured-args.test.js": "captured arguments",
+    "assign-args.test.js": "assigned arguments",
+    "per-call-env.test.js": "per-call env isolation",
+    "codelibrary-module.test.js": "module codelibrary resolution",
+    "module-func-calls.test.js": "module-level function calls from per-call env",
+    "global-cache.test.js": "global cache",
+    "func-expr.test.js": "function expression vs arrow function parity"
+  }
 }

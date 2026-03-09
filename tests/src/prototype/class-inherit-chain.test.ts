@@ -3,33 +3,33 @@
  */
 
 class Base {
-    kind: string;
-    constructor() {
-        this.kind = "base";
-    }
-    baseMethod(): string {
-        return "from-base";
-    }
+  kind: string;
+  constructor() {
+    this.kind = "base";
+  }
+  baseMethod(): string {
+    return "from-base";
+  }
 }
 
 class Middle extends Base {
-    constructor() {
-        super();
-        this.kind = "middle";
-    }
-    middleMethod(): string {
-        return "from-middle";
-    }
+  constructor() {
+    super();
+    this.kind = "middle";
+  }
+  middleMethod(): string {
+    return "from-middle";
+  }
 }
 
 class Leaf extends Middle {
-    constructor() {
-        super();
-        this.kind = "leaf";
-    }
-    leafMethod(): string {
-        return "from-leaf";
-    }
+  constructor() {
+    super();
+    this.kind = "leaf";
+  }
+  leafMethod(): string {
+    return "from-leaf";
+  }
 }
 
 const leaf: any = new Leaf();

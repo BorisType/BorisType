@@ -9,7 +9,6 @@ botest.assertValueEquals(value1, 1, "first element should have x=1");
 botest.assertValueEquals(value2, undefined, "second element is undefined");
 botest.assertValueEquals(value3, 3, "third element should have x=3");
 
-
 botest.assertOk();
 
 export {};

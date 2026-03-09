@@ -6,25 +6,25 @@
  */
 
 function helper(x: number): number {
-    return x * 2;
+  return x * 2;
 }
 
 function formatter(prefix: string, value: number): string {
-    return prefix + ": " + String(value);
+  return prefix + ": " + String(value);
 }
 
 export function createProcessor(name: string) {
-    let total = 0;
+  let total = 0;
 
-    return {
-        add(x: number) {
-            total = total + helper(x);
-        },
-        getTotal(): number {
-            return total;
-        },
-        describe(): string {
-            return formatter(name, total);
-        },
-    };
+  return {
+    add(x: number) {
+      total = total + helper(x);
+    },
+    getTotal(): number {
+      return total;
+    },
+    describe(): string {
+      return formatter(name, total);
+    },
+  };
 }

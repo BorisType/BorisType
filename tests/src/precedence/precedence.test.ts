@@ -15,7 +15,7 @@ botest.assertValueEquals(mulFirst, 7, "a + b * c should equal 7 (multiplication 
 // Logical: a && b || c → (a && b) || c
 const t = true;
 const f = false;
-const orResult = t && f || t;
+const orResult = (t && f) || t;
 botest.assertValueEquals(orResult, true, "(true && false) || true should be true");
 
 // Conditional with low-precedence in branches
@@ -29,7 +29,7 @@ botest.assertValueEquals(ternary, 5, "x > 0 ? y + z : z - y should be 5");
 const a3 = 100;
 const b3 = 2;
 const c3 = 5;
-const result = a3 / b3 * c3;
+const result = (a3 / b3) * c3;
 botest.assertValueEquals(result, 250, "(100 / 2) * 5 should be 250");
 
 botest.assertOk();
