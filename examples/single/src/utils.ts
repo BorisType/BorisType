@@ -18,11 +18,11 @@ export function greet(name: string): void {
  */
 export function calculate(numbers: number[]): number {
   let sum = 0;
-  
+
   for (const num of numbers) {
     sum += num;
   }
-  
+
   return sum;
 }
 
@@ -32,5 +32,5 @@ export function calculate(numbers: number[]): number {
  * @returns Отформатированная строка
  */
 export function formatArray<T>(items: T[]): string {
-  return `[${items.join(', ')}]`;
+  return `[${items.join(", ")}]`;
 }

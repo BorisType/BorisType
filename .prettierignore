@@ -15,6 +15,3 @@ docs/.vitepress/dist/
 
 # Schemas (auto-generated)
 schemas/
-
-# TEMP
-examples/

@@ -1,5 +1,5 @@
 const test1 = 52;
-const test2 = 'Hello, World!';
+const test2 = "Hello, World!";
 
 const arrayExample = [1, 2, 3, 4, 5];
 const callableArray: Array<() => void> = [];
@@ -7,7 +7,7 @@ const callableArray: Array<() => void> = [];
 function someFunction(num: number): void {
   const innerVariable1 = 123;
   alert(innerVariable1);
-  const innerVariable2 = 'Inner Hello!';
+  const innerVariable2 = "Inner Hello!";
   alert(innerVariable2);
 
   for (var item of arrayExample) {
@@ -16,7 +16,7 @@ function someFunction(num: number): void {
     const resultValue = item * 2 + num;
 
     callableArray.push(() => {
-      alert(item)
+      alert(item);
       alert(resultValue);
     });
   }
