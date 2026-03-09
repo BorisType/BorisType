@@ -56,9 +56,15 @@ botest.assertValueEquals(cG && "x" && "y", "", "chained: first is falsy, returns
 // =============================================================================
 
 const truthy: any = "hello";
-botest.assertValueEquals("prefix:" + (truthy && "world"), "prefix:world", "&& inside string concat");
+botest.assertValueEquals(
+  "prefix:" + (truthy && "world"),
+  "prefix:world",
+  "&& inside string concat",
+);
 
-function identity(x: any): any { return x; }
+function identity(x: any): any {
+  return x;
+}
 const val: any = 1;
 botest.assertValueEquals(identity(val && 42), 42, "&& as function argument");
 

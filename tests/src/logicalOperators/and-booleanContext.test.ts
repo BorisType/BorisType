@@ -85,17 +85,17 @@ botest.assertValueEquals(forCount, 1, "for: condition with && works");
 
 const t1: any = "hello";
 const t2: any = "world";
-const tern1 = (t1 && t2) ? "truthy" : "falsy";
+const tern1 = t1 && t2 ? "truthy" : "falsy";
 botest.assertValueEquals(tern1, "truthy", "ternary: 'hello' && 'world' is truthy");
 
 const t3: any = "hello";
 const t4: any = 0;
-const tern2 = (t3 && t4) ? "truthy" : "falsy";
+const tern2 = t3 && t4 ? "truthy" : "falsy";
 botest.assertValueEquals(tern2, "falsy", "ternary: 'hello' && 0 is falsy");
 
 const t5: any = 0;
 const t6: any = "world";
-const tern3 = (t5 && t6) ? "truthy" : "falsy";
+const tern3 = t5 && t6 ? "truthy" : "falsy";
 botest.assertValueEquals(tern3, "falsy", "ternary: 0 && 'world' is falsy (left falsy)");
 
 // --- negation ---

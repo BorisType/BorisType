@@ -769,7 +769,11 @@ export function visitBinaryExpression(
     const leftExpr = maybeExtract(visitExpression(node.left, ctx), ctx);
     const tmpName = ctx.bindings.create("la");
     ctx.pendingStatements.push(IR.varDecl(tmpName, null));
-    const assignExpr = IR.assign("=", IR.id(tmpName) as import("../ir/index.ts").IRIdentifier, leftExpr);
+    const assignExpr = IR.assign(
+      "=",
+      IR.id(tmpName) as import("../ir/index.ts").IRIdentifier,
+      leftExpr,
+    );
     let right = maybeExtract(visitExpression(node.right, ctx), ctx);
     if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
       right = IR.grouping(right, getLoc(node.right, ctx));
@@ -803,7 +807,11 @@ export function visitBinaryExpression(
     const leftExpr = maybeExtract(visitExpression(node.left, ctx), ctx);
     const tmpName = ctx.bindings.create("lo");
     ctx.pendingStatements.push(IR.varDecl(tmpName, null));
-    const assignExpr = IR.assign("=", IR.id(tmpName) as import("../ir/index.ts").IRIdentifier, leftExpr);
+    const assignExpr = IR.assign(
+      "=",
+      IR.id(tmpName) as import("../ir/index.ts").IRIdentifier,
+      leftExpr,
+    );
     let right = maybeExtract(visitExpression(node.right, ctx), ctx);
     if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
       right = IR.grouping(right, getLoc(node.right, ctx));
@@ -830,7 +838,11 @@ export function visitBinaryExpression(
     const leftExpr = maybeExtract(visitExpression(node.left, ctx), ctx);
     const tmpName = ctx.bindings.create("nc");
     ctx.pendingStatements.push(IR.varDecl(tmpName, null));
-    const assignExpr = IR.assign("=", IR.id(tmpName) as import("../ir/index.ts").IRIdentifier, leftExpr);
+    const assignExpr = IR.assign(
+      "=",
+      IR.id(tmpName) as import("../ir/index.ts").IRIdentifier,
+      leftExpr,
+    );
     const nullCheck = IR.binary("==", IR.grouping(assignExpr, getLoc(node.left, ctx)), IR.null());
     const undefinedCheck = IR.binary("==", IR.id(tmpName), IR.id("undefined"));
     const test = IR.logical("||", nullCheck, undefinedCheck);

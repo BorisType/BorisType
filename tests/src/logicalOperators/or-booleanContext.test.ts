@@ -76,12 +76,12 @@ botest.assertValueEquals(forCount, 1, "for: condition with || works");
 
 const t1: any = "";
 const t2: any = "value";
-const tern1 = (t1 || t2) ? "truthy" : "falsy";
+const tern1 = t1 || t2 ? "truthy" : "falsy";
 botest.assertValueEquals(tern1, "truthy", "ternary: '' || 'value' is truthy");
 
 const t3: any = 0;
 const t4: any = 0;
-const tern2 = (t3 || t4) ? "truthy" : "falsy";
+const tern2 = t3 || t4 ? "truthy" : "falsy";
 botest.assertValueEquals(tern2, "falsy", "ternary: 0 || 0 is falsy");
 
 // --- negation ---

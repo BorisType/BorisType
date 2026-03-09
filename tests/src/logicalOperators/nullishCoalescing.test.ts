@@ -84,12 +84,18 @@ botest.assertValueEquals(sideEffect, "LR", "both sides evaluated when left undef
 // =============================================================================
 
 const nulVal: any = null;
-botest.assertValueEquals("prefix:" + (nulVal ?? "default"), "prefix:default", "?? inside string concat");
+botest.assertValueEquals(
+  "prefix:" + (nulVal ?? "default"),
+  "prefix:default",
+  "?? inside string concat",
+);
 
 const zeroVal: any = 0;
 botest.assertValueEquals("count:" + (zeroVal ?? 99), "count:0", "?? preserves 0 in concat");
 
-function identity(x: any): any { return x; }
+function identity(x: any): any {
+  return x;
+}
 const undVal: any = undefined;
 botest.assertValueEquals(identity(undVal ?? 42), 42, "?? as function argument");
 

@@ -58,14 +58,20 @@ botest.assertValueEquals(cH || "second" || "third", "first", "chained: first alr
 // =============================================================================
 
 const empty: any = "";
-botest.assertValueEquals("prefix:" + (empty || "default"), "prefix:default", "|| inside string concat");
+botest.assertValueEquals(
+  "prefix:" + (empty || "default"),
+  "prefix:default",
+  "|| inside string concat",
+);
 
 const empty2: any = "";
 const ternaryResult = (empty2 || "val") === "val" ? "yes" : "no";
 botest.assertValueEquals(ternaryResult, "yes", "|| result used in comparison");
 
 // || as function argument
-function identity(x: any): any { return x; }
+function identity(x: any): any {
+  return x;
+}
 const falsy: any = 0;
 botest.assertValueEquals(identity(falsy || 99), 99, "|| as function argument");
 
