@@ -160,10 +160,10 @@ importers:
         specifier: workspace:*
         version: link:../bt-ir
       '@boristype/ws-client':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../ws-client
       '@boristype/ws-version':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../ws-version
       '@types/archiver':
         specifier: ^7.0.0
