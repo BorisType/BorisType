@@ -1,0 +1,13 @@
+{
+  "name": "Try-catch-finally",
+  "tests": {
+    "basic.test.js": "basic try-catch-finally usage",
+    "try-finally-no-error.test.js": "try-finally without error runs both blocks",
+    "try-finally-with-error.test.js": "try-finally with error runs finally then propagates",
+    "catch-skipped.test.js": "catch is skipped when no error, finally still runs",
+    "catch-rethrow.test.js": "catch rethrows, finally runs, error propagates",
+    "nested.test.js": "nested try-catch-finally constructs",
+    "try-catch-only.test.js": "regression: try-catch without finally works",
+    "catch-no-param.test.js": "catch without parameter works with finally"
+  }
+}

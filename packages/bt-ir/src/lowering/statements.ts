@@ -848,25 +848,149 @@ export function visitSwitchStatement(node: ts.SwitchStatement, ctx: VisitorConte
 }
 
 /**
- * Обрабатывает try statement
+ * Обрабатывает try statement.
+ *
+ * Когда присутствует finally блок, выполняется десахаризация,
+ * поскольку нативный finally в BorisScript работает некорректно.
+ *
+ * Паттерн: state machine с переменными __fType (тип завершения)
+ * и __fVal (значение завершения).
+ *
+ * Типы завершения:
+ * - 0 = normal (по умолчанию)
+ * - 2 = throw (исключение)
+ * - (зарезервировано: 1 = return, 3 = break, 4 = continue)
+ *
+ * **try-finally (без catch):**
+ * ```
+ * var __fType = 0;
+ * var __fVal;
+ * try { T } catch (__fc) { __fType = 2; __fVal = __fc; }
+ * F  // finally body
+ * if (__fType === 2) { throw __fVal; }
+ * ```
+ *
+ * **try-catch-finally:**
+ * ```
+ * var __fType = 0;
+ * var __fVal;
+ * try { T } catch (__fc) {
+ *   __fType = 2; __fVal = __fc;
+ *   try {
+ *     var e = __fc; __fType = 0; __fVal = undefined;
+ *     C  // user catch body
+ *   } catch (__fc2) { __fType = 2; __fVal = __fc2; }
+ * }
+ * F  // finally body
+ * if (__fType === 2) { throw __fVal; }
+ * ```
  */
-export function visitTryStatement(node: ts.TryStatement, ctx: VisitorContext): IRStatement {
-  const block = visitBlock(node.tryBlock, ctx);
+export function visitTryStatement(
+  node: ts.TryStatement,
+  ctx: VisitorContext,
+): IRStatement | IRStatement[] {
+  // Без finally — стандартная трансформация, нативный try-catch работает корректно
+  if (!node.finallyBlock) {
+    const block = visitBlock(node.tryBlock, ctx);
 
-  let handler: import("../ir/index.js").IRCatchClause | null = null;
+    let handler: import("../ir/index.js").IRCatchClause | null = null;
+    if (node.catchClause) {
+      const param = node.catchClause.variableDeclaration
+        ? ts.isIdentifier(node.catchClause.variableDeclaration.name)
+          ? node.catchClause.variableDeclaration.name.text
+          : null
+        : null;
+      const body = visitBlock(node.catchClause.block, ctx);
+      handler = IR.catch(param, body);
+    }
+
+    return IR.try(block, handler, null, getLoc(node, ctx));
+  }
+
+  // === Десахаризация try-catch-finally ===
+  return desugarTryFinally(node, ctx);
+}
+
+/**
+ * Десахаризация try-catch-finally через state machine.
+ *
+ * Генерирует последовательность IR statements, имитирующую finally-семантику
+ * с помощью только try-catch конструкций.
+ */
+function desugarTryFinally(node: ts.TryStatement, ctx: VisitorContext): IRStatement[] {
+  const loc = getLoc(node, ctx);
+  const fType = ctx.bindings.create("fType");
+  const fVal = ctx.bindings.create("fVal");
+  const fc = ctx.bindings.create("fc");
+
+  const result: IRStatement[] = [];
+
+  // var __fType = 0;
+  result.push(IR.varDecl(fType, IR.number(0)));
+  // var __fVal;
+  result.push(IR.varDecl(fVal, null));
+
+  // Тело try блока
+  const tryBlock = visitBlock(node.tryBlock, ctx);
+
+  // Statements для outer catch: __fType = 2; __fVal = __fc;
+  const setThrowState: IRStatement[] = [
+    IR.exprStmt(IR.assign("=", IR.id(fType) as IRIdentifier, IR.number(2))),
+    IR.exprStmt(IR.assign("=", IR.id(fVal) as IRIdentifier, IR.id(fc))),
+  ];
+
+  let outerCatchBody: IRStatement[];
+
   if (node.catchClause) {
-    const param = node.catchClause.variableDeclaration
+    // === try-catch-finally: пользователь имеет catch блок ===
+    const userParam = node.catchClause.variableDeclaration
       ? ts.isIdentifier(node.catchClause.variableDeclaration.name)
         ? node.catchClause.variableDeclaration.name.text
         : null
       : null;
-    const body = visitBlock(node.catchClause.block, ctx);
-    handler = IR.catch(param, body);
+
+    const userCatchBlock = visitBlock(node.catchClause.block, ctx);
+
+    // Тело внутреннего try: var e = __fc; __fType = 0; __fVal = undefined; C
+    const innerTryBody: IRStatement[] = [];
+    if (userParam) {
+      innerTryBody.push(IR.varDecl(userParam, IR.id(fc)));
+    }
+    // Сбрасываем state — catch обрабатывает ошибку
+    innerTryBody.push(IR.exprStmt(IR.assign("=", IR.id(fType) as IRIdentifier, IR.number(0))));
+    innerTryBody.push(IR.exprStmt(IR.assign("=", IR.id(fVal) as IRIdentifier, IR.id("undefined"))));
+    innerTryBody.push(...userCatchBlock.body);
+
+    // Внутренний catch для перехвата ошибок из пользовательского catch
+    const fc2 = ctx.bindings.create("fc");
+    const innerCatchBody: IRStatement[] = [
+      IR.exprStmt(IR.assign("=", IR.id(fType) as IRIdentifier, IR.number(2))),
+      IR.exprStmt(IR.assign("=", IR.id(fVal) as IRIdentifier, IR.id(fc2))),
+    ];
+
+    // Outer catch body: set throw state, then inner try-catch
+    outerCatchBody = [
+      ...setThrowState,
+      IR.try(IR.block(innerTryBody), IR.catch(fc2, IR.block(innerCatchBody)), null),
+    ];
+  } else {
+    // === try-finally (без catch): просто запоминаем ошибку ===
+    outerCatchBody = setThrowState;
   }
 
-  const finalizer = node.finallyBlock ? visitBlock(node.finallyBlock, ctx) : null;
+  // Основной try-catch (без finally)
+  result.push(IR.try(tryBlock, IR.catch(fc, IR.block(outerCatchBody)), null, loc));
 
-  return IR.try(block, handler, finalizer, getLoc(node, ctx));
+  // Finally body — инлайним (всегда выполняется)
+  const finallyBlock = visitBlock(node.finallyBlock!, ctx);
+  result.push(...finallyBlock.body);
+
+  // Dispatch: if (__fType === 2) { throw __fVal; }
+  result.push(
+    IR.if(IR.binary("===", IR.id(fType), IR.number(2)), IR.block([IR.throw(IR.id(fVal))])),
+  );
+
+  return result;
 }
 
 // ============================================================================
