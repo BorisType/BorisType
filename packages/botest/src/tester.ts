@@ -209,7 +209,7 @@ async function runTestAsync(testCase: TestCase): Promise<TestResult> {
   const endTime = Date.now();
 
   const timeMs = endTime - startTime;
-  const errorStr = String((resultError as any)?.errorCode);
+  const errorStr = String((resultError as any)?.errorCode ?? (resultError as any)?.customText);
 
   if (errorStr === "undefined") {
     status = "SKIPPED";
@@ -275,23 +275,23 @@ async function runTestAsync(testCase: TestCase): Promise<TestResult> {
   };
 }
 
-function printTestResult(testCase: TestCase, testReuslt: TestResult) {
+function printTestResult(testCase: TestCase, testResult: TestResult) {
   let statusFormatted = "";
   const testNameFormatted = chalk.white(testCase.name);
-  let timeFormatted = chalk.blue(`${testReuslt.time.toFixed(0)}ms`);
+  let timeFormatted = chalk.blue(`${testResult.time.toFixed(0)}ms`);
 
-  if (testReuslt.status === "PASSED") {
-    statusFormatted = chalk.green(testReuslt.status.padEnd(8));
-  } else if (testReuslt.status === "SKIPPED") {
-    statusFormatted = chalk.yellow(testReuslt.status.padEnd(8));
+  if (testResult.status === "PASSED") {
+    statusFormatted = chalk.green(testResult.status.padEnd(8));
+  } else if (testResult.status === "SKIPPED") {
+    statusFormatted = chalk.yellow(testResult.status.padEnd(8));
   } else {
-    statusFormatted = chalk.red(testReuslt.status.padEnd(8));
+    statusFormatted = chalk.red(testResult.status.padEnd(8));
   }
 
   console.log(chalk.gray(`${statusFormatted} ${testNameFormatted} (${timeFormatted})`));
 
-  if (testReuslt.status === "FAILED") {
-    const testAssertion = testReuslt.assertion;
+  if (testResult.status === "FAILED") {
+    const testAssertion = testResult.assertion;
     if (testAssertion) {
       const assertionString = [
         testAssertion.message,
@@ -303,7 +303,7 @@ function printTestResult(testCase: TestCase, testReuslt: TestResult) {
       console.log(assertionString);
     }
 
-    const testError = testReuslt.error;
+    const testError = testResult.error;
     if (testError) {
       const errorLineNumber = getErrorLineNumber(testError);
       console.log(testError);
