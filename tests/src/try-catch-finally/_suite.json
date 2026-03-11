@@ -8,6 +8,12 @@
     "catch-rethrow.test.js": "catch rethrows, finally runs, error propagates",
     "nested.test.js": "nested try-catch-finally constructs",
     "try-catch-only.test.js": "regression: try-catch without finally works",
-    "catch-no-param.test.js": "catch without parameter works with finally"
+    "catch-no-param.test.js": "catch without parameter works with finally",
+    "return-in-try.test.js": "return in try, finally still runs",
+    "return-in-catch.test.js": "return in catch, finally still runs",
+    "return-in-finally.test.js": "return in finally overrides return in try",
+    "return-conditional.test.js": "conditional return in try with finally",
+    "return-try-no-error.test.js": "return in try with catch+finally, no error",
+    "return-multiple.test.js": "multiple return paths in try with finally"
   }
 }
