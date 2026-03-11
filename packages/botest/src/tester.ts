@@ -157,35 +157,23 @@ export async function runTestsAsync(
 }
 
 async function loadTestEnv() {
-  await evalBorisScriptAsync(
-    `RegisterCodeLibrary("x-local://packages/builtin-runtime/build/polyfill.js");`,
-  );
-  await evalBorisScriptAsync(
-    `RegisterCodeLibrary("x-local://packages/builtin-runtime/build/semantic.js");`,
-  );
-  await evalBorisScriptAsync(
-    `RegisterCodeLibrary("x-local://packages/builtin-runtime/build/destructuring.js");`,
-  );
-  await evalBorisScriptAsync(
-    `RegisterCodeLibrary("x-local://packages/builtin-runtime/build/require.js");`,
-  );
-  await evalBorisScriptAsync(
-    `RegisterCodeLibrary("x-local://packages/builtin-runtime/build/cache.js");`,
-  );
-  await evalBorisScriptAsync(
-    `RegisterCodeLibrary("x-local://packages/builtin-runtime/build/filemap.js");`,
-  );
+  await evalBorisScriptAsync(`
+    RegisterCodeLibrary("x-local://packages/builtin-runtime/build/polyfill.js");
+    RegisterCodeLibrary("x-local://packages/builtin-runtime/build/semantic.js");
+    RegisterCodeLibrary("x-local://packages/builtin-runtime/build/destructuring.js");
+    RegisterCodeLibrary("x-local://packages/builtin-runtime/build/require.js");
+    RegisterCodeLibrary("x-local://packages/builtin-runtime/build/cache.js");
+    RegisterCodeLibrary("x-local://packages/builtin-runtime/build/filemap.js");
 
-  await evalBorisScriptAsync(`bt.init_polyfill();`);
-  await evalBorisScriptAsync(`bt.init_require();`);
-  await evalBorisScriptAsync(`bt.init_cache();`);
+    bt.init_polyfill();
+    bt.init_require();
+    bt.init_cache();
 
-  await evalBorisScriptAsync(
-    `RegisterCodeLibrary("x-local://packages/builtin-botest/build/index.js");`,
-  );
-  await evalBorisScriptAsync(`botest.init();`);
+    RegisterCodeLibrary("x-local://packages/builtin-botest/build/index.js");
+    botest.init();
 
-  await evalBorisScriptAsync(`bt.loadFileMap("x-local://tests/build/filemap.json");`);
+    bt.loadFileMap("x-local://tests/build/filemap.json");
+  `);
 }
 
 async function runTestAsync(testCase: TestCase): Promise<TestResult> {
