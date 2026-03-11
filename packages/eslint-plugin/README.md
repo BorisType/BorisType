@@ -42,12 +42,13 @@ export default [
 
 ## Правила
 
-| Правило                                                      | Описание                         | Рекомендовано |
-| ------------------------------------------------------------ | -------------------------------- | ------------- |
-| [no-async-await](./docs/rules/no-async-await.md)             | Запрещает async/await            | ✅            |
-| [no-generators](./docs/rules/no-generators.md)               | Запрещает генераторы и yield     | ✅            |
-| [no-prototype](./docs/rules/no-prototype.md)                 | Запрещает prototype в любом виде | ✅            |
-| [no-class-declaration](./docs/rules/no-class-declaration.md) | Запрещает объявление классов     | ✅            |
+| Правило                                                            | Описание                         | Рекомендовано |
+| ------------------------------------------------------------------ | -------------------------------- | ------------- |
+| [no-async-await](./docs/rules/no-async-await.md)                   | Запрещает async/await            | ✅            |
+| [no-break-in-try-finally](./docs/rules/no-break-in-try-finally.md) | break/continue в try с finally   | ⚠️ warn       |
+| [no-generators](./docs/rules/no-generators.md)                     | Запрещает генераторы и yield     | ✅            |
+| [no-prototype](./docs/rules/no-prototype.md)                       | Запрещает prototype в любом виде | ✅            |
+| [no-class-declaration](./docs/rules/no-class-declaration.md)       | Запрещает объявление классов     | ✅            |
 
 ## Разработка
 

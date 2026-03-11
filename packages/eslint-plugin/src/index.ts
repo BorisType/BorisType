@@ -6,6 +6,7 @@
  */
 
 import noAsyncAwait from "./rules/no-async-await";
+import noBreakInTryFinally from "./rules/no-break-in-try-finally";
 import noClassDeclaration from "./rules/no-class-declaration";
 import noGenerators from "./rules/no-generators";
 import noPrototype from "./rules/no-prototype";
@@ -15,6 +16,7 @@ import noPrototype from "./rules/no-prototype";
  */
 const rules = {
   "no-async-await": noAsyncAwait,
+  "no-break-in-try-finally": noBreakInTryFinally,
   "no-class-declaration": noClassDeclaration,
   "no-generators": noGenerators,
   "no-prototype": noPrototype,
@@ -29,6 +31,7 @@ const configs = {
     plugins: ["@boristype"],
     rules: {
       "@boristype/no-async-await": "error",
+      "@boristype/no-break-in-try-finally": "warn",
       "@boristype/no-generators": "error",
       "@boristype/no-prototype": "error",
       "@boristype/no-class-declaration": "error",
