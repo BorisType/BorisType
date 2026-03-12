@@ -21,7 +21,6 @@ import {
   type IRStatement,
   type IRExpression,
   type IRFunctionDeclaration,
-  type IRFunctionParam,
   type IRObjectProperty,
 } from "../ir/index.ts";
 import type { VisitorContext } from "./visitor.ts";
@@ -42,6 +41,13 @@ import {
 import { needsParentheses, getPrecedence } from "./precedence.ts";
 import { buildFunction, assignDescriptorObj, getEnvFunctionRef } from "./function-builder.ts";
 import {
+  resolvePerCallEnv,
+  buildPerCallEnvStatements,
+  extractFunctionParams,
+  createInnerFunctionContext,
+  applyHoisting,
+} from "./function-helpers.ts";
+import {
   visitBareArrowFunction,
   visitBareFunctionExpression,
   visitBareObjectMethod,
@@ -50,6 +56,7 @@ import {
   POLYFILL_REST_AS_ARRAY_METHODS,
   POLYFILL_REST_POSITIONAL_COUNT,
 } from "../polyfill-spec.ts";
+import { dispatchMethodCall } from "./call-helpers.ts";
 
 // ============================================================================
 // Main expression dispatcher
@@ -157,7 +164,7 @@ function extractOptionalChainTempName(
  * @param reuseTempName - Имя temp переменной для переиспользования (оптимизация)
  * @returns ConditionalExpression с паттерном optional chaining
  */
-function createOptionalCheck(
+export function createOptionalCheck(
   expr: IRExpression,
   buildAlternate: (tempRef: IRExpression) => IRExpression,
   ctx: VisitorContext,
@@ -193,7 +200,7 @@ function createOptionalCheck(
  *   base = conditional от `a?.b`
  *   Создаём новый conditional, переиспользуя temp переменную из base
  */
-function chainOptionalAccess(
+export function chainOptionalAccess(
   base: IRExpression,
   hasQuestionDot: boolean,
   buildAccess: (baseRef: IRExpression) => IRExpression,
@@ -1050,61 +1057,16 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
       return IR.call(IR.dot(obj, methodName, getLoc(node.expression, ctx)), args, loc);
     }
 
-    // Обычный метод без optional: bt.callFunction(bt.getProperty(obj, "method"), args)
-    if (!propHasQuestionDot && !callHasQuestionDot) {
-      // Поддержка chaining: если obj — результат optional chain, встраиваем в alternate
-      return chainOptionalAccess(
-        obj,
-        false,
-        (baseRef) => {
-          const method = IR.btGetProperty(baseRef, IR.string(methodName));
-          return IR.btCallFunction(method, args, loc);
-        },
-        ctx,
-        loc,
-      );
-    }
-
-    // obj?.method() — optional на объекте
-    if (propHasQuestionDot && !callHasQuestionDot) {
-      return createOptionalCheck(
-        obj,
-        (tempRef) => {
-          const method = IR.btGetProperty(tempRef, IR.string(methodName));
-          return IR.btCallFunction(method, args, loc);
-        },
-        ctx,
-        loc,
-      );
-    }
-
-    // obj.method?.() — optional call (проверяем через bt.isFunction)
-    if (!propHasQuestionDot && callHasQuestionDot) {
-      // Сначала получаем метод, потом проверяем его через bt.isFunction
-      return chainOptionalAccess(
-        obj,
-        false,
-        (baseRef) => {
-          const method = IR.btGetProperty(baseRef, IR.string(methodName));
-          return createOptionalFunctionCall(method, args, ctx, loc);
-        },
-        ctx,
-        loc,
-      );
-    }
-
-    // obj?.method?.() — оба optional
-    if (propHasQuestionDot && callHasQuestionDot) {
-      return createOptionalCheck(
-        obj,
-        (tempRef) => {
-          const method = IR.btGetProperty(tempRef, IR.string(methodName));
-          return createOptionalFunctionCall(method, args, ctx, loc);
-        },
-        ctx,
-        loc,
-      );
-    }
+    // Unified dispatch: все optional-chain комбинации obj.method() / obj?.method() / obj.method?.() / obj?.method?.()
+    return dispatchMethodCall(
+      obj,
+      IR.string(methodName),
+      args,
+      propHasQuestionDot,
+      callHasQuestionDot,
+      ctx,
+      loc,
+    );
   }
 
   // obj["method"]() / obj?.["method"]() / obj["method"]?.()
@@ -1124,59 +1086,8 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
       return IR.call(IR.member(obj, prop, true), args, loc);
     }
 
-    // Обычный вызов без optional
-    if (!propHasQuestionDot && !callHasQuestionDot) {
-      return chainOptionalAccess(
-        obj,
-        false,
-        (baseRef) => {
-          const method = IR.btGetProperty(baseRef, prop);
-          return IR.btCallFunction(method, args, loc);
-        },
-        ctx,
-        loc,
-      );
-    }
-
-    // obj?.["method"]()
-    if (propHasQuestionDot && !callHasQuestionDot) {
-      return createOptionalCheck(
-        obj,
-        (tempRef) => {
-          const method = IR.btGetProperty(tempRef, prop);
-          return IR.btCallFunction(method, args, loc);
-        },
-        ctx,
-        loc,
-      );
-    }
-
-    // obj["method"]?.()
-    if (!propHasQuestionDot && callHasQuestionDot) {
-      return chainOptionalAccess(
-        obj,
-        false,
-        (baseRef) => {
-          const method = IR.btGetProperty(baseRef, prop);
-          return createOptionalFunctionCall(method, args, ctx, loc);
-        },
-        ctx,
-        loc,
-      );
-    }
-
-    // obj?.["method"]?.()
-    if (propHasQuestionDot && callHasQuestionDot) {
-      return createOptionalCheck(
-        obj,
-        (tempRef) => {
-          const method = IR.btGetProperty(tempRef, prop);
-          return createOptionalFunctionCall(method, args, ctx, loc);
-        },
-        ctx,
-        loc,
-      );
-    }
+    // Unified dispatch: все optional-chain комбинации obj["method"]() / obj?.["method"]() / obj["method"]?.() / obj?.["method"]?.()
+    return dispatchMethodCall(obj, prop, args, propHasQuestionDot, callHasQuestionDot, ctx, loc);
   }
 
   if (ts.isIdentifier(node.expression)) {
@@ -1217,34 +1128,6 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
   }
 
   return IR.call(visitExpression(node.expression, ctx), args, loc);
-}
-
-/**
- * Создаёт optional function call: проверяет bt.isFunction, затем вызывает.
- *
- * Паттерн: `bt.isFunction(method) ? bt.callFunction(method, args) : undefined`
- *
- * Для эффективности кладём method во временную переменную,
- * чтобы не вычислять его дважды.
- */
-function createOptionalFunctionCall(
-  methodExpr: IRExpression,
-  args: IRExpression[],
-  ctx: VisitorContext,
-  loc?: import("../ir/index.ts").SourceLocation,
-): IRExpression {
-  const tempName = ctx.bindings.create("tmp");
-  ctx.pendingStatements.push(IR.varDecl(tempName, null));
-  const tempRef = IR.id(tempName);
-
-  const assignExpr = IR.assign(
-    "=",
-    IR.id(tempName) as import("../ir/index.ts").IRIdentifier,
-    methodExpr,
-  );
-  const check = IR.btIsFunction(IR.grouping(assignExpr));
-
-  return IR.conditional(check, IR.btCallFunction(tempRef, args, loc), IR.id("undefined"), loc);
 }
 
 // ============================================================================
@@ -1365,87 +1248,39 @@ export function visitObjectLiteral(
       }
 
       const methodName = prop.name.text;
+      const methodScopeResolved = ctx.scopeAnalysis.nodeToScope.get(prop) ?? ctx.currentScope;
+      const capturedVars =
+        methodScopeResolved !== ctx.currentScope
+          ? collectCapturedVarsForArrow(methodScopeResolved, ctx)
+          : [];
+      const perCallEnv = resolvePerCallEnv(methodScopeResolved, ctx);
 
-      // Ищем scope для метода
-      const methodScope = ctx.scopeAnalysis.nodeToScope.get(prop);
-
-      // Per-call env: если метод содержит локальные captured переменные
-      const methodScopeResolved = methodScope ?? ctx.currentScope;
-      const needsPerCallEnv = methodScopeResolved.hasCaptured;
-      const perCallEnvName = needsPerCallEnv ? ctx.bindings.create("fn") + "_env" : undefined;
-
-      // Собираем параметры
-      const params: IRFunctionParam[] = [];
-      const fnCtx: VisitorContext = {
-        mode: ctx.mode,
-        functionParams: new Map(),
-        hoistedFunctions: ctx.hoistedFunctions,
-        typeChecker: ctx.typeChecker,
-        sourceFile: ctx.sourceFile,
-        bindings: ctx.bindings,
-        scopeAnalysis: ctx.scopeAnalysis,
-        currentScope: methodScopeResolved,
-        pendingStatements: [],
-        currentEnvRef: perCallEnvName ?? "__env",
-        currentEnvScope: methodScopeResolved,
-        // При per-call env — не ставим closureEnvScope
-        closureEnvScope: needsPerCallEnv ? undefined : ctx.currentEnvScope,
-        xmlDocumentSymbol: ctx.xmlDocumentSymbol,
-        xmlElemSymbol: ctx.xmlElemSymbol,
-        importBindings: ctx.importBindings,
-        helperFlags: ctx.helperFlags,
-      };
-
-      prop.parameters.forEach((param, index) => {
-        if (ts.isIdentifier(param.name)) {
-          const paramName = param.name.text;
-          const varInfo = resolveVariableInScope(paramName, methodScopeResolved);
-          const isCaptured = varInfo?.isCaptured ?? false;
-          params.push(
-            IR.param(paramName, undefined, undefined, needsPerCallEnv ? false : isCaptured),
-          );
-          fnCtx.functionParams.set(paramName, index);
-        }
+      const fnCtx = createInnerFunctionContext({
+        funcScope: methodScopeResolved,
+        ctx,
+        perCallEnv,
+        capturedVars,
       });
+      const params = extractFunctionParams(
+        prop.parameters,
+        methodScopeResolved,
+        fnCtx,
+        perCallEnv.needed,
+      );
 
       // Тело метода
       let body = visitStatementList(prop.body.statements, fnCtx);
-
-      // Добавляем pending statements из тела (вложенные arrow/методы)
       if (fnCtx.pendingStatements.length > 0) {
         body = [...fnCtx.pendingStatements, ...body];
       }
 
       // Prepend per-call env
-      if (needsPerCallEnv && perCallEnvName) {
-        const perCallEnvCreation = IR.varDecl(
-          perCallEnvName,
-          IR.object([IR.prop("__parent", IR.id("__env"))]),
-        );
-
-        const capturedParamAssignments: IRStatement[] = [];
-        prop.parameters.forEach((param) => {
-          if (ts.isIdentifier(param.name)) {
-            const paramVarInfo = resolveVariableInScope(param.name.text, methodScopeResolved);
-            if (paramVarInfo?.isCaptured) {
-              capturedParamAssignments.push(
-                IR.exprStmt(
-                  IR.assign(
-                    "=",
-                    IR.dot(IR.id(perCallEnvName), param.name.text),
-                    IR.id(param.name.text),
-                  ),
-                ),
-              );
-            }
-          }
-        });
-
-        body = [perCallEnvCreation, ...capturedParamAssignments, ...body];
+      if (perCallEnv.needed && perCallEnv.envName) {
+        body = [
+          ...buildPerCallEnvStatements(perCallEnv.envName, prop.parameters, methodScopeResolved),
+          ...body,
+        ];
       }
-
-      // Собираем captured переменные
-      const capturedVars = methodScope ? collectCapturedVarsForArrow(methodScope, ctx) : [];
 
       // Используем buildFunction для генерации env/desc паттерна
       const fnName = objectName ? `${methodName}__mof_${objectName}` : undefined;
@@ -1568,46 +1403,12 @@ export function visitArrowFunction(node: ts.ArrowFunction, ctx: VisitorContext):
   // Bare mode: plain function без env/desc
   if (ctx.mode === "bare") return visitBareArrowFunction(node, ctx);
 
-  const params: IRFunctionParam[] = [];
-
-  // Находим scope для этой функции
   const funcScope = ctx.scopeAnalysis.nodeToScope.get(node) || ctx.currentScope;
+  const capturedVars = collectCapturedVarsForArrow(funcScope, ctx);
+  const perCallEnv = resolvePerCallEnv(funcScope, ctx);
 
-  // Per-call env: если arrow содержит локальные captured переменные
-  const needsPerCallEnv = funcScope.hasCaptured;
-  const perCallEnvName = needsPerCallEnv ? ctx.bindings.create("fn") + "_env" : undefined;
-
-  const fnCtx: VisitorContext = {
-    mode: ctx.mode,
-    functionParams: new Map(),
-    hoistedFunctions: ctx.hoistedFunctions,
-    typeChecker: ctx.typeChecker,
-    sourceFile: ctx.sourceFile,
-    bindings: ctx.bindings,
-    scopeAnalysis: ctx.scopeAnalysis,
-    currentScope: funcScope,
-    pendingStatements: [],
-    currentEnvRef: perCallEnvName ?? "__env",
-    currentEnvScope: funcScope,
-    // При per-call env — не ставим closureEnvScope, т.к. base = per-call env
-    closureEnvScope: needsPerCallEnv ? undefined : ctx.currentEnvScope,
-    xmlDocumentSymbol: ctx.xmlDocumentSymbol,
-    xmlElemSymbol: ctx.xmlElemSymbol,
-    importBindings: ctx.importBindings,
-    helperFlags: ctx.helperFlags,
-  };
-
-  // Параметры
-  node.parameters.forEach((param, index) => {
-    if (ts.isIdentifier(param.name)) {
-      const paramName = param.name.text;
-      const varInfo = resolveVariableInScope(paramName, funcScope);
-      const isCaptured = varInfo?.isCaptured ?? false;
-      // При per-call env параметры — обычные var, потом копируются в per-call env
-      params.push(IR.param(paramName, undefined, undefined, needsPerCallEnv ? false : isCaptured));
-      fnCtx.functionParams.set(paramName, index);
-    }
-  });
+  const fnCtx = createInnerFunctionContext({ funcScope, ctx, perCallEnv, capturedVars });
+  const params = extractFunctionParams(node.parameters, funcScope, fnCtx, perCallEnv.needed);
 
   // Тело
   let body: IRStatement[];
@@ -1618,43 +1419,15 @@ export function visitArrowFunction(node: ts.ArrowFunction, ctx: VisitorContext):
     body = [IR.return(visitExpression(node.body, fnCtx))];
   }
 
-  // Добавляем pending statements из тела функции (вложенные arrow)
   if (fnCtx.pendingStatements.length > 0) {
     body.unshift(...fnCtx.pendingStatements);
   }
 
   // Prepend per-call env
-  if (needsPerCallEnv && perCallEnvName) {
-    const perCallEnvCreation = IR.varDecl(
-      perCallEnvName,
-      IR.object([IR.prop("__parent", IR.id("__env"))]),
-    );
-
-    const capturedParamAssignments: IRStatement[] = [];
-    node.parameters.forEach((param) => {
-      if (ts.isIdentifier(param.name)) {
-        const paramVarInfo = resolveVariableInScope(param.name.text, funcScope);
-        if (paramVarInfo?.isCaptured) {
-          capturedParamAssignments.push(
-            IR.exprStmt(
-              IR.assign(
-                "=",
-                IR.dot(IR.id(perCallEnvName), param.name.text),
-                IR.id(param.name.text),
-              ),
-            ),
-          );
-        }
-      }
-    });
-
-    body.unshift(perCallEnvCreation, ...capturedParamAssignments);
+  if (perCallEnv.needed && perCallEnv.envName) {
+    body.unshift(...buildPerCallEnvStatements(perCallEnv.envName, node.parameters, funcScope));
   }
 
-  // Собираем captured переменные
-  const capturedVars = collectCapturedVarsForArrow(funcScope, ctx);
-
-  // Используем buildFunction для генерации env/desc паттерна
   const result = buildFunction({
     namePrefix: "arrow",
     params,
@@ -1668,18 +1441,7 @@ export function visitArrowFunction(node: ts.ArrowFunction, ctx: VisitorContext):
     codelibraryDepth: getModuleEnvDepth(ctx),
   });
 
-  // Script mode: вложенные функции остаются в своей functional scope
-  const isNestedInScript = ctx.mode === "script" && ctx.currentScope.type !== "module";
-  if (isNestedInScript) {
-    ctx.pendingStatements.unshift(result.funcDecl, ...result.setupStatements);
-    return getEnvFunctionRef(result.name, getLoc(node, ctx), ctx.currentEnvRef);
-  }
-
-  // Top-level (script) или module: hoist наверх
-  ctx.hoistedFunctions.push(result.funcDecl);
-  ctx.pendingStatements.push(...result.setupStatements);
-
-  // Возвращаем ссылку на дескриптор в __env
+  applyHoisting(result, ctx);
   return getEnvFunctionRef(result.name, getLoc(node, ctx), ctx.currentEnvRef);
 }
 
@@ -1696,45 +1458,13 @@ export function visitFunctionExpression(
   const originalName = node.name?.text ?? ctx.bindings.create("func");
   const isNestedInModule = ctx.mode === "module" && ctx.currentScope.type !== "module";
   const name = isNestedInModule ? ctx.bindings.hoistedName(originalName) : originalName;
-  const params: IRFunctionParam[] = [];
 
-  // Находим scope для этой функции
   const funcScope = ctx.scopeAnalysis.nodeToScope.get(node) || ctx.currentScope;
+  const capturedVars = collectCapturedVarsForArrow(funcScope, ctx);
+  const perCallEnv = resolvePerCallEnv(funcScope, ctx);
 
-  // Per-call env: если function expression содержит локальные captured переменные
-  const needsPerCallEnv = funcScope.hasCaptured;
-  const perCallEnvName = needsPerCallEnv ? ctx.bindings.create("fn") + "_env" : undefined;
-
-  const fnCtx: VisitorContext = {
-    mode: ctx.mode,
-    functionParams: new Map(),
-    hoistedFunctions: ctx.hoistedFunctions,
-    typeChecker: ctx.typeChecker,
-    sourceFile: ctx.sourceFile,
-    bindings: ctx.bindings,
-    scopeAnalysis: ctx.scopeAnalysis,
-    currentScope: funcScope,
-    pendingStatements: [],
-    currentEnvRef: perCallEnvName ?? "__env",
-    currentEnvScope: funcScope,
-    // Per-call env — не ставим closureEnvScope
-    closureEnvScope: needsPerCallEnv ? undefined : undefined,
-    xmlDocumentSymbol: ctx.xmlDocumentSymbol,
-    xmlElemSymbol: ctx.xmlElemSymbol,
-    importBindings: ctx.importBindings,
-    helperFlags: ctx.helperFlags,
-  };
-
-  // Параметры
-  node.parameters.forEach((param, index) => {
-    if (ts.isIdentifier(param.name)) {
-      const paramName = param.name.text;
-      const varInfo = resolveVariableInScope(paramName, funcScope);
-      const isCaptured = varInfo?.isCaptured ?? false;
-      params.push(IR.param(paramName, undefined, undefined, needsPerCallEnv ? false : isCaptured));
-      fnCtx.functionParams.set(paramName, index);
-    }
-  });
+  const fnCtx = createInnerFunctionContext({ funcScope, ctx, perCallEnv, capturedVars });
+  const params = extractFunctionParams(node.parameters, funcScope, fnCtx, perCallEnv.needed);
 
   // Тело
   let body = node.body ? visitStatementList(node.body.statements, fnCtx) : [];
@@ -1743,37 +1473,10 @@ export function visitFunctionExpression(
   }
 
   // Prepend per-call env
-  if (needsPerCallEnv && perCallEnvName) {
-    const perCallEnvCreation = IR.varDecl(
-      perCallEnvName,
-      IR.object([IR.prop("__parent", IR.id("__env"))]),
-    );
-
-    const capturedParamAssignments: IRStatement[] = [];
-    node.parameters.forEach((param) => {
-      if (ts.isIdentifier(param.name)) {
-        const paramVarInfo = resolveVariableInScope(param.name.text, funcScope);
-        if (paramVarInfo?.isCaptured) {
-          capturedParamAssignments.push(
-            IR.exprStmt(
-              IR.assign(
-                "=",
-                IR.dot(IR.id(perCallEnvName), param.name.text),
-                IR.id(param.name.text),
-              ),
-            ),
-          );
-        }
-      }
-    });
-
-    body = [perCallEnvCreation, ...capturedParamAssignments, ...body];
+  if (perCallEnv.needed && perCallEnv.envName) {
+    body = [...buildPerCallEnvStatements(perCallEnv.envName, node.parameters, funcScope), ...body];
   }
 
-  // Собираем captured переменные (аналогично arrow function)
-  const capturedVars = collectCapturedVarsForArrow(funcScope, ctx);
-
-  // Используем buildFunction для генерации env/desc паттерна
   const result = buildFunction({
     name,
     params,
@@ -1787,17 +1490,7 @@ export function visitFunctionExpression(
     codelibraryDepth: getModuleEnvDepth(ctx),
   });
 
-  // Script mode: вложенные функции остаются в своей functional scope
-  const isNestedInScript = ctx.mode === "script" && ctx.currentScope.type !== "module";
-  if (isNestedInScript) {
-    ctx.pendingStatements.unshift(result.funcDecl, ...result.setupStatements);
-    return getEnvFunctionRef(result.name, getLoc(node, ctx), ctx.currentEnvRef);
-  }
-
-  // Top-level (script) или module: hoist наверх
-  ctx.hoistedFunctions.push(result.funcDecl);
-  ctx.pendingStatements.push(...result.setupStatements);
-
+  applyHoisting(result, ctx);
   return getEnvFunctionRef(result.name, getLoc(node, ctx), ctx.currentEnvRef);
 }
 

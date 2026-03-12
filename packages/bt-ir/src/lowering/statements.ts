@@ -20,7 +20,6 @@ import {
   IR,
   type IRStatement,
   type IRExpression,
-  type IRFunctionParam,
   type IRFunctionDeclaration,
   type IRObjectProperty,
   type IRIdentifier,
@@ -41,6 +40,13 @@ import {
 } from "./helpers.ts";
 import { getModuleEnvDepth } from "./env-resolution.ts";
 import { buildFunction } from "./function-builder.ts";
+import {
+  resolvePerCallEnv,
+  buildPerCallEnvStatements,
+  extractFunctionParams,
+  createInnerFunctionContext,
+  applyHoisting,
+} from "./function-helpers.ts";
 import {
   visitBareFunctionDeclaration,
   visitBareVariableStatement,
@@ -330,100 +336,28 @@ export function visitFunctionDeclaration(
   }
 
   const name = node.name.text;
-  const params: IRFunctionParam[] = [];
-
-  // Находим scope для этой функции
   const funcScope = ctx.scopeAnalysis.nodeToScope.get(node) || ctx.currentScope;
-
-  // Собираем captured для проверки (нужно до создания fnCtx)
   const capturedVars = collectCapturedVarsForArrow(funcScope, ctx);
+  const perCallEnv = resolvePerCallEnv(funcScope, ctx);
 
-  // Per-call env: если функция содержит локальные captured переменные
-  // (используемые вложенными замыканиями), создаём отдельный env-объект
-  // ВНУТРИ тела функции при каждом вызове. Это решает:
-  // 1. Shared-state баг (повторные вызовы не перезаписывают данные)
-  // 2. Depth-баг (getEnvDepth корректно считает от funcScope)
-  const needsPerCallEnv = funcScope.hasCaptured;
-  const perCallEnvName = needsPerCallEnv ? ctx.bindings.create("fn") + "_env" : undefined;
-
-  const fnCtx: VisitorContext = {
-    mode: ctx.mode,
-    functionParams: new Map(),
-    hoistedFunctions: ctx.hoistedFunctions,
-    typeChecker: ctx.typeChecker,
-    sourceFile: ctx.sourceFile,
-    bindings: ctx.bindings,
-    scopeAnalysis: ctx.scopeAnalysis,
-    currentScope: funcScope,
-    pendingStatements: [],
-    currentEnvRef: perCallEnvName ?? "__env",
-    currentEnvScope: funcScope,
-    // closureEnvScope: когда per-call env — не ставим, т.к. visitIdentifier
-    // должен использовать currentEnvRef (= per-call env) как базу.
-    // Без per-call env при наличии captures — ставим parent scope (старое поведение).
-    closureEnvScope: capturedVars.length > 0 && !needsPerCallEnv ? ctx.currentEnvScope : undefined,
-    xmlDocumentSymbol: ctx.xmlDocumentSymbol,
-    xmlElemSymbol: ctx.xmlElemSymbol,
-    importBindings: ctx.importBindings,
-    helperFlags: ctx.helperFlags,
-  };
-
-  // Собираем параметры
-  node.parameters.forEach((param, index) => {
-    if (ts.isIdentifier(param.name)) {
-      const paramName = param.name.text;
-      const defaultValue = param.initializer
-        ? visitExpression(param.initializer, fnCtx)
-        : undefined;
-      const isRest = !!param.dotDotDotToken;
-
-      // Проверяем, используется ли параметр в замыкании
-      const varInfo = resolveVariableInScope(paramName, funcScope);
-      const isCaptured = varInfo?.isCaptured ?? false;
-
-      // При per-call env параметры извлекаются как обычные var,
-      // а потом копируются в per-call env явным присваиванием
-      params.push(IR.param(paramName, defaultValue, isRest, needsPerCallEnv ? false : isCaptured));
-      fnCtx.functionParams.set(paramName, index);
-    }
-    // TODO: destructuring parameters
-  });
+  const fnCtx = createInnerFunctionContext({ funcScope, ctx, perCallEnv, capturedVars });
+  const params = extractFunctionParams(
+    node.parameters,
+    funcScope,
+    fnCtx,
+    perCallEnv.needed,
+    visitExpression,
+  );
 
   // Обрабатываем тело функции
   let body = visitStatementList(node.body.statements, fnCtx);
-
-  // Добавляем pending statements из тела (вложенные arrow/методы)
   if (fnCtx.pendingStatements.length > 0) {
     body = [...fnCtx.pendingStatements, ...body];
   }
 
-  // Prepend per-call env: var __fnN_env = { __parent: __env };
-  // + копирование captured параметров: __fnN_env.paramName = paramName
-  if (needsPerCallEnv && perCallEnvName) {
-    const perCallEnvCreation = IR.varDecl(
-      perCallEnvName,
-      IR.object([IR.prop("__parent", IR.id("__env"))]),
-    );
-
-    const capturedParamAssignments: IRStatement[] = [];
-    node.parameters.forEach((param) => {
-      if (ts.isIdentifier(param.name)) {
-        const paramVarInfo = resolveVariableInScope(param.name.text, funcScope);
-        if (paramVarInfo?.isCaptured) {
-          capturedParamAssignments.push(
-            IR.exprStmt(
-              IR.assign(
-                "=",
-                IR.dot(IR.id(perCallEnvName), param.name.text),
-                IR.id(param.name.text),
-              ),
-            ),
-          );
-        }
-      }
-    });
-
-    body = [perCallEnvCreation, ...capturedParamAssignments, ...body];
+  // Prepend per-call env
+  if (perCallEnv.needed && perCallEnv.envName) {
+    body = [...buildPerCallEnvStatements(perCallEnv.envName, node.parameters, funcScope), ...body];
   }
 
   // Module mode: вложенные функции получают уникальное имя при hoisting
@@ -433,11 +367,6 @@ export function visitFunctionDeclaration(
     ctx.mode === "module" &&
     ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
-  // Используем buildFunction для генерации desc паттерна
-  // envRegistrationName = name: вызывающий код использует __env.inner, не __env.__hoisted_inner_0
-  // effectiveEnvRef: всегда передаём ctx.currentEnvRef — дескриптор хранит parent env напрямую.
-  // Отдельный per-function env НЕ создаётся — он бесполезен.
-  // Per-call env (если нужен) создаётся внутри тела функции при каждом вызове.
   const result = buildFunction({
     name: actualName,
     params,
@@ -453,17 +382,7 @@ export function visitFunctionDeclaration(
     codelibraryDepth: getModuleEnvDepth(ctx),
   });
 
-  // Script mode: вложенные функции остаются в своей functional scope
-  const isNestedInScript = ctx.mode === "script" && ctx.currentScope.type !== "module";
-  if (isNestedInScript) {
-    ctx.pendingStatements.unshift(result.funcDecl, ...result.setupStatements);
-    return [];
-  }
-
-  // Top-level (script) или module: hoist наверх
-  ctx.hoistedFunctions.push(result.funcDecl);
-  ctx.pendingStatements.push(...result.setupStatements);
-
+  applyHoisting(result, ctx);
   return [];
 }
 
@@ -1345,47 +1264,24 @@ function visitClassDeclaration(node: ts.ClassDeclaration, ctx: VisitorContext): 
   for (const method of methods) {
     const methodName = (method.name as ts.Identifier).text;
     const methodScope = ctx.scopeAnalysis.nodeToScope.get(method) ?? ctx.currentScope;
-    const needsPerCallEnv = methodScope.hasCaptured;
-    const perCallEnvName = needsPerCallEnv ? ctx.bindings.create("fn") + "_env" : undefined;
+    const perCallEnv = resolvePerCallEnv(methodScope, ctx);
+    const capturedVars =
+      methodScope !== ctx.currentScope ? collectCapturedVarsForArrow(methodScope, ctx) : [];
 
-    // Контекст для тела метода
-    const fnCtx: VisitorContext = {
-      mode: ctx.mode,
-      functionParams: new Map(),
-      hoistedFunctions: ctx.hoistedFunctions,
-      typeChecker: ctx.typeChecker,
-      sourceFile: ctx.sourceFile,
-      bindings: ctx.bindings,
-      scopeAnalysis: ctx.scopeAnalysis,
-      currentScope: methodScope,
-      pendingStatements: [],
-      currentEnvRef: perCallEnvName ?? "__env",
-      currentEnvScope: methodScope,
-      closureEnvScope: needsPerCallEnv ? undefined : ctx.currentEnvScope,
-      xmlDocumentSymbol: ctx.xmlDocumentSymbol,
-      xmlElemSymbol: ctx.xmlElemSymbol,
-      importBindings: ctx.importBindings,
-      helperFlags: ctx.helperFlags,
-      superContext: baseClassExpr ? { baseClassExpr } : undefined,
-    };
-
-    // Параметры
-    const params: IRFunctionParam[] = [];
-    method.parameters.forEach((param, index) => {
-      if (ts.isIdentifier(param.name)) {
-        const paramName = param.name.text;
-        const defaultValue = param.initializer
-          ? visitExpression(param.initializer, fnCtx)
-          : undefined;
-        const isRest = !!param.dotDotDotToken;
-        const varInfo = resolveVariableInScope(paramName, methodScope);
-        const isCaptured = varInfo?.isCaptured ?? false;
-        params.push(
-          IR.param(paramName, defaultValue, isRest, needsPerCallEnv ? false : isCaptured),
-        );
-        fnCtx.functionParams.set(paramName, index);
-      }
+    const fnCtx = createInnerFunctionContext({
+      funcScope: methodScope,
+      ctx,
+      perCallEnv,
+      capturedVars,
+      extra: { superContext: baseClassExpr ? { baseClassExpr } : undefined },
     });
+    const params = extractFunctionParams(
+      method.parameters,
+      methodScope,
+      fnCtx,
+      perCallEnv.needed,
+      visitExpression,
+    );
 
     // Тело
     let body = visitStatementList(method.body!.statements, fnCtx);
@@ -1394,33 +1290,12 @@ function visitClassDeclaration(node: ts.ClassDeclaration, ctx: VisitorContext): 
     }
 
     // Per-call env
-    if (needsPerCallEnv && perCallEnvName) {
-      const perCallEnvCreation = IR.varDecl(
-        perCallEnvName,
-        IR.object([IR.prop("__parent", IR.id("__env"))]),
-      );
-      const capturedParamAssignments: IRStatement[] = [];
-      method.parameters.forEach((param) => {
-        if (ts.isIdentifier(param.name)) {
-          const paramVarInfo = resolveVariableInScope(param.name.text, methodScope);
-          if (paramVarInfo?.isCaptured) {
-            capturedParamAssignments.push(
-              IR.exprStmt(
-                IR.assign(
-                  "=",
-                  IR.dot(IR.id(perCallEnvName), param.name.text),
-                  IR.id(param.name.text),
-                ),
-              ),
-            );
-          }
-        }
-      });
-      body = [perCallEnvCreation, ...capturedParamAssignments, ...body];
+    if (perCallEnv.needed && perCallEnv.envName) {
+      body = [
+        ...buildPerCallEnvStatements(perCallEnv.envName, method.parameters, methodScope),
+        ...body,
+      ];
     }
-
-    const capturedVars =
-      methodScope !== ctx.currentScope ? collectCapturedVarsForArrow(methodScope, ctx) : [];
 
     const funcName = `${className}_${methodName}`;
     const result = buildFunction({
@@ -1470,48 +1345,30 @@ function visitClassDeclaration(node: ts.ClassDeclaration, ctx: VisitorContext): 
   const ctorScope = ctorNode
     ? (ctx.scopeAnalysis.nodeToScope.get(ctorNode) ?? ctx.currentScope)
     : ctx.currentScope;
-  const ctorNeedsPerCallEnv = ctorNode ? ctorScope.hasCaptured : false;
-  const ctorPerCallEnvName = ctorNeedsPerCallEnv ? ctx.bindings.create("fn") + "_env" : undefined;
+  const ctorPerCallEnv = ctorNode
+    ? resolvePerCallEnv(ctorScope, ctx)
+    : { envName: undefined, needed: false };
+  const ctorCapturedVars =
+    ctorNode && ctorScope !== ctx.currentScope ? collectCapturedVarsForArrow(ctorScope, ctx) : [];
 
-  const ctorFnCtx: VisitorContext = {
-    mode: ctx.mode,
-    functionParams: new Map(),
-    hoistedFunctions: ctx.hoistedFunctions,
-    typeChecker: ctx.typeChecker,
-    sourceFile: ctx.sourceFile,
-    bindings: ctx.bindings,
-    scopeAnalysis: ctx.scopeAnalysis,
-    currentScope: ctorScope,
-    pendingStatements: [],
-    currentEnvRef: ctorPerCallEnvName ?? "__env",
-    currentEnvScope: ctorScope,
-    closureEnvScope: ctorNeedsPerCallEnv ? undefined : ctx.currentEnvScope,
-    xmlDocumentSymbol: ctx.xmlDocumentSymbol,
-    xmlElemSymbol: ctx.xmlElemSymbol,
-    importBindings: ctx.importBindings,
-    helperFlags: ctx.helperFlags,
-    superContext: baseClassExpr ? { baseClassExpr } : undefined,
-  };
+  const ctorFnCtx = createInnerFunctionContext({
+    funcScope: ctorScope,
+    ctx,
+    perCallEnv: ctorPerCallEnv,
+    capturedVars: ctorCapturedVars,
+    extra: { superContext: baseClassExpr ? { baseClassExpr } : undefined },
+  });
 
   // Параметры конструктора
-  const ctorParams: IRFunctionParam[] = [];
-  if (ctorNode) {
-    ctorNode.parameters.forEach((param, index) => {
-      if (ts.isIdentifier(param.name)) {
-        const paramName = param.name.text;
-        const defaultValue = param.initializer
-          ? visitExpression(param.initializer, ctorFnCtx)
-          : undefined;
-        const isRest = !!param.dotDotDotToken;
-        const varInfo = resolveVariableInScope(paramName, ctorScope);
-        const isCaptured = varInfo?.isCaptured ?? false;
-        ctorParams.push(
-          IR.param(paramName, defaultValue, isRest, ctorNeedsPerCallEnv ? false : isCaptured),
-        );
-        ctorFnCtx.functionParams.set(paramName, index);
-      }
-    });
-  }
+  const ctorParams = ctorNode
+    ? extractFunctionParams(
+        ctorNode.parameters,
+        ctorScope,
+        ctorFnCtx,
+        ctorPerCallEnv.needed,
+        visitExpression,
+      )
+    : [];
 
   // Тело конструктора: property initializers + explicit body
   let ctorBody: IRStatement[] = [];
@@ -1535,35 +1392,12 @@ function visitClassDeclaration(node: ts.ClassDeclaration, ctx: VisitorContext): 
   }
 
   // Per-call env for constructor
-  if (ctorNeedsPerCallEnv && ctorPerCallEnvName) {
-    const perCallEnvCreation = IR.varDecl(
-      ctorPerCallEnvName,
-      IR.object([IR.prop("__parent", IR.id("__env"))]),
-    );
-    const capturedParamAssignments: IRStatement[] = [];
-    if (ctorNode) {
-      ctorNode.parameters.forEach((param) => {
-        if (ts.isIdentifier(param.name)) {
-          const paramVarInfo = resolveVariableInScope(param.name.text, ctorScope);
-          if (paramVarInfo?.isCaptured) {
-            capturedParamAssignments.push(
-              IR.exprStmt(
-                IR.assign(
-                  "=",
-                  IR.dot(IR.id(ctorPerCallEnvName), param.name.text),
-                  IR.id(param.name.text),
-                ),
-              ),
-            );
-          }
-        }
-      });
-    }
-    ctorBody = [perCallEnvCreation, ...capturedParamAssignments, ...ctorBody];
+  if (ctorPerCallEnv.needed && ctorPerCallEnv.envName && ctorNode) {
+    ctorBody = [
+      ...buildPerCallEnvStatements(ctorPerCallEnv.envName, ctorNode.parameters, ctorScope),
+      ...ctorBody,
+    ];
   }
-
-  const ctorCapturedVars =
-    ctorNode && ctorScope !== ctx.currentScope ? collectCapturedVarsForArrow(ctorScope, ctx) : [];
 
   const ctorFuncName = `${className}_ctor`;
   const ctorResult = buildFunction({
