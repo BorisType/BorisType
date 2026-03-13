@@ -20,6 +20,7 @@ import { IR, type IRProgram, type IRStatement, type IRFunctionDeclaration } from
 import { type ScopeAnalysisResult, type Scope } from "../analyzer/index.ts";
 import { BindingManager } from "./binding.ts";
 import { findSymbolByName } from "./helpers.ts";
+import { type ModeConfig, createModeConfig } from "./mode-config.ts";
 import { visitStatement } from "./statements.ts";
 import { createObjectUnionFunction } from "./spread-helpers.ts";
 
@@ -47,6 +48,8 @@ export type CompileMode = "bare" | "script" | "module";
 export interface VisitorContext {
   /** Режим транспиляции */
   mode: CompileMode;
+  /** Typed configuration flags derived from mode */
+  config: Readonly<ModeConfig>;
   /** Карта параметров текущей функции: имя → индекс */
   functionParams: Map<string, number>;
   /** Hoisted функции (будут вынесены наверх) */
@@ -146,8 +149,10 @@ export function transformToIR(
   scopeAnalysis: ScopeAnalysisResult,
   options: TransformToIROptions = {},
 ): IRProgram {
+  const mode = options.mode ?? "script";
   const ctx: VisitorContext = {
-    mode: options.mode ?? "script",
+    mode,
+    config: createModeConfig(mode),
     functionParams: new Map(),
     hoistedFunctions: [],
     typeChecker,
@@ -170,10 +175,10 @@ export function transformToIR(
     helperFlags: { usesImportMeta: false, usesAbsoluteUrl: false, needsObjectUnion: false },
   };
 
-  const isModuleMode = ctx.mode === "module";
+  const { config } = ctx;
   const body: IRStatement[] = [];
 
-  if (ctx.mode === "script") {
+  if (config.useEnvDescPattern && !config.moduleExports) {
     // Script: __env = {} на top-level (bare не нуждается в __env)
     body.push(IR.envDecl("__env", null));
   }
@@ -211,11 +216,11 @@ export function transformToIR(
   // import.meta и AbsoluteUrl helpers: BT-функции, зарегистрированные в __env
   const helperSetupStatements: IRStatement[] = [];
 
-  if (ctx.helperFlags.usesImportMeta && (ctx.mode === "script" || ctx.mode === "module")) {
+  if (ctx.helperFlags.usesImportMeta && config.useEnvDescPattern) {
     const fileRef =
-      ctx.mode === "script" && ctx.fileKey
+      !config.moduleExports && ctx.fileKey
         ? IR.call(IR.dot(IR.id("bt"), "getFileUrl"), [IR.string(ctx.fileKey)])
-        : ctx.mode === "module" && ctx.currentFileJs
+        : config.moduleExports && ctx.currentFileJs
           ? IR.call(IR.id("AbsoluteUrl"), [IR.string(ctx.currentFileJs)])
           : null;
     if (fileRef) {
@@ -241,7 +246,7 @@ export function transformToIR(
           IR.prop("obj", IR.id("undefined")),
           IR.prop("env", IR.id("__env")),
         ];
-        if (isModuleMode) {
+        if (config.useRefFormat) {
           descProps.push(IR.prop("ref", IR.string(helper.name)));
           descProps.push(IR.prop("lib", IR.dot(IR.id("__env"), "__codelibrary")));
         } else {
@@ -255,16 +260,15 @@ export function transformToIR(
     }
   }
 
-  if (ctx.helperFlags.usesAbsoluteUrl && (ctx.mode === "script" || ctx.mode === "module")) {
+  if (ctx.helperFlags.usesAbsoluteUrl && config.useEnvDescPattern) {
     // __AbsoluteUrl: обычная BT-функция с параметрами url, baseUrl
-    const whenUndefined =
-      ctx.mode === "script"
-        ? // Внутри __AbsoluteUrl: __env.__ImportMeta_dirUrl доступен через __env (он параметр)
-          IR.call(IR.id("UrlAppendPath"), [
-            IR.btCallFunction(IR.dot(IR.id("__env"), "__ImportMeta_dirUrl"), []),
-            IR.id("url"),
-          ])
-        : IR.call(IR.id("AbsoluteUrl"), [IR.id("url")]);
+    const whenUndefined = !config.moduleExports
+      ? // Внутри __AbsoluteUrl: __env.__ImportMeta_dirUrl доступен через __env (он параметр)
+        IR.call(IR.id("UrlAppendPath"), [
+          IR.btCallFunction(IR.dot(IR.id("__env"), "__ImportMeta_dirUrl"), []),
+          IR.id("url"),
+        ])
+      : IR.call(IR.id("AbsoluteUrl"), [IR.id("url")]);
     const whenDefined = IR.call(IR.id("AbsoluteUrl"), [IR.id("url"), IR.id("baseUrl")]);
     const ret = IR.return(
       IR.conditional(
@@ -282,7 +286,7 @@ export function transformToIR(
       IR.prop("obj", IR.id("undefined")),
       IR.prop("env", IR.id("__env")),
     ];
-    if (isModuleMode) {
+    if (config.useRefFormat) {
       absDescProps.push(IR.prop("ref", IR.string("__AbsoluteUrl")));
       absDescProps.push(IR.prop("lib", IR.dot(IR.id("__env"), "__codelibrary")));
     } else {
@@ -296,7 +300,7 @@ export function transformToIR(
     );
   }
 
-  if (isModuleMode) {
+  if (config.moduleExports) {
     // Module: только функции на top-level, весь код в __init(__codelibrary, __module)
     const initBody: IRStatement[] = [
       IR.envDecl("__env", null),
@@ -319,11 +323,10 @@ export function transformToIR(
     body.splice(1, 0, ...helperSetupStatements);
   }
 
-  const isBare = ctx.mode === "bare";
   return IR.program(
     [...helperFunctions, ...ctx.hoistedFunctions, ...body],
     sourceFile.fileName,
-    isBare,
+    !config.useEnvDescPattern,
   );
 }
 

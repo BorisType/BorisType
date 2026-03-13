@@ -201,10 +201,10 @@ export function visitFunctionDeclaration(
   }
 
   // Module mode: вложенные функции получают уникальное имя при hoisting
-  const isNestedInModule = ctx.mode === "module" && ctx.currentScope.type !== "module";
+  const isNestedInModule = ctx.config.moduleExports && ctx.currentScope.type !== "module";
   const actualName = isNestedInModule ? ctx.bindings.hoistedName(name) : name;
   const isExported =
-    ctx.mode === "module" &&
+    ctx.config.moduleExports &&
     ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
   const result = buildFunction({
@@ -215,7 +215,7 @@ export function visitFunctionDeclaration(
     bindings: ctx.bindings,
     loc: getLoc(node, ctx),
     effectiveEnvRef: ctx.currentEnvRef,
-    useRefFormat: ctx.mode === "module",
+    useRefFormat: ctx.config.useRefFormat,
     exportAs: isExported ? name : undefined,
     envRegistrationName: name,
     registrationEnvRef: ctx.currentEnvRef,
@@ -235,7 +235,7 @@ export function visitVariableStatement(
 ): IRStatement | IRStatement[] | null {
   const results: IRStatement[] = [];
   const isExported =
-    ctx.mode === "module" &&
+    ctx.config.moduleExports &&
     ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
   for (const decl of node.declarationList.declarations) {
@@ -293,10 +293,9 @@ export function visitVariableStatement(
               : element.name.text;
             const variableName = element.name.text;
             excludedKeys.push(propertyName);
-            const val =
-              ctx.mode === "bare"
-                ? IR.dot(init, propertyName, getLoc(decl, ctx))
-                : IR.btGetProperty(init, IR.string(propertyName), getLoc(decl, ctx));
+            const val = !ctx.config.wrapPropertyAccess
+              ? IR.dot(init, propertyName, getLoc(decl, ctx))
+              : IR.btGetProperty(init, IR.string(propertyName), getLoc(decl, ctx));
             const initExpr = element.initializer
               ? IR.conditional(
                   IR.binary("!==", val, IR.id("undefined")),
@@ -339,10 +338,9 @@ export function visitVariableStatement(
             results.push(IR.varDecl(actualName, restCall, getLoc(decl, ctx)));
           } else {
             const variableName = element.name.text;
-            const val =
-              ctx.mode === "bare"
-                ? IR.member(IR.id(auxVarName), IR.number(index), true, getLoc(decl, ctx))
-                : IR.btGetProperty(IR.id(auxVarName), IR.number(index), getLoc(decl, ctx));
+            const val = !ctx.config.wrapPropertyAccess
+              ? IR.member(IR.id(auxVarName), IR.number(index), true, getLoc(decl, ctx))
+              : IR.btGetProperty(IR.id(auxVarName), IR.number(index), getLoc(decl, ctx));
             const initExpr = element.initializer
               ? IR.conditional(
                   IR.binary("!==", val, IR.id("undefined")),
@@ -517,13 +515,13 @@ export function visitClassDeclaration(
       loc: getLoc(method, ctx),
       registerInEnv: false, // Не регистрируем отдельно в __env
       effectiveEnvRef: ctx.currentEnvRef,
-      useRefFormat: ctx.mode === "module",
+      useRefFormat: ctx.config.useRefFormat,
       registrationEnvRef: ctx.currentEnvRef,
       codelibraryDepth: getModuleEnvDepth(ctx),
     });
 
     // Hoist method function
-    if (ctx.mode === "module") {
+    if (ctx.config.moduleExports) {
       ctx.hoistedFunctions.push(result.funcDecl);
     } else {
       methodHoistedFunctions.push(result.funcDecl);
@@ -620,13 +618,13 @@ export function visitClassDeclaration(
     registerInEnv: true,
     envRegistrationName: className,
     effectiveEnvRef: ctx.currentEnvRef,
-    useRefFormat: ctx.mode === "module",
+    useRefFormat: ctx.config.useRefFormat,
     registrationEnvRef: ctx.currentEnvRef,
     codelibraryDepth: getModuleEnvDepth(ctx),
   });
 
   // Hoist constructor function
-  if (ctx.mode === "module") {
+  if (ctx.config.moduleExports) {
     ctx.hoistedFunctions.push(ctorResult.funcDecl);
   } else {
     methodHoistedFunctions.push(ctorResult.funcDecl);
@@ -640,14 +638,14 @@ export function visitClassDeclaration(
     IR.exprStmt(IR.assign("=", IR.dot(IR.id(ctorResult.descName), "proto"), IR.id(protoVarName))),
   );
 
-  // Hoist method functions (script mode)
-  if (ctx.mode !== "module" && methodHoistedFunctions.length > 0) {
+  // Hoist method functions (non-module mode)
+  if (!ctx.config.moduleExports && methodHoistedFunctions.length > 0) {
     ctx.pendingStatements.unshift(...methodHoistedFunctions);
   }
 
   // Export support
   const isExported =
-    ctx.mode === "module" &&
+    ctx.config.moduleExports &&
     ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
   if (isExported) {
     ctx.pendingStatements.push(

@@ -1,10 +1,8 @@
 /**
- * Emitter helpers — shared context, indent, variable collection
+ * Emitter helpers — shared context, indent utilities
  *
  * @module emitter/emit-helpers
  */
-
-import type { IRStatement } from "../ir/index.ts";
 
 /**
  * Опции генерации кода
@@ -60,78 +58,4 @@ export function getIndent(ctx: EmitContext): string {
  */
 export function increaseIndent(ctx: EmitContext): EmitContext {
   return { ...ctx, indent: ctx.indent + 1 };
-}
-
-/**
- * Собирает все уникальные имена переменных из statements (рекурсивно)
- * Не заходит внутрь функций (у них своя область видимости)
- */
-export function collectVariableNames(statements: IRStatement[]): Set<string> {
-  const vars = new Set<string>();
-
-  function visit(stmt: IRStatement): void {
-    switch (stmt.kind) {
-      case "VariableDeclaration":
-        // Пропускаем captured переменные - они живут в __env
-        if (!stmt.isCaptured) {
-          vars.add(stmt.name);
-        }
-        break;
-
-      case "BlockStatement":
-        stmt.body.forEach(visit);
-        break;
-
-      case "IfStatement":
-        visit(stmt.consequent);
-        if (stmt.alternate) visit(stmt.alternate);
-        break;
-
-      case "ForStatement":
-        if (stmt.init && stmt.init.kind === "VariableDeclaration") {
-          if (!stmt.init.isCaptured) {
-            vars.add(stmt.init.name);
-          }
-        }
-        visit(stmt.body);
-        break;
-
-      case "ForInStatement":
-        if (stmt.left.kind === "VariableDeclaration") {
-          if (!stmt.left.isCaptured) {
-            vars.add(stmt.left.name);
-          }
-        }
-        visit(stmt.body);
-        break;
-
-      case "WhileStatement":
-      case "DoWhileStatement":
-        visit(stmt.body);
-        break;
-
-      case "SwitchStatement":
-        for (const c of stmt.cases) {
-          c.consequent.forEach(visit);
-        }
-        break;
-
-      case "TryStatement":
-        visit(stmt.block);
-        if (stmt.handler) {
-          // Не добавляем catch-параметр в hoisted vars:
-          // catch(err) — параметр локален для catch-блока,
-          // var err; в начале функции затенит его и сделает undefined.
-          visit(stmt.handler.body);
-        }
-        if (stmt.finalizer) visit(stmt.finalizer);
-        break;
-
-      // FunctionDeclaration - не заходим внутрь
-      // Остальные statements не содержат переменных
-    }
-  }
-
-  statements.forEach(visit);
-  return vars;
 }

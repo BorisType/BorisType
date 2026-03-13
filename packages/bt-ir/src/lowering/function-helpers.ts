@@ -173,6 +173,7 @@ export function createInnerFunctionContext(options: InnerFunctionContextOptions)
 
   return {
     mode: ctx.mode,
+    config: ctx.config,
     functionParams: new Map(),
     hoistedFunctions: ctx.hoistedFunctions,
     typeChecker: ctx.typeChecker,
@@ -222,7 +223,7 @@ export interface HoistingResult {
  * @returns Результат решения
  */
 export function resolveHoistingTarget(ctx: VisitorContext): HoistingResult {
-  const isNestedInScript = ctx.mode === "script" && ctx.currentScope.type !== "module";
+  const isNestedInScript = !ctx.config.moduleExports && ctx.currentScope.type !== "module";
   if (isNestedInScript) {
     return { target: "pending" };
   }

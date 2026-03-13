@@ -310,7 +310,7 @@ export function visitExpression(
     if (ts.isMetaProperty(node.expression) && node.expression.name.text === "meta") {
       const metaProps = ["dirPath", "dirUrl", "filePath", "fileUrl"];
       if (metaProps.includes(propName)) {
-        if (ctx.mode === "bare") {
+        if (!ctx.config.useEnvDescPattern) {
           return IR.id("__invalid__", getLoc(node, ctx));
         }
         ctx.helperFlags.usesImportMeta = true;
@@ -329,8 +329,8 @@ export function visitExpression(
       return IR.dot(obj, propName, loc);
     }
 
-    // bare mode: ?. не поддерживается → __invalid__
-    if (ctx.mode === "bare") {
+    // Without property wrapping: ?. not supported
+    if (!ctx.config.wrapPropertyAccess) {
       if (hasQuestionDot) return IR.id("__invalid__", loc);
       return IR.dot(obj, propName, loc);
     }
@@ -367,8 +367,8 @@ export function visitExpression(
       return IR.member(obj, prop, true, loc);
     }
 
-    // bare mode: ?. не поддерживается → __invalid__
-    if (ctx.mode === "bare") {
+    // Without property wrapping: ?. not supported
+    if (!ctx.config.wrapPropertyAccess) {
       if (hasQuestionDot) return IR.id("__invalid__", loc);
       return IR.member(obj, prop, true, loc);
     }
@@ -455,7 +455,7 @@ export function visitExpression(
 
   // This keyword
   if (node.kind === ts.SyntaxKind.ThisKeyword) {
-    return ctx.mode === "bare"
+    return !ctx.config.useEnvDescPattern
       ? IR.id("this", getLoc(node, ctx))
       : IR.id("__this", getLoc(node, ctx));
   }

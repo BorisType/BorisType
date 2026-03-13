@@ -20,6 +20,9 @@ export {
   type TransformToIROptions,
 } from "./visitor.ts";
 
+// Mode configuration
+export { type ModeConfig, createModeConfig } from "./mode-config.ts";
+
 // Statement visitors
 export {
   visitStatement,

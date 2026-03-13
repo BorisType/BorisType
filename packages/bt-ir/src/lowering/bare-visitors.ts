@@ -325,6 +325,7 @@ function createBareFnCtx(node: ts.Node, ctx: VisitorContext): VisitorContext {
   const funcScope = ctx.scopeAnalysis.nodeToScope.get(node) || ctx.currentScope;
   return {
     mode: ctx.mode,
+    config: ctx.config,
     functionParams: new Map(),
     hoistedFunctions: [],
     typeChecker: ctx.typeChecker,

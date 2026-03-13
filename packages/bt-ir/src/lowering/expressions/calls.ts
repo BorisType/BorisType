@@ -121,8 +121,8 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     const propHasQuestionDot = !!node.expression.questionDotToken; // obj?.method
     const callHasQuestionDot = !!node.questionDotToken; // method?.()
 
-    // bare mode: без polyfill, прямой вызов obj.method(...)
-    if (ctx.mode === "bare") {
+    // Without platform wrapping: direct call obj.method(...)
+    if (!ctx.config.wrapCallExpression) {
       if (propHasQuestionDot || callHasQuestionDot) return IR.id("__invalid__", loc);
       return IR.call(IR.dot(obj, methodName, getLoc(node.expression, ctx)), args, loc);
     }
@@ -201,7 +201,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     const propHasQuestionDot = !!node.expression.questionDotToken;
     const callHasQuestionDot = !!node.questionDotToken;
 
-    if (ctx.mode === "bare") {
+    if (!ctx.config.wrapCallExpression) {
       if (propHasQuestionDot || callHasQuestionDot) return IR.id("__invalid__", loc);
       return IR.call(IR.member(obj, prop, true), args, loc);
     }
@@ -234,7 +234,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     }
 
     // AbsoluteUrl заменяется на __AbsoluteUrl в script/module
-    if (funcName === "AbsoluteUrl" && (ctx.mode === "script" || ctx.mode === "module")) {
+    if (funcName === "AbsoluteUrl" && ctx.config.useEnvDescPattern) {
       ctx.helperFlags.usesAbsoluteUrl = true;
       ctx.helperFlags.usesImportMeta = true; // __AbsoluteUrl использует __ImportMeta_dirUrl
       const url = args[0] ?? IR.id("undefined", loc);
@@ -242,7 +242,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
       return IR.btCallFunction(helperEnvAccess("__AbsoluteUrl", ctx), [url, baseUrl], loc);
     }
 
-    if (ctx.mode === "bare" || isBuiltinFunction(funcName, ctx)) {
+    if (!ctx.config.wrapCallExpression || isBuiltinFunction(funcName, ctx)) {
       return IR.call(IR.id(funcName), args, loc);
     }
 
@@ -271,8 +271,8 @@ export function visitNewExpression(node: ts.NewExpression, ctx: VisitorContext):
   const args = node.arguments?.map((arg) => visitExpression(arg, ctx)) ?? [];
   const loc = getLoc(node, ctx);
 
-  // bare mode: plain call (no class support)
-  if (ctx.mode === "bare") {
+  // Without platform wrapping: plain call (no class support)
+  if (!ctx.config.wrapCallExpression) {
     const callee = visitExpression(node.expression, ctx);
     return IR.call(callee, args, loc);
   }

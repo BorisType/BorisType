@@ -43,13 +43,13 @@ export function visitStatement(
 ): IRStatement | IRStatement[] | null {
   // Function declaration
   if (ts.isFunctionDeclaration(node)) {
-    if (ctx.mode === "bare") return visitBareFunctionDeclaration(node, ctx);
+    if (!ctx.config.useEnvDescPattern) return visitBareFunctionDeclaration(node, ctx);
     return visitFunctionDeclaration(node, ctx);
   }
 
   // Variable statement (let/const/var)
   if (ts.isVariableStatement(node)) {
-    if (ctx.mode === "bare") return visitBareVariableStatement(node, ctx);
+    if (!ctx.config.useEnvDescPattern) return visitBareVariableStatement(node, ctx);
     return visitVariableStatement(node, ctx);
   }
 
@@ -130,7 +130,7 @@ export function visitStatement(
 
   // Namespace declaration: export namespace X { ... }
   if (ts.isModuleDeclaration(node)) {
-    if (ctx.mode === "bare") return visitBareNamespaceDeclaration(node, ctx);
+    if (!ctx.config.useEnvDescPattern) return visitBareNamespaceDeclaration(node, ctx);
     // script/module: namespace не поддерживается
     console.warn(`Unhandled statement: ModuleDeclaration`);
     return null;
@@ -138,13 +138,13 @@ export function visitStatement(
 
   // Import — генерируем require и заполняем importBindings для live binding
   if (ts.isImportDeclaration(node)) {
-    // bare: все импорты вырезаются
-    if (ctx.mode === "bare") return null;
+    // Without env/desc: all imports are stripped
+    if (!ctx.config.useEnvDescPattern) return null;
     return visitImportDeclaration(node, ctx);
   }
 
   // Export declaration: export { a, b as c }
-  if (ts.isExportDeclaration(node) && ctx.mode === "module") {
+  if (ts.isExportDeclaration(node) && ctx.config.moduleExports) {
     return visitExportDeclaration(node, ctx);
   }
   if (ts.isExportDeclaration(node)) {
@@ -152,7 +152,7 @@ export function visitStatement(
   }
 
   // Export assignment: export default expr
-  if (ts.isExportAssignment(node) && ctx.mode === "module") {
+  if (ts.isExportAssignment(node) && ctx.config.moduleExports) {
     return visitExportAssignment(node, ctx);
   }
   if (ts.isExportAssignment(node)) {
@@ -170,7 +170,7 @@ export function visitStatement(
 
   // Class declaration → prototype + constructor pattern
   if (ts.isClassDeclaration(node)) {
-    if (ctx.mode === "bare") {
+    if (!ctx.config.useEnvDescPattern) {
       console.warn(`ClassDeclaration is not supported in bare mode`);
       return null;
     }

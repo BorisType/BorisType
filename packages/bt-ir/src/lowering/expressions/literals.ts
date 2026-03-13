@@ -44,8 +44,8 @@ export function visitIdentifier(node: ts.Identifier, ctx: VisitorContext): IRExp
   const name = node.text;
   const loc = getLoc(node, ctx);
 
-  // Bare mode: прямой identifier без importBindings, argsAccess, envAccess
-  if (ctx.mode === "bare") {
+  // Without env/desc pattern: direct identifier, no importBindings/argsAccess/envAccess
+  if (!ctx.config.useEnvDescPattern) {
     return IR.id(name, loc);
   }
 
@@ -241,8 +241,8 @@ export function visitObjectLiteral(
     // Method declaration: { method() {} }
     // Обрабатываем как замыкание с env/desc (аналогично arrow function)
     else if (ts.isMethodDeclaration(prop) && ts.isIdentifier(prop.name) && prop.body) {
-      // Bare mode: plain function, нет desc/env
-      if (ctx.mode === "bare") {
+      // Without env/desc: plain function, no desc/env
+      if (!ctx.config.useEnvDescPattern) {
         const funcName = visitBareObjectMethod(prop, ctx);
         properties.push(IR.prop(prop.name.text, IR.id(funcName)));
         continue;
@@ -294,13 +294,13 @@ export function visitObjectLiteral(
         capturedVars,
         bindings: ctx.bindings,
         effectiveEnvRef: ctx.currentEnvRef,
-        useRefFormat: ctx.mode === "module",
+        useRefFormat: ctx.config.useRefFormat,
         registrationEnvRef: ctx.currentEnvRef,
         codelibraryDepth: getModuleEnvDepth(ctx),
       });
 
-      // Module mode: все функции на top-level; script/bare: локальный hoisting
-      if (ctx.mode === "module") {
+      // Module mode: все функции на top-level; script: локальный hoisting
+      if (ctx.config.moduleExports) {
         ctx.hoistedFunctions.push(result.funcDecl);
       } else {
         hoistedFunctions.push(result.funcDecl);
@@ -321,9 +321,9 @@ export function visitObjectLiteral(
 
   // Если есть методы — выносим функции в начало pendingStatements и создаём временную переменную
   if (methodDescNames.length > 0) {
-    // Script/bare: вставляем hoisted функции в начало pendingStatements
+    // Script: вставляем hoisted функции в начало pendingStatements
     // Module: функции уже в ctx.hoistedFunctions (top-level)
-    if (ctx.mode !== "module") {
+    if (!ctx.config.moduleExports) {
       ctx.pendingStatements.unshift(...hoistedFunctions);
     }
 

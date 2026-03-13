@@ -49,7 +49,7 @@ export function visitBinaryExpression(
       const obj = visitExpression(node.left.expression, ctx);
       const propName = node.left.name.text;
 
-      if (isInternalAccess(node.left.expression) || ctx.mode === "bare") {
+      if (isInternalAccess(node.left.expression) || !ctx.config.wrapPropertyAccess) {
         const left = IR.dot(obj, propName, getLoc(node.left, ctx));
         if (operator === "=") {
           return IR.assign(operator, left, right, getLoc(node, ctx));
@@ -91,7 +91,7 @@ export function visitBinaryExpression(
       const obj = visitExpression(node.left.expression, ctx);
       const key = visitExpression(node.left.argumentExpression, ctx);
 
-      if (isInternalAccess(node.left.expression) || ctx.mode === "bare") {
+      if (isInternalAccess(node.left.expression) || !ctx.config.wrapPropertyAccess) {
         const left = IR.member(obj, key, true, getLoc(node.left, ctx));
         if (operator === "=") {
           return IR.assign(operator, left, right, getLoc(node, ctx));
@@ -148,8 +148,8 @@ export function visitBinaryExpression(
 
   // Logical operators — maybeExtract для безопасного инлайна conditional
   if (operatorToken === ts.SyntaxKind.AmpersandAmpersandToken) {
-    // In bare mode, emit native && (no bt.isTrue available)
-    if (ctx.mode === "bare") {
+    // Without bt.isTrue, emit native &&
+    if (!ctx.config.useBtIsTrue) {
       let left = maybeExtract(visitExpression(node.left, ctx), ctx);
       let right = maybeExtract(visitExpression(node.right, ctx), ctx);
       if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
@@ -183,8 +183,8 @@ export function visitBinaryExpression(
   }
 
   if (operatorToken === ts.SyntaxKind.BarBarToken) {
-    // In bare mode, emit native || (no bt.isTrue available)
-    if (ctx.mode === "bare") {
+    // Without bt.isTrue, emit native ||
+    if (!ctx.config.useBtIsTrue) {
       let left = maybeExtract(visitExpression(node.left, ctx), ctx);
       let right = maybeExtract(visitExpression(node.right, ctx), ctx);
       if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
@@ -218,8 +218,8 @@ export function visitBinaryExpression(
   }
 
   if (operatorToken === ts.SyntaxKind.QuestionQuestionToken) {
-    // ?? не существует в BS — в bare mode выдаём ошибку
-    if (ctx.mode === "bare") {
+    // ?? не существует в BS — без bt.isTrue lowering невозможен
+    if (!ctx.config.useBtIsTrue) {
       console.warn("?? is not supported in bare mode");
       return IR.id("__invalid__");
     }

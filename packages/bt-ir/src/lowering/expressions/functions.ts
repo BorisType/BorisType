@@ -36,8 +36,8 @@ import { visitExpression } from "./dispatch.ts";
  * Возвращает: __env.__arrowN
  */
 export function visitArrowFunction(node: ts.ArrowFunction, ctx: VisitorContext): IRExpression {
-  // Bare mode: plain function без env/desc
-  if (ctx.mode === "bare") return visitBareArrowFunction(node, ctx);
+  // Without env/desc: plain function
+  if (!ctx.config.useEnvDescPattern) return visitBareArrowFunction(node, ctx);
 
   const funcScope = ctx.scopeAnalysis.nodeToScope.get(node) || ctx.currentScope;
   const capturedVars = collectCapturedVarsForArrow(funcScope, ctx);
@@ -72,7 +72,7 @@ export function visitArrowFunction(node: ts.ArrowFunction, ctx: VisitorContext):
     bindings: ctx.bindings,
     loc: getLoc(node, ctx),
     effectiveEnvRef: ctx.currentEnvRef,
-    useRefFormat: ctx.mode === "module",
+    useRefFormat: ctx.config.useRefFormat,
     registrationEnvRef: ctx.currentEnvRef,
     codelibraryDepth: getModuleEnvDepth(ctx),
   });
@@ -92,11 +92,11 @@ export function visitFunctionExpression(
   node: ts.FunctionExpression,
   ctx: VisitorContext,
 ): IRExpression {
-  // Bare mode: plain function без env/desc
-  if (ctx.mode === "bare") return visitBareFunctionExpression(node, ctx);
+  // Without env/desc: plain function
+  if (!ctx.config.useEnvDescPattern) return visitBareFunctionExpression(node, ctx);
 
   const originalName = node.name?.text ?? ctx.bindings.create("func");
-  const isNestedInModule = ctx.mode === "module" && ctx.currentScope.type !== "module";
+  const isNestedInModule = ctx.config.moduleExports && ctx.currentScope.type !== "module";
   const name = isNestedInModule ? ctx.bindings.hoistedName(originalName) : originalName;
 
   const funcScope = ctx.scopeAnalysis.nodeToScope.get(node) || ctx.currentScope;
@@ -125,7 +125,7 @@ export function visitFunctionExpression(
     bindings: ctx.bindings,
     loc: getLoc(node, ctx),
     effectiveEnvRef: ctx.currentEnvRef,
-    useRefFormat: ctx.mode === "module",
+    useRefFormat: ctx.config.useRefFormat,
     registrationEnvRef: ctx.currentEnvRef,
     codelibraryDepth: getModuleEnvDepth(ctx),
   });
