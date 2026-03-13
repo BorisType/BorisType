@@ -14,6 +14,7 @@ import { emit, type EmitOptions } from "../emitter/index.ts";
 import { analyzeScopes, printScopeTree } from "../analyzer/index.ts";
 import type { IRProgram } from "../ir/index.ts";
 import { runPasses } from "../passes/index.ts";
+import { tryFinallyDesugarPass } from "../passes/try-finally-desugar.ts";
 import { hoistPass } from "../passes/hoist.ts";
 
 /** Режим транспиляции: bare | script | module */
@@ -155,7 +156,7 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
     console.log(JSON.stringify(ir, null, 2));
   }
 
-  ir = runPasses(ir, [hoistPass]);
+  ir = runPasses(ir, [tryFinallyDesugarPass, hoistPass]);
 
   const result = emit(ir, options.emitOptions);
 
@@ -260,7 +261,7 @@ export function compileSourceFile(
     console.log(JSON.stringify(ir, null, 2));
   }
 
-  ir = runPasses(ir, [hoistPass]);
+  ir = runPasses(ir, [tryFinallyDesugarPass, hoistPass]);
 
   const result = emit(ir, options.emitOptions);
 
