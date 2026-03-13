@@ -21,9 +21,8 @@ import type {
   IREnvAssign,
 } from "../ir/index.ts";
 import type { EmitContext } from "./emit-helpers.ts";
-import { getIndent, increaseIndent, collectVariableNames } from "./emit-helpers.ts";
+import { getIndent, increaseIndent } from "./emit-helpers.ts";
 import { emitExpression, emitObjectExpression } from "./emit-expressions.ts";
-import { emitStatementHoisted } from "./emit-hoisting.ts";
 
 /**
  * Генерирует код statement
@@ -98,12 +97,9 @@ export function emitStatement(stmt: IRStatement, ctx: EmitContext): string {
 /**
  * Генерирует код функции с hoisting переменных и вложенных функций.
  *
- * В bare-режиме (ctx.noHoist):
- * - Хоистятся только переменные
- * - Вложенные функции остаются на своих местах
- *
- * В обычном режиме:
- * - Хоистятся и функции, и переменные
+ * После hoist pass функции и переменные уже расположены
+ * в правильном порядке в body. Emitter вставляет только
+ * извлечение параметров из __args (для BT-сигнатуры).
  */
 export function emitFunction(fn: IRFunctionDeclaration, ctx: EmitContext): string {
   const pad = getIndent(ctx);
@@ -117,46 +113,21 @@ export function emitFunction(fn: IRFunctionDeclaration, ctx: EmitContext): strin
   if (isPlain) {
     const paramList = fn.originalParams.map((p) => p.name).join(", ");
     lines.push(`${pad}function ${fn.name}(${paramList}) {`);
+
+    // Plain mode: тело уже содержит hoisted vars и statements
+    for (const stmt of fn.body) {
+      lines.push(emitStatement(stmt, innerCtx));
+    }
   } else {
     lines.push(`${pad}function ${fn.name}(__env, __this, __args) {`);
-  }
 
-  // Имена параметров (уже объявлены)
-  const paramNames = new Set(fn.originalParams.map((p) => p.name));
-
-  // Bare mode: хоистим только переменные, всё остальное по порядку
-  if (ctx.noHoist && isPlain) {
-    const bodyVars = collectVariableNames(fn.body);
-    for (const name of bodyVars) {
-      if (!paramNames.has(name)) {
-        lines.push(`${innerPad}var ${name};`);
-      }
+    // 1. Emit leading FunctionDeclarations (hoisted to top by pass)
+    let bodyIdx = 0;
+    for (; bodyIdx < fn.body.length && fn.body[bodyIdx].kind === "FunctionDeclaration"; bodyIdx++) {
+      lines.push(emitStatement(fn.body[bodyIdx], innerCtx));
     }
-    for (const stmt of fn.body) {
-      lines.push(emitStatementHoisted(stmt, innerCtx));
-    }
-    lines.push(`${pad}}`);
-    return lines.join("\n");
-  }
 
-  // Обычный режим: разделяем body на функции и остальные statements
-  const nestedFunctions: IRFunctionDeclaration[] = [];
-  const otherStatements: IRStatement[] = [];
-  for (const stmt of fn.body) {
-    if (stmt.kind === "FunctionDeclaration") {
-      nestedFunctions.push(stmt);
-    } else {
-      otherStatements.push(stmt);
-    }
-  }
-
-  // 1. Вложенные функции (hoisted наверх)
-  for (const nestedFn of nestedFunctions) {
-    lines.push(emitFunction(nestedFn, innerCtx));
-  }
-
-  // 2. Извлечение параметров из __args (только для BT-сигнатуры)
-  if (!isPlain) {
+    // 2. Извлечение параметров из __args
     fn.originalParams.forEach((param, index) => {
       // Captured-параметры назначаются в __env, обычные — в локальные var
       const target = param.isCaptured ? `__env.${param.name}` : `var ${param.name}`;
@@ -173,19 +144,11 @@ export function emitFunction(fn: IRFunctionDeclaration, ctx: EmitContext): strin
         );
       }
     });
-  }
 
-  // 3. Собираем переменные из тела (кроме имён параметров)
-  const bodyVars = collectVariableNames(otherStatements);
-  for (const name of bodyVars) {
-    if (!paramNames.has(name)) {
-      lines.push(`${innerPad}var ${name};`);
+    // 3. Emit remaining body (hoisted vars + assignments + statements)
+    for (; bodyIdx < fn.body.length; bodyIdx++) {
+      lines.push(emitStatement(fn.body[bodyIdx], innerCtx));
     }
-  }
-
-  // 4. Остальное тело функции с hoisting
-  for (const stmt of otherStatements) {
-    lines.push(emitStatementHoisted(stmt, innerCtx));
   }
 
   lines.push(`${pad}}`);

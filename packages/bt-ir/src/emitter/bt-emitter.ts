@@ -6,11 +6,9 @@
  * @module emitter
  */
 
-import type { IRProgram, IRStatement } from "../ir/index.ts";
+import type { IRProgram } from "../ir/index.ts";
 import type { EmitContext } from "./emit-helpers.ts";
-import { collectVariableNames } from "./emit-helpers.ts";
 import { emitStatement } from "./emit-statements.ts";
-import { emitStatementHoisted } from "./emit-hoisting.ts";
 
 export type { EmitOptions, EmitResult } from "./emit-helpers.ts";
 import type { EmitOptions } from "./emit-helpers.ts";
@@ -37,50 +35,16 @@ export function emit(program: IRProgram, options: EmitOptions = {}): EmitResult 
 }
 
 /**
- * Генерирует код программы с hoisting переменных
- * Порядок:
- * - Обычный режим: 1) функции, 2) объявления переменных, 3) остальной код
- * - Bare-режим: statements в исходном порядке без hoisting на top-level.
- *   Hoisting переменных выполняется только внутри функций.
+ * Генерирует код программы.
+ * После hoist pass все hoisting уже выполнен в IR:
+ * - В обычном режиме: функции, var-declarations (hoistOnly), присваивания
+ * - В bare-режиме: statements в исходном порядке
  */
 function emitProgram(program: IRProgram, ctx: EmitContext): string {
   const lines: string[] = [];
 
-  // Bare mode: top-level — 1:1, без hoisting.
-  // Переменные хоистятся только внутри функций (в emitFunction).
-  if (ctx.noHoist) {
-    for (const stmt of program.body) {
-      lines.push(emitStatement(stmt, ctx));
-    }
-    return lines.join("\n");
-  }
-
-  // Разделяем функции и остальные statements
-  const functions: IRStatement[] = [];
-  const otherStmts: IRStatement[] = [];
-
   for (const stmt of program.body) {
-    if (stmt.kind === "FunctionDeclaration") {
-      functions.push(stmt);
-    } else {
-      otherStmts.push(stmt);
-    }
-  }
-
-  // 1. Выводим функции
-  for (const fn of functions) {
-    lines.push(emitStatement(fn, ctx));
-  }
-
-  // 2. Собираем и выводим объявления переменных
-  const varNames = collectVariableNames(otherStmts);
-  for (const name of varNames) {
-    lines.push(`var ${name};`);
-  }
-
-  // 3. Выводим остальной код (с заменой var на присваивания)
-  for (const stmt of otherStmts) {
-    lines.push(emitStatementHoisted(stmt, ctx));
+    lines.push(emitStatement(stmt, ctx));
   }
 
   return lines.join("\n");

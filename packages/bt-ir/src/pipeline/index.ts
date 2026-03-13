@@ -13,6 +13,8 @@ import { transformToIR } from "../lowering/index.ts";
 import { emit, type EmitOptions } from "../emitter/index.ts";
 import { analyzeScopes, printScopeTree } from "../analyzer/index.ts";
 import type { IRProgram } from "../ir/index.ts";
+import { runPasses } from "../passes/index.ts";
+import { hoistPass } from "../passes/hoist.ts";
 
 /** Режим транспиляции: bare | script | module */
 export type CompileMode = "bare" | "script" | "module";
@@ -153,6 +155,8 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
     console.log(JSON.stringify(ir, null, 2));
   }
 
+  ir = runPasses(ir, [hoistPass]);
+
   const result = emit(ir, options.emitOptions);
 
   const outputPath = options.filename ? options.filename.replace(/\.tsx?$/, ".js") : "output.js";
@@ -255,6 +259,8 @@ export function compileSourceFile(
     console.log("\n=== IR ===");
     console.log(JSON.stringify(ir, null, 2));
   }
+
+  ir = runPasses(ir, [hoistPass]);
 
   const result = emit(ir, options.emitOptions);
 
