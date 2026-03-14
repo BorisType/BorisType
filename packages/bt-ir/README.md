@@ -36,7 +36,7 @@ const result = compile(
 `,
   {
     filename: "test.ts",
-    compileMode: "script",
+    mode: "script",
   },
 );
 
@@ -58,7 +58,7 @@ console.log(result.outputs[0].code);
 import { compileFile } from "bt-ir";
 
 const result = compileFile("./src/index.ts", {
-  compileMode: "module",
+  mode: "module",
 });
 
 console.log(result.outputs[0].code);
@@ -83,8 +83,7 @@ const program = ts.createProgram(["src/index.ts"], {});
 const sourceFile = program.getSourceFile("src/index.ts")!;
 
 const result = compileSourceFile(sourceFile, program, {
-  compileMode: "module",
-  cwd: process.cwd(),
+  mode: "module",
 });
 
 console.log(result.outputs[0].code);
@@ -105,13 +104,15 @@ console.log(result.outputs[0].code);
 ```typescript
 interface CompileOptions {
   /** Режим компиляции: bare, script или module */
-  compileMode?: "bare" | "script" | "module";
-
-  /** Текущая рабочая директория (для разрешения относительных путей) */
-  cwd?: string;
+  mode?: "bare" | "script" | "module";
 
   /** Имя исходного файла (для функции compile()) */
   filename?: string;
+
+  /** Путь выходного файла (для compileSourceFile) */
+  outputPath?: string;
+
+  /** Дополнительные опции (fileKey, currentFileJs для script/module) */
 }
 ```
 
@@ -190,7 +191,7 @@ const bareResult = compile(
     return str.length;
   }
 `,
-  { compileMode: "bare" },
+  { mode: "bare" },
 );
 
 // Script mode - полные возможности
@@ -199,7 +200,7 @@ const scriptResult = compile(
   const obj = { foo: "bar" };
   alert(obj.foo);
 `,
-  { compileMode: "script" },
+  { mode: "script" },
 );
 
 // Module mode - codelibrary
@@ -209,7 +210,7 @@ const moduleResult = compile(
     alert("Hello " + name);
   }
 `,
-  { compileMode: "module" },
+  { mode: "module" },
 );
 ```
 
@@ -253,6 +254,8 @@ TypeScript Source
 [Scope Analyzer]     ← Анализ captured переменных
       ↓
 [IR Lowering]        ← Преобразование TS AST → IR
+      ↓
+[IR Passes]          ← try-finally desugar, hoist
       ↓
 [BT Emitter]         ← Генерация BorisScript
       ↓
@@ -331,7 +334,8 @@ bt-ir/
 │   ├── pipeline/         # Конвейер компиляции
 │   ├── analyzer/         # Анализ scope
 │   ├── ir/               # Определения IR нод
-│   ├── lowering/         # Трансформация TS AST → IR
+│   ├── lowering/         # Трансформация TS AST → IR (statements/, expressions/)
+│   ├── passes/           # IR → IR (try-finally desugar, hoist)
 │   └── emitter/          # Генерация IR → BorisScript
 ├── example/              # Примеры использования
 ├── build/                # Скомпилированный вывод
