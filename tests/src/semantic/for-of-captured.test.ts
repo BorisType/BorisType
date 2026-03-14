@@ -11,15 +11,20 @@ function captureConstInLoop(): (() => number)[] {
   const arr = [1, 2, 3];
   const result: (() => number)[] = [];
   for (const item of arr) {
-    result.push(() => item);
+    const someValue = 123;
+    result.push(() => {
+      const resultValue = someValue + item;
+      const doubled = (arg0: number) => arg0 * 2;
+      return doubled(resultValue);
+    });
   }
   return result;
 }
 
 const callbacks = captureConstInLoop();
-botest.assertValueEquals(callbacks[0](), 1, "const capture: first sees 1");
-botest.assertValueEquals(callbacks[1](), 2, "const capture: second sees 2");
-botest.assertValueEquals(callbacks[2](), 3, "const capture: third sees 3");
+botest.assertValueEquals(callbacks[0](), 248, "const capture: first sees 1");
+botest.assertValueEquals(callbacks[1](), 250, "const capture: second sees 2");
+botest.assertValueEquals(callbacks[2](), 252, "const capture: third sees 3");
 
 botest.assertOk();
 

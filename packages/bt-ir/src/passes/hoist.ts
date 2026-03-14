@@ -58,6 +58,39 @@ export const hoistPass: IRPass = {
 // ============================================================================
 
 /**
+ * Рекурсивно собирает все FunctionDeclaration в текущем scope.
+ * Не заходит внутрь тел функций (у них свой scope).
+ */
+function collectFunctionDeclarations(stmts: IRStatement[]): IRFunctionDeclaration[] {
+  const result: IRFunctionDeclaration[] = [];
+  forEachStatement(
+    stmts,
+    (stmt) => {
+      if (stmt.kind === "FunctionDeclaration") {
+        result.push(stmt as IRFunctionDeclaration);
+      }
+    },
+    { enterFunctions: false },
+  );
+  return result;
+}
+
+/**
+ * Рекурсивно удаляет все FunctionDeclaration из дерева (заменяет на пустой массив).
+ * Не заходит внутрь тел функций.
+ */
+function removeFunctionDeclarations(stmts: IRStatement[]): IRStatement[] {
+  return mapStatements(
+    stmts,
+    (stmt) => {
+      if (stmt.kind === "FunctionDeclaration") return [];
+      return null;
+    },
+    { enterFunctions: false },
+  );
+}
+
+/**
  * Выполняет hoisting для одного scope (top-level или function body).
  *
  * @param stmts - Тело scope
@@ -75,23 +108,17 @@ function hoistScope(stmts: IRStatement[], paramNames: Set<string> | null): IRSta
     }
   }
 
-  // 2. Разделяем FunctionDeclaration от остальных
-  const functions: IRFunctionDeclaration[] = [];
-  const otherStmts: IRStatement[] = [];
+  // 2. Собираем ВСЕ FunctionDeclaration рекурсивно (в т.ч. из циклов, блоков)
+  const functions = collectFunctionDeclarations(stmts);
 
-  for (const stmt of stmts) {
-    if (stmt.kind === "FunctionDeclaration") {
-      functions.push(stmt as IRFunctionDeclaration);
-    } else {
-      otherStmts.push(stmt);
-    }
-  }
+  // 2.1. Удаляем FunctionDeclaration из тела (они переместятся наверх)
+  const stmtsWithoutFns = removeFunctionDeclarations(stmts);
 
-  // 3. Рекурсивно обрабатываем вложенные функции
+  // 3. Рекурсивно обрабатываем вложенные функции (hoisting в их body)
   const hoistedFunctions = functions.map((fn) => hoistFunction(fn));
 
   // 4. Заменяем VarDecl → assignments в основном теле
-  const transformedBody = transformVarDeclsToAssignments(otherStmts);
+  const transformedBody = transformVarDeclsToAssignments(stmtsWithoutFns);
 
   // 4.1. Рекурсивно обрабатываем вложенные функции (внутри blocks, if, etc.)
   const finalBody = hoistInFunctionsInList(transformedBody);
