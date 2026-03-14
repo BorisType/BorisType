@@ -298,15 +298,12 @@ BorisScript Output
 bt-ir включает CLI для тестирования:
 
 ```bash
-# Компилировать один файл
-node --experimental-strip-types src/cli.ts example/src/index.ts
-
-# Компилировать с выводом
-node --experimental-strip-types src/cli.ts example/src/index.ts -o example/build/index.js
-
 # После сборки
 npm run build
-node build/cli.js example/src/index.ts
+node build/cli.js path/to/file.ts
+
+# С выводом в файл
+node build/cli.js path/to/file.ts -o output.js
 ```
 
 ## Разработка
@@ -321,8 +318,8 @@ npm run build
 # Запустить тесты
 npm test
 
-# Разработка с примерами
-npm run build && node build/cli.js example/src/index.ts
+# Разработка
+npm run build && node build/cli.js path/to/your/file.ts
 ```
 
 ## Структура проекта
@@ -337,7 +334,6 @@ bt-ir/
 │   ├── lowering/         # Трансформация TS AST → IR (statements/, expressions/)
 │   ├── passes/           # IR → IR (try-finally desugar, hoist)
 │   └── emitter/          # Генерация IR → BorisScript
-├── example/              # Примеры использования
 ├── build/                # Скомпилированный вывод
 └── README.md             # Этот файл
 ```

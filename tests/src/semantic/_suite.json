@@ -11,6 +11,7 @@
     "codelibrary-module.test.js": "module codelibrary resolution",
     "module-func-calls.test.js": "module-level function calls from per-call env",
     "global-cache.test.js": "global cache",
-    "func-expr.test.js": "function expression vs arrow function parity"
+    "func-expr.test.js": "function expression vs arrow function parity",
+    "for-of-captured.test.js": "for-of loop with captured variables in closures"
   }
 }

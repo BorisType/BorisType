@@ -599,12 +599,7 @@ bt-ir/
 │   │   ├── emit-expressions.ts
 │   │   ├── emit-polyfills.ts
 │   │   └── emit-helpers.ts
-│   └── polyfill-spec.ts      # Polyfill registry
-├── example/                   # Example usage
-│   ├── src/
-│   │   └── index.ts
-│   ├── tsconfig.json
-│   └── build/
+│   └── polyfill-spec.ts
 └── build/                     # Compiled output
     └── ...
 ```
