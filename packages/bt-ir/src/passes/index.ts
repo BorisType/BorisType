@@ -25,6 +25,7 @@ import type { IRPass } from "./types.ts";
  *
  * Каждый pass получает результат предыдущего.
  * Если массив пустой — возвращает программу без изменений.
+ * При ошибке в pass — добавляет имя pass в сообщение для отладки.
  *
  * @param program - Входная IR программа
  * @param passes - Массив passes для применения
@@ -33,7 +34,13 @@ import type { IRPass } from "./types.ts";
 export function runPasses(program: IRProgram, passes: IRPass[]): IRProgram {
   let result = program;
   for (const pass of passes) {
-    result = pass.run(result);
+    try {
+      result = pass.run(result);
+    } catch (e) {
+      throw new Error(`Pass "${pass.name}" failed: ${e instanceof Error ? e.message : e}`, {
+        cause: e,
+      });
+    }
   }
   return result;
 }

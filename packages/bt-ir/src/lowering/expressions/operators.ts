@@ -22,6 +22,7 @@ import {
 } from "../helpers.ts";
 import { needsParentheses, getPrecedence } from "../precedence.ts";
 import { visitExpression, maybeExtract } from "./dispatch.ts";
+import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 
 // ============================================================================
 // Binary expressions
@@ -142,7 +143,15 @@ export function visitBinaryExpression(
       return IR.assign(operator, left as any, right, getLoc(node, ctx));
     }
 
-    console.warn("Invalid assignment target");
+    ctx.diagnostics.push(
+      createBtDiagnostic(
+        ctx.sourceFile,
+        node,
+        "Invalid assignment target",
+        ts.DiagnosticCategory.Error,
+        BtDiagnosticCode.InvalidAssignmentTarget,
+      ),
+    );
     return IR.id("__invalid__");
   }
 
@@ -220,7 +229,15 @@ export function visitBinaryExpression(
   if (operatorToken === ts.SyntaxKind.QuestionQuestionToken) {
     // ?? не существует в BS — без bt.isTrue lowering невозможен
     if (!ctx.config.useBtIsTrue) {
-      console.warn("?? is not supported in bare mode");
+      ctx.diagnostics.push(
+        createBtDiagnostic(
+          ctx.sourceFile,
+          node,
+          "?? is not supported in bare mode",
+          ts.DiagnosticCategory.Error,
+          BtDiagnosticCode.NullishCoalescingBareMode,
+        ),
+      );
       return IR.id("__invalid__");
     }
 
@@ -246,7 +263,15 @@ export function visitBinaryExpression(
   // Binary operators — maybeExtract для безопасного инлайна conditional
   const operator = ts.tokenToString(operatorToken);
   if (!operator) {
-    console.warn(`Unknown operator: ${ts.SyntaxKind[operatorToken]}`);
+    ctx.diagnostics.push(
+      createBtDiagnostic(
+        ctx.sourceFile,
+        node,
+        `Unknown operator: ${ts.SyntaxKind[operatorToken]}`,
+        ts.DiagnosticCategory.Error,
+        BtDiagnosticCode.UnknownOperator,
+      ),
+    );
     return IR.id("__unknown__");
   }
 
@@ -329,6 +354,14 @@ export function visitPostfixUnaryExpression(
     );
   }
 
-  console.warn("Invalid update expression operand");
+  ctx.diagnostics.push(
+    createBtDiagnostic(
+      ctx.sourceFile,
+      node,
+      "Invalid update expression operand",
+      ts.DiagnosticCategory.Error,
+      BtDiagnosticCode.InvalidUpdateOperand,
+    ),
+  );
   return IR.id("__invalid__");
 }

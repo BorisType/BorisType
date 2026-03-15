@@ -18,6 +18,7 @@ export {
   type VisitorContext,
   type CompileMode,
   type TransformToIROptions,
+  type TransformResult,
 } from "./visitor.ts";
 
 // Mode configuration

@@ -29,5 +29,10 @@ export {
   type CompileOutput,
   type CompileMode,
 } from "./pipeline/index.ts";
+export {
+  createBtDiagnostic,
+  createBtDiagnosticMessage,
+  BtDiagnosticCode,
+} from "./pipeline/diagnostics.ts";
 export { type IRProgram, type IRStatement, type IRExpression } from "./ir/index.ts";
 export { emit } from "./emitter/index.ts";

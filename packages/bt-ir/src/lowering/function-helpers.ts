@@ -196,6 +196,7 @@ export function createInnerFunctionContext(options: InnerFunctionContextOptions)
     xmlElemSymbol: ctx.xmlElemSymbol,
     importBindings: ctx.importBindings,
     helperFlags: ctx.helperFlags,
+    diagnostics: ctx.diagnostics,
     ...extra,
   };
 }

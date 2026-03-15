@@ -11,6 +11,7 @@ import { IR, type IRStatement } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
 import { visitExpression, resolveCallableRef } from "../expressions.ts";
 import { getLoc } from "../helpers.ts";
+import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 import {
   visitBareFunctionDeclaration,
   visitBareVariableStatement,
@@ -132,7 +133,15 @@ export function visitStatement(
   if (ts.isModuleDeclaration(node)) {
     if (!ctx.config.useEnvDescPattern) return visitBareNamespaceDeclaration(node, ctx);
     // script/module: namespace не поддерживается
-    console.warn(`Unhandled statement: ModuleDeclaration`);
+    ctx.diagnostics.push(
+      createBtDiagnostic(
+        ctx.sourceFile,
+        node,
+        "Unhandled statement: ModuleDeclaration",
+        ts.DiagnosticCategory.Warning,
+        BtDiagnosticCode.ModuleDeclarationUnsupported,
+      ),
+    );
     return null;
   }
 
@@ -171,12 +180,28 @@ export function visitStatement(
   // Class declaration → prototype + constructor pattern
   if (ts.isClassDeclaration(node)) {
     if (!ctx.config.useEnvDescPattern) {
-      console.warn(`ClassDeclaration is not supported in bare mode`);
+      ctx.diagnostics.push(
+        createBtDiagnostic(
+          ctx.sourceFile,
+          node,
+          "ClassDeclaration is not supported in bare mode",
+          ts.DiagnosticCategory.Error,
+          BtDiagnosticCode.ClassDeclarationBareMode,
+        ),
+      );
       return null;
     }
     return visitClassDeclaration(node, ctx);
   }
 
-  console.warn(`Unhandled statement: ${ts.SyntaxKind[node.kind]}`);
+  ctx.diagnostics.push(
+    createBtDiagnostic(
+      ctx.sourceFile,
+      node,
+      `Unhandled statement: ${ts.SyntaxKind[node.kind]}`,
+      ts.DiagnosticCategory.Error,
+      BtDiagnosticCode.UnhandledStatement,
+    ),
+  );
   return null;
 }

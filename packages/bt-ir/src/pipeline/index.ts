@@ -16,6 +16,7 @@ import type { IRProgram } from "../ir/index.ts";
 import { runPasses } from "../passes/index.ts";
 import { tryFinallyDesugarPass } from "../passes/try-finally-desugar.ts";
 import { hoistPass } from "../passes/hoist.ts";
+import { createBtDiagnosticMessage, BtDiagnosticCode } from "./diagnostics.ts";
 
 /** Режим транспиляции: bare | script | module */
 export type CompileMode = "bare" | "script" | "module";
@@ -64,8 +65,8 @@ export interface CompileResult {
   outputs: CompileOutput[];
   /** IR (если debug) */
   ir?: IRProgram;
-  /** Ошибки компиляции */
-  errors: string[];
+  /** Диагностики компиляции (TS + bt-ir) */
+  diagnostics: ts.Diagnostic[];
 }
 
 /**
@@ -77,7 +78,7 @@ export interface CompileResult {
  */
 export function compile(sourceCode: string, options: CompileOptions = {}): CompileResult {
   const filename = options.filename ?? "input.ts";
-  const errors: string[] = [];
+  const allDiagnostics: ts.Diagnostic[] = [];
 
   // Создаём TypeScript Program
   const tsOptions: ts.CompilerOptions = {
@@ -98,24 +99,21 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
     return {
       success: false,
       outputs: [],
-      errors: ["Failed to parse source file"],
+      diagnostics: [
+        createBtDiagnosticMessage(
+          "Failed to parse source file",
+          ts.DiagnosticCategory.Error,
+          BtDiagnosticCode.TransformFailed,
+        ),
+      ],
     };
   }
 
-  // Проверяем TypeScript ошибки (фильтруем ошибки из node_modules)
-  const diagnostics = ts.getPreEmitDiagnostics(program);
-  for (const diag of diagnostics) {
-    // Пропускаем ошибки из node_modules
-    if (diag.file?.fileName.includes("node_modules")) {
-      continue;
-    }
-    const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
-    if (diag.file && diag.start !== undefined) {
-      const { line, character } = diag.file.getLineAndCharacterOfPosition(diag.start);
-      errors.push(`${diag.file.fileName}:${line + 1}:${character + 1}: ${message}`);
-    } else {
-      errors.push(message);
-    }
+  // Собираем TypeScript диагностики (фильтруем node_modules)
+  const tsDiagnostics = ts.getPreEmitDiagnostics(program);
+  for (const diag of tsDiagnostics) {
+    if (diag.file?.fileName.includes("node_modules")) continue;
+    allDiagnostics.push(diag);
   }
 
   // Анализируем scopes
@@ -138,16 +136,25 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
 
   let ir: IRProgram;
   try {
-    ir = transformToIR(sourceFile, typeChecker, scopeAnalysis, {
+    const transformResult = transformToIR(sourceFile, typeChecker, scopeAnalysis, {
       mode,
       fileKey: options.fileKey,
       currentFileJs: options.currentFileJs,
     });
+    ir = transformResult.ir;
+    allDiagnostics.push(...transformResult.diagnostics);
   } catch (e) {
+    allDiagnostics.push(
+      createBtDiagnosticMessage(
+        `IR transformation failed: ${e instanceof Error ? e.message : e}`,
+        ts.DiagnosticCategory.Error,
+        BtDiagnosticCode.TransformFailed,
+      ),
+    );
     return {
       success: false,
       outputs: [],
-      errors: [`IR transformation failed: ${e}`],
+      diagnostics: allDiagnostics,
     };
   }
 
@@ -156,14 +163,39 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
     console.log(JSON.stringify(ir, null, 2));
   }
 
-  ir = runPasses(ir, [tryFinallyDesugarPass, hoistPass]);
+  try {
+    ir = runPasses(ir, [tryFinallyDesugarPass, hoistPass]);
+  } catch (e) {
+    allDiagnostics.push(
+      createBtDiagnosticMessage(
+        `${e instanceof Error ? e.message : e}`,
+        ts.DiagnosticCategory.Error,
+        BtDiagnosticCode.PassFailed,
+      ),
+    );
+    return { success: false, outputs: [], diagnostics: allDiagnostics };
+  }
 
-  const result = emit(ir, options.emitOptions);
+  let result;
+  try {
+    result = emit(ir, options.emitOptions);
+  } catch (e) {
+    allDiagnostics.push(
+      createBtDiagnosticMessage(
+        `Emit failed: ${e instanceof Error ? e.message : e}`,
+        ts.DiagnosticCategory.Error,
+        BtDiagnosticCode.EmitFailed,
+      ),
+    );
+    return { success: false, outputs: [], diagnostics: allDiagnostics };
+  }
 
   const outputPath = options.filename ? options.filename.replace(/\.tsx?$/, ".js") : "output.js";
 
+  const hasErrors = allDiagnostics.some((d) => d.category === ts.DiagnosticCategory.Error);
+
   return {
-    success: errors.length === 0,
+    success: !hasErrors,
     outputs: [
       {
         path: outputPath,
@@ -172,7 +204,7 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
       },
     ],
     ir: options.debugIR ? ir : undefined,
-    errors,
+    diagnostics: allDiagnostics,
   };
 }
 
@@ -190,7 +222,13 @@ export function compileFile(filePath: string, options: CompileOptions = {}): Com
     return {
       success: false,
       outputs: [],
-      errors: [`File not found: ${absolutePath}`],
+      diagnostics: [
+        createBtDiagnosticMessage(
+          `File not found: ${absolutePath}`,
+          ts.DiagnosticCategory.Error,
+          BtDiagnosticCode.TransformFailed,
+        ),
+      ],
     };
   }
 
@@ -217,20 +255,10 @@ export function compileSourceFile(
   options: CompileOptions = {},
 ): CompileResult {
   const typeChecker = program.getTypeChecker();
-  const errors: string[] = [];
+  const allDiagnostics: ts.Diagnostic[] = [];
 
-  // Диагностика — фильтруем только для этого файла (btc уже выводит общую диагностику)
-  const diagnostics = ts.getPreEmitDiagnostics(program, sourceFile);
-  for (const diag of diagnostics) {
-    if (diag.file?.fileName.includes("node_modules")) continue;
-    const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
-    if (diag.file && diag.start !== undefined) {
-      const { line, character } = diag.file.getLineAndCharacterOfPosition(diag.start);
-      errors.push(`${diag.file.fileName}:${line + 1}:${character + 1}: ${message}`);
-    } else {
-      errors.push(message);
-    }
-  }
+  // TS диагностика НЕ собирается здесь — btc собирает её отдельно через ts.getPreEmitDiagnostics.
+  // Здесь собираем только bt-ir диагностики (lowering, passes, emit).
 
   const scopeAnalysis = analyzeScopes(sourceFile);
 
@@ -243,16 +271,25 @@ export function compileSourceFile(
 
   let ir: IRProgram;
   try {
-    ir = transformToIR(sourceFile, typeChecker, scopeAnalysis, {
+    const transformResult = transformToIR(sourceFile, typeChecker, scopeAnalysis, {
       mode,
       fileKey: options.fileKey,
       currentFileJs: options.currentFileJs,
     });
+    ir = transformResult.ir;
+    allDiagnostics.push(...transformResult.diagnostics);
   } catch (e) {
+    allDiagnostics.push(
+      createBtDiagnosticMessage(
+        `IR transformation failed: ${e instanceof Error ? e.message : e}`,
+        ts.DiagnosticCategory.Error,
+        BtDiagnosticCode.TransformFailed,
+      ),
+    );
     return {
       success: false,
       outputs: [],
-      errors: [`IR transformation failed: ${e}`],
+      diagnostics: allDiagnostics,
     };
   }
 
@@ -261,15 +298,40 @@ export function compileSourceFile(
     console.log(JSON.stringify(ir, null, 2));
   }
 
-  ir = runPasses(ir, [tryFinallyDesugarPass, hoistPass]);
+  try {
+    ir = runPasses(ir, [tryFinallyDesugarPass, hoistPass]);
+  } catch (e) {
+    allDiagnostics.push(
+      createBtDiagnosticMessage(
+        `${e instanceof Error ? e.message : e}`,
+        ts.DiagnosticCategory.Error,
+        BtDiagnosticCode.PassFailed,
+      ),
+    );
+    return { success: false, outputs: [], diagnostics: allDiagnostics };
+  }
 
-  const result = emit(ir, options.emitOptions);
+  let result;
+  try {
+    result = emit(ir, options.emitOptions);
+  } catch (e) {
+    allDiagnostics.push(
+      createBtDiagnosticMessage(
+        `Emit failed: ${e instanceof Error ? e.message : e}`,
+        ts.DiagnosticCategory.Error,
+        BtDiagnosticCode.EmitFailed,
+      ),
+    );
+    return { success: false, outputs: [], diagnostics: allDiagnostics };
+  }
 
   const outputPath =
     options.outputPath ?? (options.filename ?? sourceFile.fileName).replace(/\.tsx?$/, ".js");
 
+  const hasErrors = allDiagnostics.some((d) => d.category === ts.DiagnosticCategory.Error);
+
   return {
-    success: errors.length === 0,
+    success: !hasErrors,
     outputs: [
       {
         path: outputPath,
@@ -278,7 +340,7 @@ export function compileSourceFile(
       },
     ],
     ir: options.debugIR ? ir : undefined,
-    errors,
+    diagnostics: allDiagnostics,
   };
 }
 

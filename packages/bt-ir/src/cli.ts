@@ -9,6 +9,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import ts from "typescript";
 import { compileFile } from "./pipeline/index.ts";
 
 const args = process.argv.slice(2);
@@ -86,12 +87,15 @@ console.log("--- Output (BT) ---");
 console.log(outputCode);
 
 // Print errors
-if (result.errors.length > 0) {
+if (result.diagnostics.length > 0) {
   console.log("");
-  console.log("--- Errors ---");
-  for (const err of result.errors) {
-    console.error(err);
-  }
+  console.log("--- Diagnostics ---");
+  const formatHost: ts.FormatDiagnosticsHost = {
+    getCurrentDirectory: () => process.cwd(),
+    getCanonicalFileName: (f) => f,
+    getNewLine: () => "\n",
+  };
+  console.error(ts.formatDiagnosticsWithColorAndContext(result.diagnostics, formatHost));
 }
 
 // Write output file

@@ -340,5 +340,6 @@ function createBareFnCtx(node: ts.Node, ctx: VisitorContext): VisitorContext {
     xmlElemSymbol: ctx.xmlElemSymbol,
     importBindings: ctx.importBindings,
     helperFlags: ctx.helperFlags,
+    diagnostics: ctx.diagnostics,
   };
 }

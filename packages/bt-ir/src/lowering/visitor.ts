@@ -89,6 +89,8 @@ export interface VisitorContext {
    * были видны на верхнем уровне при генерации helpers.
    */
   helperFlags: HelperFlags;
+  /** Диагностики bt-ir (ошибки и предупреждения lowering) */
+  diagnostics: ts.Diagnostic[];
   /**
    * Контекст класса для поддержки `super`.
    * Задаётся при lowering конструктора/методов класса с `extends`.
@@ -141,6 +143,16 @@ export interface TransformToIROptions {
 }
 
 /**
+ * Результат transformToIR
+ */
+export interface TransformResult {
+  /** IR программа */
+  ir: IRProgram;
+  /** Диагностики bt-ir (lowering) */
+  diagnostics: ts.Diagnostic[];
+}
+
+/**
  * @param options - Опции lowering (mode и т.д.)
  */
 export function transformToIR(
@@ -148,7 +160,7 @@ export function transformToIR(
   typeChecker: ts.TypeChecker,
   scopeAnalysis: ScopeAnalysisResult,
   options: TransformToIROptions = {},
-): IRProgram {
+): TransformResult {
   const mode = options.mode ?? "script";
   const ctx: VisitorContext = {
     mode,
@@ -173,6 +185,7 @@ export function transformToIR(
         ? path.basename(sourceFile.fileName).replace(/\.tsx?$/, ".js")
         : undefined),
     helperFlags: { usesImportMeta: false, usesAbsoluteUrl: false, needsObjectUnion: false },
+    diagnostics: [],
   };
 
   const { config } = ctx;
@@ -315,7 +328,10 @@ export function transformToIR(
       undefined,
       true, // plainSignature: __init(__codelibrary, __module)
     );
-    return IR.program([...helperFunctions, ...ctx.hoistedFunctions, initFunc], sourceFile.fileName);
+    return {
+      ir: IR.program([...helperFunctions, ...ctx.hoistedFunctions, initFunc], sourceFile.fileName),
+      diagnostics: ctx.diagnostics,
+    };
   }
 
   // Script mode: вставляем helperSetupStatements сразу после __env (index 0 = __env decl)
@@ -323,11 +339,14 @@ export function transformToIR(
     body.splice(1, 0, ...helperSetupStatements);
   }
 
-  return IR.program(
-    [...helperFunctions, ...ctx.hoistedFunctions, ...body],
-    sourceFile.fileName,
-    !config.useEnvDescPattern,
-  );
+  return {
+    ir: IR.program(
+      [...helperFunctions, ...ctx.hoistedFunctions, ...body],
+      sourceFile.fileName,
+      !config.useEnvDescPattern,
+    ),
+    diagnostics: ctx.diagnostics,
+  };
 }
 
 // ============================================================================

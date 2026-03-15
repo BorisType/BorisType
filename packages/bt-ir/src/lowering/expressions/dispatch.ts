@@ -16,6 +16,7 @@ import { IR, type IRExpression } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
 import { getLoc, isInternalAccess, isXmlRelatedType } from "../helpers.ts";
 import { getPrecedence } from "../precedence.ts";
+import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 
 // Lazy imports для разрыва циклических зависимостей:
 // visitExpression вызывает функции из sub-modules, и sub-modules импортируют visitExpression.
@@ -465,6 +466,14 @@ export function visitExpression(
     return visitExpression(node.expression, ctx);
   }
 
-  console.warn(`Unhandled expression: ${ts.SyntaxKind[node.kind]}`);
+  ctx.diagnostics.push(
+    createBtDiagnostic(
+      ctx.sourceFile,
+      node,
+      `Unhandled expression: ${ts.SyntaxKind[node.kind]}`,
+      ts.DiagnosticCategory.Error,
+      BtDiagnosticCode.UnhandledExpression,
+    ),
+  );
   return IR.id("__unknown__", getLoc(node, ctx));
 }

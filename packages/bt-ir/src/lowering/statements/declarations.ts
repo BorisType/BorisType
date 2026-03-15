@@ -21,6 +21,7 @@ import {
   type IRObjectProperty,
   type IRIdentifier,
 } from "../../ir/index.ts";
+import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 import type { VisitorContext } from "../visitor.ts";
 import {
   visitExpression,
@@ -357,7 +358,15 @@ export function visitVariableStatement(
         }
       }
     } else {
-      console.warn(`Destructuring not yet supported in variable declarations`);
+      ctx.diagnostics.push(
+        createBtDiagnostic(
+          ctx.sourceFile,
+          decl,
+          "Destructuring not yet supported in variable declarations",
+          ts.DiagnosticCategory.Error,
+          BtDiagnosticCode.DestructuringNotSupported,
+        ),
+      );
     }
   }
 

@@ -123,7 +123,7 @@ interface CompileResult {
   /** Результаты компиляции (обычно один файл) */
   outputs: CompileOutput[];
 
-  /** Диагностика TypeScript (ошибки/предупреждения) */
+  /** Диагностики компиляции (TS + bt-ir) */
   diagnostics: ts.Diagnostic[];
 
   /** Флаг успеха */

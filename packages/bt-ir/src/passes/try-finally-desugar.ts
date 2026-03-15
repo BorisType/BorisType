@@ -24,6 +24,7 @@ import {
   type IRBlockStatement,
   type IRTryStatement,
   type IRReturnStatement,
+  type IRIfStatement,
 } from "../ir/index.ts";
 import type { IRPass } from "./types.ts";
 import { mapStatements } from "./walker.ts";
@@ -107,6 +108,9 @@ function desugarInStatements(stmts: IRStatement[], gen: NameGen): IRStatement[] 
  * ```
  */
 function desugarTryFinally(tryStmt: IRTryStatement, gen: NameGen): IRStatement[] {
+  // Детектируем break/continue внутри try body — не поддерживается desugaring'ом
+  detectBreakContinueInTry(tryStmt);
+
   const loc = tryStmt.loc;
   const fType = gen.create("fType");
   const fVal = gen.create("fVal");
@@ -247,6 +251,91 @@ function buildSentinelSequence(ret: IRReturnStatement, fType: string, fVal: stri
   }
   result.push(IR.throw(IR.id(fVal)));
   return result;
+}
+
+// ============================================================================
+// break/continue detection
+// ============================================================================
+
+/**
+ * Детектирует break/continue внутри try/catch блоков при наличии finally.
+ *
+ * BorisScript try-finally desugaring не поддерживает break/continue —
+ * dispatch state machine обрабатывает только return и throw.
+ * При обнаружении — бросает ошибку (ловится error boundary в pipeline).
+ *
+ * Не заходит внутрь:
+ * - Вложенных функций (у них свой scope)
+ * - Циклов и switch (break/continue внутри них — валидны, таргетят цикл/switch)
+ *
+ * Не проверяет finally block (break/continue в finally = обычные statements).
+ */
+function detectBreakContinueInTry(tryStmt: IRTryStatement): void {
+  const blocksToCheck: IRStatement[][] = [tryStmt.block.body];
+  if (tryStmt.handler) {
+    blocksToCheck.push(tryStmt.handler.body.body);
+  }
+
+  for (const stmts of blocksToCheck) {
+    checkBreakContinueInStatements(stmts);
+  }
+}
+
+/**
+ * Рекурсивно проверяет statements на break/continue,
+ * не заходя в функции, циклы и switch.
+ */
+function checkBreakContinueInStatements(stmts: IRStatement[]): void {
+  for (const stmt of stmts) {
+    if (stmt.kind === "BreakStatement") {
+      throw new Error(
+        "break inside try-finally is not supported (try-finally desugaring cannot preserve break semantics)",
+      );
+    }
+    if (stmt.kind === "ContinueStatement") {
+      throw new Error(
+        "continue inside try-finally is not supported (try-finally desugaring cannot preserve continue semantics)",
+      );
+    }
+
+    // Не заходим внутрь функций — свой scope
+    if (stmt.kind === "FunctionDeclaration") continue;
+    // Не заходим внутрь циклов/switch — break/continue внутри них валидны
+    if (
+      stmt.kind === "ForStatement" ||
+      stmt.kind === "ForInStatement" ||
+      stmt.kind === "WhileStatement" ||
+      stmt.kind === "DoWhileStatement" ||
+      stmt.kind === "SwitchStatement"
+    )
+      continue;
+
+    // Заходим внутрь составных statements
+    if (stmt.kind === "BlockStatement") {
+      checkBreakContinueInStatements((stmt as IRBlockStatement).body);
+    } else if (stmt.kind === "IfStatement") {
+      const ifStmt = stmt as IRIfStatement;
+      if (ifStmt.consequent.kind === "BlockStatement") {
+        checkBreakContinueInStatements((ifStmt.consequent as IRBlockStatement).body);
+      }
+      if (ifStmt.alternate) {
+        if (ifStmt.alternate.kind === "BlockStatement") {
+          checkBreakContinueInStatements((ifStmt.alternate as IRBlockStatement).body);
+        } else {
+          checkBreakContinueInStatements([ifStmt.alternate]);
+        }
+      }
+    } else if (stmt.kind === "TryStatement") {
+      const tryInner = stmt as IRTryStatement;
+      checkBreakContinueInStatements(tryInner.block.body);
+      if (tryInner.handler) {
+        checkBreakContinueInStatements(tryInner.handler.body.body);
+      }
+      if (tryInner.finalizer) {
+        checkBreakContinueInStatements(tryInner.finalizer.body);
+      }
+    }
+  }
 }
 
 // ============================================================================
