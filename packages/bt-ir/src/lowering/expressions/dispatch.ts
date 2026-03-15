@@ -465,11 +465,6 @@ export function visitExpression(
     return visitExpression(node.expression, ctx);
   }
 
-  // Non-null assertion (x!) — strip, return inner expression
-  if (ts.isNonNullExpression(node)) {
-    return visitExpression(node.expression, ctx);
-  }
-
   console.warn(`Unhandled expression: ${ts.SyntaxKind[node.kind]}`);
   return IR.id("__unknown__", getLoc(node, ctx));
 }

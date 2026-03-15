@@ -228,7 +228,6 @@ function hoistInFunctionsInList(stmts: IRStatement[]): IRStatement[] {
 
 /**
  * Собирает имена non-captured переменных из statements.
- * Аналог collectVariableNames из emit-helpers.ts.
  *
  * Не заходит внутрь функций (у них свой scope).
  */

@@ -2,8 +2,7 @@
  * Generic IR tree walker/transformer utilities
  *
  * Обобщает паттерн рекурсивного обхода IR-дерева,
- * реализованный в transformReturns* (control-flow.ts)
- * и collectVariableNames (emit-helpers.ts).
+ * реализованный в transformReturns* (control-flow.ts).
  *
  * Ключевые принципы:
  * - Иммутабельность: если ноды не изменились, возвращается оригинальная ссылка
@@ -471,9 +470,8 @@ function mapExpressionList(exprs: IRExpression[], mapper: ExpressionMapper): IRE
 /**
  * Собирает элементы из statements рекурсивно.
  *
- * Обобщение паттерна collectVariableNames — обходит дерево statements,
- * вызывая collector для каждого statement. Не входит в FunctionDeclaration
- * (если enterFunctions=false, по умолчанию).
+ * Рекурсивный обход IR statements — вызывает collector для каждого statement.
+ * Не входит в FunctionDeclaration (если enterFunctions=false, по умолчанию).
  *
  * @param stmts - Список statements для обхода
  * @param collector - Функция, собирающая данные из statement
