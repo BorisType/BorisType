@@ -19,6 +19,7 @@ import {
   type IRObjectProperty,
 } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
+import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 import { visitStatementList } from "../statements.ts";
 import { resolveEnvAccess, getModuleEnvDepth } from "../env-resolution.ts";
 import { getLoc, resolveVariableInScope, collectCapturedVarsForArrow } from "../helpers.ts";
@@ -227,6 +228,15 @@ export function visitObjectLiteral(
       } else if (ts.isNumericLiteral(prop.name)) {
         key = prop.name.text;
       } else {
+        ctx.diagnostics.push(
+          createBtDiagnostic(
+            ctx.sourceFile,
+            prop.name,
+            `Computed property keys are not supported: ${prop.name.getText(ctx.sourceFile)}`,
+            ts.DiagnosticCategory.Error,
+            BtDiagnosticCode.ComputedPropertyKey,
+          ),
+        );
         continue;
       }
 

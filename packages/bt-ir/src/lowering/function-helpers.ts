@@ -14,6 +14,7 @@ import * as ts from "typescript";
 import { IR, type IRStatement, type IRFunctionParam, type IRExpression } from "../ir/index.ts";
 import type { Scope } from "../analyzer/index.ts";
 import type { VisitorContext } from "./visitor.ts";
+import { createBtDiagnostic, BtDiagnosticCode } from "../pipeline/diagnostics.ts";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { resolveVariableInScope, collectCapturedVarsForArrow } from "./helpers.ts";
 
@@ -134,7 +135,18 @@ export function extractFunctionParams(
       params.push(IR.param(paramName, defaultValue, isRest, needsPerCallEnv ? false : isCaptured));
       fnCtx.functionParams.set(paramName, index);
     }
-    // TODO: destructuring parameters
+    // Destructured parameter — diagnostic error
+    else {
+      fnCtx.diagnostics.push(
+        createBtDiagnostic(
+          fnCtx.sourceFile,
+          param,
+          `Destructured parameters are not supported: ${param.name.getText(fnCtx.sourceFile)}`,
+          ts.DiagnosticCategory.Error,
+          BtDiagnosticCode.DestructuredParameter,
+        ),
+      );
+    }
   });
 
   return params;

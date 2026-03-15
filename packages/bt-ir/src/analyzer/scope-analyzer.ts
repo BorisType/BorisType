@@ -280,7 +280,8 @@ function collectScopesAndDeclarations(
         if (ts.isIdentifier(param.name)) {
           registerVariable(funcScope, param.name.text, "parameter", allVariables);
         }
-        // TODO: деструктуризация параметров
+        // Деструктуризация параметров — пропускаем в scope analysis.
+        // Diagnostic error выдаётся в function-helpers.ts (extractFunctionParams).
       }
     }
 
