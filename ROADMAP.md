@@ -172,6 +172,13 @@
 - [ ] Prettier plugin
 - [ ] Шаблоны CI/CD
 
+#### MCP Server (`@boristype/mcp-server`)
+
+- [x] Пакет mcp-server: файловые операции (read/write/list/delete) через x-local:// URL
+- [ ] Tool: выполнение произвольного BorisScript кода (`execute_bs`)
+- [ ] Tool: XQuery запросы к каталогам БД
+- [ ] Tool: чтение/обновление XML объектов в БД
+
 ---
 
 ## Известные проблемы

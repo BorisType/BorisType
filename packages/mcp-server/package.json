@@ -1,0 +1,45 @@
+{
+  "name": "@boristype/mcp-server",
+  "version": "0.1.0-alpha.1",
+  "description": "MCP server for WebSoft HCM — provides AI agents with access to server files and resources",
+  "type": "module",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
+  "bin": {
+    "boristype-mcp": "./build/cli.js"
+  },
+  "files": [
+    "build",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "pnpm build"
+  },
+  "author": "punkhomov",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BorisType/BorisType.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BorisType/BorisType/issues"
+  },
+  "homepage": "https://github.com/BorisType/BorisType#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@boristype/ws-client": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "commander": "^14.0.1",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "typescript": "^5.9.2"
+  }
+}
