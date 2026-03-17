@@ -8,17 +8,26 @@ import type { WshcmConnection } from "../connection.js";
  * Удаляет файл по указанному серверному URL (x-local://).
  */
 export function registerDeleteFileTool(server: McpServer, connection: WshcmConnection): void {
-  server.tool(
+  server.registerTool(
     "wshcm_delete_file",
-    "Delete a file from the WebSoft HCM server by its x-local:// URL path",
-    { path: z.string().describe("Server file URL to delete (e.g. x-local://wt/web/old.bs)") },
-    { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    {
+      description: "Delete a file from the WebSoft HCM server by its x-local:// URL path",
+      inputSchema: {
+        path: z.string().describe("Server file URL to delete (e.g. x-local://wt/web/old.bs)"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
     async ({ path }) => {
-      const escapedPath = path.replace(/\\/g, "\\\\\\\\").replace(/'/g, "\\\\'");
-      await connection.evaluator.eval(`DeleteFile('${escapedPath}'); return;`);
-      return {
-        content: [{ type: "text" as const, text: `File deleted: ${path}` }],
-      };
+      try {
+        const escapedPath = path.replace(/\\/g, "\\\\\\\\").replace(/'/g, "\\\\'");
+        await connection.evaluator.eval(`DeleteFile('${escapedPath}'); return;`);
+        return {
+          content: [{ type: "text" as const, text: `File deleted: ${path}` }],
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { content: [{ type: "text" as const, text: message }], isError: true };
+      }
     },
   );
 }

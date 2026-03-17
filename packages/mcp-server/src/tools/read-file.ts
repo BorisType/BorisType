@@ -8,17 +8,24 @@ import type { WshcmConnection } from "../connection.js";
  * Читает содержимое файла по указанному серверному URL (x-local://).
  */
 export function registerReadFileTool(server: McpServer, connection: WshcmConnection): void {
-  server.tool(
+  server.registerTool(
     "wshcm_read_file",
-    "Read a file from the WebSoft HCM server by its x-local:// URL path",
-    { path: z.string().describe("Server file URL (e.g. x-local://wt/web/app.bs)") },
-    { readOnlyHint: true, destructiveHint: false },
+    {
+      description: "Read a file from the WebSoft HCM server by its x-local:// URL path",
+      inputSchema: { path: z.string().describe("Server file URL (e.g. x-local://wt/web/app.bs)") },
+      annotations: { readOnlyHint: true, destructiveHint: false },
+    },
     async ({ path }) => {
-      const escapedPath = path.replace(/\\/g, "\\\\\\\\").replace(/'/g, "\\\\'");
-      const content = await connection.evaluator.eval(
-        `return tools.get_url_text_server('${escapedPath}');`,
-      );
-      return { content: [{ type: "text" as const, text: String(content ?? "") }] };
+      try {
+        const escapedPath = path.replace(/\\/g, "\\\\\\\\").replace(/'/g, "\\\\'");
+        const content = await connection.evaluator.eval(
+          `return tools.load_url_text_server('${escapedPath}');`,
+        );
+        return { content: [{ type: "text" as const, text: String(content ?? "") }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { content: [{ type: "text" as const, text: message }], isError: true };
+      }
     },
   );
 }

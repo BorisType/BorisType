@@ -11,6 +11,7 @@ import { WshcmException } from "./exceptions.js";
  * что позволяет обращаться к элементам напрямую без привязки к префиксам сервера.
  */
 const soapParser = new XMLParser({
+  htmlEntities: true,
   ignoreAttributes: false,
   htmlEntities: true,
   attributeNamePrefix: "@_",
@@ -229,6 +230,7 @@ function parseResultArray(element: Record<string, any>): any[] {
  * @returns результат выполнения метода
  */
 export function parseResponse(responseText: string): any {
+  // console.log("Raw SOAP response:", responseText);
   const parsed = soapParser.parse(responseText);
 
   // Проверяем на ошибку SOAP Fault
