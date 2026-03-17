@@ -13,6 +13,7 @@
 import * as ts from "typescript";
 import { IR, type IRStatement } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
+import { withPendingScope, collectStatements } from "../visitor.ts";
 import { visitExpression } from "../expressions.ts";
 import { getLoc } from "../helpers.ts";
 import { visitStatement } from "./dispatch.ts";
@@ -78,21 +79,8 @@ export function visitStatementList(
   const result: IRStatement[] = [];
 
   for (const stmt of statements) {
-    const irNodes = visitStatement(stmt, ctx);
-
-    // Pending statements (от arrow функций и т.д.) идут ПЕРЕД результатом
-    if (ctx.pendingStatements.length > 0) {
-      result.push(...ctx.pendingStatements);
-      ctx.pendingStatements.length = 0;
-    }
-
-    if (irNodes) {
-      if (Array.isArray(irNodes)) {
-        result.push(...irNodes);
-      } else {
-        result.push(irNodes);
-      }
-    }
+    const { result: irNodes, hoisted } = withPendingScope(ctx, () => visitStatement(stmt, ctx));
+    result.push(...collectStatements(hoisted, irNodes));
   }
 
   return result;
@@ -109,20 +97,8 @@ export function visitStatementAsBlock(
     return visitBlock(node, ctx);
   }
 
-  const stmt = visitStatement(node, ctx);
-
-  // Pending statements (от arrow функций и т.д.) должны быть включены в блок
-  const body: IRStatement[] = [];
-  if (ctx.pendingStatements.length > 0) {
-    body.push(...ctx.pendingStatements);
-    ctx.pendingStatements.length = 0;
-  }
-
-  if (Array.isArray(stmt)) {
-    body.push(...stmt);
-  } else if (stmt) {
-    body.push(stmt);
-  }
+  const { result: stmt, hoisted } = withPendingScope(ctx, () => visitStatement(node, ctx));
+  const body = collectStatements(hoisted, stmt);
 
   return IR.block(body, getLoc(node, ctx));
 }

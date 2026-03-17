@@ -64,7 +64,13 @@ export interface VisitorContext {
   scopeAnalysis: ScopeAnalysisResult;
   /** Текущий scope */
   currentScope: Scope;
-  /** Pending statements — вставляются перед текущим statement */
+  /**
+   * Pending statements — вставляются перед текущим statement.
+   *
+   * Управляется через {@link withPendingScope} на границах flush.
+   * Expression visitors пушат сюда напрямую, statement visitors
+   * используют withPendingScope для гарантированного сбора.
+   */
   pendingStatements: IRStatement[];
   /** Текущий env для captured: __env, __block0_env и т.д. */
   currentEnvRef: string;
@@ -116,6 +122,70 @@ export interface HelperFlags {
   usesAbsoluteUrl: boolean;
   /** Нужна ли функция ObjectUnion (для spread в объектах) */
   needsObjectUnion: boolean;
+}
+
+// ============================================================================
+// Pending statements scope management
+// ============================================================================
+
+/**
+ * Результат выполнения функции внутри pending scope.
+ *
+ * @template T - Тип результата обёрнутой функции
+ */
+export interface PendingScopeResult<T> {
+  /** Результат выполнения fn */
+  result: T;
+  /** Statements, накопленные в pendingStatements за время выполнения fn */
+  hoisted: IRStatement[];
+}
+
+/**
+ * Выполняет fn в изолированном pending scope.
+ *
+ * Сохраняет текущий pendingStatements, подставляет пустой массив,
+ * выполняет fn, собирает накопленные statements и восстанавливает
+ * предыдущий массив.
+ *
+ * Гарантирует что все push-и внутри fn будут собраны в `hoisted`,
+ * а не потеряны или смешаны с внешним контекстом.
+ *
+ * @param ctx - Visitor context
+ * @param fn - Функция для выполнения в изолированном scope
+ * @returns Результат fn и накопленные pending statements
+ */
+export function withPendingScope<T>(ctx: VisitorContext, fn: () => T): PendingScopeResult<T> {
+  const saved = ctx.pendingStatements;
+  ctx.pendingStatements = [];
+  const result = fn();
+  const hoisted = ctx.pendingStatements;
+  ctx.pendingStatements = saved;
+  return { result, hoisted };
+}
+
+/**
+ * Собирает hoisted statements и результат visitStatement в плоский массив.
+ *
+ * @param hoisted - Statements из pending scope
+ * @param irNodes - Результат visitStatement (может быть null, statement или массив)
+ * @returns Плоский массив IR statements
+ */
+export function collectStatements(
+  hoisted: IRStatement[],
+  irNodes: IRStatement | IRStatement[] | null,
+): IRStatement[] {
+  const out: IRStatement[] = [];
+  if (hoisted.length > 0) {
+    out.push(...hoisted);
+  }
+  if (irNodes) {
+    if (Array.isArray(irNodes)) {
+      out.push(...irNodes);
+    } else {
+      out.push(irNodes);
+    }
+  }
+  return out;
 }
 
 // ============================================================================
@@ -198,27 +268,10 @@ export function transformToIR(
 
   // Обрабатываем все statements
   for (const statement of sourceFile.statements) {
-    const irNodes = visitStatement(statement, ctx);
-
-    // Flush pending statements (от arrow функций и т.д.) ПЕРЕД результатом,
-    // чтобы дескрипторы и __env-регистрации шли до их использования
-    if (ctx.pendingStatements.length > 0) {
-      body.push(...ctx.pendingStatements);
-      ctx.pendingStatements.length = 0;
-    }
-
-    if (irNodes) {
-      if (Array.isArray(irNodes)) {
-        body.push(...irNodes);
-      } else {
-        body.push(irNodes);
-      }
-    }
-  }
-
-  // Flush remaining pending statements
-  if (ctx.pendingStatements.length > 0) {
-    body.push(...ctx.pendingStatements);
+    const { result: irNodes, hoisted } = withPendingScope(ctx, () =>
+      visitStatement(statement, ctx),
+    );
+    body.push(...collectStatements(hoisted, irNodes));
   }
 
   // Helper-функции (ObjectUnion при spread в объектах) — в самом начале
