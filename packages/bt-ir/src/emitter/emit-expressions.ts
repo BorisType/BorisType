@@ -20,6 +20,7 @@ import type {
 import type { EmitContext } from "./emit-helpers.ts";
 import { getIndent, increaseIndent } from "./emit-helpers.ts";
 import { emitPolyfillCall } from "./emit-polyfills.ts";
+import { assertNever } from "../ir/index.ts";
 
 /**
  * Генерирует код выражения
@@ -96,7 +97,7 @@ export function emitExpression(expr: IRExpression, ctx: EmitContext): string {
       return `(${emitExpression(expr.expression, ctx)})`;
 
     default:
-      return `/* unknown expression: ${(expr as any).kind} */`;
+      return assertNever(expr as never);
   }
 }
 

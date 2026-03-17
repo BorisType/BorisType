@@ -23,6 +23,7 @@ import type {
 import type { EmitContext } from "./emit-helpers.ts";
 import { getIndent, increaseIndent } from "./emit-helpers.ts";
 import { emitExpression, emitObjectExpression } from "./emit-expressions.ts";
+import { assertNever } from "../ir/index.ts";
 
 /**
  * Генерирует код statement
@@ -85,8 +86,12 @@ export function emitStatement(stmt: IRStatement, ctx: EmitContext): string {
     case "EnvAssign":
       return emitEnvAssign(stmt, ctx);
 
+    case "CaseClause":
+      // CaseClause is emitted as part of SwitchStatement, not standalone
+      return `${pad}/* unexpected standalone CaseClause */`;
+
     default:
-      return `${pad}/* Unknown statement: ${(stmt as any).kind} */`;
+      return assertNever(stmt as never);
   }
 }
 

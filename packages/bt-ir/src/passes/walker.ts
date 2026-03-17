@@ -50,7 +50,7 @@ import type {
   IRGroupingExpression,
   IREnvAssign,
 } from "../ir/index.ts";
-import { IR } from "../ir/index.ts";
+import { IR, assertNever } from "../ir/index.ts";
 
 // ============================================================================
 // Statement Mapping
@@ -215,8 +215,21 @@ function mapStatementChildren(
       return IR.try(newBlock, newHandler, newFinalizer, s.loc);
     }
 
-    default:
+    // Leaf statements — no statement children to recurse into
+    case "VariableDeclaration":
+    case "ReturnStatement":
+    case "ExpressionStatement":
+    case "ThrowStatement":
+    case "BreakStatement":
+    case "ContinueStatement":
+    case "EmptyStatement":
+    case "EnvDeclaration":
+    case "EnvAssign":
+    case "CaseClause":
       return stmt;
+
+    default:
+      return assertNever(stmt as never);
   }
 }
 
@@ -446,7 +459,7 @@ function mapExpressionChildren(expr: IRExpression, mapper: ExpressionMapper): IR
       return expr;
 
     default:
-      return expr;
+      return assertNever(expr as never);
   }
 }
 
