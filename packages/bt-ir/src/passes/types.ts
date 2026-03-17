@@ -7,7 +7,21 @@
  * @module passes/types
  */
 
+import type * as ts from "typescript";
 import type { IRProgram } from "../ir/index.ts";
+
+/**
+ * Контекст, разделяемый между passes.
+ *
+ * Позволяет passes пушить диагностики (вместо throw)
+ * и получать контекстную информацию о компилируемом файле.
+ */
+export interface PassContext {
+  /** Массив диагностик — passes пушат сюда ошибки и предупреждения */
+  diagnostics: ts.Diagnostic[];
+  /** SourceFile, если доступен (для привязки диагностик к позиции) */
+  sourceFile?: ts.SourceFile;
+}
 
 /**
  * IR transformation pass.
@@ -20,10 +34,17 @@ export interface IRPass {
   name: string;
 
   /**
+   * Passes, которые ДОЛЖНЫ выполниться до этого.
+   * `runPasses()` проверяет порядок и бросает ошибку при нарушении.
+   */
+  dependsOn?: string[];
+
+  /**
    * Выполняет трансформацию IR программы.
    *
    * @param program - Входная IR программа
+   * @param ctx - Контекст с диагностиками и метаданными
    * @returns Трансформированная IR программа
    */
-  run(program: IRProgram): IRProgram;
+  run(program: IRProgram, ctx: PassContext): IRProgram;
 }

@@ -23,7 +23,7 @@ import {
   type IRForStatement,
   type IRForInStatement,
 } from "../ir/index.ts";
-import type { IRPass } from "./types.ts";
+import type { IRPass, PassContext } from "./types.ts";
 import { mapStatements, forEachStatement } from "./walker.ts";
 
 /**
@@ -38,7 +38,8 @@ import { mapStatements, forEachStatement } from "./walker.ts";
  */
 export const hoistPass: IRPass = {
   name: "hoist",
-  run(program: IRProgram): IRProgram {
+  dependsOn: ["try-finally-desugar"],
+  run(program: IRProgram, _ctx: PassContext): IRProgram {
     if (program.noHoist) {
       // Bare mode: top-level без hoisting, но функции обрабатываем
       const newBody = hoistInFunctionsInList(program.body);

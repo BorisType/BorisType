@@ -13,7 +13,7 @@ import { transformToIR } from "../lowering/index.ts";
 import { emit, type EmitOptions } from "../emitter/index.ts";
 import { analyzeScopes, printScopeTree } from "../analyzer/index.ts";
 import type { IRProgram } from "../ir/index.ts";
-import { runPasses } from "../passes/index.ts";
+import { runPasses, type PassContext } from "../passes/index.ts";
 import { tryFinallyDesugarPass } from "../passes/try-finally-desugar.ts";
 import { hoistPass } from "../passes/hoist.ts";
 import { createBtDiagnosticMessage, BtDiagnosticCode } from "./diagnostics.ts";
@@ -163,8 +163,10 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
     console.log(JSON.stringify(ir, null, 2));
   }
 
+  const passCtx: PassContext = { diagnostics: allDiagnostics, sourceFile };
+
   try {
-    ir = runPasses(ir, [tryFinallyDesugarPass, hoistPass]);
+    ir = runPasses(ir, [tryFinallyDesugarPass, hoistPass], passCtx);
   } catch (e) {
     allDiagnostics.push(
       createBtDiagnosticMessage(
@@ -173,6 +175,10 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
         BtDiagnosticCode.PassFailed,
       ),
     );
+    return { success: false, outputs: [], diagnostics: allDiagnostics };
+  }
+
+  if (allDiagnostics.some((d) => d.category === ts.DiagnosticCategory.Error)) {
     return { success: false, outputs: [], diagnostics: allDiagnostics };
   }
 
@@ -298,8 +304,10 @@ export function compileSourceFile(
     console.log(JSON.stringify(ir, null, 2));
   }
 
+  const passCtx: PassContext = { diagnostics: allDiagnostics, sourceFile };
+
   try {
-    ir = runPasses(ir, [tryFinallyDesugarPass, hoistPass]);
+    ir = runPasses(ir, [tryFinallyDesugarPass, hoistPass], passCtx);
   } catch (e) {
     allDiagnostics.push(
       createBtDiagnosticMessage(
@@ -308,6 +316,10 @@ export function compileSourceFile(
         BtDiagnosticCode.PassFailed,
       ),
     );
+    return { success: false, outputs: [], diagnostics: allDiagnostics };
+  }
+
+  if (allDiagnostics.some((d) => d.category === ts.DiagnosticCategory.Error)) {
     return { success: false, outputs: [], diagnostics: allDiagnostics };
   }
 
