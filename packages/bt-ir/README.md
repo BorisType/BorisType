@@ -36,7 +36,7 @@ const result = compile(
 `,
   {
     filename: "test.ts",
-    compileMode: "script",
+    mode: "script",
   },
 );
 
@@ -58,7 +58,7 @@ console.log(result.outputs[0].code);
 import { compileFile } from "bt-ir";
 
 const result = compileFile("./src/index.ts", {
-  compileMode: "module",
+  mode: "module",
 });
 
 console.log(result.outputs[0].code);
@@ -83,8 +83,7 @@ const program = ts.createProgram(["src/index.ts"], {});
 const sourceFile = program.getSourceFile("src/index.ts")!;
 
 const result = compileSourceFile(sourceFile, program, {
-  compileMode: "module",
-  cwd: process.cwd(),
+  mode: "module",
 });
 
 console.log(result.outputs[0].code);
@@ -105,13 +104,15 @@ console.log(result.outputs[0].code);
 ```typescript
 interface CompileOptions {
   /** Режим компиляции: bare, script или module */
-  compileMode?: "bare" | "script" | "module";
-
-  /** Текущая рабочая директория (для разрешения относительных путей) */
-  cwd?: string;
+  mode?: "bare" | "script" | "module";
 
   /** Имя исходного файла (для функции compile()) */
   filename?: string;
+
+  /** Путь выходного файла (для compileSourceFile) */
+  outputPath?: string;
+
+  /** Дополнительные опции (fileKey, currentFileJs для script/module) */
 }
 ```
 
@@ -122,7 +123,7 @@ interface CompileResult {
   /** Результаты компиляции (обычно один файл) */
   outputs: CompileOutput[];
 
-  /** Диагностика TypeScript (ошибки/предупреждения) */
+  /** Диагностики компиляции (TS + bt-ir) */
   diagnostics: ts.Diagnostic[];
 
   /** Флаг успеха */
@@ -190,7 +191,7 @@ const bareResult = compile(
     return str.length;
   }
 `,
-  { compileMode: "bare" },
+  { mode: "bare" },
 );
 
 // Script mode - полные возможности
@@ -199,7 +200,7 @@ const scriptResult = compile(
   const obj = { foo: "bar" };
   alert(obj.foo);
 `,
-  { compileMode: "script" },
+  { mode: "script" },
 );
 
 // Module mode - codelibrary
@@ -209,7 +210,7 @@ const moduleResult = compile(
     alert("Hello " + name);
   }
 `,
-  { compileMode: "module" },
+  { mode: "module" },
 );
 ```
 
@@ -254,6 +255,8 @@ TypeScript Source
       ↓
 [IR Lowering]        ← Преобразование TS AST → IR
       ↓
+[IR Passes]          ← try-finally desugar, hoist
+      ↓
 [BT Emitter]         ← Генерация BorisScript
       ↓
 BorisScript Output
@@ -295,15 +298,12 @@ BorisScript Output
 bt-ir включает CLI для тестирования:
 
 ```bash
-# Компилировать один файл
-node --experimental-strip-types src/cli.ts example/src/index.ts
-
-# Компилировать с выводом
-node --experimental-strip-types src/cli.ts example/src/index.ts -o example/build/index.js
-
 # После сборки
 npm run build
-node build/cli.js example/src/index.ts
+node build/cli.js path/to/file.ts
+
+# С выводом в файл
+node build/cli.js path/to/file.ts -o output.js
 ```
 
 ## Разработка
@@ -318,8 +318,8 @@ npm run build
 # Запустить тесты
 npm test
 
-# Разработка с примерами
-npm run build && node build/cli.js example/src/index.ts
+# Разработка
+npm run build && node build/cli.js path/to/your/file.ts
 ```
 
 ## Структура проекта
@@ -331,9 +331,9 @@ bt-ir/
 │   ├── pipeline/         # Конвейер компиляции
 │   ├── analyzer/         # Анализ scope
 │   ├── ir/               # Определения IR нод
-│   ├── lowering/         # Трансформация TS AST → IR
+│   ├── lowering/         # Трансформация TS AST → IR (statements/, expressions/)
+│   ├── passes/           # IR → IR (try-finally desugar, hoist)
 │   └── emitter/          # Генерация IR → BorisScript
-├── example/              # Примеры использования
 ├── build/                # Скомпилированный вывод
 └── README.md             # Этот файл
 ```

@@ -1,143 +1,97 @@
-# Рефакторинг Lowering Module
+# Рефакторинг BT-IR (Phase 1–3)
 
-## Что было сделано
-
-### Проблема
-
-Файл `visitor.ts` вырос до ~1600 строк и содержал всю логику преобразования TypeScript AST в IR:
-
-- Statement visitors (12 функций)
-- Expression visitors (10+ функций)
-- Helper функции (операторы, scope, location)
-- Entry point
-
-Это создавало проблемы:
-
-- Сложность навигации по коду
-- Трудности для AI-агентов (большой контекст)
-- Риск конфликтов при параллельной работе
-
-### Решение: Подход A (по категориям)
-
-Разделили `visitor.ts` на 4 файла:
-
-```
-lowering/
-├── visitor.ts      (~130 строк) — entry point, VisitorContext, transformToIR
-├── statements.ts   (~400 строк) — все statement visitors
-├── expressions.ts  (~550 строк) — все expression visitors
-├── helpers.ts      (~220 строк) — вспомогательные функции
-├── function-builder.ts (существовал) — построение env/desc
-├── binding.ts      (существовал) — генерация уникальных имён
-└── index.ts        — публичные exports
-```
-
-### Детали разделения
-
-#### visitor.ts (entry point)
-
-- `VisitorContext` interface — экспортируется как тип
-- `transformToIR()` — главная функция
-- Re-exports всех публичных функций для удобства
-
-#### statements.ts
-
-- `visitStatement()` — главный dispatcher
-- Declaration statements: `visitFunctionDeclaration`, `visitVariableStatement`, `visitReturnStatement`
-- Control flow: `visitIfStatement`, `visitFor*`, `visitWhile*`, `visitSwitch*`, `visitTry*`
-- Block helpers: `visitBlock`, `visitStatementList`, `visitStatementAsBlock`
-
-#### expressions.ts
-
-- `visitExpression()` — главный dispatcher
-- Literals: string, number, boolean, null
-- `visitIdentifier`, `visitTemplateExpression`
-- Operators: `visitBinaryExpression`, `visitPrefixUnaryExpression`, `visitPostfixUnaryExpression`
-- Calls: `visitCallExpression`, `visitNewExpression`
-- Literals: `visitObjectLiteral`, `visitArrayLiteral`
-- Functions: `visitArrowFunction`, `visitFunctionExpression`
-
-#### helpers.ts
-
-- Location: `getLoc`
-- Polyfill/Runtime: `getPolyfillType`, `isInternalAccess`, `isBuiltinFunction`
-- Operators: `isAssignmentOperator`, `getAssignmentOperator`, `getUnaryOperator`
-- Scope: `resolveVariableInScope`, `isScopeInsideOrEqual`, `getAllScopes`, `getCapturedVariablesInScope`, `collectCapturedVarsForArrow`
+**Статус:** Завершён (2026-03)
 
 ---
 
-## Преимущества текущего подхода
+## Текущее состояние (после рефакторинга)
 
-| Критерий            | До               | После            |
-| ------------------- | ---------------- | ---------------- |
-| Размер файлов       | 1600 строк       | 130-550 строк    |
-| Навигация           | Сложная          | Интуитивная      |
-| AI-контекст         | Перегружен       | Оптимальный      |
-| Понимание структуры | Требует изучения | Очевидно из имён |
-
----
-
-## Будущее: Подход C (если потребуется)
-
-Если `expressions.ts` вырастет >600 строк, можно дополнительно разделить:
+### Lowering
 
 ```
 lowering/
-├── visitor.ts          — entry point (без изменений)
+├── visitor.ts           # Entry point, VisitorContext, transformToIR
+├── mode-config.ts       # ModeConfig (bare/script/module flags)
 ├── statements/
-│   ├── index.ts        — reexports
-│   ├── control.ts      — if, for, while, switch, try
-│   └── declarations.ts — variable, function declaration
+│   ├── index.ts         # Re-exports
+│   ├── dispatch.ts      # visitStatement dispatcher
+│   ├── declarations.ts  # Functions, variables, imports, classes
+│   ├── control-flow.ts  # if, switch, try-catch (без finally desugar)
+│   ├── loops.ts         # for, for-in, for-of, while, do-while
+│   └── blocks.ts        # Block, statement-as-block, return
 ├── expressions/
-│   ├── index.ts        — reexports
-│   ├── operators.ts    — binary, unary, postfix, template
-│   ├── calls.ts        — call, new, polyfill logic
-│   ├── literals.ts     — object, array, identifier
-│   └── functions.ts    — arrow, function expression
-├── helpers/
-│   ├── scope.ts        — collectCaptured, resolveVariable
-│   ├── operators.ts    — isAssignment, getAssignment
-│   ├── runtime.ts      — getPolyfillType, isBuiltin
-│   └── location.ts     — getLoc, getAllScopes
-└── ...
+│   ├── index.ts         # Re-exports
+│   ├── dispatch.ts      # visitExpression dispatcher
+│   ├── operators.ts     # Binary, unary, logical
+│   ├── calls.ts         # Call, new (с call-helpers)
+│   ├── literals.ts      # Object, array, identifier, template
+│   ├── functions.ts     # Arrow, function expression
+│   └── module-access.ts # Property/element access, optional chaining
+├── function-helpers.ts  # createPerCallEnv, extractFunctionParams
+├── call-helpers.ts     # createMethodCall (6 вариантов)
+├── function-builder.ts
+├── env-resolution.ts
+├── bare-visitors.ts    # Fast-path для bare mode
+└── binding.ts
 ```
 
-### Преимущества подхода C:
+### Passes (IR → IR)
 
-- Ещё меньшие файлы (~100-200 строк)
-- Логические группы внутри категорий
-- Легко расширять (добавить `expressions/classes.ts`)
-- Для AI: чёткая иерархия + маленькие файлы
+```
+passes/
+├── index.ts              # runPasses()
+├── types.ts              # IRPass interface
+├── walker.ts             # mapStatements, mapExpression, forEachStatement
+├── try-finally-desugar.ts # State machine desugaring
+└── hoist.ts              # Var/function hoisting
+```
 
-### Недостатки подхода C:
+### Emitter
 
-- Больше файлов (12 вместо 6)
-- Больше импортов
-- Overhead для небольших изменений
-
-### Когда применять C:
-
-- `expressions.ts` > 600 строк
-- Добавляются новые крупные фичи (классы, декораторы)
-- Команда растёт и нужна параллельная работа
+```
+emitter/
+├── bt-emitter.ts       # Entry: emit(), emitProgram()
+├── emit-statements.ts  # Statement emitters
+├── emit-expressions.ts # Expression emitters
+├── emit-polyfills.ts   # Polyfill emission
+└── emit-helpers.ts     # Context, indent, utils
+```
 
 ---
 
-## Зависимости между файлами
+## Pipeline
 
 ```
-visitor.ts
-    ↓
-statements.ts ←→ expressions.ts
-    ↓               ↓
-    └───────────────┴───→ helpers.ts
-                          function-builder.ts
-                          binding.ts
+TS Source → Scope Analyzer → IR Lowering → [Try-Finally Desugar] → [Hoist] → BT Emitter → BS Output
 ```
 
-Note: `statements.ts` и `expressions.ts` имеют взаимную зависимость:
+---
 
-- statements импортирует `visitExpression` для обработки выражений
-- expressions импортирует `visitStatementList` для тел функций
+## Ключевые решения
 
-Это нормально для TypeScript с ESM (не создаёт circular dependency проблем).
+- **ModeConfig** — `ctx.config.*` вместо `ctx.mode === "bare"` (58 проверок заменены)
+- **Bare-visitors** — оставлены как fast-path, dispatch через `!ctx.config.useEnvDescPattern`
+- **PassContext** — не создан (YAGNI), оба pass работают без shared context
+- **Env setup pass** — пропущен, createPerCallEnv достаточно чист
+
+---
+
+## Правила для разработчиков
+
+- **Lowering** — для TS AST → IR (новые языковые конструкции)
+- **Pass** — для IR → IR (трансформации существующих узлов)
+- **ModeConfig** — для режим-зависимого поведения
+
+См. [ref/algorithms/bt-ir-lowering-vs-pass.md](../../../ref/algorithms/bt-ir-lowering-vs-pass.md).
+
+---
+
+## История
+
+| Фаза    | Дата       | Результат                                             |
+| ------- | ---------- | ----------------------------------------------------- |
+| Phase 1 | 2026-03-12 | Extract helpers, split expressions/statements/emitter |
+| Phase 2 | 2026-03-13 | Multi-pass: try-finally, hoist; walker infrastructure |
+| Phase 3 | 2026-03-13 | ModeConfig, замена ctx.mode проверок                  |
+
+См. ref/temp/phase-\*-results.md, ref/decisions/011-bt-ir-multi-pass-refactoring.md.

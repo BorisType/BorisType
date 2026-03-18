@@ -30,23 +30,28 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 ## Pipeline Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        BT-IR Pipeline                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌───────────┐    ┌───────────┐    ┌───────────┐    ┌────────┐ │
-│  │ TypeScript│    │   Scope   │    │    IR     │    │   BT   │ │
-│  │  Parser   │───▶│ Analyzer  │───▶│ Lowering  │───▶│ Emitter│ │
-│  │  (TS API) │    │           │    │           │    │        │ │
-│  └───────────┘    └───────────┘    └───────────┘    └────────┘ │
-│                                                                  │
-│       ▲                 │                              │         │
-│       │                 ▼                              ▼         │
-│   TS Program       Scope Tree                    BorisScript    │
-│   TypeChecker      Captured vars                                │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          BT-IR Pipeline                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌─────────┐   ┌─────┐│
+│  │ TypeScript│   │   Scope   │   │    IR     │   │  Passes  │   │  BT  ││
+│  │  Parser   │──▶│ Analyzer  │──▶│ Lowering  │──▶│ (IR→IR) │──▶│Emit ││
+│  │  (TS API) │   │           │   │           │   │         │   │     ││
+│  └───────────┘   └───────────┘   └───────────┘   └─────────┘   └─────┘│
+│                                                                          │
+│       ▲                │                    │                  │        │
+│       │                ▼                    ▼                  ▼        │
+│   TS Program      Scope Tree            IR (raw)           BorisScript   │
+│   TypeChecker     Captured vars        try-finally        Output       │
+│                                    hoist, ...                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+**Passes (порядок важен):**
+
+1. **Try-Finally Desugar** — десахаризация try-finally в state machine
+2. **Hoist** — поднятие var/function declarations в начало scope
 
 ### Компоненты
 
@@ -79,12 +84,13 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 
 **Расположение:** `src/lowering/`
 
-**Ключевые файлы:**
+**Структура (после рефакторинга):**
 
-- `visitor.ts` — entry point, `transformToIR()`
-- `statements.ts` — lowering для statements
-- `expressions.ts` — lowering для expressions
-- `helpers.ts` — scope, operators, polyfills
+- `visitor.ts` — entry point, `transformToIR()`, VisitorContext, ModeConfig
+- `mode-config.ts` — типизированные флаги режима (wrapPropertyAccess, useEnvDescPattern и т.д.)
+- `statements/` — dispatch, declarations, control-flow, loops, blocks
+- `expressions/` — dispatch, operators, calls, literals, functions, module-access
+- `function-helpers.ts`, `call-helpers.ts` — общие хелперы
 - `function-builder.ts` — desc паттерн для функций
 - `env-resolution.ts` — унифицированные хелперы для доступа к \_\_env chain (см. [ADR-006](../decisions/006-unified-env-resolution.md))
 - `binding.ts` — генерация уникальных имён
@@ -94,12 +100,28 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 - Преобразование TypeScript AST в IR
 - Использует данные scope analyzer
 - Использует TypeChecker для определения polyfills
-- **Все трансформации в одном проходе**
-- Учитывает `CompileMode` (bare/script/module)
+- Режим-зависимое поведение через `ctx.config.*` (не `ctx.mode`)
 
-#### 4. BT Emitter (Backend)
+#### 4. IR Passes (IR → IR)
+
+**Расположение:** `src/passes/`
+
+**Назначение:** Пост-обработка IR между lowering и emitter.
+
+| Pass                | Файл                     | Назначение                                |
+| ------------------- | ------------------------ | ----------------------------------------- |
+| Try-Finally Desugar | `try-finally-desugar.ts` | Десахаризация try-finally в state machine |
+| Hoist               | `hoist.ts`               | Поднятие var/function в начало scope      |
+
+**Инфраструктура:** `walker.ts` — mapStatements, mapExpression, forEachStatement для обхода IR.
+
+См. [ADR-011](../decisions/011-bt-ir-multi-pass-refactoring.md), [Lowering vs Pass](../algorithms/bt-ir-lowering-vs-pass.md).
+
+#### 5. BT Emitter (Backend)
 
 **Расположение:** `src/emitter/`
+
+**Структура:** bt-emitter (entry), emit-statements, emit-expressions, emit-polyfills, emit-helpers
 
 **Функции:**
 
@@ -107,7 +129,7 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 - Форматирование кода
 - Source maps (planned)
 
-**Особенность:** Простой — IR уже содержит всю нужную информацию
+**Особенность:** IR уже содержит всю нужную информацию (hoisting, try-finally desugaring выполнены в passes)
 
 ---
 
@@ -259,7 +281,13 @@ __arrow0_desc = { /*...*/ env: __env };
 multiply = __env.__arrow0;
 ```
 
-#### 1.4 Методы объектов
+#### 1.4 Variable Hoisting (IR Pass)
+
+**Статус:** ✅ Реализовано в `passes/hoist.ts`
+
+Hoisting выполняется как **IR pass** после lowering, а не в emitter. Pass перемещает function declarations и заменяет VarDecl на assignments.
+
+#### 1.5 Методы объектов
 
 Извлекаются в `methodName__methodN` с `obj` установкой:
 
@@ -284,9 +312,9 @@ sayHello__method0_desc.obj = __obj1; // backlink
 
 ### 2. Переменные
 
-#### 2.1 Variable Hoisting
+#### 2.1 Variable Hoisting (IR Pass)
 
-Все `var`/`let`/`const` выносятся в начало функции/модуля:
+Все `var`/`let`/`const` выносятся в начало функции/модуля. Выполняется в `passes/hoist.ts`:
 
 ```typescript
 // TypeScript
@@ -469,7 +497,7 @@ Captured переменные **НЕ** hoistятся как обычные `var`
 
 ## CompileMode Integration
 
-IR lowering учитывает режим компиляции:
+IR lowering учитывает режим компиляции через **ModeConfig** — типизированный объект с boolean флагами (`ctx.config.*`). Три пресета: BARE_CONFIG, SCRIPT_CONFIG, MODULE_CONFIG. См. `lowering/mode-config.ts`.
 
 ### bare mode
 
@@ -537,8 +565,7 @@ bt-ir/
 ├── src/
 │   ├── index.ts              # Публичное API
 │   ├── pipeline/
-│   │   ├── index.ts          # Pipeline координатор
-│   │   └── compile.ts        # compile/compileFile/compileSourceFile
+│   │   └── index.ts          # Pipeline: compile, compileFile, compileSourceFile
 │   ├── analyzer/
 │   │   ├── index.ts
 │   │   ├── scope.ts          # Scope analysis
@@ -551,21 +578,28 @@ bt-ir/
 │   ├── lowering/
 │   │   ├── index.ts
 │   │   ├── visitor.ts        # TS AST → IR (main visitor)
-│   │   ├── statements.ts     # Statement lowering
-│   │   ├── expressions.ts    # Expression lowering
-│   │   ├── helpers.ts        # Scope, operators, polyfills
-│   │   ├── function-builder.ts  # env/desc generation
-│   │   ├── env-resolution.ts # Unified env chain access helpers
-│   │   └── binding.ts        # Unique name generation
+│   │   ├── mode-config.ts    # ModeConfig (bare/script/module flags)
+│   │   ├── statements/       # dispatch, declarations, control-flow, loops, blocks
+│   │   ├── expressions/      # dispatch, operators, calls, literals, functions, module-access
+│   │   ├── function-helpers.ts
+│   │   ├── call-helpers.ts
+│   │   ├── function-builder.ts
+│   │   ├── env-resolution.ts
+│   │   └── binding.ts
+│   ├── passes/               # IR → IR transformations
+│   │   ├── index.ts          # runPasses()
+│   │   ├── types.ts          # IRPass interface
+│   │   ├── walker.ts         # mapStatements, mapExpression, forEachStatement
+│   │   ├── try-finally-desugar.ts
+│   │   └── hoist.ts
 │   ├── emitter/
 │   │   ├── index.ts
-│   │   └── emit.ts           # IR → BorisScript text
-│   └── polyfill-spec.ts      # Polyfill registry
-├── example/                   # Example usage
-│   ├── src/
-│   │   └── index.ts
-│   ├── tsconfig.json
-│   └── build/
+│   │   ├── bt-emitter.ts
+│   │   ├── emit-statements.ts
+│   │   ├── emit-expressions.ts
+│   │   ├── emit-polyfills.ts
+│   │   └── emit-helpers.ts
+│   └── polyfill-spec.ts
 └── build/                     # Compiled output
     └── ...
 ```
@@ -582,8 +616,8 @@ import { compileSourceFile } from "bt-ir";
 // В BuildPipeline
 for (const sourceFile of program.getSourceFiles()) {
   const result = compileSourceFile(sourceFile, program, {
-    compileMode: resolveCompileMode(sourceFile, options),
-    cwd: packagePath,
+    mode: resolveCompileMode(sourceFile, options),
+    filename: sourceFile.fileName,
   });
 
   // result.outputs[0].code → writeFileSync

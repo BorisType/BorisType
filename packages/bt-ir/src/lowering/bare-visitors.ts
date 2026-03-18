@@ -17,6 +17,7 @@ import type { VisitorContext } from "./visitor.ts";
 import { visitExpression } from "./expressions.ts";
 import { visitStatementList, visitStatement } from "./statements.ts";
 import { getLoc } from "./helpers.ts";
+import { createBtDiagnostic, BtDiagnosticCode } from "../pipeline/diagnostics.ts";
 
 // ============================================================================
 // Bare Function Declaration
@@ -312,6 +313,16 @@ function collectBareParams(
       const defaultValue = param.initializer ? visitExpression(param.initializer, ctx) : undefined;
       const isRest = !!param.dotDotDotToken;
       params.push(IR.param(param.name.text, defaultValue, isRest));
+    } else {
+      ctx.diagnostics.push(
+        createBtDiagnostic(
+          ctx.sourceFile,
+          param,
+          `Destructured parameters are not supported: ${param.name.getText(ctx.sourceFile)}`,
+          ts.DiagnosticCategory.Error,
+          BtDiagnosticCode.DestructuredParameter,
+        ),
+      );
     }
   }
   return params;
@@ -325,6 +336,7 @@ function createBareFnCtx(node: ts.Node, ctx: VisitorContext): VisitorContext {
   const funcScope = ctx.scopeAnalysis.nodeToScope.get(node) || ctx.currentScope;
   return {
     mode: ctx.mode,
+    config: ctx.config,
     functionParams: new Map(),
     hoistedFunctions: [],
     typeChecker: ctx.typeChecker,
@@ -339,5 +351,6 @@ function createBareFnCtx(node: ts.Node, ctx: VisitorContext): VisitorContext {
     xmlElemSymbol: ctx.xmlElemSymbol,
     importBindings: ctx.importBindings,
     helperFlags: ctx.helperFlags,
+    diagnostics: ctx.diagnostics,
   };
 }

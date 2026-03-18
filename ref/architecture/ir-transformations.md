@@ -186,11 +186,15 @@ var createNode_desc = { /*...*/ env: createNode_env };
 
 ## 2. Переменные
 
-### 2.1 Hoisting переменных
+### 2.1 Hoisting переменных (IR Pass)
+
+**Статус:** ✅ Реализовано в `passes/hoist.ts`
 
 **Что:** Все объявления `var`/`let`/`const` выносятся в начало функции/файла. На месте оригинала — только присваивание.
 
 **Зачем:** В BorisScript нельзя объявить переменную дважды (`var a = 5; var a = 6;` — ошибка). Hoisting гарантирует единственное объявление.
+
+**Реализация:** IR pass после lowering, до emitter. Использует `mapStatements`, `forEachStatement` из walker.
 
 **Порядок:**
 
@@ -537,20 +541,24 @@ var __env = {};
 
 ## Changelog
 
-| Дата | Изменение |
-|------|-----------|| 2026-02-26 | Per-call env для функций с `hasCaptured` (shared-state fix) |
+| Дата       | Изменение                                                                                                       |
+| ---------- | --------------------------------------------------------------------------------------------------------------- |
+| 2026-03-14 | Multi-pass: try-finally desugar и hoist вынесены в IR passes                                                    |
+| 2026-03-14 | ModeConfig: типизированные флаги вместо ctx.mode проверок                                                       |
+| 2026-02-26 | Per-call env для функций с `hasCaptured` (shared-state fix)                                                     |
 | 2026-02-26 | Унифицированные хелперы env-resolution.ts (`resolveEnvAccess`, `resolveModuleLevelAccess`, `getModuleEnvDepth`) |
-| 2026-02-26 | Единый `getEnvDepth` вместо отдельного `getCodelibraryDepth` |
-| 2026-02-26 | Fix: `visitCallExpression` корректно вычисляет depth для captured callee || 2026-02-09 | Добавлен bt.callFunction для вызова пользовательских функций |
-| 2026-02-09 | Добавлен bt.getProperty для доступа к свойствам объектов |
-| 2026-02-09 | Добавлен bt.setProperty для установки свойств объектов |
-| 2026-02-09 | Функции создают env/desc и регистрируются в **env |
-| 2026-02-09 | Методы объектов создают env/desc с установкой obj |
-| 2026-02-09 | Arrow функции создают env/desc |
-| 2026-02-09 | Исправлено: captured переменные — только объявленные ВНЕ функции |
-| 2026-02-08 | Добавлен scope analyzer с определением captured переменных |
-| 2026-02-08 | Реализовано чтение captured через **env.varName |
-| 2026-02-08 | Добавлена CLI опция --debug-scopes |
-| 2026-02-08 | Создание \_\_env объекта в module/function scope |
-| 2026-02-08 | Hoisting переменных |
-| 2026-02-08 | Преобразование for-of → for-in |
+| 2026-02-26 | Единый `getEnvDepth` вместо отдельного `getCodelibraryDepth`                                                    |
+| 2026-02-26 | Fix: `visitCallExpression` корректно вычисляет depth для captured callee                                        |
+| 2026-02-09 | Добавлен bt.callFunction для вызова пользовательских функций                                                    |
+| 2026-02-09 | Добавлен bt.getProperty для доступа к свойствам объектов                                                        |
+| 2026-02-09 | Добавлен bt.setProperty для установки свойств объектов                                                          |
+| 2026-02-09 | Функции создают env/desc и регистрируются в \*\*env                                                             |
+| 2026-02-09 | Методы объектов создают env/desc с установкой obj                                                               |
+| 2026-02-09 | Arrow функции создают env/desc                                                                                  |
+| 2026-02-09 | Исправлено: captured переменные — только объявленные ВНЕ функции                                                |
+| 2026-02-08 | Добавлен scope analyzer с определением captured переменных                                                      |
+| 2026-02-08 | Реализовано чтение captured через \*\*env.varName                                                               |
+| 2026-02-08 | Добавлена CLI опция --debug-scopes                                                                              |
+| 2026-02-08 | Создание \_\_env объекта в module/function scope                                                                |
+| 2026-02-08 | Hoisting переменных                                                                                             |
+| 2026-02-08 | Преобразование for-of → for-in                                                                                  |

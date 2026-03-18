@@ -31,6 +31,13 @@
 - [x] ADR (записи архитектурных решений)
 - [x] Архив устаревшей документации
 
+### BT-IR Multi-Pass Refactoring (2026-03)
+
+- [x] Phase 1: Extract helpers, split expressions/statements/emitter
+- [x] Phase 2: IR passes (try-finally desugar, hoist), walker infrastructure
+- [x] Phase 3: ModeConfig, замена ctx.mode проверок
+- [x] ADR-011: Multi-pass refactoring
+
 ### Опыт разработчика
 
 - [ ] Лучшие сообщения об ошибках в bt-ir компиляторе

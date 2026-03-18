@@ -95,10 +95,9 @@ __env.myFunc = myFunc_desc;
 ## Тестирование
 
 ```powershell
-Set-Location "c:\Users\vomoh\Desktop\projects\BorisType\bt-ir"
-node --experimental-strip-types src/cli.ts example/src/index.ts
-node --experimental-strip-types src/cli.ts example/src/3.ts -o example/build/3.js
-npm run build
+Set-Location "c:\Users\vomoh\Desktop\projects\BorisType"
+npx turbo run build
+pnpm run test
 ```
 
 ## Особенности

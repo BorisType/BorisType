@@ -108,21 +108,32 @@ function filterUserSourceFiles(sourceFiles: readonly ts.SourceFile[]): ts.Source
 }
 
 /**
+ * Результат emit через bt-ir
+ */
+interface EmitSourceFilesResult {
+  /** Список путей к сгенерированным файлам */
+  emittedFiles: string[];
+  /** bt-ir диагностики (ошибки lowering/passes/emit) */
+  diagnostics: ts.Diagnostic[];
+}
+
+/**
  * Эмитит исходные файлы через bt-ir
  *
  * @param sourceFiles - Файлы для компиляции
  * @param program - TypeScript program (для type info)
  * @param options - Опции btc
  * @param executablePaths - Пути исполняемых объектов
- * @returns Список путей к сгенерированным файлам
+ * @returns Emitted файлы и bt-ir диагностики
  */
 function emitSourceFiles(
   sourceFiles: readonly ts.SourceFile[],
   program: ts.Program,
   options: BtcCompileOptions,
   executablePaths: Set<string>,
-): string[] {
+): EmitSourceFilesResult {
   const emittedFiles: string[] = [];
+  const diagnostics: ts.Diagnostic[] = [];
 
   for (const sourceFile of sourceFiles) {
     const mode = resolveCompileMode(sourceFile, options, executablePaths);
@@ -135,6 +146,12 @@ function emitSourceFiles(
       fileKey: mode === "script" ? computeFileKey(sourceFile, program) : undefined,
       currentFileJs: mode === "module" ? computeCurrentFileJs(sourceFile) : undefined,
     });
+
+    // Собираем bt-ir диагностики
+    if (result.diagnostics.length > 0) {
+      diagnostics.push(...result.diagnostics);
+      reportDiagnostics(result.diagnostics);
+    }
 
     for (const output of result.outputs) {
       const { fileName: finalFileName, content } = transformOutput(
@@ -151,7 +168,7 @@ function emitSourceFiles(
     }
   }
 
-  return emittedFiles;
+  return { emittedFiles, diagnostics };
 }
 
 /**
@@ -182,7 +199,11 @@ export function compile(context: BuildContext): BuildResult {
   const outputDir = getOutputDirectory(program);
 
   // Emit JS через bt-ir
-  const emittedFiles = emitSourceFiles(sourceFiles, program, options, executablePaths);
+  const emitResult = emitSourceFiles(sourceFiles, program, options, executablePaths);
+
+  const hasBtIrErrors = emitResult.diagnostics.some(
+    (d) => d.category === ts.DiagnosticCategory.Error,
+  );
 
   fs.writeFileSync(
     path.join(outputDir, ".executables.json"),
@@ -198,12 +219,12 @@ export function compile(context: BuildContext): BuildResult {
   const duration = Date.now() - startTime;
 
   return {
-    success: !hasErrors,
+    success: !hasErrors && !hasBtIrErrors,
     emitResult: { emitSkipped: false, diagnostics: [] },
     executables,
-    diagnostics,
+    diagnostics: [...diagnostics, ...emitResult.diagnostics],
     duration,
-    emittedFiles,
+    emittedFiles: emitResult.emittedFiles,
   };
 }
 
@@ -330,8 +351,12 @@ export function createWatchProgram(
     currentExecutables = executables;
 
     // Emit JS через bt-ir
-    const emitted = emitSourceFiles(filesToEmit, program, options, executablePaths);
-    currentEmittedFiles.push(...emitted);
+    const emitResult = emitSourceFiles(filesToEmit, program, options, executablePaths);
+    currentEmittedFiles.push(...emitResult.emittedFiles);
+
+    if (emitResult.diagnostics.some((d) => d.category === ts.DiagnosticCategory.Error)) {
+      hasErrors = true;
+    }
 
     // d.ts emit обрабатывается tsc автоматически (emitDeclarationOnly + noEmitOnError)
     if (originalAfterProgramCreate) {

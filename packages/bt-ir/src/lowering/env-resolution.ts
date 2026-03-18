@@ -148,7 +148,7 @@ export function resolveModuleLevelAccess(
  * @returns Depth до module scope (0 если уже на module level)
  */
 export function getModuleEnvDepth(ctx: VisitorContext): number {
-  if (ctx.mode !== "module") return 0;
+  if (!ctx.config.moduleExports) return 0;
   const envScope = ctx.currentEnvScope ?? ctx.currentScope;
   return getEnvDepth(envScope, ctx.scopeAnalysis.moduleScope);
 }

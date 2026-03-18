@@ -108,7 +108,7 @@ export function analyzeScopes(
   // Pass 1.5: Разрешаем конфликты между var (hoisted) и let/const (block-scoped)
   // var hoists на function/module level, let/const остаются в block scope
   // Если есть var X и let X в том же function/module — переименовываем let
-  resolveVarLetConflicts(moduleScope, allVariables);
+  resolveVarLetConflicts(moduleScope);
 
   // Регистрируем все имена из исходного кода в BindingManager
   // чтобы избежать коллизий при генерации временных переменных
@@ -153,7 +153,6 @@ function recalculateDepth(scope: Scope, currentDepth: number): void {
   }
 }
 
-// TODO: зачем у нас тут _allVariables вообще?
 /**
  * Разрешает конфликты между var (hoisted) и let/const (block-scoped)
  *
@@ -164,7 +163,7 @@ function recalculateDepth(scope: Scope, currentDepth: number): void {
  *
  * То let/const должен быть переименован чтобы избежать конфликта.
  */
-function resolveVarLetConflicts(moduleScope: Scope, _allVariables: VariableInfo[]): void {
+function resolveVarLetConflicts(moduleScope: Scope): void {
   // Для каждого function/module scope собираем все var имена
   const functionScopes = collectFunctionScopes(moduleScope);
 
@@ -281,7 +280,8 @@ function collectScopesAndDeclarations(
         if (ts.isIdentifier(param.name)) {
           registerVariable(funcScope, param.name.text, "parameter", allVariables);
         }
-        // TODO: деструктуризация параметров
+        // Деструктуризация параметров — пропускаем в scope analysis.
+        // Diagnostic error выдаётся в function-helpers.ts (extractFunctionParams).
       }
     }
 

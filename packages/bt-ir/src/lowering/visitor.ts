@@ -20,6 +20,7 @@ import { IR, type IRProgram, type IRStatement, type IRFunctionDeclaration } from
 import { type ScopeAnalysisResult, type Scope } from "../analyzer/index.ts";
 import { BindingManager } from "./binding.ts";
 import { findSymbolByName } from "./helpers.ts";
+import { type ModeConfig, createModeConfig } from "./mode-config.ts";
 import { visitStatement } from "./statements.ts";
 import { createObjectUnionFunction } from "./spread-helpers.ts";
 
@@ -47,6 +48,8 @@ export type CompileMode = "bare" | "script" | "module";
 export interface VisitorContext {
   /** Режим транспиляции */
   mode: CompileMode;
+  /** Typed configuration flags derived from mode */
+  config: Readonly<ModeConfig>;
   /** Карта параметров текущей функции: имя → индекс */
   functionParams: Map<string, number>;
   /** Hoisted функции (будут вынесены наверх) */
@@ -61,7 +64,13 @@ export interface VisitorContext {
   scopeAnalysis: ScopeAnalysisResult;
   /** Текущий scope */
   currentScope: Scope;
-  /** Pending statements — вставляются перед текущим statement */
+  /**
+   * Pending statements — вставляются перед текущим statement.
+   *
+   * Управляется через {@link withPendingScope} на границах flush.
+   * Expression visitors пушат сюда напрямую, statement visitors
+   * используют withPendingScope для гарантированного сбора.
+   */
   pendingStatements: IRStatement[];
   /** Текущий env для captured: __env, __block0_env и т.д. */
   currentEnvRef: string;
@@ -86,6 +95,8 @@ export interface VisitorContext {
    * были видны на верхнем уровне при генерации helpers.
    */
   helperFlags: HelperFlags;
+  /** Диагностики bt-ir (ошибки и предупреждения lowering) */
+  diagnostics: ts.Diagnostic[];
   /**
    * Контекст класса для поддержки `super`.
    * Задаётся при lowering конструктора/методов класса с `extends`.
@@ -114,6 +125,70 @@ export interface HelperFlags {
 }
 
 // ============================================================================
+// Pending statements scope management
+// ============================================================================
+
+/**
+ * Результат выполнения функции внутри pending scope.
+ *
+ * @template T - Тип результата обёрнутой функции
+ */
+export interface PendingScopeResult<T> {
+  /** Результат выполнения fn */
+  result: T;
+  /** Statements, накопленные в pendingStatements за время выполнения fn */
+  hoisted: IRStatement[];
+}
+
+/**
+ * Выполняет fn в изолированном pending scope.
+ *
+ * Сохраняет текущий pendingStatements, подставляет пустой массив,
+ * выполняет fn, собирает накопленные statements и восстанавливает
+ * предыдущий массив.
+ *
+ * Гарантирует что все push-и внутри fn будут собраны в `hoisted`,
+ * а не потеряны или смешаны с внешним контекстом.
+ *
+ * @param ctx - Visitor context
+ * @param fn - Функция для выполнения в изолированном scope
+ * @returns Результат fn и накопленные pending statements
+ */
+export function withPendingScope<T>(ctx: VisitorContext, fn: () => T): PendingScopeResult<T> {
+  const saved = ctx.pendingStatements;
+  ctx.pendingStatements = [];
+  const result = fn();
+  const hoisted = ctx.pendingStatements;
+  ctx.pendingStatements = saved;
+  return { result, hoisted };
+}
+
+/**
+ * Собирает hoisted statements и результат visitStatement в плоский массив.
+ *
+ * @param hoisted - Statements из pending scope
+ * @param irNodes - Результат visitStatement (может быть null, statement или массив)
+ * @returns Плоский массив IR statements
+ */
+export function collectStatements(
+  hoisted: IRStatement[],
+  irNodes: IRStatement | IRStatement[] | null,
+): IRStatement[] {
+  const out: IRStatement[] = [];
+  if (hoisted.length > 0) {
+    out.push(...hoisted);
+  }
+  if (irNodes) {
+    if (Array.isArray(irNodes)) {
+      out.push(...irNodes);
+    } else {
+      out.push(irNodes);
+    }
+  }
+  return out;
+}
+
+// ============================================================================
 // Main entry point
 // ============================================================================
 
@@ -138,6 +213,16 @@ export interface TransformToIROptions {
 }
 
 /**
+ * Результат transformToIR
+ */
+export interface TransformResult {
+  /** IR программа */
+  ir: IRProgram;
+  /** Диагностики bt-ir (lowering) */
+  diagnostics: ts.Diagnostic[];
+}
+
+/**
  * @param options - Опции lowering (mode и т.д.)
  */
 export function transformToIR(
@@ -145,9 +230,11 @@ export function transformToIR(
   typeChecker: ts.TypeChecker,
   scopeAnalysis: ScopeAnalysisResult,
   options: TransformToIROptions = {},
-): IRProgram {
+): TransformResult {
+  const mode = options.mode ?? "script";
   const ctx: VisitorContext = {
-    mode: options.mode ?? "script",
+    mode,
+    config: createModeConfig(mode),
     functionParams: new Map(),
     hoistedFunctions: [],
     typeChecker,
@@ -168,39 +255,23 @@ export function transformToIR(
         ? path.basename(sourceFile.fileName).replace(/\.tsx?$/, ".js")
         : undefined),
     helperFlags: { usesImportMeta: false, usesAbsoluteUrl: false, needsObjectUnion: false },
+    diagnostics: [],
   };
 
-  const isModuleMode = ctx.mode === "module";
+  const { config } = ctx;
   const body: IRStatement[] = [];
 
-  if (ctx.mode === "script") {
+  if (config.useEnvDescPattern && !config.moduleExports) {
     // Script: __env = {} на top-level (bare не нуждается в __env)
     body.push(IR.envDecl("__env", null));
   }
 
   // Обрабатываем все statements
   for (const statement of sourceFile.statements) {
-    const irNodes = visitStatement(statement, ctx);
-
-    // Flush pending statements (от arrow функций и т.д.) ПЕРЕД результатом,
-    // чтобы дескрипторы и __env-регистрации шли до их использования
-    if (ctx.pendingStatements.length > 0) {
-      body.push(...ctx.pendingStatements);
-      ctx.pendingStatements.length = 0;
-    }
-
-    if (irNodes) {
-      if (Array.isArray(irNodes)) {
-        body.push(...irNodes);
-      } else {
-        body.push(irNodes);
-      }
-    }
-  }
-
-  // Flush remaining pending statements
-  if (ctx.pendingStatements.length > 0) {
-    body.push(...ctx.pendingStatements);
+    const { result: irNodes, hoisted } = withPendingScope(ctx, () =>
+      visitStatement(statement, ctx),
+    );
+    body.push(...collectStatements(hoisted, irNodes));
   }
 
   // Helper-функции (ObjectUnion при spread в объектах) — в самом начале
@@ -211,11 +282,11 @@ export function transformToIR(
   // import.meta и AbsoluteUrl helpers: BT-функции, зарегистрированные в __env
   const helperSetupStatements: IRStatement[] = [];
 
-  if (ctx.helperFlags.usesImportMeta && (ctx.mode === "script" || ctx.mode === "module")) {
+  if (ctx.helperFlags.usesImportMeta && config.useEnvDescPattern) {
     const fileRef =
-      ctx.mode === "script" && ctx.fileKey
+      !config.moduleExports && ctx.fileKey
         ? IR.call(IR.dot(IR.id("bt"), "getFileUrl"), [IR.string(ctx.fileKey)])
-        : ctx.mode === "module" && ctx.currentFileJs
+        : config.moduleExports && ctx.currentFileJs
           ? IR.call(IR.id("AbsoluteUrl"), [IR.string(ctx.currentFileJs)])
           : null;
     if (fileRef) {
@@ -241,7 +312,7 @@ export function transformToIR(
           IR.prop("obj", IR.id("undefined")),
           IR.prop("env", IR.id("__env")),
         ];
-        if (isModuleMode) {
+        if (config.useRefFormat) {
           descProps.push(IR.prop("ref", IR.string(helper.name)));
           descProps.push(IR.prop("lib", IR.dot(IR.id("__env"), "__codelibrary")));
         } else {
@@ -255,16 +326,15 @@ export function transformToIR(
     }
   }
 
-  if (ctx.helperFlags.usesAbsoluteUrl && (ctx.mode === "script" || ctx.mode === "module")) {
+  if (ctx.helperFlags.usesAbsoluteUrl && config.useEnvDescPattern) {
     // __AbsoluteUrl: обычная BT-функция с параметрами url, baseUrl
-    const whenUndefined =
-      ctx.mode === "script"
-        ? // Внутри __AbsoluteUrl: __env.__ImportMeta_dirUrl доступен через __env (он параметр)
-          IR.call(IR.id("UrlAppendPath"), [
-            IR.btCallFunction(IR.dot(IR.id("__env"), "__ImportMeta_dirUrl"), []),
-            IR.id("url"),
-          ])
-        : IR.call(IR.id("AbsoluteUrl"), [IR.id("url")]);
+    const whenUndefined = !config.moduleExports
+      ? // Внутри __AbsoluteUrl: __env.__ImportMeta_dirUrl доступен через __env (он параметр)
+        IR.call(IR.id("UrlAppendPath"), [
+          IR.btCallFunction(IR.dot(IR.id("__env"), "__ImportMeta_dirUrl"), []),
+          IR.id("url"),
+        ])
+      : IR.call(IR.id("AbsoluteUrl"), [IR.id("url")]);
     const whenDefined = IR.call(IR.id("AbsoluteUrl"), [IR.id("url"), IR.id("baseUrl")]);
     const ret = IR.return(
       IR.conditional(
@@ -282,7 +352,7 @@ export function transformToIR(
       IR.prop("obj", IR.id("undefined")),
       IR.prop("env", IR.id("__env")),
     ];
-    if (isModuleMode) {
+    if (config.useRefFormat) {
       absDescProps.push(IR.prop("ref", IR.string("__AbsoluteUrl")));
       absDescProps.push(IR.prop("lib", IR.dot(IR.id("__env"), "__codelibrary")));
     } else {
@@ -296,7 +366,7 @@ export function transformToIR(
     );
   }
 
-  if (isModuleMode) {
+  if (config.moduleExports) {
     // Module: только функции на top-level, весь код в __init(__codelibrary, __module)
     const initBody: IRStatement[] = [
       IR.envDecl("__env", null),
@@ -311,7 +381,10 @@ export function transformToIR(
       undefined,
       true, // plainSignature: __init(__codelibrary, __module)
     );
-    return IR.program([...helperFunctions, ...ctx.hoistedFunctions, initFunc], sourceFile.fileName);
+    return {
+      ir: IR.program([...helperFunctions, ...ctx.hoistedFunctions, initFunc], sourceFile.fileName),
+      diagnostics: ctx.diagnostics,
+    };
   }
 
   // Script mode: вставляем helperSetupStatements сразу после __env (index 0 = __env decl)
@@ -319,12 +392,14 @@ export function transformToIR(
     body.splice(1, 0, ...helperSetupStatements);
   }
 
-  const isBare = ctx.mode === "bare";
-  return IR.program(
-    [...helperFunctions, ...ctx.hoistedFunctions, ...body],
-    sourceFile.fileName,
-    isBare,
-  );
+  return {
+    ir: IR.program(
+      [...helperFunctions, ...ctx.hoistedFunctions, ...body],
+      sourceFile.fileName,
+      !config.useEnvDescPattern,
+    ),
+    diagnostics: ctx.diagnostics,
+  };
 }
 
 // ============================================================================
