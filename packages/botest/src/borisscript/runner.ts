@@ -5,6 +5,15 @@ type JsEvalReturnValue = {
   retVal: any;
 };
 
+/**
+ * Evaluates BorisScript code asynchronously with timeout protection.
+ *
+ * @param code - BorisScript source code to execute.
+ * @param filePath - Optional file path for source mapping in error traces.
+ * @param timeout - Maximum execution time in ms (default: 30000).
+ * @returns The return value of the evaluated code.
+ * @throws Error on timeout, runtime errors, or assertion failures.
+ */
 export async function evalBorisScriptAsync(
   code: string,
   filePath?: string,
@@ -32,29 +41,29 @@ export async function evalBorisScriptAsync(
     }, timeout);
 
     try {
-      JsEvalCodeAsyncExt(
-        JsParseCode(code, sourceInfo),
-        JsGlobalEnv(),
-        undefined,
-        (result: JsEvalReturnValue) => {
-          if (!isResolved) {
-            isResolved = true;
-            clearTimeout(timeoutId);
+      const parsedCode = JsParseCode(code, sourceInfo);
+      const env = JsGlobalEnv();
 
-            if (result.err) {
-              reject(result.err);
-            } else {
-              resolve(result.retVal);
-            }
+      JsEvalCodeAsyncExt(parsedCode, env, undefined, (result: JsEvalReturnValue) => {
+        if (!isResolved) {
+          isResolved = true;
+          clearTimeout(timeoutId);
+
+          if (result.err) {
+            reject(result.err);
+          } else {
+            resolve(result.retVal);
           }
-        },
-      );
+        }
+        // console.log(result);
+      });
     } catch (error) {
       if (!isResolved) {
         isResolved = true;
         clearTimeout(timeoutId);
         reject(error);
       }
+      // console.log(error);
     }
   });
 }

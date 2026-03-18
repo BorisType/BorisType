@@ -122,7 +122,6 @@ bs.BmLoadUrlDataAsync = function (url: any, completionProc: any): any {
 
   let data;
   if ((data = bs.gBmPreloadedUrlCache[url]) != undefined) {
-    console.log("BmLoadUrlDataAsync: loaded from cache");
     bs.BmInvokeCompletionProcWithRetVal(completionProc, data);
     return;
   }
@@ -167,10 +166,6 @@ bs.JsGlobal.prototype.CallassertJsArrayEquals = function (
       expected: obj2,
       message: argsArray[2],
     };
-
-    console.log(argsArray[0]);
-    console.log(argsArray[1]);
-    console.log(sourceInfo);
     throw new bs.BmError(`TEST-RUNNER:assert:${bs.JsEncodeJsonStr(data)}`);
   }
 };
@@ -228,19 +223,15 @@ bs.JsGlobal.prototype.CallIsDirectory = function (argsArray: any, env: any, sour
 };
 bs.JsGlobal.prototype.CallFileExists = function (argsArray: any[], env: any, sourceInfo: any) {
   const path = bs.BmResolveArgStr(argsArray, 0);
-
-  console.log("Checking file exists:", path);
   return fs.existsSync(path);
 };
 bs.JsGlobal.prototype.CallUrlToFilePath = function (argsArray: any[], env: any, sourceInfo: any) {
-  console.log("CallUrlToFilePath called");
   const url = bs.BmResolveArgUrl(argsArray, 0, sourceInfo);
   const path = urlToFilePath(url);
 
   return path;
 };
 bs.JsGlobal.prototype.GetPropActiveThread = function () {
-  console.log("GetPropActiveThread called", bs.gActiveThread);
   if (bs.gActiveThread != undefined) {
     return bs.gActiveThread;
   }

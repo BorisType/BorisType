@@ -3,13 +3,7 @@
 import { program } from "commander";
 import { runTestsAsync } from "./tester";
 
-export type CommandLineOptions = {};
-
-async function processTest(
-  files: string[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  options: CommandLineOptions,
-) {
+async function processTest(files: string[]) {
   const cwd = process.cwd();
 
   const workdir = files[0] || cwd;
@@ -21,11 +15,11 @@ async function processTest(
 
 program
   .name("botest")
-  .description("Basic TypeScript CLI utility for file processing")
+  .description("BorisScript test runner — executes transpiled tests in BS interpreter")
   .version("0.0.1")
   .arguments("[files...]")
-  .action(async (files: string[], options: any) => {
-    await processTest(files, options);
+  .action(async (files: string[]) => {
+    await processTest(files);
   });
 
 program.parse(process.argv);

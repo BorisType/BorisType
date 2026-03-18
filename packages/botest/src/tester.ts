@@ -1,37 +1,32 @@
 import chalk from "chalk";
-import { TestCase } from "./parser";
 import { evalBorisScriptAsync } from "./borisscript/runner";
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { relative, join, resolve } from "path";
+import type { TestCase, TestResult, TestAssertionResult, TestStatus, TestSuite } from "./types";
 
-interface TestResult {
-  suite: string;
-  name: string;
-  status: TestStatus;
-  time: number;
-  assertion?: TestAssertionResult;
-  error?: any;
-}
-
-interface TestAssertionResult {
-  message: string;
-  expected: string;
-  actual: string;
-}
-
-type TestStatus = "PASSED" | "FAILED" | "SKIPPED";
-
+/** Converts a Windows path to POSIX format. */
 function toPosixPath(p: string): string {
   return p.replace(/\\/g, "/");
 }
 
+/** Returns the POSIX-style relative path from `workdir` to `absPath`. */
+function relPosix(workdir: string, absPath: string): string {
+  return toPosixPath(relative(workdir, absPath));
+}
+
+/**
+ * Checks whether a filter string matches the given suite or test path.
+ * A filter matches if it equals the path or is a prefix followed by `/`.
+ */
+function filterMatches(filter: string, ...candidates: string[]): boolean {
+  const f = toPosixPath(filter);
+  return candidates.some((c) => f === c || f.startsWith(c + "/"));
+}
+
 function shouldRunSuite(workdir: string, suiteDirPath: string, filters: string[]): boolean {
   if (filters.length === 0) return true;
-  const rel = toPosixPath(relative(workdir, suiteDirPath));
-  return filters.some((f) => {
-    const n = toPosixPath(f);
-    return n === rel || n.startsWith(rel + "/");
-  });
+  const rel = relPosix(workdir, suiteDirPath);
+  return filters.some((f) => filterMatches(f, rel));
 }
 
 function shouldRunTest(
@@ -41,13 +36,53 @@ function shouldRunTest(
   filters: string[],
 ): boolean {
   if (filters.length === 0) return true;
-  const testRel = toPosixPath(relative(workdir, testFilePath));
-  return filters.some((f) => {
-    const n = toPosixPath(f);
-    return n === suiteRel || n === testRel || n.startsWith(suiteRel + "/");
-  });
+  const testRel = relPosix(workdir, testFilePath);
+  return filters.some((f) => filterMatches(f, suiteRel, testRel));
 }
 
+/**
+ * Scans `workdir` for directories containing `_suite.json` and returns
+ * an array of discovered (non-disabled) test suites, sorted by directory name.
+ */
+function discoverSuites(workdir: string): TestSuite[] {
+  const suites: TestSuite[] = [];
+
+  for (const fileName of readdirSync(workdir)) {
+    const dirPath = join(workdir, fileName);
+    const stat = statSync(dirPath);
+    if (!stat || !stat.isDirectory()) continue;
+
+    const suiteFile = join(dirPath, "_suite.json");
+    if (!existsSync(suiteFile)) continue;
+
+    try {
+      const suiteConfig = JSON.parse(readFileSync(suiteFile, "utf-8"));
+      if (suiteConfig.disabled === true) continue;
+
+      suites.push({
+        dirPath,
+        name: suiteConfig.name || "Unnamed Suite",
+        tests: suiteConfig.tests || {},
+      });
+    } catch (_err) {
+      console.log(
+        `${chalk.bgRedBright(` ${relative(workdir, dirPath)} `)} - failed to parse _suite.json`,
+      );
+    }
+  }
+
+  suites.sort((a, b) => a.name.localeCompare(b.name));
+  return suites;
+}
+
+/**
+ * Main entry point for the test runner. Discovers suites, filters them,
+ * executes all matching tests, and prints the report.
+ *
+ * @param filePath - Relative or absolute path to the test build directory.
+ * @param cwdPath - Current working directory (used for resolving relative paths).
+ * @param filters - Optional list of suite/test path filters.
+ */
 export async function runTestsAsync(
   filePath: string,
   cwdPath: string,
@@ -60,57 +95,22 @@ export async function runTestsAsync(
   try {
     await loadTestEnv();
   } catch (err) {
-    console.error(err);
+    console.error(chalk.red("Failed to load test environment:"), err);
+    process.exit(1);
   }
 
-  type TestSuite = {
-    dirPath: string;
-    name: string;
-    tests: { [key: string]: string };
-  };
-  const allSuites = [] as TestSuite[];
-  readdirSync(workdir).forEach((fileName) => {
-    const filePathFull = join(workdir, fileName);
-    const stat = statSync(filePathFull);
-    if (stat && stat.isDirectory()) {
-      const suiteFile = join(filePathFull, "_suite.json");
-      const suiteStat = existsSync(suiteFile) ? statSync(suiteFile) : null;
-      if (suiteStat && suiteStat.isFile()) {
-        try {
-          const suiteConfig = JSON.parse(readFileSync(suiteFile, "utf-8"));
-          const suiteName: string = suiteConfig.name || "Unnamed Suite";
-          const suiteTests: { [key: string]: string } = suiteConfig.tests || {};
-
-          if (suiteConfig.disabled !== true) {
-            allSuites.push({
-              dirPath: filePathFull,
-              name: suiteName,
-              tests: suiteTests,
-            });
-          }
-        } catch (_err) {
-          console.log(
-            `${chalk.bgRedBright(` ${relative(workdir, filePathFull)} `)} - failed to parse _suite.json`,
-          );
-        }
-      }
-    }
-  });
+  const allSuites = discoverSuites(workdir);
 
   const suites =
     filters.length === 0
       ? allSuites
       : allSuites.filter((s) => shouldRunSuite(workdir, s.dirPath, filters));
 
-  let firstSuite = false;
-  for (const suite of suites) {
-    const suiteRel = toPosixPath(relative(workdir, suite.dirPath));
+  for (let i = 0; i < suites.length; i++) {
+    const suite = suites[i];
+    const suiteRel = relPosix(workdir, suite.dirPath);
 
-    if (!firstSuite) {
-      firstSuite = true;
-    } else {
-      console.log();
-    }
+    if (i > 0) console.log();
 
     console.log(chalk.bgCyanBright(` ${suite.name} `));
     const testFiles = readdirSync(suite.dirPath).filter((f) => f.endsWith(".test.js"));
@@ -156,6 +156,7 @@ export async function runTestsAsync(
   }
 }
 
+/** Loads the BorisScript runtime, polyfills, module system, and botest asserts. */
 async function loadTestEnv() {
   await evalBorisScriptAsync(`
     RegisterCodeLibrary("x-local://packages/builtin-runtime/build/polyfill.js");
@@ -176,6 +177,10 @@ async function loadTestEnv() {
   `);
 }
 
+/**
+ * Executes a single test case in the BorisScript interpreter and parses
+ * the result protocol (`TEST-RUNNER:exit:N`, `TEST-RUNNER:assert:{json}`).
+ */
 async function runTestAsync(testCase: TestCase): Promise<TestResult> {
   const testCode = testCase.code + "\n";
 
@@ -263,6 +268,7 @@ async function runTestAsync(testCase: TestCase): Promise<TestResult> {
   };
 }
 
+/** Prints a single test result line with colored status and timing. */
 function printTestResult(testCase: TestCase, testResult: TestResult) {
   let statusFormatted = "";
   const testNameFormatted = chalk.white(testCase.name);
@@ -335,21 +341,22 @@ function outputTestCode(code: string, contrastLineNumber: number) {
   console.log(code);
 }
 
-function printTestReport(files: string[], startTime: Date, testResults: TestResult[]) {
+/** Prints the final summary report with suite/test counts and timing. */
+function printTestReport(suiteNames: string[], startTime: Date, testResults: TestResult[]) {
   const totalDuration = testResults.reduce((sum, r) => sum + r.time, 0);
   const totalTestsCount = testResults.length;
-  const totalFilesCount = files.length;
+  const totalSuitesCount = suiteNames.length;
 
   const passedTests = testResults.filter((r) => r.status === "PASSED");
   const failedTests = testResults.filter((r) => r.status === "FAILED");
   const skippedTests = testResults.filter((r) => r.status === "SKIPPED");
 
-  const passedSuites = new Set(files);
+  const passedSuites = new Set(suiteNames);
   const failedSuites = new Set(failedTests.map((r) => r.suite));
   const skippedSuites = new Set(skippedTests.map((r) => r.suite));
 
-  failedSuites.forEach((file) => passedSuites.delete(file));
-  skippedSuites.forEach((file) => passedSuites.delete(file));
+  failedSuites.forEach((s) => passedSuites.delete(s));
+  skippedSuites.forEach((s) => passedSuites.delete(s));
 
   const passedSuitesCount = passedSuites.size;
   const failedSuitesCount = failedSuites.size;
@@ -361,7 +368,7 @@ function printTestReport(files: string[], startTime: Date, testResults: TestResu
   const passedSuitesFormatted = chalk.green(`${passedSuitesCount} passed`);
   const failedSuitesFormatted = chalk.red(`${failedSuitesCount} failed`);
   const skippedSuitesFormatted = chalk.yellow(`${skippedSuitesCount} skipped`);
-  const totalFilesFormatted = `${totalFilesCount}`;
+  const totalSuitesFormatted = `${totalSuitesCount}`;
   const passedTestsFormatted = chalk.green(`${passedTestsCount} passed`);
   const failedTestsFormatted = chalk.red(`${failedTestsCount} failed`);
   const skippedTestsFormatted = chalk.yellow(`${skippedTestsCount} skipped`);
@@ -373,7 +380,7 @@ function printTestReport(files: string[], startTime: Date, testResults: TestResu
   const durationFormatted = chalk.blue(`${totalDuration.toFixed(0)}ms`);
 
   if (failedTestsCount === 0 && skippedTestsCount === 0) {
-    testFilesFormatted = `${passedSuitesFormatted} (${totalFilesFormatted})`;
+    testFilesFormatted = `${passedSuitesFormatted} (${totalSuitesFormatted})`;
     testsFormatted = `${passedTestsFormatted} (${totalTestsFormatted})`;
   } else {
     const suiteParts = [];
@@ -387,7 +394,7 @@ function printTestReport(files: string[], startTime: Date, testResults: TestResu
     if (skippedTestsCount > 0) testParts.push(skippedTestsFormatted);
     testParts.push(passedTestsFormatted);
 
-    testFilesFormatted = `${suiteParts.join(" | ")} (${totalFilesFormatted})`;
+    testFilesFormatted = `${suiteParts.join(" | ")} (${totalSuitesFormatted})`;
     testsFormatted = `${testParts.join(" | ")} (${totalTestsFormatted})`;
   }
 
