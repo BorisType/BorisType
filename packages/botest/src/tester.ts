@@ -2,7 +2,14 @@ import chalk from "chalk";
 import { evalBorisScriptAsync } from "./borisscript/runner";
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { relative, join, resolve } from "path";
-import type { TestCase, TestResult, TestAssertionResult, TestStatus, TestSuite } from "./types";
+import type {
+  TestCase,
+  TestResult,
+  TestAssertionResult,
+  TestStatus,
+  TestSuite,
+  RunOptions,
+} from "./types";
 
 /** Converts a Windows path to POSIX format. */
 function toPosixPath(p: string): string {
@@ -82,14 +89,17 @@ function discoverSuites(workdir: string): TestSuite[] {
  * @param filePath - Relative or absolute path to the test build directory.
  * @param cwdPath - Current working directory (used for resolving relative paths).
  * @param filters - Optional list of suite/test path filters.
+ * @param options - Runner options (verbose, etc.).
  */
 export async function runTestsAsync(
   filePath: string,
   cwdPath: string,
   filters: string[] = [],
+  options: RunOptions = { verbose: false },
 ): Promise<void> {
   const testResults: TestResult[] = [];
   const workdir = resolve(cwdPath, filePath);
+  const { verbose } = options;
 
   const startTime = new Date();
   try {
@@ -109,10 +119,14 @@ export async function runTestsAsync(
   for (let i = 0; i < suites.length; i++) {
     const suite = suites[i];
     const suiteRel = relPosix(workdir, suite.dirPath);
+    const suiteResults: TestResult[] = [];
 
     if (i > 0) console.log();
 
-    console.log(chalk.bgCyanBright(` ${suite.name} `));
+    if (verbose) {
+      console.log(chalk.bgCyanBright(` ${suite.name} `));
+    }
+
     const testFiles = readdirSync(suite.dirPath).filter((f) => f.endsWith(".test.js"));
     for (const testFileName of testFiles) {
       const testFilePath = join(suite.dirPath, testFileName);
@@ -140,9 +154,15 @@ export async function runTestsAsync(
       };
 
       const testResult = await runTestAsync(testCase);
-      printTestResult(testCase, testResult);
-      testResults.push(testResult);
+      suiteResults.push(testResult);
+
+      if (verbose || testResult.status !== "PASSED") {
+        printTestResult(testCase, testResult);
+      }
     }
+
+    testResults.push(...suiteResults);
+    printSuiteStatus(suite.name, suiteResults, verbose);
   }
 
   printTestReport(
@@ -266,6 +286,50 @@ async function runTestAsync(testCase: TestCase): Promise<TestResult> {
     assertion,
     error,
   };
+}
+
+/**
+ * Prints a one-line suite summary after all its tests have been executed.
+ *
+ * In compact mode (non-verbose): prints the suite header with aggregated status.
+ * In verbose mode: prints only the status line (header was already printed).
+ *
+ * Format examples:
+ * - ` Array  ✓ 21 passed (120ms)`
+ * - ` Semantic  ✗ 10 passed, 2 failed (85ms)`
+ */
+function printSuiteStatus(suiteName: string, results: TestResult[], verbose: boolean): void {
+  const totalTime = results.reduce((sum, r) => sum + r.time, 0);
+  const passed = results.filter((r) => r.status === "PASSED").length;
+  const failed = results.filter((r) => r.status === "FAILED").length;
+  const skipped = results.filter((r) => r.status === "SKIPPED").length;
+
+  const timePart = chalk.blue(`${totalTime.toFixed(0)}ms`);
+
+  const parts: string[] = [];
+  if (passed > 0) parts.push(chalk.green(`${passed} passed`));
+  if (failed > 0) parts.push(chalk.red(`${failed} failed`));
+  if (skipped > 0) parts.push(chalk.yellow(`${skipped} skipped`));
+
+  let icon: string;
+  let nameColor: (s: string) => string;
+
+  if (failed > 0) {
+    icon = chalk.red("✗");
+    nameColor = chalk.red;
+  } else if (skipped > 0) {
+    icon = chalk.yellow("⚠");
+    nameColor = chalk.yellow;
+  } else {
+    icon = chalk.green("✓");
+    nameColor = chalk.green;
+  }
+
+  if (verbose) {
+    console.log(`${icon} ${parts.join(", ")} (${timePart})`);
+  } else {
+    console.log(`${nameColor(` ${suiteName} `)} ${icon} ${parts.join(", ")} (${timePart})`);
+  }
 }
 
 /** Prints a single test result line with colored status and timing. */

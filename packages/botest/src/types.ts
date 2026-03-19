@@ -48,3 +48,9 @@ export interface TestSuite {
   /** Map of test file names (`.test.js`) to their display names. */
   tests: { [key: string]: string };
 }
+
+/** Options controlling test runner behavior. */
+export interface RunOptions {
+  /** When true, print every test result including PASSED. Default: false. */
+  verbose: boolean;
+}
