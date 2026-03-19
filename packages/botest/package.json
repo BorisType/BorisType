@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "chalk": "^5.6.0",
-    "commander": "^14.0.1"
+    "commander": "^14.0.1",
+    "tsx": "^4.19.0"
   }
 }

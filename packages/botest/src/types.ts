@@ -47,10 +47,14 @@ export interface TestSuite {
   name: string;
   /** Map of test file names (`.test.js`) to their display names. */
   tests: { [key: string]: string };
+  /** Whether to include this suite in Node.js validation. Default: true. */
+  nodeCheck?: boolean;
 }
 
 /** Options controlling test runner behavior. */
 export interface RunOptions {
   /** When true, print every test result including PASSED. Default: false. */
   verbose: boolean;
+  /** When true, also run tests in Node.js to validate test logic. Default: false. */
+  nodeCheck: boolean;
 }

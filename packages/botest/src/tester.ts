@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import { evalBorisScriptAsync } from "./borisscript/runner";
+import { checkTsxAvailable, runTestInNode } from "./node-runner";
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { relative, join, resolve } from "path";
 import type {
@@ -80,6 +81,7 @@ function discoverSuites(workdir: string): TestSuite[] {
         dirPath,
         name: suiteConfig.name || "Unnamed Suite",
         tests: suiteConfig.tests || {},
+        nodeCheck: suiteConfig.nodeCheck,
       });
     } catch (_err) {
       console.log(
@@ -105,7 +107,7 @@ export async function runTestsAsync(
   filePath: string,
   cwdPath: string,
   filters: string[] = [],
-  options: RunOptions = { verbose: false },
+  options: RunOptions = { verbose: false, nodeCheck: false },
 ): Promise<void> {
   const testResults: TestResult[] = [];
   const workdir = resolve(cwdPath, filePath);
@@ -180,6 +182,10 @@ export async function runTestsAsync(
     startTime,
     testResults,
   );
+
+  if (options.nodeCheck) {
+    runNodeChecks(workdir, suites, filters, verbose);
+  }
 
   if (testResults.some((result) => result.status === "FAILED" || result.status === "SKIPPED")) {
     process.exit(1);
@@ -484,4 +490,124 @@ function printTestReport(suiteNames: string[], startTime: Date, testResults: Tes
   } else {
     console.log(chalk.red("SOME TESTS FAILED"));
   }
+}
+
+// ---------------------------------------------------------------------------
+// Node.js Validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Runs all matching tests in Node.js (via tsx) to validate that the test
+ * logic is correct independently of the BorisScript interpreter.
+ *
+ * Results are printed as a separate section and do NOT affect the exit code
+ * (node failures are warnings, not hard failures).
+ */
+function runNodeChecks(
+  workdir: string,
+  suites: TestSuite[],
+  filters: string[],
+  verbose: boolean,
+): void {
+  if (!checkTsxAvailable()) {
+    console.log();
+    console.log(chalk.yellow("  tsx not installed, skipping Node.js validation"));
+    console.log(chalk.gray("  Install: pnpm add tsx"));
+    return;
+  }
+
+  const sourceDir = resolve(workdir, "..", "src");
+  if (!existsSync(sourceDir)) {
+    console.log();
+    console.log(chalk.yellow("  Source directory not found, skipping Node.js validation"));
+    return;
+  }
+
+  console.log();
+  console.log(chalk.bgMagentaBright(" Node.js Validation "));
+
+  let totalPassed = 0;
+  let totalFailed = 0;
+  let totalSkipped = 0;
+
+  for (const suite of suites) {
+    if (suite.nodeCheck === false) {
+      const testCount = Object.keys(suite.tests).length;
+      totalSkipped += testCount;
+      if (verbose) {
+        console.log(chalk.gray(`  ${chalk.yellow("SKIP")} ${suite.name} (nodeCheck: false)`));
+      }
+      continue;
+    }
+
+    const suiteRel = relPosix(workdir, suite.dirPath);
+    let suitePassed = 0;
+    let suiteFailed = 0;
+    let suiteSkipped = 0;
+
+    const testFiles = readdirSync(suite.dirPath).filter((f) => f.endsWith(".test.js"));
+    for (const testFileName of testFiles) {
+      const testFilePath = join(suite.dirPath, testFileName);
+      if (!shouldRunTest(workdir, testFilePath, suiteRel, filters)) continue;
+
+      const testName = suite.tests[testFileName];
+      if (!testName) continue;
+
+      // Derive source path: build/suite/test.test.js → src/suite/test.test.ts
+      const relPath = relative(workdir, testFilePath);
+      const sourceRelPath = relPath.replace(/\.js$/, ".ts");
+      const sourcePath = resolve(sourceDir, sourceRelPath);
+
+      const result = runTestInNode(sourcePath);
+
+      if (result.status === "NODE_PASSED") {
+        suitePassed++;
+      } else if (result.status === "NODE_SKIPPED") {
+        suiteSkipped++;
+      } else {
+        suiteFailed++;
+        console.log(chalk.red(`  FAIL  ${suite.name} / ${testName}`));
+        if (result.error) {
+          const errorLines = result.error.split("\n").slice(0, 4);
+          for (const line of errorLines) {
+            console.log(chalk.gray(`    ${line}`));
+          }
+        }
+      }
+    }
+
+    totalPassed += suitePassed;
+    totalFailed += suiteFailed;
+    totalSkipped += suiteSkipped;
+
+    if (verbose) {
+      printNodeSuiteStatus(suite.name, suitePassed, suiteFailed, suiteSkipped);
+    }
+  }
+
+  // Summary line
+  const parts: string[] = [];
+  if (totalPassed > 0) parts.push(chalk.green(`${totalPassed} passed`));
+  if (totalFailed > 0) parts.push(chalk.red(`${totalFailed} failed`));
+  if (totalSkipped > 0) parts.push(chalk.yellow(`${totalSkipped} skipped`));
+  console.log(chalk.gray(`\n    Node:  ${parts.join(" | ")}`));
+}
+
+/** Prints a per-suite summary line for Node.js validation (verbose mode). */
+function printNodeSuiteStatus(name: string, passed: number, failed: number, skipped: number): void {
+  const parts: string[] = [];
+  if (passed > 0) parts.push(chalk.green(`${passed} passed`));
+  if (failed > 0) parts.push(chalk.red(`${failed} failed`));
+  if (skipped > 0) parts.push(chalk.yellow(`${skipped} skipped`));
+
+  let icon: string;
+  if (failed > 0) {
+    icon = chalk.red("✗");
+  } else if (skipped > 0) {
+    icon = chalk.yellow("⚠");
+  } else {
+    icon = chalk.green("✓");
+  }
+
+  console.log(`  ${icon} ${name}: ${parts.join(", ")}`);
 }
