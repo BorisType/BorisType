@@ -33,9 +33,16 @@ function filterMatches(filter: string, ...candidates: string[]): boolean {
 function shouldRunSuite(workdir: string, suiteDirPath: string, filters: string[]): boolean {
   if (filters.length === 0) return true;
   const rel = relPosix(workdir, suiteDirPath);
+  // Include suite if any filter targets it or a test within it
   return filters.some((f) => filterMatches(f, rel));
 }
 
+/**
+ * Determines whether an individual test should run given the active filters.
+ *
+ * - Filter equals the suite name → run all tests in the suite.
+ * - Filter equals the test's relative path → run that specific test.
+ */
 function shouldRunTest(
   workdir: string,
   testFilePath: string,
@@ -44,7 +51,10 @@ function shouldRunTest(
 ): boolean {
   if (filters.length === 0) return true;
   const testRel = relPosix(workdir, testFilePath);
-  return filters.some((f) => filterMatches(f, suiteRel, testRel));
+  return filters.some((f) => {
+    const n = toPosixPath(f);
+    return n === suiteRel || n === testRel;
+  });
 }
 
 /**
