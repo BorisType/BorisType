@@ -1,5 +1,7 @@
 node_modules
 build
+build_old
+scripts/
 dist
 artifact
 packages/botest/src/borisscript/main.js
