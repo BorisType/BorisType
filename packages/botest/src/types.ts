@@ -47,8 +47,10 @@ export interface TestSuite {
   name: string;
   /** Map of test file names (`.test.js`) to their display names. */
   tests: { [key: string]: string };
-  /** Whether to include this suite in Node.js validation. Default: true. */
+  /** Set to `false` to skip the entire suite in Node.js validation. Default: true. */
   nodeCheck?: boolean;
+  /** List of test file names (`.test.js`) to skip in Node.js validation. */
+  skipNodeCheck?: string[];
 }
 
 /** Options controlling test runner behavior. */

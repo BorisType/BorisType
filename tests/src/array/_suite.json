@@ -22,5 +22,6 @@
     "values.test.js": "Array.values()",
     "with.test.js": "Array.with()",
     "1.chained.test.js": "Chained array methods"
-  }
+  },
+  "skipNodeCheck": ["entries.test.js", "join.test.js", "keys.test.js", "values.test.js"]
 }

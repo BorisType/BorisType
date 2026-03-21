@@ -3,6 +3,10 @@
     {
       "fileMatch": ["**/btconfig.json"],
       "url": "./schemas/btconfig.schema.json"
+    },
+    {
+      "fileMatch": ["tests/src/**/_suite.json"],
+      "url": "./schemas/suite.schema.json"
     }
   ]
 }

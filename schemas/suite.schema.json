@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://boristype.dev/schemas/suite.json",
+  "title": "BorisType Test Suite",
+  "description": "Configuration file (_suite.json) for a botest test suite",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "Human-readable name of the test suite, displayed in test output",
+      "type": "string",
+      "minLength": 1,
+      "examples": ["Array", "General semantic", "Prototype chain & method binding"]
+    },
+    "tests": {
+      "description": "Map of compiled test file names (.test.js) to their display names",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "propertyNames": {
+        "pattern": "^.+\\.test\\.js$"
+      },
+      "examples": [
+        {
+          "at.test.js": "Array.at()",
+          "concat.test.js": "Array.concat()"
+        }
+      ]
+    },
+    "disabled": {
+      "description": "Set to true to skip the entire suite during test runs. Default: false",
+      "type": "boolean",
+      "default": false
+    },
+    "nodeCheck": {
+      "description": "Set to false to skip the entire suite in Node.js validation (--node-check). Default: true",
+      "type": "boolean",
+      "default": true
+    },
+    "skipNodeCheck": {
+      "description": "List of test file names (.test.js) to skip in Node.js validation (--node-check). Allows excluding individual tests while keeping the rest of the suite enabled",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^.+\\.test\\.js$"
+      },
+      "uniqueItems": true,
+      "examples": [
+        ["entries.test.js", "keys.test.js"]
+      ]
+    }
+  },
+  "required": ["name", "tests"],
+  "additionalProperties": false
+}

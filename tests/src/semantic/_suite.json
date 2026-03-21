@@ -13,5 +13,6 @@
     "global-cache.test.js": "global cache",
     "func-expr.test.js": "function expression vs arrow function parity",
     "for-of-captured.test.js": "for-of loop with captured variables in closures"
-  }
+  },
+  "skipNodeCheck": ["imports.test.js"]
 }

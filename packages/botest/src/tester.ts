@@ -82,6 +82,7 @@ function discoverSuites(workdir: string): TestSuite[] {
         name: suiteConfig.name || "Unnamed Suite",
         tests: suiteConfig.tests || {},
         nodeCheck: suiteConfig.nodeCheck,
+        skipNodeCheck: suiteConfig.skipNodeCheck,
       });
     } catch (_err) {
       console.log(
@@ -552,6 +553,15 @@ function runNodeChecks(
 
       const testName = suite.tests[testFileName];
       if (!testName) continue;
+
+      // Per-test skip
+      if (suite.skipNodeCheck?.includes(testFileName)) {
+        suiteSkipped++;
+        if (verbose) {
+          console.log(chalk.gray(`    ${chalk.yellow("SKIP")} ${testName} (skipNodeCheck)`));
+        }
+        continue;
+      }
 
       // Derive source path: build/suite/test.test.js → src/suite/test.test.ts
       const relPath = relative(workdir, testFilePath);
