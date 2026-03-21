@@ -49,6 +49,43 @@
       "examples": [
         ["entries.test.js", "keys.test.js"]
       ]
+    },
+    "codeChecks": {
+      "description": "Per-test regex validation rules for compiled output. Keys are compiled test file names (.test.js). Use 'forbid' to ensure patterns do NOT appear and 'require' to ensure patterns DO appear in the generated code",
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^.+\\.test\\.js$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "forbid": {
+            "description": "Regex patterns that must NOT match in the compiled code. If any matches, the test fails before execution",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "require": {
+            "description": "Regex patterns that MUST match in the compiled code. If any does not match, the test fails before execution",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "examples": [
+        {
+          "typeAwareness.test.js": {
+            "forbid": ["getProperty"],
+            "require": ["xml\\.TopElem\\.code"]
+          }
+        }
+      ]
     }
   },
   "required": ["name", "tests"],

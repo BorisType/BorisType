@@ -51,6 +51,36 @@ export interface TestSuite {
   nodeCheck?: boolean;
   /** List of test file names (`.test.js`) to skip in Node.js validation. */
   skipNodeCheck?: string[];
+  /** Per-test regex validation rules for compiled output. Keys are `.test.js` file names. */
+  codeChecks?: { [key: string]: CodeCheckRule };
+}
+
+/** Regex-based validation rule for compiled test output. */
+export interface CodeCheckRule {
+  /** Regex patterns that must NOT match in the compiled code. */
+  forbid?: string[];
+  /** Regex patterns that MUST match in the compiled code. */
+  require?: string[];
+}
+
+/** Single code check violation. */
+export interface CodeCheckViolation {
+  /** Whether the pattern was forbidden or required. */
+  type: "forbid" | "require";
+  /** The regex pattern that triggered the violation. */
+  pattern: string;
+  /** Line number where the forbidden pattern was found (1-based). Only for `forbid`. */
+  line?: number;
+  /** The matched text. Only for `forbid`. */
+  match?: string;
+}
+
+/** Result of running code checks on a compiled test file. */
+export interface CodeCheckResult {
+  /** Whether all code checks passed. */
+  passed: boolean;
+  /** List of violations found. */
+  violations: CodeCheckViolation[];
 }
 
 /** Options controlling test runner behavior. */

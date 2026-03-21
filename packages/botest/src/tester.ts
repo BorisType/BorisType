@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import { evalBorisScriptAsync } from "./borisscript/runner";
+import { runCodeCheck, formatCodeCheckViolations } from "./code-checks";
 import { checkTsxAvailable, runTestInNode } from "./node-runner";
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { relative, join, resolve } from "path";
@@ -83,6 +84,7 @@ function discoverSuites(workdir: string): TestSuite[] {
         tests: suiteConfig.tests || {},
         nodeCheck: suiteConfig.nodeCheck,
         skipNodeCheck: suiteConfig.skipNodeCheck,
+        codeChecks: suiteConfig.codeChecks,
       });
     } catch (_err) {
       console.log(
@@ -165,6 +167,24 @@ export async function runTestsAsync(
         name: testName,
         code: testFileContent,
       };
+
+      // Code checks: validate compiled output before BS execution
+      const codeCheckRule = suite.codeChecks?.[testFileName];
+      if (codeCheckRule) {
+        const checkResult = runCodeCheck(testFileContent, codeCheckRule);
+        if (!checkResult.passed) {
+          const testResult: TestResult = {
+            suite: suite.name,
+            name: testName,
+            status: "FAILED",
+            time: 0,
+            error: formatCodeCheckViolations(checkResult.violations),
+          };
+          suiteResults.push(testResult);
+          printTestResult(testCase, testResult);
+          continue;
+        }
+      }
 
       const testResult = await runTestAsync(testCase);
       suiteResults.push(testResult);

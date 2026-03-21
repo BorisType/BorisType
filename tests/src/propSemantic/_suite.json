@@ -18,5 +18,11 @@
     "typeAwareness.test.js": "type awareness with optional chaining",
     "comprehensive.test.js": "comprehensive optional chaining with method calls",
     "logicalOr.test.js": "optional chaining with logical OR operator"
+  },
+  "codeChecks": {
+    "typeAwareness.test.js": {
+      "forbid": ["getProperty"],
+      "require": ["xml\\.TopElem\\.code"]
+    }
   }
 }
