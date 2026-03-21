@@ -28,6 +28,7 @@ obj[key] = value;
 ```
 
 Сложности:
+
 - Нужно создать временную переменную для объекта
 - Порядок property initialization должен сохраняться
 - Spread properties комбинация с computed keys

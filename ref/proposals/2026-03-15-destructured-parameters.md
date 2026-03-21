@@ -34,6 +34,7 @@ function f(__p0) {
 ```
 
 Затронутые компоненты:
+
 - `analyzer/scope-analyzer.ts` — регистрация деструктурированных имён в scope
 - `lowering/function-helpers.ts` — извлечение параметров в IR
 - Поддержка nested destructuring `{ a: { b } }` — отдельный этап

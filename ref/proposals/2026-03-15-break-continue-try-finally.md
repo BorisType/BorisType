@@ -40,7 +40,9 @@ for (var i = 0; i < 10; i++) {
 for (var i = 0; i < 10; i++) {
   var __fType = 0;
   try {
-    if (i === 5) { __fType = 3; /* break */ }
+    if (i === 5) {
+      __fType = 3; /* break */
+    }
   } finally {
     cleanup();
   }
@@ -49,6 +51,7 @@ for (var i = 0; i < 10; i++) {
 ```
 
 Сложности:
+
 - `continue` с label — нужно хранить target label
 - Nested try-finally с break — правильный порядок dispatch
 - Взаимодействие с `return` в том же try-finally
