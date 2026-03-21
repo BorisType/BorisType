@@ -80,6 +80,44 @@ function fail(message: string, details?: Record<string, unknown>): never {
 // Provide alert() stub — used by some tests for debug output
 (globalThis as any).alert = () => {};
 
+(globalThis as any).Md5Hex = (input: string): string => {
+  const crypto = require("crypto");
+  return crypto.createHash("md5").update(input).digest("hex");
+};
+
+(globalThis as any).Trim = (input: string): string => {
+  return input.trim();
+};
+
+(globalThis as any).ArrayUnion = (...arrs: any[]): any[] => {
+  return Array.from(new Set(arrs.flat()));
+};
+
+(globalThis as any).globalCache = {
+  storage: new Map<string, any>(),
+  get(key: string): any {
+    return this.storage.get(key);
+  },
+  set(key: string, value: any): void {
+    this.storage.set(key, value);
+  },
+  has(key: string): boolean {
+    return this.storage.has(key);
+  },
+};
+
+(globalThis as any).StrBegins = (str: string, prefix: string): boolean => {
+  return str.startsWith(prefix);
+};
+
+(globalThis as any).StrEnds = (str: string, suffix: string): boolean => {
+  return str.endsWith(suffix);
+};
+
+(globalThis as any).StrCharCount = (str: string): number => {
+  return str.length;
+};
+
 // Safety: if test exits without calling assertOk(), treat as failure
 process.on("exit", (code) => {
   if (code === 0 && !_assertOkCalled) {
