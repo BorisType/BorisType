@@ -354,12 +354,13 @@ export function emitStatementOrBlock(stmt: IRStatement, ctx: EmitContext): strin
  */
 function emitEnvDecl(decl: IREnvDeclaration, ctx: EmitContext): string {
   const pad = getIndent(ctx);
+  const varPrefix = decl.declare ? "var " : "";
 
   if (decl.parentEnv) {
-    return `${pad}var ${decl.name} = { __parent: ${decl.parentEnv} };`;
+    return `${pad}${varPrefix}${decl.name} = new SafeObject();\n${pad}${decl.name}.__parent = ${decl.parentEnv};`;
   }
 
-  return `${pad}var ${decl.name} = {};`;
+  return `${pad}${varPrefix}${decl.name} = new SafeObject();`;
 }
 
 /**

@@ -129,15 +129,7 @@ export function visitForOfStatement(node: ts.ForOfStatement, ctx: VisitorContext
 
   // Добавляем в начало тела: block env и/или присваивание переменной цикла
   if (useBlockEnv && blockEnvName) {
-    body.body.unshift(
-      IR.exprStmt(
-        IR.assign(
-          "=",
-          IR.id(blockEnvName),
-          IR.object([IR.prop("__parent", IR.id(ctx.currentEnvRef))]),
-        ),
-      ),
-    );
+    body.body.unshift(IR.envDecl(blockEnvName, ctx.currentEnvRef, undefined, false));
     if (isCaptured) {
       body.body.splice(
         1,

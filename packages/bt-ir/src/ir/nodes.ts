@@ -639,7 +639,9 @@ export interface IRRuntimeCall extends IRNodeBase {
 /**
  * Объявление environment объекта
  *
- * `var __module_env = {}` или `var fn__env = { __parent: __module_env }`
+ * `var __module_env = new SafeObject()` или `var fn__env = new SafeObject(); fn__env.__parent = __module_env`
+ *
+ * Если `declare: false` — переменная уже объявлена, emit без `var` (assignment only).
  */
 export interface IREnvDeclaration extends IRNodeBase {
   kind: "EnvDeclaration";
@@ -647,6 +649,8 @@ export interface IREnvDeclaration extends IRNodeBase {
   name: string;
   /** Имя родительского env (null для module scope) */
   parentEnv: string | null;
+  /** Если false — emit без `var` (переменная уже hoisted). По умолчанию true. */
+  declare: boolean;
 }
 
 /**

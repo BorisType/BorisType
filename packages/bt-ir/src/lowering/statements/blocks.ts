@@ -47,10 +47,7 @@ export function visitBlock(
       node.parent && ts.isForOfStatement(node.parent) && node.parent.statement === node;
     if (blockScope.hasCaptured && !isForOfLoopBody) {
       const blockEnvName = ctx.bindings.create("block") + "_env";
-      const blockEnvDecl = IR.varDecl(
-        blockEnvName,
-        IR.object([IR.prop("__parent", IR.id(ctx.currentEnvRef))]),
-      );
+      const blockEnvDecl = IR.envDecl(blockEnvName, ctx.currentEnvRef);
       const blockCtxWithEnv: VisitorContext = {
         ...blockCtx,
         currentEnvRef: blockEnvName,

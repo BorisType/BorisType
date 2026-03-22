@@ -74,8 +74,8 @@ export function buildPerCallEnvStatements(
 ): IRStatement[] {
   const result: IRStatement[] = [];
 
-  // var __fnN_env = { __parent: __env };
-  result.push(IR.varDecl(envName, IR.object([IR.prop("__parent", IR.id("__env"))])));
+  // var __fnN_env = new SafeObject(); __fnN_env.__parent = __env;
+  result.push(IR.envDecl(envName, "__env"));
 
   // __fnN_env.paramName = paramName; для каждого captured параметра
   for (const param of tsParams) {

@@ -502,9 +502,16 @@ export const IR = {
 
   /**
    * Создаёт env declaration
+   *
+   * @param declare - Если false, emit без `var` (переменная уже hoisted). По умолчанию true.
    */
-  envDecl(name: string, parentEnv: string | null = null, loc?: SourceLocation): IREnvDeclaration {
-    return { kind: "EnvDeclaration", name, parentEnv, loc };
+  envDecl(
+    name: string,
+    parentEnv: string | null = null,
+    loc?: SourceLocation,
+    declare: boolean = true,
+  ): IREnvDeclaration {
+    return { kind: "EnvDeclaration", name, parentEnv, declare, loc };
   },
 
   /**
