@@ -18,6 +18,7 @@ import { tryFinallyDesugarPass } from "../passes/try-finally-desugar.ts";
 import { parenthesizePass } from "../passes/parenthesize.ts";
 import { cleanupGroupingPass } from "../passes/cleanup-grouping.ts";
 import { commaSafetyPass } from "../passes/comma-safety.ts";
+import { literalExtractPass } from "../passes/literal-extract.ts";
 import { hoistPass } from "../passes/hoist.ts";
 import { createBtDiagnosticMessage, BtDiagnosticCode } from "./diagnostics.ts";
 
@@ -171,7 +172,14 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
   try {
     ir = runPasses(
       ir,
-      [tryFinallyDesugarPass, parenthesizePass, commaSafetyPass, cleanupGroupingPass, hoistPass],
+      [
+        tryFinallyDesugarPass,
+        parenthesizePass,
+        commaSafetyPass,
+        literalExtractPass,
+        cleanupGroupingPass,
+        hoistPass,
+      ],
       passCtx,
     );
   } catch (e) {
@@ -316,7 +324,14 @@ export function compileSourceFile(
   try {
     ir = runPasses(
       ir,
-      [tryFinallyDesugarPass, parenthesizePass, commaSafetyPass, cleanupGroupingPass, hoistPass],
+      [
+        tryFinallyDesugarPass,
+        parenthesizePass,
+        commaSafetyPass,
+        literalExtractPass,
+        cleanupGroupingPass,
+        hoistPass,
+      ],
       passCtx,
     );
   } catch (e) {

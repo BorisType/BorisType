@@ -10,6 +10,7 @@ export { tryFinallyDesugarPass } from "./try-finally-desugar.ts";
 export { parenthesizePass } from "./parenthesize.ts";
 export { cleanupGroupingPass } from "./cleanup-grouping.ts";
 export { commaSafetyPass } from "./comma-safety.ts";
+export { literalExtractPass } from "./literal-extract.ts";
 export {
   mapStatements,
   mapExpression,

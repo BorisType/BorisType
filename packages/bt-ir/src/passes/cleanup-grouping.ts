@@ -91,7 +91,7 @@ const WALK_OPTIONS: MapStatementsOptions = { enterFunctions: true };
  */
 export const cleanupGroupingPass: IRPass = {
   name: "cleanup-grouping",
-  dependsOn: ["comma-safety"],
+  dependsOn: ["literal-extract"],
   run(program: IRProgram, _ctx: PassContext): IRProgram {
     const newBody = mapStatements(
       program.body,
