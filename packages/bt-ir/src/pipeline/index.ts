@@ -16,6 +16,7 @@ import type { IRProgram } from "../ir/index.ts";
 import { runPasses, type PassContext } from "../passes/index.ts";
 import { tryFinallyDesugarPass } from "../passes/try-finally-desugar.ts";
 import { parenthesizePass } from "../passes/parenthesize.ts";
+import { cleanupGroupingPass } from "../passes/cleanup-grouping.ts";
 import { hoistPass } from "../passes/hoist.ts";
 import { createBtDiagnosticMessage, BtDiagnosticCode } from "./diagnostics.ts";
 
@@ -167,7 +168,11 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
   const passCtx: PassContext = { diagnostics: allDiagnostics, sourceFile };
 
   try {
-    ir = runPasses(ir, [tryFinallyDesugarPass, parenthesizePass, hoistPass], passCtx);
+    ir = runPasses(
+      ir,
+      [tryFinallyDesugarPass, parenthesizePass, cleanupGroupingPass, hoistPass],
+      passCtx,
+    );
   } catch (e) {
     allDiagnostics.push(
       createBtDiagnosticMessage(
@@ -308,7 +313,11 @@ export function compileSourceFile(
   const passCtx: PassContext = { diagnostics: allDiagnostics, sourceFile };
 
   try {
-    ir = runPasses(ir, [tryFinallyDesugarPass, parenthesizePass, hoistPass], passCtx);
+    ir = runPasses(
+      ir,
+      [tryFinallyDesugarPass, parenthesizePass, cleanupGroupingPass, hoistPass],
+      passCtx,
+    );
   } catch (e) {
     allDiagnostics.push(
       createBtDiagnosticMessage(
