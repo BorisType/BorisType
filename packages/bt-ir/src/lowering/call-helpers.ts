@@ -39,7 +39,7 @@ export function createOptionalFunctionCall(
   const tempRef = IR.id(tempName);
 
   const assignExpr = IR.assign("=", IR.id(tempName) as IRIdentifier, methodExpr);
-  const check = IR.btIsFunction(IR.grouping(assignExpr));
+  const check = IR.btIsFunction(assignExpr);
 
   return IR.conditional(check, IR.btCallFunction(tempRef, args, loc), IR.id("undefined"), loc);
 }

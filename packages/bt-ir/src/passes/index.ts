@@ -7,6 +7,7 @@
 export type { IRPass, PassContext } from "./types.ts";
 export { hoistPass } from "./hoist.ts";
 export { tryFinallyDesugarPass } from "./try-finally-desugar.ts";
+export { parenthesizePass } from "./parenthesize.ts";
 export {
   mapStatements,
   mapExpression,

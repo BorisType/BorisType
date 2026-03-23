@@ -20,7 +20,6 @@ import {
   getAssignmentOperator,
   getUnaryOperator,
 } from "../helpers.ts";
-import { needsParentheses, getPrecedence } from "../precedence.ts";
 import { visitExpression, maybeExtract } from "./dispatch.ts";
 import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 
@@ -41,9 +40,6 @@ export function visitBinaryExpression(
   if (isAssignmentOperator(operatorToken)) {
     const operator = getAssignmentOperator(operatorToken);
     let right = visitExpression(node.right, ctx);
-    if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
-      right = IR.grouping(right, getLoc(node.right, ctx));
-    }
 
     // Property access assignment: obj.prop = value
     if (ts.isPropertyAccessExpression(node.left)) {
@@ -159,14 +155,8 @@ export function visitBinaryExpression(
   if (operatorToken === ts.SyntaxKind.AmpersandAmpersandToken) {
     // Without bt.isTrue, emit native &&
     if (!ctx.config.useBtIsTrue) {
-      let left = maybeExtract(visitExpression(node.left, ctx), ctx);
-      let right = maybeExtract(visitExpression(node.right, ctx), ctx);
-      if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
-        left = IR.grouping(left, getLoc(node.left, ctx));
-      }
-      if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
-        right = IR.grouping(right, getLoc(node.right, ctx));
-      }
+      const left = maybeExtract(visitExpression(node.left, ctx), ctx);
+      const right = maybeExtract(visitExpression(node.right, ctx), ctx);
       return IR.logical("&&", left, right, getLoc(node, ctx));
     }
 
@@ -179,12 +169,9 @@ export function visitBinaryExpression(
       IR.id(tmpName) as import("../../ir/index.ts").IRIdentifier,
       leftExpr,
     );
-    let right = maybeExtract(visitExpression(node.right, ctx), ctx);
-    if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
-      right = IR.grouping(right, getLoc(node.right, ctx));
-    }
+    const right = maybeExtract(visitExpression(node.right, ctx), ctx);
     return IR.conditional(
-      IR.btIsTrue(IR.grouping(assignExpr, getLoc(node.left, ctx)), getLoc(node.left, ctx)),
+      IR.btIsTrue(assignExpr, getLoc(node.left, ctx)),
       right,
       IR.id(tmpName),
       getLoc(node, ctx),
@@ -194,14 +181,8 @@ export function visitBinaryExpression(
   if (operatorToken === ts.SyntaxKind.BarBarToken) {
     // Without bt.isTrue, emit native ||
     if (!ctx.config.useBtIsTrue) {
-      let left = maybeExtract(visitExpression(node.left, ctx), ctx);
-      let right = maybeExtract(visitExpression(node.right, ctx), ctx);
-      if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
-        left = IR.grouping(left, getLoc(node.left, ctx));
-      }
-      if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
-        right = IR.grouping(right, getLoc(node.right, ctx));
-      }
+      const left = maybeExtract(visitExpression(node.left, ctx), ctx);
+      const right = maybeExtract(visitExpression(node.right, ctx), ctx);
       return IR.logical("||", left, right, getLoc(node, ctx));
     }
 
@@ -214,12 +195,9 @@ export function visitBinaryExpression(
       IR.id(tmpName) as import("../../ir/index.ts").IRIdentifier,
       leftExpr,
     );
-    let right = maybeExtract(visitExpression(node.right, ctx), ctx);
-    if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
-      right = IR.grouping(right, getLoc(node.right, ctx));
-    }
+    const right = maybeExtract(visitExpression(node.right, ctx), ctx);
     return IR.conditional(
-      IR.btIsTrue(IR.grouping(assignExpr, getLoc(node.left, ctx)), getLoc(node.left, ctx)),
+      IR.btIsTrue(assignExpr, getLoc(node.left, ctx)),
       IR.id(tmpName),
       right,
       getLoc(node, ctx),
@@ -250,13 +228,10 @@ export function visitBinaryExpression(
       IR.id(tmpName) as import("../../ir/index.ts").IRIdentifier,
       leftExpr,
     );
-    const nullCheck = IR.binary("==", IR.grouping(assignExpr, getLoc(node.left, ctx)), IR.null());
+    const nullCheck = IR.binary("==", assignExpr, IR.null());
     const undefinedCheck = IR.binary("==", IR.id(tmpName), IR.id("undefined"));
     const test = IR.logical("||", nullCheck, undefinedCheck);
-    let right = maybeExtract(visitExpression(node.right, ctx), ctx);
-    if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
-      right = IR.grouping(right, getLoc(node.right, ctx));
-    }
+    const right = maybeExtract(visitExpression(node.right, ctx), ctx);
     return IR.conditional(test, right, IR.id(tmpName), getLoc(node, ctx));
   }
 
@@ -275,14 +250,8 @@ export function visitBinaryExpression(
     return IR.id("__unknown__");
   }
 
-  let left = maybeExtract(visitExpression(node.left, ctx), ctx);
-  let right = maybeExtract(visitExpression(node.right, ctx), ctx);
-  if (ts.isBinaryExpression(node.left) && needsParentheses(node, node.left, true)) {
-    left = IR.grouping(left, getLoc(node.left, ctx));
-  }
-  if (ts.isBinaryExpression(node.right) && needsParentheses(node, node.right, false)) {
-    right = IR.grouping(right, getLoc(node.right, ctx));
-  }
+  const left = maybeExtract(visitExpression(node.left, ctx), ctx);
+  const right = maybeExtract(visitExpression(node.right, ctx), ctx);
   return IR.binary(operator as any, left, right, getLoc(node, ctx));
 }
 

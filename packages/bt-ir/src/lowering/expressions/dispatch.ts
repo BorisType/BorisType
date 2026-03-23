@@ -15,7 +15,6 @@ import * as ts from "typescript";
 import { IR, type IRExpression } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
 import { getLoc, isInternalAccess, isXmlRelatedType } from "../helpers.ts";
-import { getPrecedence } from "../precedence.ts";
 import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 
 // Lazy imports для разрыва циклических зависимостей:
@@ -274,27 +273,9 @@ export function visitExpression(
 
   // Conditional expression — maybeExtract для condition и веток
   if (ts.isConditionalExpression(node)) {
-    let condition = maybeExtract(visitExpression(node.condition, ctx), ctx);
-    let whenTrue = maybeExtract(visitExpression(node.whenTrue, ctx), ctx);
-    let whenFalse = maybeExtract(visitExpression(node.whenFalse, ctx), ctx);
-    if (ts.isBinaryExpression(node.condition)) {
-      const condPrec = getPrecedence(node.condition.operatorToken.kind);
-      if (condPrec <= 2) {
-        condition = IR.grouping(condition, getLoc(node.condition, ctx));
-      }
-    }
-    if (ts.isBinaryExpression(node.whenTrue)) {
-      const truePrec = getPrecedence(node.whenTrue.operatorToken.kind);
-      if (truePrec <= 2) {
-        whenTrue = IR.grouping(whenTrue, getLoc(node.whenTrue, ctx));
-      }
-    }
-    if (ts.isBinaryExpression(node.whenFalse)) {
-      const falsePrec = getPrecedence(node.whenFalse.operatorToken.kind);
-      if (falsePrec <= 2) {
-        whenFalse = IR.grouping(whenFalse, getLoc(node.whenFalse, ctx));
-      }
-    }
+    const condition = maybeExtract(visitExpression(node.condition, ctx), ctx);
+    const whenTrue = maybeExtract(visitExpression(node.whenTrue, ctx), ctx);
+    const whenFalse = maybeExtract(visitExpression(node.whenFalse, ctx), ctx);
     return IR.conditional(condition, whenTrue, whenFalse, getLoc(node, ctx));
   }
 
