@@ -18,6 +18,7 @@ import {
   type IRStatement,
   type IRFunctionDeclaration,
   type IRVariableDeclaration,
+  type IREnvDeclaration,
   type IRExpression,
   type IRIdentifier,
   type IRForStatement,
@@ -242,6 +243,13 @@ function collectVarNames(stmts: IRStatement[]): Set<string> {
         vars.add(decl.name);
       }
     }
+    // EnvDeclaration с declare: true — имя нужно hoistить
+    if (stmt.kind === "EnvDeclaration") {
+      const decl = stmt as IREnvDeclaration;
+      if (decl.declare) {
+        vars.add(decl.name);
+      }
+    }
     // Обрабатываем for(var i = ...) и for(var k in ...)
     if (stmt.kind === "ForStatement") {
       const forStmt = stmt as IRForStatement;
@@ -299,6 +307,14 @@ function transformVarDeclsToAssignments(stmts: IRStatement[]): IRStatement[] {
     // var x = init → x = init; (or __env.x = init;)
     if (stmt.kind === "VariableDeclaration") {
       return transformVarDecl(stmt as IRVariableDeclaration);
+    }
+
+    // EnvDeclaration с declare: true → declare: false (var hoisted наверх)
+    if (stmt.kind === "EnvDeclaration") {
+      const decl = stmt as IREnvDeclaration;
+      if (decl.declare) {
+        return IR.envDecl(decl.name, decl.parentEnv, decl.loc, false);
+      }
     }
 
     return null; // let walker recurse

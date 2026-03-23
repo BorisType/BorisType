@@ -117,7 +117,6 @@ export function visitForOfStatement(node: ts.ForOfStatement, ctx: VisitorContext
 
   if (useBlockEnv) {
     blockEnvName = ctx.bindings.create("block") + "_env";
-    ctx.pendingStatements.push(IR.varDecl(blockEnvName, null, undefined, false, undefined, true));
   }
 
   // Визитим тело с block env если нужно
@@ -129,7 +128,7 @@ export function visitForOfStatement(node: ts.ForOfStatement, ctx: VisitorContext
 
   // Добавляем в начало тела: block env и/или присваивание переменной цикла
   if (useBlockEnv && blockEnvName) {
-    body.body.unshift(IR.envDecl(blockEnvName, ctx.currentEnvRef, undefined, false));
+    body.body.unshift(IR.envDecl(blockEnvName, ctx.currentEnvRef));
     if (isCaptured) {
       body.body.splice(
         1,
