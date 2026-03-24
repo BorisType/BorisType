@@ -1,0 +1,10 @@
+{
+  "name": "BS parser safety passes",
+  "tests": {
+    "precedence.test.js": "operator precedence parenthesization (parenthesize pass)",
+    "comma-safety.test.js": "non-atomic expressions in comma-separated contexts (comma-safety pass)",
+    "literal-extract.test.js": "literal receivers of property/method access (literal-extract pass)",
+    "cleanup-grouping.test.js": "removal of harmful GroupingExpression (cleanup-grouping pass)",
+    "combined.test.js": "multiple BS-safety passes interacting together"
+  }
+}

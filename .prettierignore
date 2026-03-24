@@ -14,3 +14,6 @@ docs/.vitepress/dist/
 
 # Schemas (auto-generated)
 schemas/
+
+# Test sources — preserve explicit parens and formatting for BS parser safety tests
+tests/src/bsParserSafety/
