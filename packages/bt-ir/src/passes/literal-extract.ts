@@ -365,12 +365,13 @@ function processBlock(block: IRBlockStatement, nameGen: LitNameGen): IRBlockStat
 /**
  * Literal Extract pass — извлекает литеральные ресиверы property/method access.
  *
- * Должен выполняться после comma-safety и перед cleanup-grouping.
+ * Должен выполняться после cleanup-grouping (чтобы GroupingExpression
+ * вокруг Literal/ArrayExpression были уже удалены) и перед hoist.
  * Сгенерированные temp vars будут hoisted pass'ом hoist.
  */
 export const literalExtractPass: IRPass = {
   name: "literal-extract",
-  dependsOn: ["comma-safety"],
+  dependsOn: ["cleanup-grouping"],
   run(program: IRProgram, _ctx: PassContext): IRProgram {
     const nameGen = new LitNameGen();
     const newBody = processBody(program.body, nameGen);

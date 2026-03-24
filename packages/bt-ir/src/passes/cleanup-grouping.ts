@@ -86,12 +86,13 @@ const WALK_OPTIONS: MapStatementsOptions = { enterFunctions: true };
 /**
  * Cleanup Grouping pass — removes harmful GroupingExpression around atomic expressions.
  *
- * Должен выполняться после parenthesize (и после comma-safety / literal-extract
- * когда они будут добавлены) — как последний pass перед hoist.
+ * Должен выполняться после comma-safety и перед literal-extract.
+ * Убирает GroupingExpression вокруг Literal/ArrayExpression, чтобы
+ * literal-extract мог их увидеть и извлечь.
  */
 export const cleanupGroupingPass: IRPass = {
   name: "cleanup-grouping",
-  dependsOn: ["literal-extract"],
+  dependsOn: ["comma-safety"],
   run(program: IRProgram, _ctx: PassContext): IRProgram {
     const newBody = mapStatements(
       program.body,
