@@ -20,10 +20,7 @@ export function fromEntries<T>(entries: [string, T][]): { [key: string]: T } {
   throw "Not implemented";
 }
 
-export function groupBy<T, K extends PropertyKey>(
-  list: T[],
-  keyGetter: (item: T) => K,
-): { [key in K]: T[] } {
+export function groupBy<T, K extends PropertyKey>(list: T[], keyGetter: (item: T) => K): { [key in K]: T[] } {
   throw "Not implemented";
 }
 

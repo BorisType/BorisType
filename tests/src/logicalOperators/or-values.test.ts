@@ -58,11 +58,7 @@ botest.assertValueEquals(cH || "second" || "third", "first", "chained: first alr
 // =============================================================================
 
 const empty: any = "";
-botest.assertValueEquals(
-  "prefix:" + (empty || "default"),
-  "prefix:default",
-  "|| inside string concat",
-);
+botest.assertValueEquals("prefix:" + (empty || "default"), "prefix:default", "|| inside string concat");
 
 const empty2: any = "";
 const ternaryResult = (empty2 || "val") === "val" ? "yes" : "no";

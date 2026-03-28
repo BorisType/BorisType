@@ -80,9 +80,7 @@ export function dispatchMethodCall(
    */
   const buildCall = (ref: IRExpression): IRExpression => {
     const method = IR.btGetProperty(ref, prop);
-    return callOptional
-      ? createOptionalFunctionCall(method, args, ctx, loc)
-      : IR.btCallFunction(method, args, loc);
+    return callOptional ? createOptionalFunctionCall(method, args, ctx, loc) : IR.btCallFunction(method, args, loc);
   };
 
   if (propOptional) {

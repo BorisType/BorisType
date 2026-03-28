@@ -39,10 +39,7 @@ class Logger {
   #reimplementStyleText() {
     const nodeVersionArray = process.versions.node.split(".");
 
-    if (
-      Number(nodeVersionArray[0]) > 21 ||
-      (Number(nodeVersionArray[0]) === 21 && Number(nodeVersionArray[1]) > 7)
-    ) {
+    if (Number(nodeVersionArray[0]) > 21 || (Number(nodeVersionArray[0]) === 21 && Number(nodeVersionArray[1]) > 7)) {
       this.#styleText = util.styleText;
     }
   }

@@ -4,12 +4,7 @@
  */
 
 export { buildInitXml } from "./init-xml";
-export {
-  buildComponentXml,
-  buildComponentJs,
-  buildComponentFiles,
-  type ComponentFiles,
-} from "./component";
+export { buildComponentXml, buildComponentJs, buildComponentFiles, type ComponentFiles } from "./component";
 export { buildApiExt } from "./api-ext";
 export { generateFilemapJson, generateFilemapJsonForPackage, type FileMapData } from "./filemap";
 export {

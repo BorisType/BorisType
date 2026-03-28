@@ -76,10 +76,7 @@ let currentBindings: BindingManager;
  * @param sourceFile - TypeScript source file
  * @param bindings - Менеджер генерации имён (опциональный, создаётся если не передан)
  */
-export function analyzeScopes(
-  sourceFile: ts.SourceFile,
-  bindings: BindingManager = new BindingManager(),
-): ScopeAnalysisResult {
+export function analyzeScopes(sourceFile: ts.SourceFile, bindings: BindingManager = new BindingManager()): ScopeAnalysisResult {
   scopeIdCounter = 0;
   currentBindings = bindings;
 
@@ -287,9 +284,7 @@ function collectScopesAndDeclarations(
 
     // Рекурсивно обрабатываем тело функции
     if ("body" in node && node.body) {
-      ts.forEachChild(node.body, (child) =>
-        collectScopesAndDeclarations(child, funcScope, scopesById, nodeToScope, allVariables),
-      );
+      ts.forEachChild(node.body, (child) => collectScopesAndDeclarations(child, funcScope, scopesById, nodeToScope, allVariables));
     }
     return;
   }
@@ -314,9 +309,7 @@ function collectScopesAndDeclarations(
     nodeToScope.set(node, blockScope);
 
     // Рекурсивно обрабатываем содержимое блока
-    ts.forEachChild(node, (child) =>
-      collectScopesAndDeclarations(child, blockScope, scopesById, nodeToScope, allVariables),
-    );
+    ts.forEachChild(node, (child) => collectScopesAndDeclarations(child, blockScope, scopesById, nodeToScope, allVariables));
     return;
   }
 
@@ -344,11 +337,7 @@ function collectScopesAndDeclarations(
   }
 
   // For statement может объявлять переменную
-  if (
-    ts.isForStatement(node) &&
-    node.initializer &&
-    ts.isVariableDeclarationList(node.initializer)
-  ) {
+  if (ts.isForStatement(node) && node.initializer && ts.isVariableDeclarationList(node.initializer)) {
     const kind = getVarKind(node.initializer);
     for (const decl of node.initializer.declarations) {
       if (ts.isIdentifier(decl.name)) {
@@ -361,10 +350,7 @@ function collectScopesAndDeclarations(
 
   // For-of/for-in statement создаёт block scope для тела цикла
   // let/const item создаётся заново на каждой итерации
-  if (
-    (ts.isForOfStatement(node) || ts.isForInStatement(node)) &&
-    ts.isVariableDeclarationList(node.initializer)
-  ) {
+  if ((ts.isForOfStatement(node) || ts.isForInStatement(node)) && ts.isVariableDeclarationList(node.initializer)) {
     const kind = getVarKind(node.initializer);
 
     if (kind === "var") {
@@ -401,9 +387,7 @@ function collectScopesAndDeclarations(
       }
 
       // Рекурсивно обрабатываем тело цикла в его scope
-      ts.forEachChild(node.statement, (child) =>
-        collectScopesAndDeclarations(child, loopBodyScope, scopesById, nodeToScope, allVariables),
-      );
+      ts.forEachChild(node.statement, (child) => collectScopesAndDeclarations(child, loopBodyScope, scopesById, nodeToScope, allVariables));
       return; // Не обрабатываем дальше, уже обработали тело цикла
     }
   }
@@ -425,9 +409,7 @@ function collectScopesAndDeclarations(
   if (ts.isImportDeclaration(node)) {
     const moduleSpecifier = node.moduleSpecifier;
     if (!ts.isStringLiteral(moduleSpecifier)) {
-      ts.forEachChild(node, (child) =>
-        collectScopesAndDeclarations(child, currentScope, scopesById, nodeToScope, allVariables),
-      );
+      ts.forEachChild(node, (child) => collectScopesAndDeclarations(child, currentScope, scopesById, nodeToScope, allVariables));
       return;
     }
 
@@ -447,25 +429,15 @@ function collectScopesAndDeclarations(
         }
       }
       // import * as ns from "Y"
-      if (
-        node.importClause.namedBindings &&
-        ts.isNamespaceImport(node.importClause.namedBindings)
-      ) {
-        registerVariable(
-          targetScope,
-          node.importClause.namedBindings.name.text,
-          "import",
-          allVariables,
-        );
+      if (node.importClause.namedBindings && ts.isNamespaceImport(node.importClause.namedBindings)) {
+        registerVariable(targetScope, node.importClause.namedBindings.name.text, "import", allVariables);
       }
     }
     return;
   }
 
   // Рекурсивно обходим детей
-  ts.forEachChild(node, (child) =>
-    collectScopesAndDeclarations(child, currentScope, scopesById, nodeToScope, allVariables),
-  );
+  ts.forEachChild(node, (child) => collectScopesAndDeclarations(child, currentScope, scopesById, nodeToScope, allVariables));
 }
 
 /**
@@ -540,12 +512,7 @@ function findFunctionOrModuleScope(scope: Scope): Scope {
   return scope; // fallback
 }
 
-function registerVariable(
-  scope: Scope,
-  name: string,
-  kind: VariableInfo["kind"],
-  allVariables: VariableInfo[],
-): VariableInfo {
+function registerVariable(scope: Scope, name: string, kind: VariableInfo["kind"], allVariables: VariableInfo[]): VariableInfo {
   // Если переменная уже есть в этом scope - возвращаем её (дедупликация)
   const existing = scope.variables.get(name);
   if (existing) {
@@ -658,8 +625,7 @@ function isVariableUsage(node: ts.Identifier): boolean {
   // - Labeled statement
   if (ts.isLabeledStatement(parent) && parent.label === node) return false;
   // - Break/continue label
-  if ((ts.isBreakStatement(parent) || ts.isContinueStatement(parent)) && parent.label === node)
-    return false;
+  if ((ts.isBreakStatement(parent) || ts.isContinueStatement(parent)) && parent.label === node) return false;
 
   return true;
 }

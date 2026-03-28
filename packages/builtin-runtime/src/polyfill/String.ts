@@ -60,12 +60,5 @@ export function trimStart(str: string): string {
 }
 
 function isWhitespace(char: string): boolean {
-  return (
-    char === " " ||
-    char === "\t" ||
-    char === "\n" ||
-    char === "\r" ||
-    char === "\f" ||
-    char === "\v"
-  );
+  return char === " " || char === "\t" || char === "\n" || char === "\r" || char === "\f" || char === "\v";
 }

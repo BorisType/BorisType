@@ -13,13 +13,7 @@
  */
 
 // Main entry point
-export {
-  transformToIR,
-  type VisitorContext,
-  type CompileMode,
-  type TransformToIROptions,
-  type TransformResult,
-} from "./visitor.ts";
+export { transformToIR, type VisitorContext, type CompileMode, type TransformToIROptions, type TransformResult } from "./visitor.ts";
 
 // Mode configuration
 export { type ModeConfig, createModeConfig } from "./mode-config.ts";

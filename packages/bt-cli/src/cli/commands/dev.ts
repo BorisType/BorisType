@@ -54,9 +54,7 @@ export async function devCommand(options: DevCommandOptions = {}): Promise<void>
   if (enablePush) {
     logger.info("📤 Auto-push enabled (use --no-push to disable)");
     const connectionOptions = resolvePushConnectionOptions(projectPath);
-    logger.info(
-      `📡 Server: ${connectionOptions.https ? "https" : "http"}://${connectionOptions.host}:${connectionOptions.port}`,
-    );
+    logger.info(`📡 Server: ${connectionOptions.https ? "https" : "http"}://${connectionOptions.host}:${connectionOptions.port}`);
     const distPath = path.join(projectPath, "dist");
     const session = new DeploySession(connectionOptions);
     pushQueue = new DebouncedPushQueue(session, distPath);
@@ -90,10 +88,7 @@ export async function devCommand(options: DevCommandOptions = {}): Promise<void>
 /**
  * Определяет какие пакеты являются ws:package и могут быть watch-ены
  */
-function resolveWatchPackages(
-  projectPath: string,
-  packages: { name: string; source?: string; target?: string }[],
-): WatchPackage[] {
+function resolveWatchPackages(projectPath: string, packages: { name: string; source?: string; target?: string }[]): WatchPackage[] {
   const result: WatchPackage[] = [];
 
   for (const pkg of packages) {

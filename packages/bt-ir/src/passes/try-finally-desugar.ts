@@ -42,9 +42,7 @@ export const tryFinallyDesugarPass: IRPass = {
   run(program: IRProgram, ctx: PassContext): IRProgram {
     const gen = new NameGen();
     const newBody = desugarInStatements(program.body, gen, ctx);
-    return newBody === program.body
-      ? program
-      : IR.program(newBody, program.sourceFile, program.noHoist);
+    return newBody === program.body ? program : IR.program(newBody, program.sourceFile, program.noHoist);
   },
 };
 
@@ -179,10 +177,7 @@ function desugarTryFinally(tryStmt: IRTryStatement, gen: NameGen, ctx: PassConte
     outerCatchBody = [
       IR.if(
         IR.binary("!==", IR.id(fType), IR.number(1)),
-        IR.block([
-          ...setThrowState,
-          IR.try(IR.block(innerTryBody), IR.catch(fc2, IR.block(innerCatchBody)), null),
-        ]),
+        IR.block([...setThrowState, IR.try(IR.block(innerTryBody), IR.catch(fc2, IR.block(innerCatchBody)), null)]),
       ),
     ];
   } else {
@@ -199,12 +194,8 @@ function desugarTryFinally(tryStmt: IRTryStatement, gen: NameGen, ctx: PassConte
   result.push(...desugaredFinally.body);
 
   // Dispatch
-  result.push(
-    IR.if(IR.binary("===", IR.id(fType), IR.number(1)), IR.block([IR.return(IR.id(fVal))])),
-  );
-  result.push(
-    IR.if(IR.binary("===", IR.id(fType), IR.number(2)), IR.block([IR.throw(IR.id(fVal))])),
-  );
+  result.push(IR.if(IR.binary("===", IR.id(fType), IR.number(1)), IR.block([IR.return(IR.id(fVal))])));
+  result.push(IR.if(IR.binary("===", IR.id(fType), IR.number(2)), IR.block([IR.throw(IR.id(fVal))])));
 
   return result;
 }
@@ -217,11 +208,7 @@ function desugarTryFinally(tryStmt: IRTryStatement, gen: NameGen, ctx: PassConte
  * Заменяет `return expr` → `__fType = 1; __fVal = expr; throw __fVal;`
  * в блоке. Не заходит в FunctionDeclaration (отдельный scope).
  */
-function transformReturnsInBlock(
-  block: IRBlockStatement,
-  fType: string,
-  fVal: string,
-): IRBlockStatement {
+function transformReturnsInBlock(block: IRBlockStatement, fType: string, fVal: string): IRBlockStatement {
   const newBody = transformReturnsInList(block.body, fType, fVal);
   return newBody === block.body ? block : IR.block(newBody, block.loc);
 }
@@ -248,9 +235,7 @@ function transformReturnsInList(stmts: IRStatement[], fType: string, fVal: strin
  * `__fType = 1; __fVal = expr; throw __fVal;`
  */
 function buildSentinelSequence(ret: IRReturnStatement, fType: string, fVal: string): IRStatement[] {
-  const result: IRStatement[] = [
-    IR.exprStmt(IR.assign("=", IR.id(fType) as IRIdentifier, IR.number(1))),
-  ];
+  const result: IRStatement[] = [IR.exprStmt(IR.assign("=", IR.id(fType) as IRIdentifier, IR.number(1)))];
   if (ret.argument) {
     result.push(IR.exprStmt(IR.assign("=", IR.id(fVal) as IRIdentifier, ret.argument)));
   }

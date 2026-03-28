@@ -18,8 +18,7 @@ buildDir.forEach((file) => {
         const relativePath = subFilePath.replace(/\\/g, "/");
 
         filemap[`${prefix}+${relativePath}`] =
-          "x-local://tests/" +
-          relativePath.replace(/^src\//, "build/").replace(/\.test\.ts$/, ".test.js");
+          "x-local://tests/" + relativePath.replace(/^src\//, "build/").replace(/\.test\.ts$/, ".test.js");
       }
     });
   }

@@ -31,19 +31,11 @@ export namespace botest {
     }
   }
 
-  export function assertJsArrayEquals(
-    actual: any[],
-    expected: any[],
-    message: string | undefined,
-  ): void {
+  export function assertJsArrayEquals(actual: any[], expected: any[], message: string | undefined): void {
     assertValueEquals(actual, expected, message);
   }
 
-  export function assertJsObjectEquals(
-    actual: any,
-    expected: any,
-    message: string | undefined,
-  ): void {
+  export function assertJsObjectEquals(actual: any, expected: any, message: string | undefined): void {
     assertValueEquals(actual, expected, message);
   }
 

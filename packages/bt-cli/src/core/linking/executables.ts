@@ -22,16 +22,11 @@ export function collectExecutables(pkgInfo: PackageInfo, ctx: LinkingContext): v
     return;
   }
 
-  const executablesData: ExecutableObjectSourceFileInfo[] = JSON.parse(
-    fs.readFileSync(executablesPath, "utf-8"),
-  );
+  const executablesData: ExecutableObjectSourceFileInfo[] = JSON.parse(fs.readFileSync(executablesPath, "utf-8"));
 
   for (const exec of executablesData) {
     const fileKey = `${exec.packageName}+${exec.packageVersion}+${exec.filePath}`;
-    const fileAbsoluteUrl = UrlAppenPath(
-      pkgInfo.rootUrl,
-      exec.filePath.replace(/\.ts$/, ".js").substring(exec.filePath.indexOf("/")),
-    );
+    const fileAbsoluteUrl = UrlAppenPath(pkgInfo.rootUrl, exec.filePath.replace(/\.ts$/, ".js").substring(exec.filePath.indexOf("/")));
     addExecutable(ctx, fileKey, fileAbsoluteUrl);
   }
 }

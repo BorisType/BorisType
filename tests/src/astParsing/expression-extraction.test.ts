@@ -64,19 +64,11 @@ botest.assertValueEquals(case1i, 84, "1i: optional chain * number");
 
 // 2a. Null chain in concat: should produce "PREFIX undefined SUFFIX"
 const case2a = "PREFIX " + nullObj?.x + " SUFFIX";
-botest.assertValueEquals(
-  case2a,
-  "PREFIX undefined SUFFIX",
-  "2a: null optional chain in string concat",
-);
+botest.assertValueEquals(case2a, "PREFIX undefined SUFFIX", "2a: null optional chain in string concat");
 
 // 2b. Null chain in template
 const case2b = `PREFIX ${nullObj?.x} SUFFIX`;
-botest.assertValueEquals(
-  case2b,
-  "PREFIX undefined SUFFIX",
-  "2b: null optional chain in template literal",
-);
+botest.assertValueEquals(case2b, "PREFIX undefined SUFFIX", "2b: null optional chain in template literal");
 
 // =============================================================================
 // Group 3: Optional chaining inside function call arguments

@@ -31,8 +31,7 @@ const rule: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      noGeneratorFunction:
-        "Generator functions are not supported in BorisScript. Use arrays or callbacks instead.",
+      noGeneratorFunction: "Generator functions are not supported in BorisScript. Use arrays or callbacks instead.",
       noYieldExpression: "Yield expressions are not supported in BorisScript.",
     },
   },

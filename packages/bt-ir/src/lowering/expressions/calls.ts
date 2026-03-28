@@ -13,19 +13,9 @@ import * as ts from "typescript";
 import { IR, type IRExpression } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
 import { resolveEnvAccess } from "../env-resolution.ts";
-import {
-  getLoc,
-  getPolyfillType,
-  isInternalAccess,
-  isXmlRelatedType,
-  isBuiltinFunction,
-  resolveVariableInScope,
-} from "../helpers.ts";
+import { getLoc, getPolyfillType, isInternalAccess, isXmlRelatedType, isBuiltinFunction, resolveVariableInScope } from "../helpers.ts";
 import { dispatchMethodCall } from "../call-helpers.ts";
-import {
-  POLYFILL_REST_AS_ARRAY_METHODS,
-  POLYFILL_REST_POSITIONAL_COUNT,
-} from "../../polyfill-spec.ts";
+import { POLYFILL_REST_AS_ARRAY_METHODS, POLYFILL_REST_POSITIONAL_COUNT } from "../../polyfill-spec.ts";
 import { visitExpression, maybeExtract } from "./dispatch.ts";
 import { importModuleVarAccess, helperEnvAccess } from "./module-access.ts";
 
@@ -50,11 +40,7 @@ import { importModuleVarAccess, helperEnvAccess } from "./module-access.ts";
  * @param loc - Source location
  * @returns IR выражение для доступа к callable
  */
-export function resolveCallableRef(
-  name: string,
-  ctx: VisitorContext,
-  loc?: import("../../ir/index.ts").SourceLocation,
-): IRExpression {
+export function resolveCallableRef(name: string, ctx: VisitorContext, loc?: import("../../ir/index.ts").SourceLocation): IRExpression {
   const varInfo = resolveVariableInScope(name, ctx.currentScope);
   const actualName = varInfo?.renamedTo ?? name;
 
@@ -89,11 +75,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     const baseCtorDesc = ts.isIdentifier(baseExpr)
       ? resolveCallableRef(baseExpr.text, ctx, getLoc(baseExpr, ctx))
       : visitExpression(baseExpr, ctx);
-    return IR.call(
-      IR.dot(IR.id("bt"), "callWithThis"),
-      [baseCtorDesc, IR.id("__this"), IR.array(args)],
-      loc,
-    );
+    return IR.call(IR.dot(IR.id("bt"), "callWithThis"), [baseCtorDesc, IR.id("__this"), IR.array(args)], loc);
   }
 
   // obj.method() / obj?.method() / obj.method?.() / obj?.method?.()
@@ -110,11 +92,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
         : visitExpression(baseExpr, ctx);
       const parentProto = IR.dot(baseCtorDesc, "proto");
       const method = IR.btGetProperty(parentProto, IR.string(methodName));
-      return IR.call(
-        IR.dot(IR.id("bt"), "callWithThis"),
-        [method, IR.id("__this"), IR.array(args)],
-        loc,
-      );
+      return IR.call(IR.dot(IR.id("bt"), "callWithThis"), [method, IR.id("__this"), IR.array(args)], loc);
     }
 
     const obj = visitExpression(targetExpr, ctx);
@@ -128,12 +106,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     }
 
     // XML-типы без optional: прямой вызов obj.method(...)
-    const isXml = isXmlRelatedType(
-      ctx.typeChecker,
-      targetExpr,
-      ctx.xmlDocumentSymbol,
-      ctx.xmlElemSymbol,
-    );
+    const isXml = isXmlRelatedType(ctx.typeChecker, targetExpr, ctx.xmlDocumentSymbol, ctx.xmlElemSymbol);
     if (isXml && !propHasQuestionDot && !callHasQuestionDot) {
       return IR.call(IR.dot(obj, methodName, getLoc(node.expression, ctx)), args, loc);
     }
@@ -182,15 +155,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     }
 
     // Unified dispatch: все optional-chain комбинации obj.method() / obj?.method() / obj.method?.() / obj?.method?.()
-    return dispatchMethodCall(
-      obj,
-      IR.string(methodName),
-      args,
-      propHasQuestionDot,
-      callHasQuestionDot,
-      ctx,
-      loc,
-    );
+    return dispatchMethodCall(obj, IR.string(methodName), args, propHasQuestionDot, callHasQuestionDot, ctx, loc);
   }
 
   // obj["method"]() / obj?.["method"]() / obj["method"]?.()
@@ -221,15 +186,9 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     // Если импорт captured, доступ к moduleVar через __env цепочку
     const importBinding = ctx.importBindings.get(funcName);
     if (importBinding) {
-      const moduleRef = importModuleVarAccess(
-        importBinding.moduleVar,
-        importBinding.isCaptured,
-        ctx,
-      );
+      const moduleRef = importModuleVarAccess(importBinding.moduleVar, importBinding.isCaptured, ctx);
       const callee =
-        importBinding.exportedName === ""
-          ? moduleRef
-          : IR.dot(moduleRef, importBinding.exportedName, getLoc(node.expression, ctx));
+        importBinding.exportedName === "" ? moduleRef : IR.dot(moduleRef, importBinding.exportedName, getLoc(node.expression, ctx));
       return IR.btCallFunction(callee, args, loc);
     }
 

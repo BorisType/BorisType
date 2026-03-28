@@ -27,12 +27,7 @@ export * from "./types";
 export * from "./utils";
 export * from "./generators";
 export * from "./linkers";
-export {
-  createLinkingContext,
-  prepareDistDirectory,
-  addLinkedPackage,
-  addExecutable,
-} from "./context";
+export { createLinkingContext, prepareDistDirectory, addLinkedPackage, addExecutable } from "./context";
 export { LinkingCache } from "./cache";
 
 /**
@@ -160,9 +155,7 @@ export async function processPackagesLinking(
     const systemDeps = await getSystemDependencies(projectPath);
 
     if (systemDeps.length === 0) {
-      logger.warning(
-        "⚠️  System-пакеты (например @boristype/runtime) не найдены в зависимостях проекта.",
-      );
+      logger.warning("⚠️  System-пакеты (например @boristype/runtime) не найдены в зависимостях проекта.");
       logger.warning("   Добавьте @boristype/runtime в dependencies/devDependencies проекта,");
       logger.warning("   или используйте --external-runtime если runtime управляется извне.");
     } else {
@@ -191,19 +184,13 @@ export async function processPackagesLinking(
   // === STAGE 2: Линковка пользовательских пакетов ===
   for (const packageConfig of packages) {
     // name === '.' означает текущую директорию
-    const packageDirAbsolute =
-      packageConfig.name === "." ? projectPath : path.join(projectPath, packageConfig.name);
+    const packageDirAbsolute = packageConfig.name === "." ? projectPath : path.join(projectPath, packageConfig.name);
 
     const displayName = packageConfig.name === "." ? "current project" : packageConfig.name;
     logger.success(`📦 Processing package: ${displayName}`);
 
     // Парсим информацию о пакете
-    const pkgInfo = parseUserPackageInfo(
-      projectPath,
-      packageDirAbsolute,
-      packageConfig,
-      displayName,
-    );
+    const pkgInfo = parseUserPackageInfo(projectPath, packageDirAbsolute, packageConfig, displayName);
 
     if (!pkgInfo) {
       // Обычная директория (не BT пакет) - просто копируем

@@ -88,20 +88,7 @@ const PRECEDENCE: Record<string, number> = {
 };
 
 /** Assignment operators — right-associative (all others are left-associative) */
-const RIGHT_ASSOCIATIVE = new Set([
-  "=",
-  "+=",
-  "-=",
-  "*=",
-  "/=",
-  "%=",
-  "<<=",
-  ">>=",
-  ">>>=",
-  "&=",
-  "|=",
-  "^=",
-]);
+const RIGHT_ASSOCIATIVE = new Set(["=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=", "&=", "|=", "^="]);
 
 /** Conditional (ternary) precedence */
 const CONDITIONAL_PREC = 1;
@@ -230,8 +217,7 @@ function processExpr(expr: IRExpression): IRExpression {
       case "BTIsTrue": {
         const bt = e as IRBTIsTrue;
         const newVal = processExpr(bt.value);
-        const wrapped =
-          newVal.kind === "AssignmentExpression" ? IR.grouping(newVal, newVal.loc) : newVal;
+        const wrapped = newVal.kind === "AssignmentExpression" ? IR.grouping(newVal, newVal.loc) : newVal;
         if (wrapped === bt.value) return e;
         return IR.btIsTrue(wrapped, bt.loc);
       }
@@ -239,8 +225,7 @@ function processExpr(expr: IRExpression): IRExpression {
       case "BTIsFunction": {
         const bt = e as IRBTIsFunction;
         const newVal = processExpr(bt.value);
-        const wrapped =
-          newVal.kind === "AssignmentExpression" ? IR.grouping(newVal, newVal.loc) : newVal;
+        const wrapped = newVal.kind === "AssignmentExpression" ? IR.grouping(newVal, newVal.loc) : newVal;
         if (wrapped === bt.value) return e;
         return IR.btIsFunction(wrapped, bt.loc);
       }
@@ -285,9 +270,7 @@ function processStmt(stmt: IRStatement): IRStatement {
       const s = stmt as IRVariableDeclaration;
       if (!s.init) return stmt;
       const e = processExpr(s.init);
-      return e === s.init
-        ? stmt
-        : IR.varDecl(s.name, e, s.loc, s.isCaptured, s.envRef, s.hoistOnly);
+      return e === s.init ? stmt : IR.varDecl(s.name, e, s.loc, s.isCaptured, s.envRef, s.hoistOnly);
     }
 
     case "ReturnStatement": {
@@ -347,12 +330,7 @@ function processStmt(stmt: IRStatement): IRStatement {
       const newTest = s.test ? processExpr(s.test) : s.test;
       const newUpdate = s.update ? processExpr(s.update) : s.update;
       const newBody = processStmtBody(s.body);
-      if (
-        newInit === s.init &&
-        newTest === s.test &&
-        newUpdate === s.update &&
-        newBody === s.body
-      ) {
+      if (newInit === s.init && newTest === s.test && newUpdate === s.update && newBody === s.body) {
         return stmt;
       }
       return IR.for(newInit, newTest, newUpdate, newBody, s.loc);
@@ -411,13 +389,7 @@ function processStmt(stmt: IRStatement): IRStatement {
         return { ...p, defaultValue: e };
       });
       if (newBody === s.body && !paramsChanged) return stmt;
-      return IR.functionDecl(
-        s.name,
-        paramsChanged ? newParams : s.originalParams,
-        newBody,
-        s.loc,
-        s.plainSignature,
-      );
+      return IR.functionDecl(s.name, paramsChanged ? newParams : s.originalParams, newBody, s.loc, s.plainSignature);
     }
 
     case "BlockStatement": {

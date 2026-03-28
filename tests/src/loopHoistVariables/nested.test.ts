@@ -19,11 +19,7 @@ for (const v1 of arr1) {
   }
 }
 
-botest.assertJsArrayEquals(
-  result,
-  [20, 20, 22, 22, 24, 24],
-  "Nested loops should produce correct result",
-);
+botest.assertJsArrayEquals(result, [20, 20, 22, 22, 24, 24], "Nested loops should produce correct result");
 
 botest.assertOk();
 

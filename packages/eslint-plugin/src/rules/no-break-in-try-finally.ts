@@ -22,21 +22,13 @@ const BREAK_TARGETS = new Set([
 ]);
 
 /** AST node types that continue can target */
-const CONTINUE_TARGETS = new Set([
-  "ForStatement",
-  "ForInStatement",
-  "ForOfStatement",
-  "WhileStatement",
-  "DoWhileStatement",
-]);
+const CONTINUE_TARGETS = new Set(["ForStatement", "ForInStatement", "ForOfStatement", "WhileStatement", "DoWhileStatement"]);
 
 /**
  * Checks if a break/continue statement targets a construct outside the
  * innermost try block that has a finally clause.
  */
-function isBreakingOutOfTryWithFinally(
-  node: Rule.Node & { type: "BreakStatement" | "ContinueStatement" },
-): boolean {
+function isBreakingOutOfTryWithFinally(node: Rule.Node & { type: "BreakStatement" | "ContinueStatement" }): boolean {
   const targets = node.type === "BreakStatement" ? BREAK_TARGETS : CONTINUE_TARGETS;
 
   // Walk up ancestors: find the nearest target (loop/switch) and nearest try-with-finally.
@@ -45,11 +37,7 @@ function isBreakingOutOfTryWithFinally(
 
   while (current) {
     // If we hit a function boundary, stop — break/continue can't cross it
-    if (
-      current.type === "FunctionDeclaration" ||
-      current.type === "FunctionExpression" ||
-      current.type === "ArrowFunctionExpression"
-    ) {
+    if (current.type === "FunctionDeclaration" || current.type === "FunctionExpression" || current.type === "ArrowFunctionExpression") {
       return false;
     }
 
@@ -109,8 +97,7 @@ const rule: Rule.RuleModule = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Warn about break/continue inside try with finally (may skip finally in BorisScript)",
+      description: "Warn about break/continue inside try with finally (may skip finally in BorisScript)",
       recommended: true,
       url: "https://github.com/BorisType/BorisType/blob/main/packages/eslint-plugin/docs/rules/no-break-in-try-finally.md",
     },

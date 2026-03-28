@@ -23,10 +23,7 @@ export type { ArtifactContext, ArtifactOptions, ZipOptions } from "./types";
  * @param options - Опции pipeline
  * @returns Финальный контекст с информацией о созданном архиве
  */
-export async function processArtifact(
-  cwd: string,
-  options: ArtifactOptions,
-): Promise<ArtifactContext> {
+export async function processArtifact(cwd: string, options: ArtifactOptions): Promise<ArtifactContext> {
   logger.info("🚀 Artifact Pipeline Started");
   logger.info("─".repeat(40));
 

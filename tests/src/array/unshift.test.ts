@@ -26,11 +26,7 @@ botest.assertJsArrayEquals(singleArr, [1, 2], "singleArr after unshift should be
 const arr3: any[] = [3, 4];
 const result5 = arr3.unshift(undefined, null);
 botest.assertValueEquals(result5, 4, "arr3.unshift(undefined, null) should return new length 4"); // New length
-botest.assertJsArrayEquals(
-  arr3,
-  [undefined, null, 3, 4],
-  "arr3 after unshift should be [undefined, null, 3, 4]",
-);
+botest.assertJsArrayEquals(arr3, [undefined, null, 3, 4], "arr3 after unshift should be [undefined, null, 3, 4]");
 
 // Add objects
 const obj1 = { x: 1 };
@@ -50,21 +46,13 @@ botest.assertJsArrayEquals(arr5, [[1], [2, 3]], "arr5 after unshift should be [[
 const arr6: any[] = [true, null];
 const result8 = arr6.unshift(1, "hello");
 botest.assertValueEquals(result8, 4, "arr6.unshift(1, 'hello') should return new length 4"); // New length
-botest.assertJsArrayEquals(
-  arr6,
-  [1, "hello", true, null],
-  "arr6 after unshift should be [1, 'hello', true, null]",
-);
+botest.assertJsArrayEquals(arr6, [1, "hello", true, null], "arr6 after unshift should be [1, 'hello', true, null]");
 
 // Add strings
 const arr7 = ["c", "d"];
 const result9 = arr7.unshift("a", "b");
 botest.assertValueEquals(result9, 4, "arr7.unshift('a', 'b') should return new length 4"); // New length
-botest.assertJsArrayEquals(
-  arr7,
-  ["a", "b", "c", "d"],
-  "arr7 after unshift should be ['a', 'b', 'c', 'd']",
-);
+botest.assertJsArrayEquals(arr7, ["a", "b", "c", "d"], "arr7 after unshift should be ['a', 'b', 'c', 'd']");
 
 // Return value is new length
 const arr8 = [3, 4, 5];
@@ -88,11 +76,7 @@ botest.assertJsArrayEquals(arr10, [0, 2, 3], "arr10 after unshift should be [0, 
 const arr11 = [true, null];
 const result12 = arr11.unshift(false);
 botest.assertValueEquals(result12, 3, "arr11.unshift(false) should return new length 3"); // New length
-botest.assertJsArrayEquals(
-  arr11,
-  [false, true, null],
-  "arr11 after unshift should be [false, true, null]",
-);
+botest.assertJsArrayEquals(arr11, [false, true, null], "arr11 after unshift should be [false, true, null]");
 
 // Add empty string
 const arr12 = ["b", "c"];

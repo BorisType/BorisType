@@ -88,10 +88,7 @@ export function visitArrowFunction(node: ts.ArrowFunction, ctx: VisitorContext):
 /**
  * Обрабатывает function expression
  */
-export function visitFunctionExpression(
-  node: ts.FunctionExpression,
-  ctx: VisitorContext,
-): IRExpression {
+export function visitFunctionExpression(node: ts.FunctionExpression, ctx: VisitorContext): IRExpression {
   // Without env/desc: plain function
   if (!ctx.config.useEnvDescPattern) return visitBareFunctionExpression(node, ctx);
 

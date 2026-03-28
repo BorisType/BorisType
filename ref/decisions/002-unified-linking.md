@@ -123,9 +123,7 @@ function createVirtualConfig(options: LinkOptions): BtConfig {
 
 ```typescript
 // btc/cli/link.ts (simplified)
-const btconfig = fs.existsSync("btconfig.json")
-  ? JSON.parse(fs.readFileSync("btconfig.json", "utf-8"))
-  : undefined; // link() will create virtual config
+const btconfig = fs.existsSync("btconfig.json") ? JSON.parse(fs.readFileSync("btconfig.json", "utf-8")) : undefined; // link() will create virtual config
 
 await link({
   btconfig,

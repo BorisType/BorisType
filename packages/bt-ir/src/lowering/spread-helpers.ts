@@ -19,10 +19,7 @@ export function createObjectUnionFunction(): IRFunctionDeclaration {
       IR.id("obj1"),
       IR.block([
         IR.exprStmt(
-          IR.call(IR.dot(IR.id("newObject"), "SetProperty"), [
-            IR.id("key"),
-            IR.call(IR.dot(IR.id("obj1"), "GetProperty"), [IR.id("key")]),
-          ]),
+          IR.call(IR.dot(IR.id("newObject"), "SetProperty"), [IR.id("key"), IR.call(IR.dot(IR.id("obj1"), "GetProperty"), [IR.id("key")])]),
         ),
       ]),
     ),
@@ -31,10 +28,7 @@ export function createObjectUnionFunction(): IRFunctionDeclaration {
       IR.id("obj2"),
       IR.block([
         IR.exprStmt(
-          IR.call(IR.dot(IR.id("newObject"), "SetProperty"), [
-            IR.id("key"),
-            IR.call(IR.dot(IR.id("obj2"), "GetProperty"), [IR.id("key")]),
-          ]),
+          IR.call(IR.dot(IR.id("newObject"), "SetProperty"), [IR.id("key"), IR.call(IR.dot(IR.id("obj2"), "GetProperty"), [IR.id("key")])]),
         ),
       ]),
     ),

@@ -96,11 +96,7 @@ export interface MapStatementsOptions {
  * @param options - Опции обхода
  * @returns Новый список statements (или оригинальный, если ничего не изменилось)
  */
-export function mapStatements(
-  stmts: IRStatement[],
-  mapper: StatementMapper,
-  options?: MapStatementsOptions,
-): IRStatement[] {
+export function mapStatements(stmts: IRStatement[], mapper: StatementMapper, options?: MapStatementsOptions): IRStatement[] {
   const enterFunctions = options?.enterFunctions ?? false;
   let changed = false;
   const result: IRStatement[] = [];
@@ -131,19 +127,13 @@ export function mapStatements(
  * Рекурсивно применяет маппер к children одного statement.
  * Не вызывает маппер на самом stmt — только на его вложенных statements.
  */
-function mapStatementChildren(
-  stmt: IRStatement,
-  mapper: StatementMapper,
-  enterFunctions: boolean,
-): IRStatement {
+function mapStatementChildren(stmt: IRStatement, mapper: StatementMapper, enterFunctions: boolean): IRStatement {
   switch (stmt.kind) {
     case "FunctionDeclaration": {
       if (!enterFunctions) return stmt;
       const s = stmt as IRFunctionDeclaration;
       const newBody = mapStatements(s.body, mapper, { enterFunctions });
-      return newBody === s.body
-        ? stmt
-        : IR.functionDecl(s.name, s.originalParams, newBody, s.loc, s.plainSignature);
+      return newBody === s.body ? stmt : IR.functionDecl(s.name, s.originalParams, newBody, s.loc, s.plainSignature);
     }
 
     case "BlockStatement": {
@@ -155,9 +145,7 @@ function mapStatementChildren(
     case "IfStatement": {
       const s = stmt as IRIfStatement;
       const newCons = mapStatementBody(s.consequent, mapper, enterFunctions);
-      const newAlt = s.alternate
-        ? mapStatementBody(s.alternate, mapper, enterFunctions)
-        : s.alternate;
+      const newAlt = s.alternate ? mapStatementBody(s.alternate, mapper, enterFunctions) : s.alternate;
       if (newCons === s.consequent && newAlt === s.alternate) return stmt;
       return IR.if(s.test, newCons, newAlt, s.loc);
     }
@@ -206,9 +194,7 @@ function mapStatementChildren(
             return newBody === s.handler!.body ? s.handler : IR.catch(s.handler!.param, newBody);
           })()
         : null;
-      const newFinalizer = s.finalizer
-        ? mapStatementBlock(s.finalizer, mapper, enterFunctions)
-        : s.finalizer;
+      const newFinalizer = s.finalizer ? mapStatementBlock(s.finalizer, mapper, enterFunctions) : s.finalizer;
       if (newBlock === s.block && newHandler === s.handler && newFinalizer === s.finalizer) {
         return stmt;
       }
@@ -237,11 +223,7 @@ function mapStatementChildren(
  * Маппит body statement (может быть BlockStatement или одиночный statement).
  * Для одиночного statement: применяет маппер, результат оборачивает в блок если нужно.
  */
-function mapStatementBody(
-  stmt: IRStatement,
-  mapper: StatementMapper,
-  enterFunctions: boolean,
-): IRStatement {
+function mapStatementBody(stmt: IRStatement, mapper: StatementMapper, enterFunctions: boolean): IRStatement {
   if (stmt.kind === "BlockStatement") {
     return mapStatementBlock(stmt as IRBlockStatement, mapper, enterFunctions);
   }
@@ -262,11 +244,7 @@ function mapStatementBody(
 /**
  * Маппит содержимое блока, сохраняя BlockStatement обёртку.
  */
-function mapStatementBlock(
-  block: IRBlockStatement,
-  mapper: StatementMapper,
-  enterFunctions: boolean,
-): IRBlockStatement {
+function mapStatementBlock(block: IRBlockStatement, mapper: StatementMapper, enterFunctions: boolean): IRBlockStatement {
   const newBody = mapStatements(block.body, mapper, { enterFunctions });
   return newBody === block.body ? block : IR.block(newBody, block.loc);
 }
@@ -490,11 +468,7 @@ function mapExpressionList(exprs: IRExpression[], mapper: ExpressionMapper): IRE
  * @param collector - Функция, собирающая данные из statement
  * @param options - Опции обхода
  */
-export function forEachStatement(
-  stmts: IRStatement[],
-  collector: (stmt: IRStatement) => void,
-  options?: MapStatementsOptions,
-): void {
+export function forEachStatement(stmts: IRStatement[], collector: (stmt: IRStatement) => void, options?: MapStatementsOptions): void {
   const enterFunctions = options?.enterFunctions ?? false;
 
   for (const stmt of stmts) {
@@ -506,11 +480,7 @@ export function forEachStatement(
 /**
  * Рекурсивно вызывает collector для children statement.
  */
-function visitStatementChildren(
-  stmt: IRStatement,
-  collector: (stmt: IRStatement) => void,
-  enterFunctions: boolean,
-): void {
+function visitStatementChildren(stmt: IRStatement, collector: (stmt: IRStatement) => void, enterFunctions: boolean): void {
   switch (stmt.kind) {
     case "FunctionDeclaration": {
       if (!enterFunctions) return;
@@ -594,11 +564,7 @@ function visitStatementChildren(
 /**
  * Вызывает collector для body (может быть block или одиночный statement).
  */
-function visitStatementBodyChildren(
-  stmt: IRStatement,
-  collector: (stmt: IRStatement) => void,
-  enterFunctions: boolean,
-): void {
+function visitStatementBodyChildren(stmt: IRStatement, collector: (stmt: IRStatement) => void, enterFunctions: boolean): void {
   collector(stmt);
   visitStatementChildren(stmt, collector, enterFunctions);
 }

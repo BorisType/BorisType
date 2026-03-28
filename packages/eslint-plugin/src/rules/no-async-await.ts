@@ -37,10 +37,8 @@ const rule: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      noAsyncFunction:
-        "Async functions are not supported in BorisScript. Use callbacks or synchronous code instead.",
-      noAwaitExpression:
-        "Await expressions are not supported in BorisScript. Use callbacks or synchronous code instead.",
+      noAsyncFunction: "Async functions are not supported in BorisScript. Use callbacks or synchronous code instead.",
+      noAwaitExpression: "Await expressions are not supported in BorisScript. Use callbacks or synchronous code instead.",
       noForAwaitOf: "For-await-of loops are not supported in BorisScript.",
     },
   },

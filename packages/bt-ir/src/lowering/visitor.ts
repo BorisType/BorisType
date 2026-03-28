@@ -170,10 +170,7 @@ export function withPendingScope<T>(ctx: VisitorContext, fn: () => T): PendingSc
  * @param irNodes - Результат visitStatement (может быть null, statement или массив)
  * @returns Плоский массив IR statements
  */
-export function collectStatements(
-  hoisted: IRStatement[],
-  irNodes: IRStatement | IRStatement[] | null,
-): IRStatement[] {
+export function collectStatements(hoisted: IRStatement[], irNodes: IRStatement | IRStatement[] | null): IRStatement[] {
   const out: IRStatement[] = [];
   if (hoisted.length > 0) {
     out.push(...hoisted);
@@ -251,9 +248,7 @@ export function transformToIR(
     fileKey: options.fileKey,
     currentFileJs:
       options.currentFileJs ??
-      ((options.mode ?? "script") === "module"
-        ? path.basename(sourceFile.fileName).replace(/\.tsx?$/, ".js")
-        : undefined),
+      ((options.mode ?? "script") === "module" ? path.basename(sourceFile.fileName).replace(/\.tsx?$/, ".js") : undefined),
     helperFlags: { usesImportMeta: false, usesAbsoluteUrl: false, needsObjectUnion: false },
     diagnostics: [],
   };
@@ -268,16 +263,12 @@ export function transformToIR(
 
   // Обрабатываем все statements
   for (const statement of sourceFile.statements) {
-    const { result: irNodes, hoisted } = withPendingScope(ctx, () =>
-      visitStatement(statement, ctx),
-    );
+    const { result: irNodes, hoisted } = withPendingScope(ctx, () => visitStatement(statement, ctx));
     body.push(...collectStatements(hoisted, irNodes));
   }
 
   // Helper-функции (ObjectUnion при spread в объектах) — в самом начале
-  const helperFunctions: IRStatement[] = ctx.helperFlags.needsObjectUnion
-    ? [createObjectUnionFunction()]
-    : [];
+  const helperFunctions: IRStatement[] = ctx.helperFlags.needsObjectUnion ? [createObjectUnionFunction()] : [];
 
   // import.meta и AbsoluteUrl helpers: BT-функции, зарегистрированные в __env
   const helperSetupStatements: IRStatement[] = [];
@@ -330,22 +321,11 @@ export function transformToIR(
     // __AbsoluteUrl: обычная BT-функция с параметрами url, baseUrl
     const whenUndefined = !config.moduleExports
       ? // Внутри __AbsoluteUrl: __env.__ImportMeta_dirUrl доступен через __env (он параметр)
-        IR.call(IR.id("UrlAppendPath"), [
-          IR.btCallFunction(IR.dot(IR.id("__env"), "__ImportMeta_dirUrl"), []),
-          IR.id("url"),
-        ])
+        IR.call(IR.id("UrlAppendPath"), [IR.btCallFunction(IR.dot(IR.id("__env"), "__ImportMeta_dirUrl"), []), IR.id("url")])
       : IR.call(IR.id("AbsoluteUrl"), [IR.id("url")]);
     const whenDefined = IR.call(IR.id("AbsoluteUrl"), [IR.id("url"), IR.id("baseUrl")]);
-    const ret = IR.return(
-      IR.conditional(
-        IR.binary("===", IR.id("baseUrl"), IR.id("undefined")),
-        whenUndefined,
-        whenDefined,
-      ),
-    );
-    ctx.hoistedFunctions.push(
-      IR.functionDecl("__AbsoluteUrl", [IR.param("url"), IR.param("baseUrl")], [ret]),
-    );
+    const ret = IR.return(IR.conditional(IR.binary("===", IR.id("baseUrl"), IR.id("undefined")), whenUndefined, whenDefined));
+    ctx.hoistedFunctions.push(IR.functionDecl("__AbsoluteUrl", [IR.param("url"), IR.param("baseUrl")], [ret]));
     // Дескриптор + регистрация
     const absDescProps = [
       IR.prop("@descriptor", IR.string("function")),
@@ -360,9 +340,7 @@ export function transformToIR(
     }
     helperSetupStatements.push(
       IR.varDecl("__AbsoluteUrl_desc", IR.object(absDescProps)),
-      IR.exprStmt(
-        IR.assign("=", IR.dot(IR.id("__env"), "__AbsoluteUrl"), IR.id("__AbsoluteUrl_desc")),
-      ),
+      IR.exprStmt(IR.assign("=", IR.dot(IR.id("__env"), "__AbsoluteUrl"), IR.id("__AbsoluteUrl_desc"))),
     );
   }
 
@@ -393,11 +371,7 @@ export function transformToIR(
   }
 
   return {
-    ir: IR.program(
-      [...helperFunctions, ...ctx.hoistedFunctions, ...body],
-      sourceFile.fileName,
-      !config.useEnvDescPattern,
-    ),
+    ir: IR.program([...helperFunctions, ...ctx.hoistedFunctions, ...body], sourceFile.fileName, !config.useEnvDescPattern),
     diagnostics: ctx.diagnostics,
   };
 }

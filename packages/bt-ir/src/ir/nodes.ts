@@ -533,19 +533,7 @@ export interface IRAssignmentExpression extends IRNodeBase {
   right: IRExpression;
 }
 
-export type AssignmentOperator =
-  | "="
-  | "+="
-  | "-="
-  | "*="
-  | "/="
-  | "%="
-  | "<<="
-  | ">>="
-  | ">>>="
-  | "&="
-  | "|="
-  | "^=";
+export type AssignmentOperator = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | ">>>=" | "&=" | "|=" | "^=";
 
 /**
  * Update expression (++a, a++, --a, a--)

@@ -204,10 +204,7 @@ export class WshcmUploader {
     this.totalSize = this.files.reduce((sum, file) => sum + file.size, 0);
 
     // Читаем скрипт подготовки
-    const prepareScript = fs.readFileSync(
-      path.join(import.meta.dirname, "..", "resources", "upload_prepare.bs"),
-      "utf-8",
-    );
+    const prepareScript = fs.readFileSync(path.join(import.meta.dirname, "..", "resources", "upload_prepare.bs"), "utf-8");
 
     // Заменяем переменную
     const script = prepareScript.replace("{{destination}}", this.destination);
@@ -224,9 +221,7 @@ export class WshcmUploader {
     this.chunkPath2 = part2.replace(/\\/g, "\\\\");
 
     // Создаем директории для чанков на сервере
-    const obtainDirCode = this.files
-      .map((file) => `ObtainDirectory('${this.chunkPath1}${file.hash}', true);`)
-      .join("\n");
+    const obtainDirCode = this.files.map((file) => `ObtainDirectory('${this.chunkPath1}${file.hash}', true);`).join("\n");
 
     await this.evaluator.eval(obtainDirCode);
   }
@@ -265,10 +260,7 @@ export class WshcmUploader {
    */
   async finish(): Promise<string[]> {
     // Читаем скрипт финализации
-    const finishScript = fs.readFileSync(
-      path.join(import.meta.dirname, "..", "resources", "upload_finish.bs"),
-      "utf-8",
-    );
+    const finishScript = fs.readFileSync(path.join(import.meta.dirname, "..", "resources", "upload_finish.bs"), "utf-8");
 
     // Заменяем переменные
     const filePaths = JSON.stringify(this.files.map((f) => f.relative));

@@ -3,14 +3,7 @@
 import { program } from "commander";
 import packageInfo from "../package.json";
 
-import {
-  initCommand,
-  buildCommand,
-  linkCommand,
-  artifactCommand,
-  devCommand,
-  pushCommand,
-} from "./cli/commands";
+import { initCommand, buildCommand, linkCommand, artifactCommand, devCommand, pushCommand } from "./cli/commands";
 import type { BtcCompileOptions } from "./core/building/types";
 import type { PushCommandOptions } from "./core/pushing/types";
 
@@ -46,33 +39,18 @@ program
   .description("Link modules and dependencies into dist structure")
   .option("--clean", "Clean dist directory and cache before linking", false)
   .option("--no-cache", "Do not use cache for node_modules (but do not delete it)")
-  .option(
-    "--linking-system-as <mode>",
-    'How to link system packages: "standalone" or "component"',
-    "component",
-  )
-  .option(
-    "--external-runtime",
-    "Skip linking system packages (runtime is managed externally)",
-    false,
-  )
-  .action(
-    async (options: {
-      clean?: boolean;
-      cache?: boolean;
-      linkingSystemAs?: string;
-      externalRuntime?: boolean;
-    }) => {
-      const systemMode = options.linkingSystemAs as "standalone" | "component" | undefined;
-      // Commander парсит --no-cache как cache: false (по умолчанию cache: true)
-      await linkCommand({
-        clean: options.clean,
-        noCache: options.cache === false,
-        linkingSystemAs: systemMode,
-        externalRuntime: options.externalRuntime,
-      });
-    },
-  );
+  .option("--linking-system-as <mode>", 'How to link system packages: "standalone" or "component"', "component")
+  .option("--external-runtime", "Skip linking system packages (runtime is managed externally)", false)
+  .action(async (options: { clean?: boolean; cache?: boolean; linkingSystemAs?: string; externalRuntime?: boolean }) => {
+    const systemMode = options.linkingSystemAs as "standalone" | "component" | undefined;
+    // Commander парсит --no-cache как cache: false (по умолчанию cache: true)
+    await linkCommand({
+      clean: options.clean,
+      noCache: options.cache === false,
+      linkingSystemAs: systemMode,
+      externalRuntime: options.externalRuntime,
+    });
+  });
 
 // Команда artifact
 program

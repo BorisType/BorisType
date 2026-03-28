@@ -7,11 +7,7 @@ botest.assertJsArrayEquals(arr1, [1, 2, 3, 4], "arr1 original should be unchange
 // Replace first element (index 0)
 const arr2 = ["a", "b", "c"];
 const result2 = arr2.with(0, "x");
-botest.assertJsArrayEquals(
-  result2,
-  ["x", "b", "c"],
-  "arr2.with(0, 'x') should return ['x', 'b', 'c']",
-);
+botest.assertJsArrayEquals(result2, ["x", "b", "c"], "arr2.with(0, 'x') should return ['x', 'b', 'c']");
 botest.assertJsArrayEquals(arr2, ["a", "b", "c"], "arr2 original should be unchanged"); // Original unchanged
 
 // Replace last element
@@ -23,21 +19,13 @@ botest.assertJsArrayEquals(arr3, [10, 20, 30], "arr3 original should be unchange
 // Negative index
 const arr4 = [1, 2, 3, 4, 5];
 const result4 = arr4.with(-1, 999);
-botest.assertJsArrayEquals(
-  result4,
-  [1, 2, 3, 4, 999],
-  "arr4.with(-1, 999) should return [1, 2, 3, 4, 999]",
-);
+botest.assertJsArrayEquals(result4, [1, 2, 3, 4, 999], "arr4.with(-1, 999) should return [1, 2, 3, 4, 999]");
 botest.assertJsArrayEquals(arr4, [1, 2, 3, 4, 5], "arr4 original should be unchanged"); // Original unchanged
 
 // Negative index - second to last
 const arr5 = [1, 2, 3, 4, 5];
 const result5 = arr5.with(-2, 888);
-botest.assertJsArrayEquals(
-  result5,
-  [1, 2, 3, 888, 5],
-  "arr5.with(-2, 888) should return [1, 2, 3, 888, 5]",
-);
+botest.assertJsArrayEquals(result5, [1, 2, 3, 888, 5], "arr5.with(-2, 888) should return [1, 2, 3, 888, 5]");
 botest.assertJsArrayEquals(arr5, [1, 2, 3, 4, 5], "arr5 original should be unchanged"); // Original unchanged
 
 // Single element array
@@ -62,11 +50,7 @@ const obj2 = { y: 2 };
 const arr7: any[] = [obj1, obj2];
 const newObj = { z: 3 };
 const result8 = arr7.with(0, newObj);
-botest.assertJsArrayEquals(
-  result8,
-  [newObj, obj2],
-  "arr7.with(0, newObj) should return [newObj, obj2]",
-);
+botest.assertJsArrayEquals(result8, [newObj, obj2], "arr7.with(0, newObj) should return [newObj, obj2]");
 botest.assertJsArrayEquals(arr7, [obj1, obj2], "arr7 original should be unchanged"); // Original unchanged
 
 // Array with nested arrays
@@ -103,11 +87,7 @@ botest.assertJsArrayEquals(
   [1, "hello", false, null, undefined],
   "arr9.with(2, false) should return [1, 'hello', false, null, undefined]",
 );
-botest.assertJsArrayEquals(
-  arr9,
-  [1, "hello", true, null, undefined],
-  "arr9 original should be unchanged",
-); // Original unchanged
+botest.assertJsArrayEquals(arr9, [1, "hello", true, null, undefined], "arr9 original should be unchanged"); // Original unchanged
 
 // Replace with same value (no-op functionally)
 const arr10 = [1, 2, 3];

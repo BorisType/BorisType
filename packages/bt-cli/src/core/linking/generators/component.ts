@@ -87,11 +87,7 @@ export interface ComponentFiles {
  * @param rootUrl - URL корневой директории
  * @returns Объект с содержимым XML и JS файлов
  */
-export function buildComponentFiles(
-  componentName: string,
-  mainFile: string,
-  rootUrl: string,
-): ComponentFiles {
+export function buildComponentFiles(componentName: string, mainFile: string, rootUrl: string): ComponentFiles {
   return {
     xml: buildComponentXml(componentName),
     js: buildComponentJs(componentName, mainFile, rootUrl),

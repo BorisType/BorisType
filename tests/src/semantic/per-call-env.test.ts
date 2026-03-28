@@ -46,16 +46,8 @@ function makeGreeter(prefix: string) {
 const greetHello = makeGreeter("Hello");
 const greetBye = makeGreeter("Bye");
 
-botest.assertValueEquals(
-  greetHello("World"),
-  "Hello World!",
-  "greetHello('World') should be 'Hello World!'",
-);
-botest.assertValueEquals(
-  greetBye("World"),
-  "Bye World!",
-  "greetBye('World') should be 'Bye World!'",
-);
+botest.assertValueEquals(greetHello("World"), "Hello World!", "greetHello('World') should be 'Hello World!'");
+botest.assertValueEquals(greetBye("World"), "Bye World!", "greetBye('World') should be 'Bye World!'");
 
 // === 3. Per-call env с доступом к parent scope ===
 

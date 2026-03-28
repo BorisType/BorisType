@@ -9,11 +9,7 @@ const emptyArr: any[] = [];
 const arrWithValues = [5, 6];
 result = emptyArr.concat(arrWithValues);
 botest.assertJsArrayEquals(result, [5, 6], "empty array concat should return second array");
-botest.assertJsArrayEquals(
-  arrWithValues.concat(emptyArr),
-  [5, 6],
-  "concat empty array should return first array",
-);
+botest.assertJsArrayEquals(arrWithValues.concat(emptyArr), [5, 6], "concat empty array should return first array");
 
 // Multiple arrays
 const single1 = [1];
@@ -27,11 +23,7 @@ const arrWithUndefined = [1, undefined];
 const arrWithNull = [null, 2];
 // @ts-ignore
 result = arrWithUndefined.concat(arrWithNull);
-botest.assertJsArrayEquals(
-  result,
-  [1, undefined, null, 2],
-  "concat should preserve undefined and null",
-);
+botest.assertJsArrayEquals(result, [1, undefined, null, 2], "concat should preserve undefined and null");
 
 // Nested arrays
 const nested1 = [[1]];

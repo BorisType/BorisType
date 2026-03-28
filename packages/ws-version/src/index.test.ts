@@ -79,16 +79,7 @@ describe("compareWsVersions", () => {
   });
 
   it("preserves semver ordering", () => {
-    const versions = [
-      "1.0.0-alpha.1",
-      "1.0.0-alpha.2",
-      "1.0.0-beta.1",
-      "1.0.0-rc.1",
-      "1.0.0",
-      "1.0.1",
-      "1.1.0",
-      "2.0.0",
-    ];
+    const versions = ["1.0.0-alpha.1", "1.0.0-alpha.2", "1.0.0-beta.1", "1.0.0-rc.1", "1.0.0", "1.0.1", "1.1.0", "2.0.0"];
     const wsVersions = versions.map(convertSemverToWsVersion);
 
     for (let i = 0; i < wsVersions.length - 1; i++) {

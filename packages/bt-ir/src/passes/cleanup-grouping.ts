@@ -106,9 +106,7 @@ export const cleanupGroupingPass: IRPass = {
           case "VariableDeclaration": {
             if (!stmt.init) return null;
             const e = cleanupExpr(stmt.init);
-            return e === stmt.init
-              ? null
-              : IR.varDecl(stmt.name, e, stmt.loc, stmt.isCaptured, stmt.envRef, stmt.hoistOnly);
+            return e === stmt.init ? null : IR.varDecl(stmt.name, e, stmt.loc, stmt.isCaptured, stmt.envRef, stmt.hoistOnly);
           }
 
           case "ReturnStatement": {
@@ -124,9 +122,7 @@ export const cleanupGroupingPass: IRPass = {
 
           case "IfStatement": {
             const newTest = cleanupExpr(stmt.test);
-            return newTest === stmt.test
-              ? null
-              : IR.if(newTest, stmt.consequent, stmt.alternate, stmt.loc);
+            return newTest === stmt.test ? null : IR.if(newTest, stmt.consequent, stmt.alternate, stmt.loc);
           }
 
           case "WhileStatement": {
@@ -146,14 +142,7 @@ export const cleanupGroupingPass: IRPass = {
                 if (stmt.init.init) {
                   const e = cleanupExpr(stmt.init.init);
                   if (e !== stmt.init.init) {
-                    newInit = IR.varDecl(
-                      stmt.init.name,
-                      e,
-                      stmt.init.loc,
-                      stmt.init.isCaptured,
-                      stmt.init.envRef,
-                      stmt.init.hoistOnly,
-                    );
+                    newInit = IR.varDecl(stmt.init.name, e, stmt.init.loc, stmt.init.isCaptured, stmt.init.envRef, stmt.init.hoistOnly);
                   }
                 }
               } else {
@@ -171,9 +160,7 @@ export const cleanupGroupingPass: IRPass = {
 
           case "ForInStatement": {
             const newRight = cleanupExpr(stmt.right);
-            return newRight === stmt.right
-              ? null
-              : IR.forIn(stmt.left, newRight, stmt.body, stmt.loc);
+            return newRight === stmt.right ? null : IR.forIn(stmt.left, newRight, stmt.body, stmt.loc);
           }
 
           case "SwitchStatement": {

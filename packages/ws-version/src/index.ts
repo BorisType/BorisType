@@ -176,9 +176,7 @@ export function convertSemverRangeToWsRange(range: string): string {
   try {
     wsVersion = convertSemverToWsVersion(version);
   } catch (error) {
-    throw new Error(
-      `Invalid version in range "${range}": ${error instanceof Error ? error.message : error}`,
-    );
+    throw new Error(`Invalid version in range "${range}": ${error instanceof Error ? error.message : error}`);
   }
 
   // Для ^ и ~ добавляем префикс ^ в ws-формате

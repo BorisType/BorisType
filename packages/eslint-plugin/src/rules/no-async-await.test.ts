@@ -84,11 +84,7 @@ ruleTester.run("no-async-await", rule, {
           await baz();
         }
       `,
-      errors: [
-        { messageId: "noAsyncFunction" },
-        { messageId: "noAwaitExpression" },
-        { messageId: "noAwaitExpression" },
-      ],
+      errors: [{ messageId: "noAsyncFunction" }, { messageId: "noAwaitExpression" }, { messageId: "noAwaitExpression" }],
     },
 
     // For-await-of loop

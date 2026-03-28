@@ -27,11 +27,7 @@ class Dog extends Animal {
 const dog: any = new Dog("Rex", "Labrador");
 
 // super.describe() вызвал Animal.describe() с __this = dog
-botest.assertValueEquals(
-  dog.describe(),
-  "I am Rex, a Labrador",
-  "dog.describe() uses super.describe()",
-);
+botest.assertValueEquals(dog.describe(), "I am Rex, a Labrador", "dog.describe() uses super.describe()");
 
 // Свойства установлены через super() и собственный конструктор
 botest.assertValueEquals(dog.name, "Rex", "dog.name from super(name)");

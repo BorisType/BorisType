@@ -91,8 +91,7 @@ const result = obj?.prop;
 
 // BorisScript output (conceptual)
 var __tmp;
-var result =
-  (__tmp = obj) == null || __tmp == undefined ? undefined : bt.getProperty(__tmp, "prop");
+var result = (__tmp = obj) == null || __tmp == undefined ? undefined : bt.getProperty(__tmp, "prop");
 ```
 
 **Фактический IR lowering** ([bt-ir/src/lowering/expressions.ts](../../bt-ir/src/lowering/expressions.ts)):
@@ -208,8 +207,7 @@ var result = (__tmp = obj) == null ? undefined : bt.getProperty(__tmp, "prop");
 
 ```javascript
 var __tmp;
-var result =
-  (__tmp = obj) === null || __tmp === undefined ? undefined : bt.getProperty(__tmp, "prop");
+var result = (__tmp = obj) === null || __tmp === undefined ? undefined : bt.getProperty(__tmp, "prop");
 ```
 
 **Rejected because:**

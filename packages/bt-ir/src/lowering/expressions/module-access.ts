@@ -21,11 +21,7 @@ import { resolveModuleLevelAccess } from "../env-resolution.ts";
  * @param ctx - Текущий VisitorContext
  * @returns IR выражение: прямой IR.id(moduleVar) или __env[.__parent...].moduleVar
  */
-export function importModuleVarAccess(
-  moduleVar: string,
-  isCapturedImport: boolean,
-  ctx: VisitorContext,
-): IRExpression {
+export function importModuleVarAccess(moduleVar: string, isCapturedImport: boolean, ctx: VisitorContext): IRExpression {
   if (!isCapturedImport) {
     return IR.id(moduleVar);
   }

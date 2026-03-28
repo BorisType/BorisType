@@ -51,11 +51,7 @@ export async function createZipArchive(
  * @param dirPath - Путь к директории
  * @param archiveDirName - Имя директории внутри архива
  */
-export function addDirectoryToArchive(
-  archive: Archiver,
-  dirPath: string,
-  archiveDirName: string,
-): void {
+export function addDirectoryToArchive(archive: Archiver, dirPath: string, archiveDirName: string): void {
   archive.directory(dirPath, archiveDirName);
 }
 
@@ -66,10 +62,6 @@ export function addDirectoryToArchive(
  * @param filePath - Путь к файлу
  * @param archiveFileName - Имя файла внутри архива
  */
-export function addFileToArchive(
-  archive: Archiver,
-  filePath: string,
-  archiveFileName: string,
-): void {
+export function addFileToArchive(archive: Archiver, filePath: string, archiveFileName: string): void {
   archive.file(filePath, { name: archiveFileName });
 }

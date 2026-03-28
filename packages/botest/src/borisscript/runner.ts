@@ -14,11 +14,7 @@ type JsEvalReturnValue = {
  * @returns The return value of the evaluated code.
  * @throws Error on timeout, runtime errors, or assertion failures.
  */
-export async function evalBorisScriptAsync(
-  code: string,
-  filePath?: string,
-  timeout: number = 30000,
-): Promise<any> {
+export async function evalBorisScriptAsync(code: string, filePath?: string, timeout: number = 30000): Promise<any> {
   let sourceInfo: SourceInfo | undefined = undefined;
   if (filePath) {
     sourceInfo = {};
@@ -32,11 +28,7 @@ export async function evalBorisScriptAsync(
     const timeoutId = setTimeout(() => {
       if (!isResolved) {
         isResolved = true;
-        reject(
-          new Error(
-            `BorisScript execution timeout (${timeout}ms). Code may have infinite loop or be stuck.`,
-          ),
-        );
+        reject(new Error(`BorisScript execution timeout (${timeout}ms). Code may have infinite loop or be stuck.`));
       }
     }, timeout);
 

@@ -72,11 +72,7 @@ function getCompileModeFromOptions(options: BtcCompileOptions): CompileMode {
  *
  * Приоритет: директива > .test.ts/executable → script > options.compileMode
  */
-export function resolveCompileMode(
-  sourceFile: ts.SourceFile,
-  options: BtcCompileOptions,
-  executablePaths?: Set<string>,
-): CompileMode {
+export function resolveCompileMode(sourceFile: ts.SourceFile, options: BtcCompileOptions, executablePaths?: Set<string>): CompileMode {
   const directive = getDirectiveMode(sourceFile);
   if (directive) {
     return directive;
@@ -118,9 +114,7 @@ export function collectExecutables(
   return { executables, paths };
 }
 
-function getPackageJson(
-  program: ts.Program,
-): { name: string; version: string; root: string } | null {
+function getPackageJson(program: ts.Program): { name: string; version: string; root: string } | null {
   let root = program.getCurrentDirectory();
   while (root !== path.dirname(root)) {
     const p = path.join(root, "package.json");

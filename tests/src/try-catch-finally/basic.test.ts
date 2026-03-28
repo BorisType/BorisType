@@ -8,11 +8,7 @@ try {
   result += "finally";
 }
 
-botest.assertValueEquals(
-  result,
-  "catchfinally",
-  "The finally block should execute after the catch block",
-);
+botest.assertValueEquals(result, "catchfinally", "The finally block should execute after the catch block");
 
 botest.assertOk();
 

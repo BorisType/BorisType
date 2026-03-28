@@ -40,10 +40,8 @@ const rule: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      noClassDeclaration:
-        "Class declarations are not supported in BorisScript. Use factory functions instead.",
-      noClassExpression:
-        "Class expressions are not supported in BorisScript. Use factory functions instead.",
+      noClassDeclaration: "Class declarations are not supported in BorisScript. Use factory functions instead.",
+      noClassExpression: "Class expressions are not supported in BorisScript. Use factory functions instead.",
     },
   },
 

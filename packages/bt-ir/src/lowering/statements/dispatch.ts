@@ -12,11 +12,7 @@ import type { VisitorContext } from "../visitor.ts";
 import { visitExpression, resolveCallableRef } from "../expressions.ts";
 import { getLoc } from "../helpers.ts";
 import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
-import {
-  visitBareFunctionDeclaration,
-  visitBareVariableStatement,
-  visitBareNamespaceDeclaration,
-} from "../bare-visitors.ts";
+import { visitBareFunctionDeclaration, visitBareVariableStatement, visitBareNamespaceDeclaration } from "../bare-visitors.ts";
 import {
   visitFunctionDeclaration,
   visitVariableStatement,
@@ -26,22 +22,13 @@ import {
   visitClassDeclaration,
 } from "./declarations.ts";
 import { visitIfStatement, visitSwitchStatement, visitTryStatement } from "./control-flow.ts";
-import {
-  visitForStatement,
-  visitForInStatement,
-  visitForOfStatement,
-  visitWhileStatement,
-  visitDoWhileStatement,
-} from "./loops.ts";
+import { visitForStatement, visitForInStatement, visitForOfStatement, visitWhileStatement, visitDoWhileStatement } from "./loops.ts";
 import { visitBlock, visitReturnStatement } from "./blocks.ts";
 
 /**
  * Обрабатывает statement
  */
-export function visitStatement(
-  node: ts.Node,
-  ctx: VisitorContext,
-): IRStatement | IRStatement[] | null {
+export function visitStatement(node: ts.Node, ctx: VisitorContext): IRStatement | IRStatement[] | null {
   // Function declaration
   if (ts.isFunctionDeclaration(node)) {
     if (!ctx.config.useEnvDescPattern) return visitBareFunctionDeclaration(node, ctx);
@@ -169,11 +156,7 @@ export function visitStatement(
   }
 
   // Type-only: interface, type alias, enum — пропускаем
-  if (
-    ts.isInterfaceDeclaration(node) ||
-    ts.isTypeAliasDeclaration(node) ||
-    ts.isEnumDeclaration(node)
-  ) {
+  if (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isEnumDeclaration(node)) {
     return null;
   }
 

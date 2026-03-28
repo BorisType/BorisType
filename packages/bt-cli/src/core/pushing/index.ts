@@ -25,10 +25,7 @@ import type { PartialPushConnectionOptions } from "./types";
  * @param cwd - директория проекта
  * @param cliOptions - опции подключения из CLI (опциональные)
  */
-export async function processPush(
-  cwd: string,
-  cliOptions: PartialPushConnectionOptions = {},
-): Promise<void> {
+export async function processPush(cwd: string, cliOptions: PartialPushConnectionOptions = {}): Promise<void> {
   const options = resolvePushConnectionOptions(cwd, cliOptions);
 
   logger.info(`🚀 Pushing dist to WSHCM server...`);

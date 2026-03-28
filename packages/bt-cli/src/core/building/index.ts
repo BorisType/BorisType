@@ -40,12 +40,7 @@ export type {
   CompileMode,
   BtcConfiguration,
 } from "./types.js";
-export {
-  transformOutput,
-  stripControlChars,
-  indentString,
-  decodeUnicodeEscapes,
-} from "./output.js";
+export { transformOutput, stripControlChars, indentString, decodeUnicodeEscapes } from "./output.js";
 export { compile } from "./compiler.js";
 export { collectNonTypescriptFiles, copyNonTypescriptFiles } from "./files.js";
 
@@ -109,10 +104,7 @@ export const BuildPipeline = {
    * @param watchOptions - Опции watch режима
    * @returns Контроллер для остановки watch
    */
-  watch(
-    contextOrOptions: BuildContext | CreateContextOptions,
-    watchOptions?: WatchOptions,
-  ): WatchController {
+  watch(contextOrOptions: BuildContext | CreateContextOptions, watchOptions?: WatchOptions): WatchController {
     const context: BuildContext =
       "mode" in contextOrOptions && contextOrOptions.mode !== undefined
         ? (contextOrOptions as BuildContext)
@@ -126,9 +118,7 @@ export const BuildPipeline = {
 
     // Запускаем TypeScript watch для инкрементальной компиляции
     const tsWatcher = createWatchProgram(context, (result) => {
-      logger.warning(
-        `🔄 ${new Date().toLocaleTimeString()} Rebuild completed. Success: ${result.success}`,
-      );
+      logger.warning(`🔄 ${new Date().toLocaleTimeString()} Rebuild completed. Success: ${result.success}`);
 
       // Вызываем пользовательский callback
       watchOptions?.onRebuild?.(result);

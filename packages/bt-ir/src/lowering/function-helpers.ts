@@ -82,11 +82,7 @@ export function buildPerCallEnvStatements(
     if (ts.isIdentifier(param.name)) {
       const paramVarInfo = resolveVariableInScope(param.name.text, funcScope);
       if (paramVarInfo?.isCaptured) {
-        result.push(
-          IR.exprStmt(
-            IR.assign("=", IR.dot(IR.id(envName), param.name.text), IR.id(param.name.text)),
-          ),
-        );
+        result.push(IR.exprStmt(IR.assign("=", IR.dot(IR.id(envName), param.name.text), IR.id(param.name.text))));
       }
     }
   }
@@ -123,8 +119,7 @@ export function extractFunctionParams(
   tsParams.forEach((param, index) => {
     if (ts.isIdentifier(param.name)) {
       const paramName = param.name.text;
-      const defaultValue =
-        param.initializer && visitExpr ? visitExpr(param.initializer, fnCtx) : undefined;
+      const defaultValue = param.initializer && visitExpr ? visitExpr(param.initializer, fnCtx) : undefined;
       const isRest = !!param.dotDotDotToken;
 
       const varInfo = resolveVariableInScope(paramName, funcScope);
@@ -199,11 +194,7 @@ export function createInnerFunctionContext(options: InnerFunctionContextOptions)
     // closureEnvScope: когда per-call env — не ставим, т.к. visitIdentifier
     // должен использовать currentEnvRef (= per-call env) как базу.
     // Без per-call env при наличии captures — ставим parent scope.
-    closureEnvScope: perCallEnv.needed
-      ? undefined
-      : capturedVars.length > 0
-        ? ctx.currentEnvScope
-        : undefined,
+    closureEnvScope: perCallEnv.needed ? undefined : capturedVars.length > 0 ? ctx.currentEnvScope : undefined,
     xmlDocumentSymbol: ctx.xmlDocumentSymbol,
     xmlElemSymbol: ctx.xmlElemSymbol,
     importBindings: ctx.importBindings,
@@ -249,10 +240,7 @@ export function resolveHoistingTarget(ctx: VisitorContext): HoistingResult {
  * @param result - Результат buildFunction
  * @param ctx - VisitorContext
  */
-export function applyHoisting(
-  result: import("./function-builder.ts").FunctionBuildResult,
-  ctx: VisitorContext,
-): void {
+export function applyHoisting(result: import("./function-builder.ts").FunctionBuildResult, ctx: VisitorContext): void {
   const { target } = resolveHoistingTarget(ctx);
 
   if (target === "pending") {

@@ -215,9 +215,7 @@ export const commaSafetyPass: IRPass = {
           case "VariableDeclaration": {
             if (!stmt.init) return null;
             const e = commaSafeExpr(stmt.init);
-            return e === stmt.init
-              ? null
-              : IR.varDecl(stmt.name, e, stmt.loc, stmt.isCaptured, stmt.envRef, stmt.hoistOnly);
+            return e === stmt.init ? null : IR.varDecl(stmt.name, e, stmt.loc, stmt.isCaptured, stmt.envRef, stmt.hoistOnly);
           }
 
           case "ReturnStatement": {
@@ -233,9 +231,7 @@ export const commaSafetyPass: IRPass = {
 
           case "IfStatement": {
             const newTest = commaSafeExpr(stmt.test);
-            return newTest === stmt.test
-              ? null
-              : IR.if(newTest, stmt.consequent, stmt.alternate, stmt.loc);
+            return newTest === stmt.test ? null : IR.if(newTest, stmt.consequent, stmt.alternate, stmt.loc);
           }
 
           case "WhileStatement": {
@@ -255,14 +251,7 @@ export const commaSafetyPass: IRPass = {
                 if (stmt.init.init) {
                   const e = commaSafeExpr(stmt.init.init);
                   if (e !== stmt.init.init) {
-                    newInit = IR.varDecl(
-                      stmt.init.name,
-                      e,
-                      stmt.init.loc,
-                      stmt.init.isCaptured,
-                      stmt.init.envRef,
-                      stmt.init.hoistOnly,
-                    );
+                    newInit = IR.varDecl(stmt.init.name, e, stmt.init.loc, stmt.init.isCaptured, stmt.init.envRef, stmt.init.hoistOnly);
                   }
                 }
               } else {
@@ -280,9 +269,7 @@ export const commaSafetyPass: IRPass = {
 
           case "ForInStatement": {
             const newRight = commaSafeExpr(stmt.right);
-            return newRight === stmt.right
-              ? null
-              : IR.forIn(stmt.left, newRight, stmt.body, stmt.loc);
+            return newRight === stmt.right ? null : IR.forIn(stmt.left, newRight, stmt.body, stmt.loc);
           }
 
           case "SwitchStatement": {

@@ -35,10 +35,7 @@
 
 ```typescript
 // lowering/expressions/literals.ts
-function visitObjectLiteralExpression(
-  node: ts.ObjectLiteralExpression,
-  ctx: VisitorContext,
-): IRExpression {
+function visitObjectLiteralExpression(node: ts.ObjectLiteralExpression, ctx: VisitorContext): IRExpression {
   // TS AST → IR
   const properties = node.properties.map((p) => visitObjectLiteralElement(p, ctx));
   return IR.object(properties, getLoc(node, ctx.sourceFile));

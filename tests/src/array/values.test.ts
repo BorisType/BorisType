@@ -16,11 +16,7 @@ botest.assertJsArrayEquals(values3, [], "emptyArr.values() should return empty a
 // Array with undefined and null
 const arr4: any[] = [undefined, null, 0, false];
 const values4 = arr4.values();
-botest.assertJsArrayEquals(
-  values4,
-  [undefined, null, 0, false],
-  "arr4.values() should return [undefined, null, 0, false]",
-);
+botest.assertJsArrayEquals(values4, [undefined, null, 0, false], "arr4.values() should return [undefined, null, 0, false]");
 
 // Array with objects
 const obj1 = { x: 1 };
@@ -47,11 +43,7 @@ botest.assertJsArrayEquals(
 // Mixed types array
 const arr7: any[] = [1, "hello", true, null, undefined];
 const values7 = arr7.values();
-botest.assertJsArrayEquals(
-  values7,
-  [1, "hello", true, null, undefined],
-  "arr7.values() should return [1, 'hello', true, null, undefined]",
-);
+botest.assertJsArrayEquals(values7, [1, "hello", true, null, undefined], "arr7.values() should return [1, 'hello', true, null, undefined]");
 
 // Single element array
 const singleArr = [42];
@@ -67,11 +59,7 @@ botest.assertJsArrayEquals(values9, [0, false, ""], "arr9.values() should return
 const arr10 = [1, 2, 3];
 const values10 = arr10.values();
 arr10.push(4); // Modify array after calling values
-botest.assertJsArrayEquals(
-  values10,
-  [1, 2, 3],
-  "values10 should still be original [1, 2, 3] after arr10 modification",
-); // Should still be original values
+botest.assertJsArrayEquals(values10, [1, 2, 3], "values10 should still be original [1, 2, 3] after arr10 modification"); // Should still be original values
 
 botest.assertOk();
 

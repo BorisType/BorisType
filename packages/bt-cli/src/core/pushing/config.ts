@@ -47,10 +47,7 @@ export function parseBtConfigProperties(cwd: string): PartialPushConnectionOptio
  * @param cliOptions - опции из CLI (наивысший приоритет)
  * @returns полные опции подключения с заполненными дефолтами
  */
-export function resolvePushConnectionOptions(
-  cwd: string,
-  cliOptions: PartialPushConnectionOptions = {},
-): PushConnectionOptions {
+export function resolvePushConnectionOptions(cwd: string, cliOptions: PartialPushConnectionOptions = {}): PushConnectionOptions {
   const configOptions = parseBtConfigProperties(cwd);
 
   return {

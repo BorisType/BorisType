@@ -49,17 +49,9 @@ const objArr = [{ name: "Alice" }, { name: "Bob" }];
 const entries7 = objArr.entries();
 botest.assertValueEquals(entries7.length, 2, "entries() with objects should have correct length");
 botest.assertValueEquals(entries7[0][0], 0, "entries() first entry index should be 0");
-botest.assertValueEquals(
-  entries7[0][1].name,
-  "Alice",
-  "entries() first entry value.name should be Alice",
-);
+botest.assertValueEquals(entries7[0][1].name, "Alice", "entries() first entry value.name should be Alice");
 botest.assertValueEquals(entries7[1][0], 1, "entries() second entry index should be 1");
-botest.assertValueEquals(
-  entries7[1][1].name,
-  "Bob",
-  "entries() second entry value.name should be Bob",
-);
+botest.assertValueEquals(entries7[1][1].name, "Bob", "entries() second entry value.name should be Bob");
 
 botest.assertOk();
 

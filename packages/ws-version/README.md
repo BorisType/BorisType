@@ -11,13 +11,7 @@ npm install
 ## Использование
 
 ```javascript
-import {
-  convertSemverToWsVersion,
-  convertSemverRangeToWsRange,
-  compareWsVersions,
-  isValidWsVersion,
-  isValidWsRange,
-} from "./index.js";
+import { convertSemverToWsVersion, convertSemverRangeToWsRange, compareWsVersions, isValidWsVersion, isValidWsRange } from "./index.js";
 
 // Преобразование semver в ws-формат
 const wsVersion = convertSemverToWsVersion("1.2.3-beta.1");

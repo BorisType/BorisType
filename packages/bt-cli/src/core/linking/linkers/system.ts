@@ -46,9 +46,7 @@ export const systemLinker: PackageLinker = {
       logger,
     });
 
-    logger.success(
-      `  └─ System package linked as ${systemLinkMode}: ${packageJson.name} (ws:name=${wsName})`,
-    );
+    logger.success(`  └─ System package linked as ${systemLinkMode}: ${packageJson.name} (ws:name=${wsName})`);
 
     // apiext уже определён в PackageInfo в зависимости от режима
     return {

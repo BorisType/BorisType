@@ -107,11 +107,7 @@ export namespace bt {
                 const mainFileUrl = UrlAppendPath(moduleDirUrl, moduleMainFile);
                 const mainFilePath = UrlToFilePath(mainFileUrl);
 
-                if (
-                  moduleMainFile !== undefined &&
-                  FileExists(mainFilePath) &&
-                  !IsDirectory(mainFilePath)
-                ) {
+                if (moduleMainFile !== undefined && FileExists(mainFilePath) && !IsDirectory(mainFilePath)) {
                   return mainFileUrl;
                 }
               } catch (_err) {

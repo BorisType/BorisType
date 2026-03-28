@@ -15,18 +15,12 @@ const isolatedContext = {
 
 // Обработчик для фатальных ошибок в интерпретаторе
 process.on("uncaughtException", (err) => {
-  console.error(
-    `${chalk.red("[FATAL ERROR]")} Uncaught Exception in BorisScript interpreter:`,
-    err,
-  );
+  console.error(`${chalk.red("[FATAL ERROR]")} Uncaught Exception in BorisScript interpreter:`, err);
   process.exit(1);
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-  console.error(
-    `${chalk.red("[FATAL ERROR]")} Unhandled Rejection in BorisScript interpreter:`,
-    reason,
-  );
+  console.error(`${chalk.red("[FATAL ERROR]")} Unhandled Rejection in BorisScript interpreter:`, reason);
   process.exit(1);
 });
 
@@ -138,11 +132,7 @@ bs.BmLoadUrlDataAsync = function (url: any, completionProc: any): any {
   }
 };
 
-bs.JsGlobal.prototype.CallassertValueEquals = function (
-  argsArray: any[],
-  env: any,
-  sourceInfo: any,
-) {
+bs.JsGlobal.prototype.CallassertValueEquals = function (argsArray: any[], env: any, sourceInfo: any) {
   if (argsArray[0] !== argsArray[1]) {
     const data = {
       actual: argsArray[0],
@@ -152,11 +142,7 @@ bs.JsGlobal.prototype.CallassertValueEquals = function (
     throw new bs.BmError(`TEST-RUNNER:assert:${bs.JsEncodeJsonStr(data)}`);
   }
 };
-bs.JsGlobal.prototype.CallassertJsArrayEquals = function (
-  argsArray: any[],
-  env: any,
-  sourceInfo: any,
-) {
+bs.JsGlobal.prototype.CallassertJsArrayEquals = function (argsArray: any[], env: any, sourceInfo: any) {
   const obj1 = bs.BmResolveArgObject(argsArray, 0, "JsArray");
   const obj2 = bs.BmResolveArgObject(argsArray, 1, "JsArray");
 
@@ -169,11 +155,7 @@ bs.JsGlobal.prototype.CallassertJsArrayEquals = function (
     throw new bs.BmError(`TEST-RUNNER:assert:${bs.JsEncodeJsonStr(data)}`);
   }
 };
-bs.JsGlobal.prototype.CallassertJsObjectEquals = function (
-  argsArray: any[],
-  env: any,
-  sourceInfo: any,
-) {
+bs.JsGlobal.prototype.CallassertJsObjectEquals = function (argsArray: any[], env: any, sourceInfo: any) {
   const obj1 = bs.BmResolveArgObject(argsArray, 0, "JsObject");
   const obj2 = bs.BmResolveArgObject(argsArray, 1, "JsObject");
 

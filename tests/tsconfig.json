@@ -14,11 +14,7 @@
     "noImplicitThis": true,
     "alwaysStrict": true,
     "noLib": true,
-    "typeRoots": [
-      "node_modules/@boristype/types/lib",
-      "node_modules/@boristype/types/lib/xml",
-      "types"
-    ]
+    "typeRoots": ["node_modules/@boristype/types/lib", "node_modules/@boristype/types/lib/xml", "types"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

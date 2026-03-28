@@ -80,30 +80,16 @@ export function isTypeOnlyImport(typeChecker: ts.TypeChecker, node: ts.Identifie
   }
 
   return symbol.declarations.every((decl) => {
-    return (
-      ts.isTypeAliasDeclaration(decl) ||
-      ts.isInterfaceDeclaration(decl) ||
-      ts.isTypeParameterDeclaration(decl)
-    );
+    return ts.isTypeAliasDeclaration(decl) || ts.isInterfaceDeclaration(decl) || ts.isTypeParameterDeclaration(decl);
   });
 }
 
 /**
  * Ищет символ по имени в scope файла (классы, интерфейсы, type alias)
  */
-export function findSymbolByName(
-  typeChecker: ts.TypeChecker,
-  sourceFile: ts.SourceFile,
-  name: string,
-): ts.Symbol | undefined {
+export function findSymbolByName(typeChecker: ts.TypeChecker, sourceFile: ts.SourceFile, name: string): ts.Symbol | undefined {
   return typeChecker
-    .getSymbolsInScope(
-      sourceFile,
-      ts.SymbolFlags.Class |
-        ts.SymbolFlags.Interface |
-        ts.SymbolFlags.TypeAlias |
-        ts.SymbolFlags.Value,
-    )
+    .getSymbolsInScope(sourceFile, ts.SymbolFlags.Class | ts.SymbolFlags.Interface | ts.SymbolFlags.TypeAlias | ts.SymbolFlags.Value)
     .find((symbol) => symbol.getName() === name);
 }
 
@@ -275,9 +261,7 @@ export function isAssignmentOperator(kind: ts.SyntaxKind): boolean {
 /**
  * Получает строку assignment оператора
  */
-export function getAssignmentOperator(
-  kind: ts.SyntaxKind,
-): import("../ir/index.js").AssignmentOperator {
+export function getAssignmentOperator(kind: ts.SyntaxKind): import("../ir/index.js").AssignmentOperator {
   switch (kind) {
     case ts.SyntaxKind.EqualsToken:
       return "=";
@@ -311,9 +295,7 @@ export function getAssignmentOperator(
 /**
  * Получает строку unary оператора
  */
-export function getUnaryOperator(
-  kind: ts.PrefixUnaryOperator,
-): import("../ir/index.js").UnaryOperator {
+export function getUnaryOperator(kind: ts.PrefixUnaryOperator): import("../ir/index.js").UnaryOperator {
   switch (kind) {
     case ts.SyntaxKind.MinusToken:
       return "-";

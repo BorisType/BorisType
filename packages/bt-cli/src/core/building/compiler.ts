@@ -19,12 +19,7 @@ import { logger } from "../logger.js";
 import type { BtcCompileOptions } from "./types.js";
 import type { BuildContext, BuildResult, ExecutableObjectSourceFileInfo } from "./types.js";
 import { transformOutput } from "./output.js";
-import {
-  resolveCompileMode,
-  collectExecutables,
-  computeFileKey,
-  computeCurrentFileJs,
-} from "./compile-mode.js";
+import { resolveCompileMode, collectExecutables, computeFileKey, computeCurrentFileJs } from "./compile-mode.js";
 
 /**
  * Фильтрует список файлов по заданному списку
@@ -58,10 +53,7 @@ function getOutputDirectory(program: ts.Program): string {
 function reportDiagnostics(diagnostics: readonly ts.Diagnostic[]): void {
   diagnostics.forEach((diagnostic) => {
     if (diagnostic.file) {
-      const { line, character } = ts.getLineAndCharacterOfPosition(
-        diagnostic.file,
-        diagnostic.start!,
-      );
+      const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
       const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
       logger.error(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
     } else {
@@ -77,9 +69,7 @@ function getOutputPath(sourceFile: ts.SourceFile, program: ts.Program): string {
   const opts = program.getCompilerOptions();
   const cwd = program.getCurrentDirectory();
   const outDir = path.resolve(cwd, opts.outDir || ".");
-  const rootDir = opts.rootDir
-    ? path.resolve(cwd, opts.rootDir)
-    : path.dirname(program.getRootFileNames()[0] || sourceFile.fileName);
+  const rootDir = opts.rootDir ? path.resolve(cwd, opts.rootDir) : path.dirname(program.getRootFileNames()[0] || sourceFile.fileName);
   const rel = path.relative(rootDir, sourceFile.fileName);
   const outFile = rel.replace(/\.tsx?$/, ".js");
   return path.join(outDir, outFile);
@@ -154,11 +144,7 @@ function emitSourceFiles(
     }
 
     for (const output of result.outputs) {
-      const { fileName: finalFileName, content } = transformOutput(
-        output.path,
-        output.code,
-        options,
-      );
+      const { fileName: finalFileName, content } = transformOutput(output.path, output.code, options);
       const dir = path.dirname(finalFileName);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -191,9 +177,7 @@ export function compile(context: BuildContext): BuildResult {
 
   const allSourceFiles = filterUserSourceFiles(program.getSourceFiles());
   const sourceFiles =
-    fileNames.length === 0
-      ? allSourceFiles
-      : fileNames.map((fn) => program.getSourceFile(fn)).filter((sf): sf is ts.SourceFile => !!sf);
+    fileNames.length === 0 ? allSourceFiles : fileNames.map((fn) => program.getSourceFile(fn)).filter((sf): sf is ts.SourceFile => !!sf);
 
   const { executables, paths: executablePaths } = collectExecutables(program, sourceFiles);
   const outputDir = getOutputDirectory(program);
@@ -201,15 +185,9 @@ export function compile(context: BuildContext): BuildResult {
   // Emit JS через bt-ir
   const emitResult = emitSourceFiles(sourceFiles, program, options, executablePaths);
 
-  const hasBtIrErrors = emitResult.diagnostics.some(
-    (d) => d.category === ts.DiagnosticCategory.Error,
-  );
+  const hasBtIrErrors = emitResult.diagnostics.some((d) => d.category === ts.DiagnosticCategory.Error);
 
-  fs.writeFileSync(
-    path.join(outputDir, ".executables.json"),
-    JSON.stringify(executables, null, 2),
-    "utf-8",
-  );
+  fs.writeFileSync(path.join(outputDir, ".executables.json"), JSON.stringify(executables, null, 2), "utf-8");
 
   // Emit d.ts через tsc (noEmitOnError предотвратит emit при ошибках)
   if (tsConfig.options.declaration) {
@@ -238,10 +216,7 @@ export function compile(context: BuildContext): BuildResult {
  * @param onRebuild - Callback при каждой пересборке
  * @returns Контроллер для остановки watch
  */
-export function createWatchProgram(
-  context: BuildContext,
-  onRebuild?: (result: BuildResult) => void,
-): { close: () => void } {
+export function createWatchProgram(context: BuildContext, onRebuild?: (result: BuildResult) => void): { close: () => void } {
   const { tsConfig, options, cwd } = context;
 
   const configPath = ts.findConfigFile(cwd || process.cwd(), ts.sys.fileExists, "tsconfig.json");
@@ -266,10 +241,7 @@ export function createWatchProgram(
       hasErrors = true;
       const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
       if (diagnostic.file) {
-        const { line, character } = ts.getLineAndCharacterOfPosition(
-          diagnostic.file,
-          diagnostic.start!,
-        );
+        const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
         logger.error(`${diagnostic.file.fileName}:${line + 1}:${character + 1} - ${message}`);
       } else {
         logger.error(message);
@@ -290,11 +262,7 @@ export function createWatchProgram(
         const duration = Date.now() - buildStartTime;
 
         const outputDir = tsConfig.options.outDir || cwd || process.cwd();
-        fs.writeFileSync(
-          path.join(outputDir, ".executables.json"),
-          JSON.stringify(currentExecutables, null, 2),
-          "utf-8",
-        );
+        fs.writeFileSync(path.join(outputDir, ".executables.json"), JSON.stringify(currentExecutables, null, 2), "utf-8");
 
         if (onRebuild) {
           onRebuild({
@@ -330,9 +298,7 @@ export function createWatchProgram(
     }
 
     // На первой сборке — все файлы, далее — только affected
-    const filesToEmit = filterUserSourceFiles(
-      isFirstBuild ? [...program.getSourceFiles()] : affectedFiles,
-    );
+    const filesToEmit = filterUserSourceFiles(isFirstBuild ? [...program.getSourceFiles()] : affectedFiles);
     isFirstBuild = false;
 
     if (filesToEmit.length === 0) {
@@ -343,9 +309,7 @@ export function createWatchProgram(
       return;
     }
 
-    logger.info(
-      `Emitting ${filesToEmit.length} file(s): ${filesToEmit.map((f) => path.basename(f.fileName)).join(", ")}`,
-    );
+    logger.info(`Emitting ${filesToEmit.length} file(s): ${filesToEmit.map((f) => path.basename(f.fileName)).join(", ")}`);
 
     const { executables, paths: executablePaths } = collectExecutables(program, filesToEmit);
     currentExecutables = executables;

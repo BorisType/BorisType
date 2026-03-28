@@ -11,25 +11,14 @@
  */
 
 import * as ts from "typescript";
-import {
-  IR,
-  type IRStatement,
-  type IRExpression,
-  type IRFunctionDeclaration,
-  type IRObjectProperty,
-} from "../../ir/index.ts";
+import { IR, type IRStatement, type IRExpression, type IRFunctionDeclaration, type IRObjectProperty } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
 import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 import { visitStatementList } from "../statements.ts";
 import { resolveEnvAccess, getModuleEnvDepth } from "../env-resolution.ts";
 import { getLoc, resolveVariableInScope, collectCapturedVarsForArrow } from "../helpers.ts";
 import { buildFunction, assignDescriptorObj, getEnvFunctionRef } from "../function-builder.ts";
-import {
-  resolvePerCallEnv,
-  buildPerCallEnvStatements,
-  extractFunctionParams,
-  createInnerFunctionContext,
-} from "../function-helpers.ts";
+import { resolvePerCallEnv, buildPerCallEnvStatements, extractFunctionParams, createInnerFunctionContext } from "../function-helpers.ts";
 import { visitBareObjectMethod } from "../bare-visitors.ts";
 import { visitExpression, maybeExtract } from "./dispatch.ts";
 import { importModuleVarAccess } from "./module-access.ts";
@@ -99,10 +88,7 @@ export function visitIdentifier(node: ts.Identifier, ctx: VisitorContext): IRExp
 /**
  * Обрабатывает template expression
  */
-export function visitTemplateExpression(
-  node: ts.TemplateExpression,
-  ctx: VisitorContext,
-): IRExpression {
+export function visitTemplateExpression(node: ts.TemplateExpression, ctx: VisitorContext): IRExpression {
   const parts: IRExpression[] = [];
 
   // Head
@@ -146,11 +132,7 @@ export function visitTemplateExpression(
  * 3. Присваиваем obj в дескрипторе после создания объекта
  * 4. Возвращаем __objN
  */
-export function visitObjectLiteral(
-  node: ts.ObjectLiteralExpression,
-  ctx: VisitorContext,
-  objectName?: string,
-): IRExpression {
+export function visitObjectLiteral(node: ts.ObjectLiteralExpression, ctx: VisitorContext, objectName?: string): IRExpression {
   // Проверяем наличие spread
   const hasSpread = node.properties.some((prop) => ts.isSpreadAssignment(prop));
 
@@ -178,9 +160,7 @@ export function visitObjectLiteral(
         } else {
           continue;
         }
-        currentProperties.push(
-          IR.prop(key, maybeExtract(visitExpression(prop.initializer, ctx), ctx)),
-        );
+        currentProperties.push(IR.prop(key, maybeExtract(visitExpression(prop.initializer, ctx), ctx)));
       } else if (ts.isShorthandPropertyAssignment(prop)) {
         currentProperties.push(IR.prop(prop.name.text, visitIdentifier(prop.name, ctx)));
       }
@@ -195,11 +175,7 @@ export function visitObjectLiteral(
       return IR.object([], getLoc(node, ctx));
     }
     if (parts.length === 1) {
-      return IR.call(
-        IR.id("ObjectUnion"),
-        [IR.object([], getLoc(node, ctx)), parts[0]],
-        getLoc(node, ctx),
-      );
+      return IR.call(IR.id("ObjectUnion"), [IR.object([], getLoc(node, ctx)), parts[0]], getLoc(node, ctx));
     }
 
     // Строим цепочку ObjectUnion(left, right) left-associative
@@ -260,10 +236,7 @@ export function visitObjectLiteral(
 
       const methodName = prop.name.text;
       const methodScopeResolved = ctx.scopeAnalysis.nodeToScope.get(prop) ?? ctx.currentScope;
-      const capturedVars =
-        methodScopeResolved !== ctx.currentScope
-          ? collectCapturedVarsForArrow(methodScopeResolved, ctx)
-          : [];
+      const capturedVars = methodScopeResolved !== ctx.currentScope ? collectCapturedVarsForArrow(methodScopeResolved, ctx) : [];
       const perCallEnv = resolvePerCallEnv(methodScopeResolved, ctx);
 
       const fnCtx = createInnerFunctionContext({
@@ -272,12 +245,7 @@ export function visitObjectLiteral(
         perCallEnv,
         capturedVars,
       });
-      const params = extractFunctionParams(
-        prop.parameters,
-        methodScopeResolved,
-        fnCtx,
-        perCallEnv.needed,
-      );
+      const params = extractFunctionParams(prop.parameters, methodScopeResolved, fnCtx, perCallEnv.needed);
 
       // Тело метода
       let body = visitStatementList(prop.body.statements, fnCtx);
@@ -287,10 +255,7 @@ export function visitObjectLiteral(
 
       // Prepend per-call env
       if (perCallEnv.needed && perCallEnv.envName) {
-        body = [
-          ...buildPerCallEnvStatements(perCallEnv.envName, prop.parameters, methodScopeResolved),
-          ...body,
-        ];
+        body = [...buildPerCallEnvStatements(perCallEnv.envName, prop.parameters, methodScopeResolved), ...body];
       }
 
       // Используем buildFunction для генерации env/desc паттерна
@@ -323,9 +288,7 @@ export function visitObjectLiteral(
       methodDescNames.push(result.descName);
 
       // В объекте — ссылка на env.fnName
-      properties.push(
-        IR.prop(methodName, getEnvFunctionRef(result.name, undefined, ctx.currentEnvRef)),
-      );
+      properties.push(IR.prop(methodName, getEnvFunctionRef(result.name, undefined, ctx.currentEnvRef)));
     }
   }
 
@@ -363,10 +326,7 @@ export function visitObjectLiteral(
  * Обрабатывает array literal.
  * Spread-элементы преобразуются в вызов ArrayUnion([...], spreadExpr, [...]).
  */
-export function visitArrayLiteral(
-  node: ts.ArrayLiteralExpression,
-  ctx: VisitorContext,
-): IRExpression {
+export function visitArrayLiteral(node: ts.ArrayLiteralExpression, ctx: VisitorContext): IRExpression {
   const hasSpread = node.elements.some((el) => ts.isSpreadElement(el));
 
   if (!hasSpread) {

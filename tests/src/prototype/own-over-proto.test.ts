@@ -16,11 +16,7 @@ const instance: any = {
 botest.assertValueEquals(instance.value, "from-instance", "own property shadows proto property");
 
 // Метод из прототипа доступен и правильно привязывается
-botest.assertValueEquals(
-  instance.getName(),
-  "Override",
-  "proto method still works with own properties",
-);
+botest.assertValueEquals(instance.getName(), "Override", "proto method still works with own properties");
 
 botest.assertOk();
 

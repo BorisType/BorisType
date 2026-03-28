@@ -60,9 +60,7 @@ function dummyFunc3(value: any) {
 const arr7 = [1, 2, 3];
 // { key1: arr7.map((x) => x * 2), key2: arr7.map((x) => x + 1) };
 const dummyResult7 = { key1: arr7.map((x) => x * 2), key2: arr7.map((x) => x + 1) };
-const result7 = dummyFunc3(
-  dummyFunc3({ key1: arr7.map((x) => x * 2), key2: arr7.map((x) => x + 1) }),
-);
+const result7 = dummyFunc3(dummyFunc3({ key1: arr7.map((x) => x * 2), key2: arr7.map((x) => x + 1) }));
 
 botest.assertJsArrayEquals(result7.key1, [2, 4, 6], undefined);
 botest.assertJsArrayEquals(result7.key2, [2, 3, 4], undefined);

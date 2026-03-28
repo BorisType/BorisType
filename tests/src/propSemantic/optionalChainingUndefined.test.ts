@@ -20,11 +20,7 @@ const obj = {
 
 const myValue = obj.prop1.prop2?.prop3;
 
-botest.assertValueEquals(
-  myValue,
-  undefined,
-  "optional chaining should return undefined when property is missing",
-);
+botest.assertValueEquals(myValue, undefined, "optional chaining should return undefined when property is missing");
 
 botest.assertOk();
 

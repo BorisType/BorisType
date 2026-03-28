@@ -4,14 +4,7 @@ import { runCodeCheck, formatCodeCheckViolations } from "./code-checks";
 import { checkTsxAvailable, runTestInNode } from "./node-runner";
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import { relative, join, resolve } from "path";
-import type {
-  TestCase,
-  TestResult,
-  TestAssertionResult,
-  TestStatus,
-  TestSuite,
-  RunOptions,
-} from "./types";
+import type { TestCase, TestResult, TestAssertionResult, TestStatus, TestSuite, RunOptions } from "./types";
 
 /** Converts a Windows path to POSIX format. */
 function toPosixPath(p: string): string {
@@ -45,12 +38,7 @@ function shouldRunSuite(workdir: string, suiteDirPath: string, filters: string[]
  * - Filter equals the suite name → run all tests in the suite.
  * - Filter equals the test's relative path → run that specific test.
  */
-function shouldRunTest(
-  workdir: string,
-  testFilePath: string,
-  suiteRel: string,
-  filters: string[],
-): boolean {
+function shouldRunTest(workdir: string, testFilePath: string, suiteRel: string, filters: string[]): boolean {
   if (filters.length === 0) return true;
   const testRel = relPosix(workdir, testFilePath);
   return filters.some((f) => {
@@ -87,9 +75,7 @@ function discoverSuites(workdir: string): TestSuite[] {
         codeChecks: suiteConfig.codeChecks,
       });
     } catch (_err) {
-      console.log(
-        `${chalk.bgRedBright(` ${relative(workdir, dirPath)} `)} - failed to parse _suite.json`,
-      );
+      console.log(`${chalk.bgRedBright(` ${relative(workdir, dirPath)} `)} - failed to parse _suite.json`);
     }
   }
 
@@ -126,10 +112,7 @@ export async function runTestsAsync(
 
   const allSuites = discoverSuites(workdir);
 
-  const suites =
-    filters.length === 0
-      ? allSuites
-      : allSuites.filter((s) => shouldRunSuite(workdir, s.dirPath, filters));
+  const suites = filters.length === 0 ? allSuites : allSuites.filter((s) => shouldRunSuite(workdir, s.dirPath, filters));
 
   for (let i = 0; i < suites.length; i++) {
     const suite = suites[i];
@@ -149,10 +132,7 @@ export async function runTestsAsync(
 
       const testName = suite.tests[testFileName];
       if (!testName) {
-        console.log(
-          chalk.bgYellowBright(` ${relative(workdir, testFilePath)} `) +
-            " - skipping test not included in _suite.json",
-        );
+        console.log(chalk.bgYellowBright(` ${relative(workdir, testFilePath)} `) + " - skipping test not included in _suite.json");
         continue;
       }
 
@@ -388,11 +368,7 @@ function printTestResult(testCase: TestCase, testResult: TestResult) {
   if (testResult.status === "FAILED") {
     const testAssertion = testResult.assertion;
     if (testAssertion) {
-      const assertionString = [
-        testAssertion.message,
-        `Expected: ${testAssertion.expected}`,
-        `Actual: ${testAssertion.actual}`,
-      ]
+      const assertionString = [testAssertion.message, `Expected: ${testAssertion.expected}`, `Actual: ${testAssertion.actual}`]
         .map((line) => `  ${chalk.gray(line)}`)
         .join("\n");
       console.log(assertionString);
@@ -413,14 +389,11 @@ function getErrorLineNumber(error: any): number {
 
   if (errorCustomText !== undefined && errorCustomText.startsWith("JavaScript syntax error.")) {
     const errorLineMatch = errorCustomText.match(/line (\d+)/);
-    const errorLineNumber: number =
-      errorLineMatch && errorLineMatch[1] ? parseInt(errorLineMatch[1], 10) : -1;
+    const errorLineNumber: number = errorLineMatch && errorLineMatch[1] ? parseInt(errorLineMatch[1], 10) : -1;
 
     return errorLineNumber;
   } else {
-    const errorLine = (error as any)?.callStack?.find(Boolean)?.sourceLineIndex as
-      | number
-      | undefined;
+    const errorLine = (error as any)?.callStack?.find(Boolean)?.sourceLineIndex as number | undefined;
 
     return errorLine !== undefined ? errorLine + 1 : -1;
   }
@@ -524,12 +497,7 @@ function printTestReport(suiteNames: string[], startTime: Date, testResults: Tes
  * Results are printed as a separate section and do NOT affect the exit code
  * (node failures are warnings, not hard failures).
  */
-function runNodeChecks(
-  workdir: string,
-  suites: TestSuite[],
-  filters: string[],
-  verbose: boolean,
-): void {
+function runNodeChecks(workdir: string, suites: TestSuite[], filters: string[], verbose: boolean): void {
   if (!checkTsxAvailable()) {
     console.log();
     console.log(chalk.yellow("  tsx not installed, skipping Node.js validation"));

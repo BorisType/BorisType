@@ -35,11 +35,7 @@ export interface OutputTransformResult {
  * @param code - Сгенерированный код
  * @param options - Опции компиляции
  */
-export function transformOutput(
-  fileName: string,
-  code: string,
-  options: BtcCompileOptions,
-): OutputTransformResult {
+export function transformOutput(fileName: string, code: string, options: BtcCompileOptions): OutputTransformResult {
   let resultFileName = fileName;
   let resultCode = code;
 

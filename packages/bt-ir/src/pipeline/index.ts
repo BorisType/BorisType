@@ -104,11 +104,7 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
       success: false,
       outputs: [],
       diagnostics: [
-        createBtDiagnosticMessage(
-          "Failed to parse source file",
-          ts.DiagnosticCategory.Error,
-          BtDiagnosticCode.TransformFailed,
-        ),
+        createBtDiagnosticMessage("Failed to parse source file", ts.DiagnosticCategory.Error, BtDiagnosticCode.TransformFailed),
       ],
     };
   }
@@ -129,9 +125,7 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
     if (scopeAnalysis.capturedVariables.length > 0) {
       console.log("\n=== Captured Variables ===");
       for (const v of scopeAnalysis.capturedVariables) {
-        console.log(
-          `  ${v.name} (declared in ${v.declarationScope.name || v.declarationScope.type})`,
-        );
+        console.log(`  ${v.name} (declared in ${v.declarationScope.name || v.declarationScope.type})`);
       }
     }
   }
@@ -172,23 +166,12 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
   try {
     ir = runPasses(
       ir,
-      [
-        tryFinallyDesugarPass,
-        parenthesizePass,
-        commaSafetyPass,
-        cleanupGroupingPass,
-        literalExtractPass,
-        hoistPass,
-      ],
+      [tryFinallyDesugarPass, parenthesizePass, commaSafetyPass, cleanupGroupingPass, literalExtractPass, hoistPass],
       passCtx,
     );
   } catch (e) {
     allDiagnostics.push(
-      createBtDiagnosticMessage(
-        `${e instanceof Error ? e.message : e}`,
-        ts.DiagnosticCategory.Error,
-        BtDiagnosticCode.PassFailed,
-      ),
+      createBtDiagnosticMessage(`${e instanceof Error ? e.message : e}`, ts.DiagnosticCategory.Error, BtDiagnosticCode.PassFailed),
     );
     return { success: false, outputs: [], diagnostics: allDiagnostics };
   }
@@ -244,11 +227,7 @@ export function compileFile(filePath: string, options: CompileOptions = {}): Com
       success: false,
       outputs: [],
       diagnostics: [
-        createBtDiagnosticMessage(
-          `File not found: ${absolutePath}`,
-          ts.DiagnosticCategory.Error,
-          BtDiagnosticCode.TransformFailed,
-        ),
+        createBtDiagnosticMessage(`File not found: ${absolutePath}`, ts.DiagnosticCategory.Error, BtDiagnosticCode.TransformFailed),
       ],
     };
   }
@@ -270,11 +249,7 @@ export function compileFile(filePath: string, options: CompileOptions = {}): Com
  * @param options - Опции компиляции
  * @returns Результат компиляции
  */
-export function compileSourceFile(
-  sourceFile: ts.SourceFile,
-  program: ts.Program,
-  options: CompileOptions = {},
-): CompileResult {
+export function compileSourceFile(sourceFile: ts.SourceFile, program: ts.Program, options: CompileOptions = {}): CompileResult {
   const typeChecker = program.getTypeChecker();
   const allDiagnostics: ts.Diagnostic[] = [];
 
@@ -324,23 +299,12 @@ export function compileSourceFile(
   try {
     ir = runPasses(
       ir,
-      [
-        tryFinallyDesugarPass,
-        parenthesizePass,
-        commaSafetyPass,
-        cleanupGroupingPass,
-        literalExtractPass,
-        hoistPass,
-      ],
+      [tryFinallyDesugarPass, parenthesizePass, commaSafetyPass, cleanupGroupingPass, literalExtractPass, hoistPass],
       passCtx,
     );
   } catch (e) {
     allDiagnostics.push(
-      createBtDiagnosticMessage(
-        `${e instanceof Error ? e.message : e}`,
-        ts.DiagnosticCategory.Error,
-        BtDiagnosticCode.PassFailed,
-      ),
+      createBtDiagnosticMessage(`${e instanceof Error ? e.message : e}`, ts.DiagnosticCategory.Error, BtDiagnosticCode.PassFailed),
     );
     return { success: false, outputs: [], diagnostics: allDiagnostics };
   }
@@ -363,8 +327,7 @@ export function compileSourceFile(
     return { success: false, outputs: [], diagnostics: allDiagnostics };
   }
 
-  const outputPath =
-    options.outputPath ?? (options.filename ?? sourceFile.fileName).replace(/\.tsx?$/, ".js");
+  const outputPath = options.outputPath ?? (options.filename ?? sourceFile.fileName).replace(/\.tsx?$/, ".js");
 
   const hasErrors = allDiagnostics.some((d) => d.category === ts.DiagnosticCategory.Error);
 
@@ -385,11 +348,7 @@ export function compileSourceFile(
 /**
  * Создаёт виртуальный CompilerHost для компиляции строки
  */
-function createVirtualCompilerHost(
-  filename: string,
-  content: string,
-  options: ts.CompilerOptions,
-): ts.CompilerHost {
+function createVirtualCompilerHost(filename: string, content: string, options: ts.CompilerOptions): ts.CompilerHost {
   const host = ts.createCompilerHost(options);
   const originalGetSourceFile = host.getSourceFile;
   const originalFileExists = host.fileExists;

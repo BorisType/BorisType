@@ -22,13 +22,13 @@ app.get("/groups", (req, res) => {
 
   const conditionStr = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
 
-  const result = ArraySelectAll(
-    tools.xquery<GroupCatalogDocumentTopElem>(`for $elem in groups ${conditionStr} return $elem`),
-  ).map((group) => ({
-    id: group.id.Value,
-    name: group.name.Value,
-    counter: (counter += 1),
-  }));
+  const result = ArraySelectAll(tools.xquery<GroupCatalogDocumentTopElem>(`for $elem in groups ${conditionStr} return $elem`)).map(
+    (group) => ({
+      id: group.id.Value,
+      name: group.name.Value,
+      counter: (counter += 1),
+    }),
+  );
 
   res.json(result, 200);
 });

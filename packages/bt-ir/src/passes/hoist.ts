@@ -44,9 +44,7 @@ export const hoistPass: IRPass = {
     if (program.noHoist) {
       // Bare mode: top-level без hoisting, но функции обрабатываем
       const newBody = hoistInFunctionsInList(program.body);
-      return newBody === program.body
-        ? program
-        : IR.program(newBody, program.sourceFile, program.noHoist);
+      return newBody === program.body ? program : IR.program(newBody, program.sourceFile, program.noHoist);
     }
 
     // Normal mode: hoisting на top level

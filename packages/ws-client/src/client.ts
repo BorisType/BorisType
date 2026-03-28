@@ -109,12 +109,7 @@ export class WshcmClient {
    * @param body - тело запроса
    * @returns статус-код или тело ответа
    */
-  private makeRequest(
-    path: string,
-    method: string,
-    headers: Record<string, string> = {},
-    body?: string,
-  ): Promise<number | string> {
+  private makeRequest(path: string, method: string, headers: Record<string, string> = {}, body?: string): Promise<number | string> {
     return new Promise((resolve, reject) => {
       const url = new URL(this.baseUrl + path);
       const auth = Buffer.from(`${this.username}:${this.password}`).toString("base64");
@@ -165,9 +160,7 @@ export class WshcmClient {
 
       req.on("timeout", () => {
         req.destroy();
-        reject(
-          new WshcmException(`Request timed out after ${this.requestTimeout}ms: ${method} ${path}`),
-        );
+        reject(new WshcmException(`Request timed out after ${this.requestTimeout}ms: ${method} ${path}`));
       });
 
       req.on("error", (error) => {

@@ -152,8 +152,7 @@ function processStmt(stmt: IRStatement, nameGen: LitNameGen): IRStatement | IRSt
       if (!s.init) return null;
       const e = extractFromExpr(s.init, ctx);
       if (ctx.pending.length === 0 && e === s.init) return null;
-      const newStmt =
-        e === s.init ? stmt : IR.varDecl(s.name, e, s.loc, s.isCaptured, s.envRef, s.hoistOnly);
+      const newStmt = e === s.init ? stmt : IR.varDecl(s.name, e, s.loc, s.isCaptured, s.envRef, s.hoistOnly);
       return ctx.pending.length > 0 ? [...ctx.pending, newStmt] : newStmt;
     }
 
@@ -179,12 +178,7 @@ function processStmt(stmt: IRStatement, nameGen: LitNameGen): IRStatement | IRSt
       const newTest = extractFromExpr(s.test, ctx);
       const newCons = processStmtBody(s.consequent, nameGen);
       const newAlt = s.alternate ? processStmtBody(s.alternate, nameGen) : s.alternate;
-      if (
-        ctx.pending.length === 0 &&
-        newTest === s.test &&
-        newCons === s.consequent &&
-        newAlt === s.alternate
-      ) {
+      if (ctx.pending.length === 0 && newTest === s.test && newCons === s.consequent && newAlt === s.alternate) {
         return null;
       }
       const newStmt = IR.if(newTest, newCons, newAlt, s.loc);

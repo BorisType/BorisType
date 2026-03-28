@@ -140,13 +140,9 @@ export function emitFunction(fn: IRFunctionDeclaration, ctx: EmitContext): strin
         lines.push(`${innerPad}${target} = bt.Array.slice(__args, ${index});`);
       } else if (param.defaultValue) {
         const defaultExpr = emitExpression(param.defaultValue, innerCtx);
-        lines.push(
-          `${innerPad}${target} = __args.length > ${index} ? __args[${index}] : ${defaultExpr};`,
-        );
+        lines.push(`${innerPad}${target} = __args.length > ${index} ? __args[${index}] : ${defaultExpr};`);
       } else {
-        lines.push(
-          `${innerPad}${target} = __args.length > ${index} ? __args[${index}] : undefined;`,
-        );
+        lines.push(`${innerPad}${target} = __args.length > ${index} ? __args[${index}] : undefined;`);
       }
     });
 
@@ -198,9 +194,7 @@ function emitIf(ifStmt: IRIfStatement, ctx: EmitContext): string {
   const pad = getIndent(ctx);
   const lines: string[] = [];
 
-  lines.push(
-    `${pad}if (${emitExpression(ifStmt.test, ctx)}) ${emitStatementOrBlock(ifStmt.consequent, ctx)}`,
-  );
+  lines.push(`${pad}if (${emitExpression(ifStmt.test, ctx)}) ${emitStatementOrBlock(ifStmt.consequent, ctx)}`);
 
   if (ifStmt.alternate) {
     if (ifStmt.alternate.kind === "IfStatement") {
@@ -239,10 +233,7 @@ function emitFor(forStmt: IRForStatement, ctx: EmitContext): string {
 function emitForIn(forStmt: IRForInStatement, ctx: EmitContext): string {
   const pad = getIndent(ctx);
 
-  const left =
-    forStmt.left.kind === "VariableDeclaration"
-      ? `var ${forStmt.left.name}`
-      : emitExpression(forStmt.left, ctx);
+  const left = forStmt.left.kind === "VariableDeclaration" ? `var ${forStmt.left.name}` : emitExpression(forStmt.left, ctx);
 
   return `${pad}for (${left} in ${emitExpression(forStmt.right, ctx)}) ${emitStatementOrBlock(forStmt.body, ctx)}`;
 }

@@ -49,10 +49,7 @@ export function generateFilemapJson(executables: Map<string, string>): string {
  * @param packageName - Имя пакета для фильтрации
  * @returns JSON-строка с данными только для указанного пакета
  */
-export function generateFilemapJsonForPackage(
-  executables: Map<string, string>,
-  packageName: string,
-): string {
+export function generateFilemapJsonForPackage(executables: Map<string, string>, packageName: string): string {
   const data: FileMapData = {};
   const prefix = `${packageName}+`;
 

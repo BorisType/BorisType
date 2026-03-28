@@ -68,10 +68,7 @@ function inferRootDir(configuration: ts.ParsedCommandLine, configDir: string): s
  * @param configDir - Директория где находится tsconfig (для resolve путей)
  * @returns Список абсолютных путей к non-TypeScript файлам
  */
-export function collectNonTypescriptFiles(
-  configuration: ts.ParsedCommandLine,
-  configDir: string = process.cwd(),
-): string[] {
+export function collectNonTypescriptFiles(configuration: ts.ParsedCommandLine, configDir: string = process.cwd()): string[] {
   const { outDir } = configuration.options;
 
   if (outDir === undefined) {
@@ -183,9 +180,7 @@ export function copyNonTypescriptFiles(context: BuildContext): void {
 
   const entries = collectNonTypescriptFiles(tsConfig, configDir);
   const selectedFiles = selectFiles(entries, files);
-  logger.warning(
-    `📁 Found ${entries.length} non-TypeScript files, copying ${selectedFiles.length} files...`,
-  );
+  logger.warning(`📁 Found ${entries.length} non-TypeScript files, copying ${selectedFiles.length} files...`);
 
   for (const filePath of selectedFiles) {
     const relativePath = relative(rootDir, filePath);
@@ -207,10 +202,7 @@ export function copyNonTypescriptFiles(context: BuildContext): void {
  * @param onChange - Callback при изменении файла (опционально)
  * @returns Контроллер для остановки watch
  */
-export function watchNonTypescriptFiles(
-  context: BuildContext,
-  onChange?: (filePath: string) => void,
-): { close: () => void } {
+export function watchNonTypescriptFiles(context: BuildContext, onChange?: (filePath: string) => void): { close: () => void } {
   const { tsConfig, options, cwd } = context;
 
   if (options.includeNonTsFiles === false) {
@@ -247,9 +239,7 @@ export function watchNonTypescriptFiles(
 
   // Исключаем outDir
   if (isSubpath(rootDir, absoluteOutDir)) {
-    ignoredPatterns.push(
-      (filePath: string) => isSubpath(absoluteOutDir, filePath) || filePath === absoluteOutDir,
-    );
+    ignoredPatterns.push((filePath: string) => isSubpath(absoluteOutDir, filePath) || filePath === absoluteOutDir);
   }
 
   logger.info(`📁 Watching non-TS files in: ${rootDir}`);

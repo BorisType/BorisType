@@ -15,11 +15,5 @@
     "class-inherit-chain.test.js": "three-level inheritance chain",
     "class-super-method.test.js": "super.method() calls parent method"
   },
-  "skipNodeCheck": [
-    "chain.test.js",
-    "data-property.test.js",
-    "method-bind.test.js",
-    "own-over-proto.test.js",
-    "proto-undefined.test.js"
-  ]
+  "skipNodeCheck": ["chain.test.js", "data-property.test.js", "method-bind.test.js", "own-over-proto.test.js", "proto-undefined.test.js"]
 }

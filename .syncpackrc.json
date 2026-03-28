@@ -4,12 +4,7 @@
     {
       "label": "Exact-pinned workspace deps in bt-cli (bt-ir, runtime)",
       "packages": ["@boristype/bt-cli"],
-      "dependencies": [
-        "@boristype/bt-ir",
-        "@boristype/runtime",
-        "@boristype/ws-client",
-        "@boristype/ws-version"
-      ],
+      "dependencies": ["@boristype/bt-ir", "@boristype/runtime", "@boristype/ws-client", "@boristype/ws-version"],
       "dependencyTypes": ["prod", "peer"],
       "pinVersion": "workspace:*"
     },

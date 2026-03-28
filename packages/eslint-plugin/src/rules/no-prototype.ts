@@ -35,12 +35,9 @@ const rule: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      noPrototypeAccess:
-        "Accessing .prototype is not supported in BorisScript. Use factory functions or plain objects instead.",
-      noDunderProto:
-        "Accessing .__proto__ is not supported in BorisScript. Use factory functions or plain objects instead.",
-      noObjectPrototypeMethod:
-        "{{name}} is not supported in BorisScript. Use factory functions or plain objects instead.",
+      noPrototypeAccess: "Accessing .prototype is not supported in BorisScript. Use factory functions or plain objects instead.",
+      noDunderProto: "Accessing .__proto__ is not supported in BorisScript. Use factory functions or plain objects instead.",
+      noObjectPrototypeMethod: "{{name}} is not supported in BorisScript. Use factory functions or plain objects instead.",
     },
   },
 
@@ -65,11 +62,7 @@ const rule: Rule.RuleModule = {
         }
 
         // Computed access with string literal: obj["prototype"]
-        if (
-          node.computed &&
-          prop.type === "Literal" &&
-          (prop.value === "prototype" || prop.value === "__proto__")
-        ) {
+        if (node.computed && prop.type === "Literal" && (prop.value === "prototype" || prop.value === "__proto__")) {
           context.report({
             node,
             messageId: prop.value === "prototype" ? "noPrototypeAccess" : "noDunderProto",

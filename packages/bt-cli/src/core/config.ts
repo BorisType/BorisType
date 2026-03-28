@@ -110,9 +110,7 @@ export function getTSConfig(cwd: string, project: string = "tsconfig.json"): ts.
   const tsconfigPath = ts.findConfigFile(cwd, ts.sys.fileExists, project);
 
   if (!tsconfigPath) {
-    logger.error(
-      `There is no any configuration files at "${cwd}". Execute npx tsc -init to create a new one.`,
-    );
+    logger.error(`There is no any configuration files at "${cwd}". Execute npx tsc -init to create a new one.`);
     process.exit(1);
   }
 

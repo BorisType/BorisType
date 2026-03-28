@@ -23,17 +23,8 @@ import {
 } from "../../ir/index.ts";
 import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 import type { VisitorContext } from "../visitor.ts";
-import {
-  visitExpression,
-  helperEnvAccess as helperEnvAccessFromStatements,
-  resolveCallableRef,
-} from "../expressions.ts";
-import {
-  getLoc,
-  resolveVariableInScope,
-  collectCapturedVarsForArrow,
-  isTypeOnlyImport,
-} from "../helpers.ts";
+import { visitExpression, helperEnvAccess as helperEnvAccessFromStatements, resolveCallableRef } from "../expressions.ts";
+import { getLoc, resolveVariableInScope, collectCapturedVarsForArrow, isTypeOnlyImport } from "../helpers.ts";
 import { getModuleEnvDepth } from "../env-resolution.ts";
 import { buildFunction } from "../function-builder.ts";
 import {
@@ -53,10 +44,7 @@ import { visitStatementList } from "./blocks.ts";
  * Обрабатывает ImportDeclaration: генерирует bt.require и заполняет importBindings.
  * Live binding: доступ через moduleVar.exportedName при каждом обращении.
  */
-export function visitImportDeclaration(
-  node: ts.ImportDeclaration,
-  ctx: VisitorContext,
-): IRStatement | IRStatement[] | null {
+export function visitImportDeclaration(node: ts.ImportDeclaration, ctx: VisitorContext): IRStatement | IRStatement[] | null {
   const moduleSpecifier = node.moduleSpecifier;
   if (!ts.isStringLiteral(moduleSpecifier)) {
     return null;
@@ -99,20 +87,10 @@ export function visitImportDeclaration(
   // Второй аргумент bt.require — baseUrl текущего модуля
   ctx.helperFlags.usesImportMeta = true;
   const dirUrlRef = helperEnvAccessFromStatements("__ImportMeta_dirUrl", ctx);
-  const requireCall = IR.call(
-    IR.dot(IR.id("bt"), "require"),
-    [IR.string(modulePath), IR.btCallFunction(dirUrlRef, [])],
-    getLoc(node, ctx),
-  );
+  const requireCall = IR.call(IR.dot(IR.id("bt"), "require"), [IR.string(modulePath), IR.btCallFunction(dirUrlRef, [])], getLoc(node, ctx));
 
   const result: IRStatement[] = [
-    IR.varDecl(
-      moduleVar,
-      requireCall,
-      getLoc(node, ctx),
-      anyImportCaptured,
-      anyImportCaptured ? "__env" : undefined,
-    ),
+    IR.varDecl(moduleVar, requireCall, getLoc(node, ctx), anyImportCaptured, anyImportCaptured ? "__env" : undefined),
   ];
 
   if (!node.importClause) {
@@ -168,10 +146,7 @@ export function visitImportDeclaration(
  *
  * Использует buildFunction для генерации env/desc паттерна
  */
-export function visitFunctionDeclaration(
-  node: ts.FunctionDeclaration,
-  ctx: VisitorContext,
-): IRStatement[] | null {
+export function visitFunctionDeclaration(node: ts.FunctionDeclaration, ctx: VisitorContext): IRStatement[] | null {
   if (!node.name || !node.body) {
     return null;
   }
@@ -182,13 +157,7 @@ export function visitFunctionDeclaration(
   const perCallEnv = resolvePerCallEnv(funcScope, ctx);
 
   const fnCtx = createInnerFunctionContext({ funcScope, ctx, perCallEnv, capturedVars });
-  const params = extractFunctionParams(
-    node.parameters,
-    funcScope,
-    fnCtx,
-    perCallEnv.needed,
-    visitExpression,
-  );
+  const params = extractFunctionParams(node.parameters, funcScope, fnCtx, perCallEnv.needed, visitExpression);
 
   // Обрабатываем тело функции
   let body = visitStatementList(node.body.statements, fnCtx);
@@ -204,9 +173,7 @@ export function visitFunctionDeclaration(
   // Module mode: вложенные функции получают уникальное имя при hoisting
   const isNestedInModule = ctx.config.moduleExports && ctx.currentScope.type !== "module";
   const actualName = isNestedInModule ? ctx.bindings.hoistedName(name) : name;
-  const isExported =
-    ctx.config.moduleExports &&
-    ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  const isExported = ctx.config.moduleExports && ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
   const result = buildFunction({
     name: actualName,
@@ -230,14 +197,9 @@ export function visitFunctionDeclaration(
 /**
  * Обрабатывает variable statement
  */
-export function visitVariableStatement(
-  node: ts.VariableStatement,
-  ctx: VisitorContext,
-): IRStatement | IRStatement[] | null {
+export function visitVariableStatement(node: ts.VariableStatement, ctx: VisitorContext): IRStatement | IRStatement[] | null {
   const results: IRStatement[] = [];
-  const isExported =
-    ctx.config.moduleExports &&
-    ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  const isExported = ctx.config.moduleExports && ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 
   for (const decl of node.declarationList.declarations) {
     // Простой идентификатор
@@ -253,15 +215,7 @@ export function visitVariableStatement(
       const envRef = isCaptured ? ctx.currentEnvRef : undefined;
       results.push(IR.varDecl(actualName, init, getLoc(decl, ctx), isCaptured, envRef));
       if (isExported) {
-        results.push(
-          IR.exprStmt(
-            IR.assign(
-              "=",
-              IR.dot(IR.dot(IR.id("__module"), "exports"), varName),
-              IR.id(actualName),
-            ),
-          ),
-        );
+        results.push(IR.exprStmt(IR.assign("=", IR.dot(IR.dot(IR.id("__module"), "exports"), varName), IR.id(actualName))));
       }
     }
     // Деструктуризация объекта: const { a, b, ...rest } = obj
@@ -289,21 +243,14 @@ export function visitVariableStatement(
             );
             results.push(IR.varDecl(actualName, restCall, getLoc(decl, ctx)));
           } else if (ts.isIdentifier(element.name)) {
-            const propertyName = element.propertyName
-              ? (element.propertyName as ts.Identifier).text
-              : element.name.text;
+            const propertyName = element.propertyName ? (element.propertyName as ts.Identifier).text : element.name.text;
             const variableName = element.name.text;
             excludedKeys.push(propertyName);
             const val = !ctx.config.wrapPropertyAccess
               ? IR.dot(init, propertyName, getLoc(decl, ctx))
               : IR.btGetProperty(init, IR.string(propertyName), getLoc(decl, ctx));
             const initExpr = element.initializer
-              ? IR.conditional(
-                  IR.binary("!==", val, IR.id("undefined")),
-                  val,
-                  visitExpression(element.initializer, ctx),
-                  getLoc(decl, ctx),
-                )
+              ? IR.conditional(IR.binary("!==", val, IR.id("undefined")), val, visitExpression(element.initializer, ctx), getLoc(decl, ctx))
               : val;
             const varInfo = resolveVariableInScope(variableName, ctx.currentScope);
             const actualName = varInfo?.renamedTo ?? variableName;
@@ -331,11 +278,7 @@ export function visitVariableStatement(
             const restName = element.name.text;
             const varInfo = resolveVariableInScope(restName, ctx.currentScope);
             const actualName = varInfo?.renamedTo ?? restName;
-            const restCall = IR.call(
-              IR.dot(IR.id("bt"), "array_rest"),
-              [IR.id(auxVarName), IR.number(index)],
-              getLoc(decl, ctx),
-            );
+            const restCall = IR.call(IR.dot(IR.id("bt"), "array_rest"), [IR.id(auxVarName), IR.number(index)], getLoc(decl, ctx));
             results.push(IR.varDecl(actualName, restCall, getLoc(decl, ctx)));
           } else {
             const variableName = element.name.text;
@@ -343,12 +286,7 @@ export function visitVariableStatement(
               ? IR.member(IR.id(auxVarName), IR.number(index), true, getLoc(decl, ctx))
               : IR.btGetProperty(IR.id(auxVarName), IR.number(index), getLoc(decl, ctx));
             const initExpr = element.initializer
-              ? IR.conditional(
-                  IR.binary("!==", val, IR.id("undefined")),
-                  val,
-                  visitExpression(element.initializer, ctx),
-                  getLoc(decl, ctx),
-                )
+              ? IR.conditional(IR.binary("!==", val, IR.id("undefined")), val, visitExpression(element.initializer, ctx), getLoc(decl, ctx))
               : val;
             const varInfo = resolveVariableInScope(variableName, ctx.currentScope);
             const actualName = varInfo?.renamedTo ?? variableName;
@@ -376,10 +314,7 @@ export function visitVariableStatement(
 /**
  * Обрабатывает export { a, b as c }
  */
-export function visitExportDeclaration(
-  node: ts.ExportDeclaration,
-  _ctx: VisitorContext,
-): IRStatement[] | null {
+export function visitExportDeclaration(node: ts.ExportDeclaration, _ctx: VisitorContext): IRStatement[] | null {
   const clause = node.exportClause;
   if (!clause || !ts.isNamedExports(clause)) return null;
 
@@ -387,11 +322,7 @@ export function visitExportDeclaration(
   for (const spec of clause.elements) {
     const localName = (spec.propertyName ?? spec.name).text;
     const exportName = spec.name.text;
-    results.push(
-      IR.exprStmt(
-        IR.assign("=", IR.dot(IR.dot(IR.id("__module"), "exports"), exportName), IR.id(localName)),
-      ),
-    );
+    results.push(IR.exprStmt(IR.assign("=", IR.dot(IR.dot(IR.id("__module"), "exports"), exportName), IR.id(localName))));
   }
   return results;
 }
@@ -399,10 +330,7 @@ export function visitExportDeclaration(
 /**
  * Обрабатывает export default expr
  */
-export function visitExportAssignment(
-  node: ts.ExportAssignment,
-  ctx: VisitorContext,
-): IRStatement | null {
+export function visitExportAssignment(node: ts.ExportAssignment, ctx: VisitorContext): IRStatement | null {
   const expr = visitExpression(node.expression, ctx);
   return IR.exprStmt(IR.assign("=", IR.dot(IR.dot(IR.id("__module"), "exports"), "default"), expr));
 }
@@ -439,10 +367,7 @@ export function visitExportAssignment(
  * __env.Animal = Animal_ctor_desc;
  * ```
  */
-export function visitClassDeclaration(
-  node: ts.ClassDeclaration,
-  ctx: VisitorContext,
-): IRStatement[] {
+export function visitClassDeclaration(node: ts.ClassDeclaration, ctx: VisitorContext): IRStatement[] {
   const className = node.name?.text ?? ctx.bindings.create("class");
 
   // ============ Наследование (extends) ============
@@ -463,11 +388,7 @@ export function visitClassDeclaration(
       ctorNode = member;
     } else if (ts.isMethodDeclaration(member) && ts.isIdentifier(member.name) && member.body) {
       methods.push(member);
-    } else if (
-      ts.isPropertyDeclaration(member) &&
-      ts.isIdentifier(member.name) &&
-      member.initializer
-    ) {
+    } else if (ts.isPropertyDeclaration(member) && ts.isIdentifier(member.name) && member.initializer) {
       propertyInitializers.push(member);
     }
     // PropertyDeclaration without initializer — type-only, skip
@@ -482,8 +403,7 @@ export function visitClassDeclaration(
     const methodName = (method.name as ts.Identifier).text;
     const methodScope = ctx.scopeAnalysis.nodeToScope.get(method) ?? ctx.currentScope;
     const perCallEnv = resolvePerCallEnv(methodScope, ctx);
-    const capturedVars =
-      methodScope !== ctx.currentScope ? collectCapturedVarsForArrow(methodScope, ctx) : [];
+    const capturedVars = methodScope !== ctx.currentScope ? collectCapturedVarsForArrow(methodScope, ctx) : [];
 
     const fnCtx = createInnerFunctionContext({
       funcScope: methodScope,
@@ -492,13 +412,7 @@ export function visitClassDeclaration(
       capturedVars,
       extra: { superContext: baseClassExpr ? { baseClassExpr } : undefined },
     });
-    const params = extractFunctionParams(
-      method.parameters,
-      methodScope,
-      fnCtx,
-      perCallEnv.needed,
-      visitExpression,
-    );
+    const params = extractFunctionParams(method.parameters, methodScope, fnCtx, perCallEnv.needed, visitExpression);
 
     // Тело
     let body = visitStatementList(method.body!.statements, fnCtx);
@@ -508,10 +422,7 @@ export function visitClassDeclaration(
 
     // Per-call env
     if (perCallEnv.needed && perCallEnv.envName) {
-      body = [
-        ...buildPerCallEnvStatements(perCallEnv.envName, method.parameters, methodScope),
-        ...body,
-      ];
+      body = [...buildPerCallEnvStatements(perCallEnv.envName, method.parameters, methodScope), ...body];
     }
 
     const funcName = `${className}_${methodName}`;
@@ -543,9 +454,7 @@ export function visitClassDeclaration(
 
   // ============ Прототип ============
   const protoVarName = `${className}_proto`;
-  ctx.pendingStatements.push(
-    IR.varDecl(protoVarName, IR.object(protoProperties, getLoc(node, ctx))),
-  );
+  ctx.pendingStatements.push(IR.varDecl(protoVarName, IR.object(protoProperties, getLoc(node, ctx))));
 
   // Наследование: Child_proto.__proto = ParentClass.proto
   if (baseClassExpr) {
@@ -553,20 +462,13 @@ export function visitClassDeclaration(
     const baseRef = ts.isIdentifier(baseClassExpr)
       ? resolveCallableRef(baseClassExpr.text, ctx, getLoc(baseClassExpr, ctx))
       : visitExpression(baseClassExpr, ctx);
-    ctx.pendingStatements.push(
-      IR.exprStmt(IR.assign("=", IR.dot(IR.id(protoVarName), "__proto"), IR.dot(baseRef, "proto"))),
-    );
+    ctx.pendingStatements.push(IR.exprStmt(IR.assign("=", IR.dot(IR.id(protoVarName), "__proto"), IR.dot(baseRef, "proto"))));
   }
 
   // ============ Конструктор ============
-  const ctorScope = ctorNode
-    ? (ctx.scopeAnalysis.nodeToScope.get(ctorNode) ?? ctx.currentScope)
-    : ctx.currentScope;
-  const ctorPerCallEnv = ctorNode
-    ? resolvePerCallEnv(ctorScope, ctx)
-    : { envName: undefined, needed: false };
-  const ctorCapturedVars =
-    ctorNode && ctorScope !== ctx.currentScope ? collectCapturedVarsForArrow(ctorScope, ctx) : [];
+  const ctorScope = ctorNode ? (ctx.scopeAnalysis.nodeToScope.get(ctorNode) ?? ctx.currentScope) : ctx.currentScope;
+  const ctorPerCallEnv = ctorNode ? resolvePerCallEnv(ctorScope, ctx) : { envName: undefined, needed: false };
+  const ctorCapturedVars = ctorNode && ctorScope !== ctx.currentScope ? collectCapturedVarsForArrow(ctorScope, ctx) : [];
 
   const ctorFnCtx = createInnerFunctionContext({
     funcScope: ctorScope,
@@ -578,13 +480,7 @@ export function visitClassDeclaration(
 
   // Параметры конструктора
   const ctorParams = ctorNode
-    ? extractFunctionParams(
-        ctorNode.parameters,
-        ctorScope,
-        ctorFnCtx,
-        ctorPerCallEnv.needed,
-        visitExpression,
-      )
+    ? extractFunctionParams(ctorNode.parameters, ctorScope, ctorFnCtx, ctorPerCallEnv.needed, visitExpression)
     : [];
 
   // Тело конструктора: property initializers + explicit body
@@ -610,10 +506,7 @@ export function visitClassDeclaration(
 
   // Per-call env for constructor
   if (ctorPerCallEnv.needed && ctorPerCallEnv.envName && ctorNode) {
-    ctorBody = [
-      ...buildPerCallEnvStatements(ctorPerCallEnv.envName, ctorNode.parameters, ctorScope),
-      ...ctorBody,
-    ];
+    ctorBody = [...buildPerCallEnvStatements(ctorPerCallEnv.envName, ctorNode.parameters, ctorScope), ...ctorBody];
   }
 
   const ctorFuncName = `${className}_ctor`;
@@ -643,9 +536,7 @@ export function visitClassDeclaration(
   ctx.pendingStatements.push(...ctorResult.setupStatements);
 
   // Добавляем proto в дескриптор конструктора: ClassName_ctor_desc.proto = ClassName_proto
-  ctx.pendingStatements.push(
-    IR.exprStmt(IR.assign("=", IR.dot(IR.id(ctorResult.descName), "proto"), IR.id(protoVarName))),
-  );
+  ctx.pendingStatements.push(IR.exprStmt(IR.assign("=", IR.dot(IR.id(ctorResult.descName), "proto"), IR.id(protoVarName))));
 
   // Hoist method functions (non-module mode)
   if (!ctx.config.moduleExports && methodHoistedFunctions.length > 0) {
@@ -653,18 +544,10 @@ export function visitClassDeclaration(
   }
 
   // Export support
-  const isExported =
-    ctx.config.moduleExports &&
-    ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+  const isExported = ctx.config.moduleExports && ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
   if (isExported) {
     ctx.pendingStatements.push(
-      IR.exprStmt(
-        IR.assign(
-          "=",
-          IR.dot(IR.dot(IR.id("__module"), "exports"), className),
-          IR.id(ctorResult.descName),
-        ),
-      ),
+      IR.exprStmt(IR.assign("=", IR.dot(IR.dot(IR.id("__module"), "exports"), className), IR.id(ctorResult.descName))),
     );
   }
 

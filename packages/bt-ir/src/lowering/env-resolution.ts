@@ -44,11 +44,7 @@ import type { VisitorContext } from "./visitor.ts";
  * buildEnvChainBase("__fn0_env", 2)
  * ```
  */
-export function buildEnvChainBase(
-  envRef: string,
-  depth: number,
-  _loc?: SourceLocation,
-): IRExpression {
+export function buildEnvChainBase(envRef: string, depth: number, _loc?: SourceLocation): IRExpression {
   let expr: IRExpression = IR.id(envRef);
   for (let i = 0; i < depth; i++) {
     expr = IR.dot(expr, "__parent");
@@ -74,12 +70,7 @@ export function buildEnvChainBase(
  * buildEnvChainAccess("__fn0_env", 2, "x")
  * ```
  */
-export function buildEnvChainAccess(
-  envRef: string,
-  depth: number,
-  property: string,
-  loc?: SourceLocation,
-): IRExpression {
+export function buildEnvChainAccess(envRef: string, depth: number, property: string, loc?: SourceLocation): IRExpression {
   const base = buildEnvChainBase(envRef, depth, loc);
   return IR.dot(base, property, loc);
 }
@@ -102,12 +93,7 @@ export function buildEnvChainAccess(
  * @param loc - Опциональная source location
  * @returns IR-выражение для доступа к переменной
  */
-export function resolveEnvAccess(
-  targetScope: Scope,
-  property: string,
-  ctx: VisitorContext,
-  loc?: SourceLocation,
-): IRExpression {
+export function resolveEnvAccess(targetScope: Scope, property: string, ctx: VisitorContext, loc?: SourceLocation): IRExpression {
   const envScope = ctx.closureEnvScope ?? ctx.currentEnvScope;
   const depth = envScope ? getEnvDepth(envScope, targetScope) : 0;
 
@@ -129,11 +115,7 @@ export function resolveEnvAccess(
  * @param loc - Опциональная source location
  * @returns IR-выражение для доступа к module-level свойству
  */
-export function resolveModuleLevelAccess(
-  property: string,
-  ctx: VisitorContext,
-  loc?: SourceLocation,
-): IRExpression {
+export function resolveModuleLevelAccess(property: string, ctx: VisitorContext, loc?: SourceLocation): IRExpression {
   return resolveEnvAccess(ctx.scopeAnalysis.moduleScope, property, ctx, loc);
 }
 

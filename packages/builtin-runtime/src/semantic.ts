@@ -44,11 +44,7 @@ export namespace bt {
    */
   function isFuncDescriptor(value: any): boolean {
     const objectType = ObjectType(value);
-    return (
-      objectType === "JsObject" &&
-      value.HasProperty("@descriptor") &&
-      value.GetProperty("@descriptor") === "function"
-    );
+    return objectType === "JsObject" && value.HasProperty("@descriptor") && value.GetProperty("@descriptor") === "function";
   }
 
   /**
@@ -146,13 +142,7 @@ export namespace bt {
       if (returnValue === undefined) {
         // Обработка встроенных методов объектов JsObject
         if (objectTypeOfObject === "JsObject") {
-          var knownObjectMethods = [
-            "HasProperty",
-            "AddProperty",
-            "GetOptProperty",
-            "GetProperty",
-            "SetProperty",
-          ];
+          var knownObjectMethods = ["HasProperty", "AddProperty", "GetOptProperty", "GetProperty", "SetProperty"];
           if (ArrayOptFind(knownObjectMethods, "This === propertyName") !== undefined) {
             return {
               "@descriptor": "function",
@@ -201,11 +191,7 @@ export namespace bt {
         }
 
         // Обработка встроенных методов объектов BmObject и JsCodeLibrary
-        if (
-          objectTypeOfObject === "BmObject" ||
-          objectTypeOfObject === "JsCodeLibrary" ||
-          objectTypeOfObject === "JsCodeThread"
-        ) {
+        if (objectTypeOfObject === "BmObject" || objectTypeOfObject === "JsCodeLibrary" || objectTypeOfObject === "JsCodeThread") {
           // Мы никак не можем проверить наличие метода в BmObject, поэтому просто ожидаем, что любой запрошенный метод там существует
           // в надежде что TypeScript при компиляции проверит корректность вызова метода благодоря типизации.
           return {
@@ -276,9 +262,7 @@ export namespace bt {
     const objectType = ObjectType(object);
     return (
       objectType === "JsFuncObject" ||
-      (objectType === "JsObject" &&
-        object.HasProperty("@descriptor") &&
-        object.GetProperty("@descriptor") === "function")
+      (objectType === "JsObject" && object.HasProperty("@descriptor") && object.GetProperty("@descriptor") === "function")
     );
   }
 
@@ -306,11 +290,7 @@ export namespace bt {
       const argsEval1 = collectArgsToEval("args", args.length);
 
       return eval(`func(${argsEval1})`);
-    } else if (
-      funcObjectType === "JsObject" &&
-      func.HasProperty("@descriptor") &&
-      func.GetProperty("@descriptor") === "function"
-    ) {
+    } else if (funcObjectType === "JsObject" && func.HasProperty("@descriptor") && func.GetProperty("@descriptor") === "function") {
       // new-way
 
       if (func.HasProperty("callable")) {
@@ -344,13 +324,7 @@ export namespace bt {
   }
 
   export function isTrue(value: any): boolean {
-    return !(
-      value === false ||
-      value === 0 ||
-      value === "" ||
-      value === null ||
-      value === undefined
-    );
+    return !(value === false || value === 0 || value === "" || value === null || value === undefined);
   }
 
   export function isFalse(value: any): boolean {
@@ -371,11 +345,7 @@ export namespace bt {
   export function callWithThis(func: any, thisArg: any, args: any[]) {
     const funcObjectType = ObjectType(func);
 
-    if (
-      funcObjectType === "JsObject" &&
-      func.HasProperty("@descriptor") &&
-      func.GetProperty("@descriptor") === "function"
-    ) {
+    if (funcObjectType === "JsObject" && func.HasProperty("@descriptor") && func.GetProperty("@descriptor") === "function") {
       if (func.HasProperty("callable")) {
         const env = (func as FuncDescriptor).env;
         const callable = (func as FuncDescriptor).callable;

@@ -18,12 +18,7 @@ const LEGACY_TYPE_MAPPING: Record<string, PackageType> = {
 /**
  * Валидные типы пакетов
  */
-const VALID_PACKAGE_TYPES: readonly PackageType[] = [
-  "standalone",
-  "component",
-  "library",
-  "system",
-];
+const VALID_PACKAGE_TYPES: readonly PackageType[] = ["standalone", "component", "library", "system"];
 
 /**
  * Нормализует тип пакета, мапит старые значения на новые для обратной совместимости

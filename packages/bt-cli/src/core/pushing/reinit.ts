@@ -30,9 +30,7 @@ export async function reinitModules(evaluator: Evaluator, distPath: string): Pro
   const initScripts: InitScript[] = [];
 
   // 1. Компоненты (первыми, исключая bt-runtime)
-  const componentScripts = collectComponentInitScripts(distPath).filter(
-    (script) => script.name !== "bt-runtime",
-  );
+  const componentScripts = collectComponentInitScripts(distPath).filter((script) => script.name !== "bt-runtime");
   initScripts.push(...componentScripts);
 
   // 2. Standalone модули из api_ext.xml

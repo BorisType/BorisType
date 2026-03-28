@@ -1,11 +1,7 @@
 // Basic usage - no parameters (full copy)
 const arr1 = [1, 2, 3, 4, 5];
 const result1 = arr1.slice();
-botest.assertJsArrayEquals(
-  result1,
-  [1, 2, 3, 4, 5],
-  "arr1.slice() should return full copy [1, 2, 3, 4, 5]",
-);
+botest.assertJsArrayEquals(result1, [1, 2, 3, 4, 5], "arr1.slice() should return full copy [1, 2, 3, 4, 5]");
 botest.assertJsArrayEquals(arr1, [1, 2, 3, 4, 5], "arr1 original should be unchanged"); // Original unchanged
 
 // With start index
@@ -34,19 +30,11 @@ botest.assertJsArrayEquals(result7, [], "arr1.slice(10) out of bounds should ret
 
 // Start index out of bounds (negative)
 const result8 = arr1.slice(-10);
-botest.assertJsArrayEquals(
-  result8,
-  [1, 2, 3, 4, 5],
-  "arr1.slice(-10) large negative should return full array",
-);
+botest.assertJsArrayEquals(result8, [1, 2, 3, 4, 5], "arr1.slice(-10) large negative should return full array");
 
 // End index out of bounds
 const result9 = arr1.slice(2, 10);
-botest.assertJsArrayEquals(
-  result9,
-  [3, 4, 5],
-  "arr1.slice(2, 10) end out of bounds should return [3, 4, 5]",
-);
+botest.assertJsArrayEquals(result9, [3, 4, 5], "arr1.slice(2, 10) end out of bounds should return [3, 4, 5]");
 
 // Start > end (empty result)
 const result10 = arr1.slice(3, 2);
@@ -75,30 +63,18 @@ const obj2 = { y: 2 };
 const arr3 = [obj1, obj2];
 const result15 = arr3.slice();
 botest.assertJsArrayEquals(result15, [obj1, obj2], "arr3.slice() should return [obj1, obj2]");
-botest.assertValueEquals(
-  result15[0] === obj1,
-  true,
-  "result15[0] should be same reference as obj1",
-); // Same reference
+botest.assertValueEquals(result15[0] === obj1, true, "result15[0] should be same reference as obj1"); // Same reference
 
 // Array with nested arrays (shallow copy)
 const arr4 = [[1], [2, 3], []];
 const result16 = arr4.slice(1);
 botest.assertJsArrayEquals(result16, [[2, 3], []], "arr4.slice(1) should return [[2, 3], []]");
-botest.assertValueEquals(
-  result16[0] === arr4[1],
-  true,
-  "result16[0] should be same reference as arr4[1]",
-); // Same reference
+botest.assertValueEquals(result16[0] === arr4[1], true, "result16[0] should be same reference as arr4[1]"); // Same reference
 
 // Array with mixed types
 const arr5 = [1, "a", null, undefined, true];
 const result17 = arr5.slice(2, 5);
-botest.assertJsArrayEquals(
-  result17,
-  [null, undefined, true],
-  "arr5.slice(2, 5) should return [null, undefined, true]",
-);
+botest.assertJsArrayEquals(result17, [null, undefined, true], "arr5.slice(2, 5) should return [null, undefined, true]");
 
 // Array with strings
 const arr6 = ["a", "b", "c", "d"];

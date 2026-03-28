@@ -16,11 +16,7 @@ botest.assertJsObjectEquals(
   { key1: 1, keyV1: "value1", keyV2: "value2", key2: 2, keyV3: "value3", keyV4: "value4", key3: 3 },
   "Objects should be combined",
 );
-botest.assertJsObjectEquals(
-  testObject3,
-  { keyV3: "value3", keyV4: "value4" },
-  "Objects should be combined",
-);
+botest.assertJsObjectEquals(testObject3, { keyV3: "value3", keyV4: "value4" }, "Objects should be combined");
 
 botest.assertOk();
 

@@ -109,9 +109,7 @@ export async function buildDependencyTree(projectPath: string) {
       const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
       dependencies = packageJson.dependencies || {};
     } catch (_err) {
-      logger.warning(
-        `Не удалось прочитать package.json для ${parentNode.name}: ${packageJsonPath}`,
-      );
+      logger.warning(`Не удалось прочитать package.json для ${parentNode.name}: ${packageJsonPath}`);
       return;
     }
 
@@ -228,9 +226,7 @@ export function printFlattenedTree(flatTree: DependencyNode[]) {
   logger.info("\n📦 Плоский список зависимостей (в порядке загрузки):");
   logger.info("=".repeat(50));
   flatTree.forEach((node, index) => {
-    logger.info(
-      `${(index + 1).toString().padStart(2)}. ${node.name}@${node.version}  [${node.hash}]`,
-    );
+    logger.info(`${(index + 1).toString().padStart(2)}. ${node.name}@${node.version}  [${node.hash}]`);
   });
 }
 

@@ -155,9 +155,7 @@ Start Dev Mode
 - НЕ library тип
 
 ```typescript
-const packagesToWatch = packages.filter(
-  (pkg) => pkg.wsPackage !== undefined && pkg.type !== "library",
-);
+const packagesToWatch = packages.filter((pkg) => pkg.wsPackage !== undefined && pkg.type !== "library");
 ```
 
 ### Инкрементальная линковка

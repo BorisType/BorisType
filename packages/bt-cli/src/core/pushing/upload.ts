@@ -18,11 +18,7 @@ import { logger } from "../logger";
  * @param onProgress - callback для отслеживания прогресса загрузки
  * @returns массив URL загруженных файлов
  */
-export async function uploadDist(
-  evaluator: Evaluator,
-  distPath: string,
-  onProgress?: UploadProgressCallback,
-): Promise<string[]> {
+export async function uploadDist(evaluator: Evaluator, distPath: string, onProgress?: UploadProgressCallback): Promise<string[]> {
   const uploader = new WshcmUploader({
     evaluator,
     path: distPath + "/*",

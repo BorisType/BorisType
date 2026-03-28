@@ -15,12 +15,7 @@ export function at<T>(array: Array<T>, index: number): T | undefined {
 
 // function Concat = ArrayUnion
 
-export function copyWithin<T>(
-  array: Array<T>,
-  target: number,
-  start: number,
-  end: number,
-): Array<T> {
+export function copyWithin<T>(array: Array<T>, target: number, start: number, end: number): Array<T> {
   //   if (array === undefined || array === null || !IsArray(array)) throw 'arrayCopyWithin: first argument is not an array');
 
   const len = ArrayCount(array);
@@ -57,10 +52,7 @@ export function entries<T>(array: Array<T>): Array<[number, T]> {
 }
 
 // TODO: Implement Array.every with correct thisArg handling
-export function every<T>(
-  array: Array<T>,
-  callback: (value: T, index: number, array: Array<T>) => boolean,
-): boolean {
+export function every<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): boolean {
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
@@ -99,10 +91,7 @@ export function fill<T>(array: Array<T>, value: T, start?: number, end?: number)
 }
 
 // TODO: Implement Array.filter with correct thisArg handling
-export function filter<T>(
-  array: Array<T>,
-  callback: (value: T, index: number, array: Array<T>) => boolean,
-): Array<T> {
+export function filter<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): Array<T> {
   const result: Array<T> = [];
   const len = ArrayCount(array);
 
@@ -128,10 +117,7 @@ export function filter<T>(
 }
 
 // TODO: Implement Array.find with correct thisArg handling
-export function find<T>(
-  array: Array<T>,
-  callback: (value: T, index: number, array: Array<T>) => boolean,
-): T | undefined {
+export function find<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): T | undefined {
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
@@ -156,10 +142,7 @@ export function find<T>(
 }
 
 // TODO: Implement Array.findIndex with correct thisArg handling
-export function findIndex<T>(
-  array: Array<T>,
-  callback: (value: T, index: number, array: Array<T>) => boolean,
-): number {
+export function findIndex<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): number {
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
@@ -184,10 +167,7 @@ export function findIndex<T>(
 }
 
 // TODO: Implement Array.findLast with correct thisArg handling
-export function findLast<T>(
-  array: Array<T>,
-  callback: (value: T, index: number, array: Array<T>) => boolean,
-): T | undefined {
+export function findLast<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): T | undefined {
   const len = ArrayCount(array);
 
   for (let i = len - 1; i >= 0; i--) {
@@ -212,10 +192,7 @@ export function findLast<T>(
 }
 
 // TODO: Implement Array.findLastIndex with correct thisArg handling
-export function findLastIndex<T>(
-  array: Array<T>,
-  callback: (value: T, index: number, array: Array<T>) => boolean,
-): number {
+export function findLastIndex<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): number {
   const len = ArrayCount(array);
 
   for (let i = len - 1; i >= 0; i--) {
@@ -260,10 +237,7 @@ export function flat<T>(array: Array<T>, depth?: number): Array<T> {
 }
 
 // TODO: Implement Array.flatMap with correct thisArg handling
-export function flatMap<T, U>(
-  array: Array<T>,
-  callback: (value: T, index: number, array: Array<T>) => U,
-): Array<U> {
+export function flatMap<T, U>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => U): Array<U> {
   const result: Array<U> = [];
   const len = ArrayCount(array);
 
@@ -283,10 +257,7 @@ export function flatMap<T, U>(
 }
 
 // TODO: Implement Array.forEach with correct thisArg handling
-export function forEach<T>(
-  array: Array<T>,
-  callback: (value: T, index: number, array: Array<T>) => void,
-): void {
+export function forEach<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => void): void {
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
@@ -366,10 +337,7 @@ export function lastIndexOf<T>(array: Array<T>, searchElement: T, fromIndex?: nu
 }
 
 // TODO: Implement Array.map with correct thisArg handling
-export function map<T, U>(
-  array: Array<T>,
-  callback: (value: T, index: number, array: Array<T>) => U,
-): Array<U> {
+export function map<T, U>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => U): Array<U> {
   const result: Array<U> = [];
   const len = ArrayCount(array);
 
@@ -492,10 +460,7 @@ export function slice<T>(array: Array<T>, start?: number, end?: number): Array<T
 }
 
 // TODO: Implement Array.some with correct thisArg handling
-export function some<T>(
-  array: Array<T>,
-  callback: (value: T, index: number, array: Array<T>) => boolean,
-): boolean {
+export function some<T>(array: Array<T>, callback: (value: T, index: number, array: Array<T>) => boolean): boolean {
   const len = ArrayCount(array);
 
   for (let i = 0; i < len; i++) {
@@ -523,12 +488,7 @@ export function sort<T>(_array: Array<T>, _compareFn?: (a: T, b: T) => number): 
   throw "Array.sort polyfill is not implemented yet";
 }
 
-export function splice<T>(
-  array: Array<T>,
-  start: number,
-  deleteCount: number | undefined,
-  items: Array<T>,
-): Array<T> {
+export function splice<T>(array: Array<T>, start: number, deleteCount: number | undefined, items: Array<T>): Array<T> {
   deleteCount = deleteCount === undefined ? ArrayCount(array) - start : Int(deleteCount);
 
   const len = ArrayCount(array);
@@ -580,12 +540,7 @@ export function toSorted<T>(_array: Array<T>, _compareFn?: (a: T, b: T) => numbe
   throw "Array.toSorted polyfill is not implemented yet";
 }
 
-export function toSpliced<T>(
-  array: Array<T>,
-  start: number,
-  deleteCount: number | undefined,
-  items: Array<T>,
-): Array<T> {
+export function toSpliced<T>(array: Array<T>, start: number, deleteCount: number | undefined, items: Array<T>): Array<T> {
   deleteCount = deleteCount === undefined ? ArrayCount(array) - start : Int(deleteCount);
 
   const len = ArrayCount(array);

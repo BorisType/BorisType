@@ -207,8 +207,7 @@ export function emitObjectExpression(obj: IRObjectExpression, ctx: EmitContext):
  * Генерирует код assignment expression
  */
 function emitAssignment(expr: IRAssignmentExpression, ctx: EmitContext): string {
-  const left =
-    expr.left.kind === "EnvAccess" ? emitEnvAccess(expr.left) : emitExpression(expr.left, ctx);
+  const left = expr.left.kind === "EnvAccess" ? emitEnvAccess(expr.left) : emitExpression(expr.left, ctx);
   const right = emitExpression(expr.right, ctx);
   return `${left} ${expr.operator} ${right}`;
 }
@@ -243,10 +242,7 @@ function emitRuntimeCall(call: IRRuntimeCall, ctx: EmitContext): string {
 /**
  * Генерирует код bt.getProperty(obj, prop)
  */
-function emitBTGetProperty(
-  expr: import("../ir/index.js").IRBTGetProperty,
-  ctx: EmitContext,
-): string {
+function emitBTGetProperty(expr: import("../ir/index.js").IRBTGetProperty, ctx: EmitContext): string {
   const obj = emitExpression(expr.object, ctx);
   const prop = emitExpression(expr.property, ctx);
   return `bt.getProperty(${obj}, ${prop})`;
@@ -255,10 +251,7 @@ function emitBTGetProperty(
 /**
  * Генерирует код bt.setProperty(obj, prop, value)
  */
-function emitBTSetProperty(
-  expr: import("../ir/index.js").IRBTSetProperty,
-  ctx: EmitContext,
-): string {
+function emitBTSetProperty(expr: import("../ir/index.js").IRBTSetProperty, ctx: EmitContext): string {
   const obj = emitExpression(expr.object, ctx);
   const prop = emitExpression(expr.property, ctx);
   const value = emitExpression(expr.value, ctx);
@@ -268,10 +261,7 @@ function emitBTSetProperty(
 /**
  * Генерирует код bt.callFunction(func, [args])
  */
-function emitBTCallFunction(
-  expr: import("../ir/index.js").IRBTCallFunction,
-  ctx: EmitContext,
-): string {
+function emitBTCallFunction(expr: import("../ir/index.js").IRBTCallFunction, ctx: EmitContext): string {
   const callee = emitExpression(expr.callee, ctx);
   const args = expr.arguments.map((a) => emitExpression(a, ctx)).join(", ");
   return `bt.callFunction(${callee}, [${args}])`;

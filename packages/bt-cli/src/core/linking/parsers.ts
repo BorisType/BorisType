@@ -14,12 +14,7 @@ import { logger } from "../logger.js";
 import { DependencyNode } from "./dependencies.js";
 import { BtConfigLinkingPackage } from "../config.js";
 import { PackageInfo, PackageType, LinkingContext, ApiExtEntry } from "./types.js";
-import {
-  normalizePackageType,
-  isExecutablePackageType,
-  formatValidPackageTypes,
-  copyRecursive,
-} from "./utils/index.js";
+import { normalizePackageType, isExecutablePackageType, formatValidPackageTypes, copyRecursive } from "./utils/index.js";
 
 /**
  * Парсит PackageInfo из DependencyNode (для compiler dependencies)
@@ -29,10 +24,7 @@ import {
  * - component (по умолчанию): копируются в components/<ws:name>, НЕ добавляются в api_ext.xml
  * - standalone: копируются по ws:root, добавляются в api_ext.xml
  */
-export function parseCompilerDependencyPackageInfo(
-  dep: DependencyNode,
-  ctx: LinkingContext,
-): PackageInfo | null {
+export function parseCompilerDependencyPackageInfo(dep: DependencyNode, ctx: LinkingContext): PackageInfo | null {
   const packageJson = dep.packageJson as any;
   const packageType = normalizePackageType(packageJson["ws:package"]);
   const wsRoot = packageJson["ws:root"];
@@ -51,9 +43,7 @@ export function parseCompilerDependencyPackageInfo(
 
   // ws:name обязательно для всех пакетов кроме library
   if (!wsName || typeof wsName !== "string") {
-    logger.error(
-      `Package ${packageJson.name}: ws:name field is required for ${packageType} packages`,
-    );
+    logger.error(`Package ${packageJson.name}: ws:name field is required for ${packageType} packages`);
     process.exit(1);
   }
 
@@ -67,9 +57,7 @@ export function parseCompilerDependencyPackageInfo(
       // Standalone режим: копируем по ws:root, добавляем в api_ext.xml
       // ws:root обязателен для standalone режима
       if (typeof wsRoot !== "string" || wsRoot === "") {
-        logger.error(
-          `Invalid ws:root field in ${dep.projectPath}/package.json. Required for standalone mode.`,
-        );
+        logger.error(`Invalid ws:root field in ${dep.projectPath}/package.json. Required for standalone mode.`);
         process.exit(1);
       }
       targetPath = wsRoot;
@@ -188,9 +176,7 @@ export function parseUserPackageInfo(
   if (isBorisTypePackage) {
     wsName = packageJson["ws:name"];
     if (!wsName || typeof wsName !== "string") {
-      logger.error(
-        `❌ Package ${displayName}: ws:name field is required for ${packageType} packages`,
-      );
+      logger.error(`❌ Package ${displayName}: ws:name field is required for ${packageType} packages`);
       process.exit(1);
     }
   }
@@ -218,9 +204,7 @@ export function parseUserPackageInfo(
   } else if (isBorisTypePackage && packageJson) {
     if (packageType === "component") {
       if (packageJson["ws:root"]) {
-        logger.error(
-          `❌ Package ${displayName}: components cannot have 'ws:root' field. They are always placed in ./components/<ws:name>`,
-        );
+        logger.error(`❌ Package ${displayName}: components cannot have 'ws:root' field. They are always placed in ./components/<ws:name>`);
         process.exit(1);
       }
       targetPath = `./components/${wsName}`;

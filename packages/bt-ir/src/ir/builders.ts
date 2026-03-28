@@ -109,12 +109,7 @@ export const IR = {
   /**
    * Создаёт параметр функции
    */
-  param(
-    name: string,
-    defaultValue?: IRExpression,
-    rest?: boolean,
-    isCaptured?: boolean,
-  ): IRFunctionParam {
+  param(name: string, defaultValue?: IRExpression, rest?: boolean, isCaptured?: boolean): IRFunctionParam {
     return { name, defaultValue, rest, isCaptured };
   },
 
@@ -149,12 +144,7 @@ export const IR = {
   /**
    * Создаёт if statement
    */
-  if(
-    test: IRExpression,
-    consequent: IRStatement,
-    alternate: IRStatement | null = null,
-    loc?: SourceLocation,
-  ): IRIfStatement {
+  if(test: IRExpression, consequent: IRStatement, alternate: IRStatement | null = null, loc?: SourceLocation): IRIfStatement {
     return { kind: "IfStatement", test, consequent, alternate, loc };
   },
 
@@ -174,12 +164,7 @@ export const IR = {
   /**
    * Создаёт for-in statement
    */
-  forIn(
-    left: IRVariableDeclaration | IRIdentifier,
-    right: IRExpression,
-    body: IRStatement,
-    loc?: SourceLocation,
-  ): IRForInStatement {
+  forIn(left: IRVariableDeclaration | IRIdentifier, right: IRExpression, body: IRStatement, loc?: SourceLocation): IRForInStatement {
     return { kind: "ForInStatement", left, right, body, loc };
   },
 
@@ -200,11 +185,7 @@ export const IR = {
   /**
    * Создаёт switch statement
    */
-  switch(
-    discriminant: IRExpression,
-    cases: IRCaseClause[],
-    loc?: SourceLocation,
-  ): IRSwitchStatement {
+  switch(discriminant: IRExpression, cases: IRCaseClause[], loc?: SourceLocation): IRSwitchStatement {
     return { kind: "SwitchStatement", discriminant, cases, loc };
   },
 
@@ -330,48 +311,28 @@ export const IR = {
   /**
    * Создаёт binary expression
    */
-  binary(
-    operator: BinaryOperator,
-    left: IRExpression,
-    right: IRExpression,
-    loc?: SourceLocation,
-  ): IRBinaryExpression {
+  binary(operator: BinaryOperator, left: IRExpression, right: IRExpression, loc?: SourceLocation): IRBinaryExpression {
     return { kind: "BinaryExpression", operator, left, right, loc };
   },
 
   /**
    * Создаёт unary expression
    */
-  unary(
-    operator: UnaryOperator,
-    argument: IRExpression,
-    prefix = true,
-    loc?: SourceLocation,
-  ): IRUnaryExpression {
+  unary(operator: UnaryOperator, argument: IRExpression, prefix = true, loc?: SourceLocation): IRUnaryExpression {
     return { kind: "UnaryExpression", operator, argument, prefix, loc };
   },
 
   /**
    * Создаёт conditional expression (ternary)
    */
-  conditional(
-    test: IRExpression,
-    consequent: IRExpression,
-    alternate: IRExpression,
-    loc?: SourceLocation,
-  ): IRConditionalExpression {
+  conditional(test: IRExpression, consequent: IRExpression, alternate: IRExpression, loc?: SourceLocation): IRConditionalExpression {
     return { kind: "ConditionalExpression", test, consequent, alternate, loc };
   },
 
   /**
    * Создаёт logical expression
    */
-  logical(
-    operator: "&&" | "||",
-    left: IRExpression,
-    right: IRExpression,
-    loc?: SourceLocation,
-  ): IRLogicalExpression {
+  logical(operator: "&&" | "||", left: IRExpression, right: IRExpression, loc?: SourceLocation): IRLogicalExpression {
     return { kind: "LogicalExpression", operator, left, right, loc };
   },
 
@@ -385,12 +346,7 @@ export const IR = {
   /**
    * Создаёт member expression
    */
-  member(
-    object: IRExpression,
-    property: IRExpression,
-    computed = false,
-    loc?: SourceLocation,
-  ): IRMemberExpression {
+  member(object: IRExpression, property: IRExpression, computed = false, loc?: SourceLocation): IRMemberExpression {
     return { kind: "MemberExpression", object, property, computed, loc };
   },
 
@@ -437,12 +393,7 @@ export const IR = {
   /**
    * Создаёт update expression
    */
-  update(
-    operator: "++" | "--",
-    argument: IRIdentifier | IRMemberExpression,
-    prefix = false,
-    loc?: SourceLocation,
-  ): IRUpdateExpression {
+  update(operator: "++" | "--", argument: IRIdentifier | IRMemberExpression, prefix = false, loc?: SourceLocation): IRUpdateExpression {
     return { kind: "UpdateExpression", operator, argument, prefix, loc };
   },
 
@@ -474,25 +425,14 @@ export const IR = {
   /**
    * Создаёт polyfill call
    */
-  polyfillCall(
-    polyfillType: string,
-    method: string,
-    target: IRExpression,
-    args: IRExpression[],
-    loc?: SourceLocation,
-  ): IRPolyfillCall {
+  polyfillCall(polyfillType: string, method: string, target: IRExpression, args: IRExpression[], loc?: SourceLocation): IRPolyfillCall {
     return { kind: "PolyfillCall", polyfillType, method, target, arguments: args, loc };
   },
 
   /**
    * Создаёт runtime call
    */
-  runtimeCall(
-    namespace: string,
-    method: string,
-    args: IRExpression[],
-    loc?: SourceLocation,
-  ): IRRuntimeCall {
+  runtimeCall(namespace: string, method: string, args: IRExpression[], loc?: SourceLocation): IRRuntimeCall {
     return { kind: "RuntimeCall", namespace, method, arguments: args, loc };
   },
 
@@ -505,12 +445,7 @@ export const IR = {
    *
    * @param declare - Если false, emit без `var` (переменная уже hoisted). По умолчанию true.
    */
-  envDecl(
-    name: string,
-    parentEnv: string | null = null,
-    loc?: SourceLocation,
-    declare: boolean = true,
-  ): IREnvDeclaration {
+  envDecl(name: string, parentEnv: string | null = null, loc?: SourceLocation, declare: boolean = true): IREnvDeclaration {
     return { kind: "EnvDeclaration", name, parentEnv, declare, loc };
   },
 
@@ -528,34 +463,21 @@ export const IR = {
   /**
    * Создаёт bt.getProperty(obj, prop)
    */
-  btGetProperty(
-    object: IRExpression,
-    property: IRExpression,
-    loc?: SourceLocation,
-  ): IRBTGetProperty {
+  btGetProperty(object: IRExpression, property: IRExpression, loc?: SourceLocation): IRBTGetProperty {
     return { kind: "BTGetProperty", object, property, loc };
   },
 
   /**
    * Создаёт bt.setProperty(obj, prop, value)
    */
-  btSetProperty(
-    object: IRExpression,
-    property: IRExpression,
-    value: IRExpression,
-    loc?: SourceLocation,
-  ): IRBTSetProperty {
+  btSetProperty(object: IRExpression, property: IRExpression, value: IRExpression, loc?: SourceLocation): IRBTSetProperty {
     return { kind: "BTSetProperty", object, property, value, loc };
   },
 
   /**
    * Создаёт bt.callFunction(func, [args])
    */
-  btCallFunction(
-    callee: IRExpression,
-    args: IRExpression[],
-    loc?: SourceLocation,
-  ): IRBTCallFunction {
+  btCallFunction(callee: IRExpression, args: IRExpression[], loc?: SourceLocation): IRBTCallFunction {
     return { kind: "BTCallFunction", callee, arguments: args, loc };
   },
 
@@ -595,10 +517,5 @@ function stringifyLiteral(value: string | number | boolean | null): string {
  * Экранирует строку для вывода
  */
 function escapeString(str: string): string {
-  return str
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r")
-    .replace(/\t/g, "\\t");
+  return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
 }

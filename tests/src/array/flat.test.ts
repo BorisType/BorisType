@@ -21,20 +21,12 @@ botest.assertJsArrayEquals(result4, [], "flat() on empty array should return emp
 // Array without nesting
 const flatArr = [1, 2, 3, 4];
 const result5 = flatArr.flat();
-botest.assertJsArrayEquals(
-  result5,
-  [1, 2, 3, 4],
-  "flat() on already flat array should return same",
-);
+botest.assertJsArrayEquals(result5, [1, 2, 3, 4], "flat() on already flat array should return same");
 
 // Mixed types
 const mixedArr = [1, "hello", [true, null], undefined];
 const result6 = mixedArr.flat();
-botest.assertJsArrayEquals(
-  result6,
-  [1, "hello", true, null, undefined],
-  "flat() should work with mixed types",
-);
+botest.assertJsArrayEquals(result6, [1, "hello", true, null, undefined], "flat() should work with mixed types");
 
 // Deep nesting with depth = 3
 const deepArr = [1, [2, [3, [4, [5]]]]];

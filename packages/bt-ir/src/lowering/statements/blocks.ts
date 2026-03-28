@@ -22,19 +22,13 @@ import { visitStatement } from "./dispatch.ts";
  * Обрабатывает return statement
  */
 export function visitReturnStatement(node: ts.ReturnStatement, ctx: VisitorContext): IRStatement {
-  return IR.return(
-    node.expression ? visitExpression(node.expression, ctx) : null,
-    getLoc(node, ctx),
-  );
+  return IR.return(node.expression ? visitExpression(node.expression, ctx) : null, getLoc(node, ctx));
 }
 
 /**
  * Обрабатывает block
  */
-export function visitBlock(
-  node: ts.Block,
-  ctx: VisitorContext,
-): import("../../ir/index.js").IRBlockStatement {
+export function visitBlock(node: ts.Block, ctx: VisitorContext): import("../../ir/index.js").IRBlockStatement {
   // Проверяем есть ли block scope для этого блока
   const blockScope = ctx.scopeAnalysis.nodeToScope.get(node);
 
@@ -43,8 +37,7 @@ export function visitBlock(
 
     // Block env только если есть captured let/const
     // Для for-of тело цикла — block env создаётся в visitForOfStatement, используем ctx
-    const isForOfLoopBody =
-      node.parent && ts.isForOfStatement(node.parent) && node.parent.statement === node;
+    const isForOfLoopBody = node.parent && ts.isForOfStatement(node.parent) && node.parent.statement === node;
     if (blockScope.hasCaptured && !isForOfLoopBody) {
       const blockEnvName = ctx.bindings.create("block") + "_env";
       const blockEnvDecl = IR.envDecl(blockEnvName, ctx.currentEnvRef);
@@ -69,10 +62,7 @@ export function visitBlock(
 /**
  * Обрабатывает список statements
  */
-export function visitStatementList(
-  statements: ts.NodeArray<ts.Statement>,
-  ctx: VisitorContext,
-): IRStatement[] {
+export function visitStatementList(statements: ts.NodeArray<ts.Statement>, ctx: VisitorContext): IRStatement[] {
   const result: IRStatement[] = [];
 
   for (const stmt of statements) {
@@ -86,10 +76,7 @@ export function visitStatementList(
 /**
  * Преобразует statement в block (оборачивает если нужно)
  */
-export function visitStatementAsBlock(
-  node: ts.Statement,
-  ctx: VisitorContext,
-): import("../../ir/index.js").IRBlockStatement {
+export function visitStatementAsBlock(node: ts.Statement, ctx: VisitorContext): import("../../ir/index.js").IRBlockStatement {
   if (ts.isBlock(node)) {
     return visitBlock(node, ctx);
   }

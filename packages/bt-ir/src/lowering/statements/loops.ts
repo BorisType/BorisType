@@ -28,10 +28,7 @@ export function visitForStatement(node: ts.ForStatement, ctx: VisitorContext): I
     if (ts.isVariableDeclarationList(node.initializer)) {
       const decl = node.initializer.declarations[0];
       if (ts.isIdentifier(decl.name)) {
-        init = IR.varDecl(
-          decl.name.text,
-          decl.initializer ? visitExpression(decl.initializer, ctx) : null,
-        );
+        init = IR.varDecl(decl.name.text, decl.initializer ? visitExpression(decl.initializer, ctx) : null);
       }
     } else {
       init = visitExpression(node.initializer, ctx);
@@ -49,9 +46,7 @@ export function visitForStatement(node: ts.ForStatement, ctx: VisitorContext): I
  * Обрабатывает for-in statement
  */
 export function visitForInStatement(node: ts.ForInStatement, ctx: VisitorContext): IRStatement {
-  let left:
-    | import("../../ir/index.js").IRVariableDeclaration
-    | import("../../ir/index.js").IRIdentifier;
+  let left: import("../../ir/index.js").IRVariableDeclaration | import("../../ir/index.js").IRIdentifier;
 
   if (ts.isVariableDeclarationList(node.initializer)) {
     const decl = node.initializer.declarations[0];
@@ -121,27 +116,19 @@ export function visitForOfStatement(node: ts.ForOfStatement, ctx: VisitorContext
 
   // Визитим тело с block env если нужно
   const loopCtx: VisitorContext =
-    useBlockEnv && blockEnvName
-      ? { ...ctx, currentEnvRef: blockEnvName, currentEnvScope: loopBodyScope! }
-      : ctx;
+    useBlockEnv && blockEnvName ? { ...ctx, currentEnvRef: blockEnvName, currentEnvScope: loopBodyScope! } : ctx;
   const body = visitStatementAsBlock(node.statement, loopCtx);
 
   // Добавляем в начало тела: block env и/или присваивание переменной цикла
   if (useBlockEnv && blockEnvName) {
     body.body.unshift(IR.envDecl(blockEnvName, ctx.currentEnvRef));
     if (isCaptured) {
-      body.body.splice(
-        1,
-        0,
-        IR.exprStmt(IR.assign("=", IR.dot(IR.id(blockEnvName), actualName), IR.id(loopVar))),
-      );
+      body.body.splice(1, 0, IR.exprStmt(IR.assign("=", IR.dot(IR.id(blockEnvName), actualName), IR.id(loopVar))));
     } else {
       body.body.splice(1, 0, IR.varDecl(actualName, IR.id(loopVar)));
     }
   } else if (isCaptured) {
-    body.body.unshift(
-      IR.exprStmt(IR.assign("=", IR.dot(IR.id(ctx.currentEnvRef), actualName), IR.id(loopVar))),
-    );
+    body.body.unshift(IR.exprStmt(IR.assign("=", IR.dot(IR.id(ctx.currentEnvRef), actualName), IR.id(loopVar))));
   } else {
     body.body.unshift(IR.varDecl(actualName, IR.id(loopVar)));
   }
@@ -161,20 +148,12 @@ export function visitForOfStatement(node: ts.ForOfStatement, ctx: VisitorContext
  * Обрабатывает while statement
  */
 export function visitWhileStatement(node: ts.WhileStatement, ctx: VisitorContext): IRStatement {
-  return IR.while(
-    visitExpression(node.expression, ctx),
-    visitStatementAsBlock(node.statement, ctx),
-    getLoc(node, ctx),
-  );
+  return IR.while(visitExpression(node.expression, ctx), visitStatementAsBlock(node.statement, ctx), getLoc(node, ctx));
 }
 
 /**
  * Обрабатывает do-while statement
  */
 export function visitDoWhileStatement(node: ts.DoStatement, ctx: VisitorContext): IRStatement {
-  return IR.doWhile(
-    visitStatementAsBlock(node.statement, ctx),
-    visitExpression(node.expression, ctx),
-    getLoc(node, ctx),
-  );
+  return IR.doWhile(visitStatementAsBlock(node.statement, ctx), visitExpression(node.expression, ctx), getLoc(node, ctx));
 }

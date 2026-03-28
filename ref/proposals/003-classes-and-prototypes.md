@@ -261,11 +261,7 @@ Dog_proto.__proto = __env.Animal.proto;
 
 ```javascript
 function Dog_describe(__env, __this, __args) {
-  return (
-    bt.callWithThis(bt.getProperty(__env.Animal.proto, "describe"), __this, []) +
-    ", a " +
-    bt.getProperty(__this, "breed")
-  );
+  return bt.callWithThis(bt.getProperty(__env.Animal.proto, "describe"), __this, []) + ", a " + bt.getProperty(__this, "breed");
 }
 ```
 
