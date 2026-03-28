@@ -152,9 +152,6 @@ export namespace bt {
 
       const module = loadModule(moduleUrl);
       return module;
-    } catch (err) {
-      requireUnlock(moduleUrl);
-      throw err;
     } finally {
       requireUnlock(moduleUrl);
     }
