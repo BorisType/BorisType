@@ -1,0 +1,10 @@
+{
+  "name": "Numeric literals",
+  "tests": {
+    "basics.test.js": "Basic integer and float literals",
+    "hex-octal-binary.test.js": "Hex, octal, binary → decimal conversion",
+    "separators.test.js": "Numeric separators (underscores)",
+    "exponents.test.js": "Exponential notation",
+    "edge-cases.test.js": "Edge cases (zero, negative, large safe integers)"
+  }
+}
