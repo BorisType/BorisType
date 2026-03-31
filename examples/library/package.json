@@ -10,7 +10,7 @@
   },
   "author": "",
   "license": "ISC",
-  "ws:package": "lib",
+  "ws:package": "library",
   "devDependencies": {
     "@boristype/bt-cli": "workspace:^",
     "@boristype/eslint-plugin": "workspace:^",

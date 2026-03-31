@@ -4,7 +4,7 @@
 
 ## Примеры
 
-### 📦 [single/](single/) - Legacy режим (одиночный пакет)
+### 📦 [single/](single/) - Одиночный пакет (без btconfig.json)
 
 Демонстрирует классический подход к линковке с использованием настроек в `package.json`.
 
@@ -115,7 +115,7 @@ dist/
 
 ## Дополнительные ресурсы
 
-- [Документация по линковке](../docs/Linking.md)
+- [Документация по линковке](../docs/guides/linking.md)
 - [Справка по btconfig.json](../docs/reference/btconfig.md)
 - [Основной README](../README.md)
 
