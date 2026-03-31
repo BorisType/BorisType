@@ -32,6 +32,25 @@ import { helperEnvAccess } from "./module-access.ts";
 // ============================================================================
 
 /**
+ * Нормализует числовой литерал в десятичную строку без потери точности.
+ * Конвертирует hex/octal/binary и убирает separators.
+ *
+ * @param text - текст числового литерала из TS AST (уже без separators)
+ */
+function normalizeNumericLiteral(text: string): string {
+  // Дробные и экспоненциальные — Number() не теряет точности для них
+  if (text.includes(".") || text.includes("e") || text.includes("E")) {
+    return String(Number(text));
+  }
+  // Целые: hex (0x), octal (0o), binary (0b) — конвертируем в десятичную через BigInt
+  if (/^0[xXoObB]/.test(text)) {
+    return String(BigInt(text));
+  }
+  // Обычные десятичные целые — оставляем как есть (точность уже в строке)
+  return text;
+}
+
+/**
  * Проверяет, является ли IR выражение результатом optional chaining.
  * Определяется по структуре: ConditionalExpression с consequent === IR.id("undefined").
  */
@@ -203,9 +222,10 @@ export function visitExpression(node: ts.Expression, ctx: VisitorContext, object
   }
 
   if (ts.isNumericLiteral(node)) {
-    // Удаляем numeric separators (1_000_000 → 1000000)
-    const value = Number(node.text.replace(/_/g, ""));
-    return IR.number(value, getLoc(node, ctx));
+    // node.text уже lossy для больших чисел — берём оригинальный текст из source
+    const text = node.getText(ctx.sourceFile).replace(/_/g, "");
+    const raw = normalizeNumericLiteral(text);
+    return IR.literal(Number(raw), raw, getLoc(node, ctx));
   }
 
   if (node.kind === ts.SyntaxKind.TrueKeyword) {
