@@ -126,11 +126,37 @@ export interface PackageLinker {
 export type SystemLinkMode = "standalone" | "component";
 
 /**
+ * Информация о найденной библиотеке в node_modules
+ */
+export type DiscoveredLibrary = {
+  /** Полное имя пакета (например "@scope/lib" или "my-lib") */
+  name: string;
+  /** Реальный путь к директории библиотеки (resolved через symlink) */
+  realPath: string;
+  /** Путь в исходном node_modules (может быть symlink) */
+  sourcePath: string;
+  /** Является ли пакет локальным (symlink → workspace/file dependency) */
+  isLocal: boolean;
+};
+
+/**
+ * Запись кэша для отдельной библиотеки в node_modules
+ */
+export type LibraryCacheEntry = {
+  /** SHA256 hash содержимого библиотеки (только для локальных пакетов) */
+  contentHash: string;
+  /** Является ли пакет локальным (symlink) */
+  isLocal: boolean;
+};
+
+/**
  * Информация о кэше node_modules для пакета
  */
 export type NodeModulesCacheEntry = {
-  /** Hash от package-lock.json (или package.json если lock отсутствует) */
+  /** Hash от lockfile (package-lock.json / pnpm-lock.yaml) */
   lockfileHash: string;
+  /** Per-library кэш для отслеживания изменений в локальных пакетах */
+  libraries: Record<string, LibraryCacheEntry>;
   /** Время последней линковки node_modules */
   linkedAt: string;
   /** Версия формата кэша */
