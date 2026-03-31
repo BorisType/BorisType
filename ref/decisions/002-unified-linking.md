@@ -246,12 +246,12 @@ await link({
 
 **Обновлённая документация:**
 
-- [Руководство по линковке](../../docs/Linking.md) — удалена секция "два режима"
+- [Руководство по линковке](../../docs/guides/linking.md) — удалена секция "два режима"
 - [Архитектура линковки](../architecture/linking-system.md) — описывает единый механизм
 
 ## Ссылки
 
-- [Руководство по линковке](../../docs/Linking.md)
+- [Руководство по линковке](../../docs/guides/linking.md)
 - [Типы линковки](../../docs/reference/package-types.md)
 - [Схема btconfig.json](../../schemas/btconfig.schema.json)
 - [ADR 004: Инкрементальная линковка](004-incremental-linking.md)

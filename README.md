@@ -38,7 +38,7 @@ npx btc                    # Эквивалентно btc build
 npx btc link
 ```
 
-См. подробнее в [документации по линковке](docs/Linking.md).
+См. подробнее в [документации по линковке](docs/guides/linking.md).
 
 ### `btc init`
 
@@ -127,7 +127,7 @@ npx btc dev --no-push    # Без автоматического push
 
 См. подробнее:
 
-- [Linking документация](docs/Linking.md)
+- [Linking документация](docs/guides/linking.md)
 - [Push & Deploy](docs/guides/push-deploy.md)
 - [Dev Mode](docs/guides/dev-mode.md)
 
@@ -187,7 +187,7 @@ pnpm install
 npx btc link
 ```
 
-Подробнее см. [examples/README.md](examples/README.md) и [документацию по линковке](docs/Linking.md).
+Подробнее см. [examples/README.md](examples/README.md) и [документацию по линковке](docs/guides/linking.md).
 
 ---
 

@@ -286,7 +286,7 @@ export function watchNonTypescriptFiles(context: BuildContext, onChange?: (fileP
       logger.info(`📄 Copied: ${relativePath}`);
 
       if (onChange) {
-        onChange(filePath);
+        onChange(outputFilePath);
       }
     } catch (error) {
       logger.error(`Failed to copy ${filePath}: ${error}`);

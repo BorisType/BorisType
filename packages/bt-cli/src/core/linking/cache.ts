@@ -2,7 +2,8 @@
  * Кэширование для линковки
  *
  * Управляет кэшем в директории .btc/ для оптимизации линковки:
- * - Кэширование hash от package-lock.json для node_modules
+ * - Двухуровневый кэш: lockfile hash (registry deps) + per-library content hash (local deps)
+ * - Lockfile ищется поднимаясь к корню workspace (поддержка monorepo)
  * - Позволяет пропускать копирование если зависимости не изменились
  *
  * @module linking/cache
@@ -11,10 +12,10 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
-import { LinkingCacheState } from "./types";
+import { LinkingCacheState, NodeModulesCacheEntry } from "./types";
 
-/** Текущая версия формата кэша */
-const CACHE_VERSION = 1;
+/** Текущая версия формата кэша (v2: per-library content hashes) */
+const CACHE_VERSION = 2;
 
 /** Имя директории кэша */
 const CACHE_DIR_NAME = ".btc";
@@ -128,95 +129,103 @@ export class LinkingCache {
   }
 
   /**
-   * Получает hash от lockfile пакета
-   * Пробует package-lock.json, затем pnpm-lock.yaml, затем package.json как fallback
+   * Ищет lockfile поднимаясь от указанной директории к корню workspace
+   *
+   * @param startPath - Директория, от которой начинать поиск
+   * @returns Абсолютный путь к найденному lockfile или null
+   *
+   * @remarks
+   * Порядок проверки на каждом уровне:
+   * 1. pnpm-lock.yaml (pnpm workspaces)
+   * 2. package-lock.json (npm)
+   *
+   * Останавливается когда:
+   * - Найден lockfile
+   * - Найден pnpm-workspace.yaml (корень workspace, даже если lockfile отсутствует)
+   * - Достигнут корень файловой системы
+   */
+  private findWorkspaceRootLockfile(startPath: string): string | null {
+    let currentDir = path.resolve(startPath);
+    const root = path.parse(currentDir).root;
+
+    while (true) {
+      // Проверяем pnpm-lock.yaml
+      const pnpmLockPath = path.join(currentDir, "pnpm-lock.yaml");
+      if (fs.existsSync(pnpmLockPath)) {
+        return pnpmLockPath;
+      }
+
+      // Проверяем package-lock.json
+      const npmLockPath = path.join(currentDir, "package-lock.json");
+      if (fs.existsSync(npmLockPath)) {
+        return npmLockPath;
+      }
+
+      // Если нашли pnpm-workspace.yaml — это корень workspace, но lockfile нет
+      const pnpmWorkspacePath = path.join(currentDir, "pnpm-workspace.yaml");
+      if (fs.existsSync(pnpmWorkspacePath)) {
+        return null;
+      }
+
+      // Поднимаемся на уровень выше
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir || currentDir === root) {
+        // Достигли корня FS
+        return null;
+      }
+
+      currentDir = parentDir;
+    }
+  }
+
+  /**
+   * Получает hash от lockfile проекта
+   *
+   * Ищет lockfile поднимаясь к корню workspace (поддержка monorepo).
+   * Fallback на package.json пакета для standalone-проектов без lockfile.
    *
    * @param packagePath - Путь к директории пакета
-   * @returns Hash от lockfile
+   * @returns SHA256 hash от lockfile или null
    */
-  private getLockfileHash(packagePath: string): string | null {
-    // Сначала пробуем package-lock.json (npm)
-    const npmLockPath = path.join(packagePath, "package-lock.json");
-    let hash = this.computeFileHash(npmLockPath);
+  getLockfileHash(packagePath: string): string | null {
+    // Сначала ищем lockfile поднимаясь к workspace root
+    const lockfilePath = this.findWorkspaceRootLockfile(packagePath);
 
-    if (hash) {
-      return hash;
+    if (lockfilePath) {
+      return this.computeFileHash(lockfilePath);
     }
 
-    // Затем пробуем pnpm-lock.yaml (pnpm workspaces)
-    const pnpmLockPath = path.join(packagePath, "pnpm-lock.yaml");
-    hash = this.computeFileHash(pnpmLockPath);
-
-    if (hash) {
-      return hash;
-    }
-
-    // Fallback на package.json
+    // Fallback: hash от package.json самого пакета
     const packageJsonPath = path.join(packagePath, "package.json");
     return this.computeFileHash(packageJsonPath);
   }
 
   /**
-   * Проверяет нужно ли копировать node_modules для пакета
+   * Получает закэшированное состояние node_modules для пакета
    *
    * @param wsName - ws:name пакета
-   * @param packagePath - Путь к директории пакета (где находится package-lock.json)
-   * @returns true если нужно копировать, false если можно пропустить
-   *
-   * @remarks
-   * Возвращает true (нужно копировать) если:
-   * - Кэш отключён (--no-cache)
-   * - Нет записи в кэше для этого пакета
-   * - Hash от package-lock.json изменился
-   * - Не удалось вычислить hash
+   * @returns Запись кэша или null если записи нет или кэш отключён
    */
-  shouldCopyNodeModules(wsName: string, packagePath: string): boolean {
+  getNodeModulesState(wsName: string): NodeModulesCacheEntry | null {
     if (!this.enabled) {
-      return true;
+      return null;
     }
 
-    const currentHash = this.getLockfileHash(packagePath);
-
-    if (!currentHash) {
-      // Не удалось получить hash - копируем на всякий случай
-      return true;
-    }
-
-    const cached = this.state.nodeModules[wsName];
-
-    if (!cached) {
-      // Нет записи в кэше
-      return true;
-    }
-
-    // Сравниваем hash
-    return cached.lockfileHash !== currentHash;
+    return this.state.nodeModules[wsName] ?? null;
   }
 
   /**
-   * Обновляет запись кэша после копирования node_modules
+   * Обновляет запись кэша node_modules для пакета
    *
    * @param wsName - ws:name пакета
-   * @param packagePath - Путь к директории пакета
+   * @param entry - Новая запись кэша
    */
-  updateNodeModulesCache(wsName: string, packagePath: string): void {
+  updateNodeModulesState(wsName: string, entry: NodeModulesCacheEntry): void {
     if (!this.enabled) {
       return;
     }
 
-    const hash = this.getLockfileHash(packagePath);
-
-    if (!hash) {
-      // Удаляем запись если не можем вычислить hash
-      delete this.state.nodeModules[wsName];
-    } else {
-      this.state.nodeModules[wsName] = {
-        lockfileHash: hash,
-        linkedAt: new Date().toISOString(),
-        version: CACHE_VERSION,
-      };
-    }
-
+    this.state.nodeModules[wsName] = entry;
     this.saveState();
   }
 

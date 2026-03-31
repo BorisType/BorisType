@@ -6,7 +6,7 @@
   "scripts": {
     "build:backend": "cd backend && npm run build",
     "build": "npm run build:backend",
-    "link": "npx btc link --clean",
+    "link": "npx btc link",
     "dev": "npx btc dev"
   },
   "author": "",

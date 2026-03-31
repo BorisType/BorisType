@@ -2,11 +2,11 @@
   "name": "boristype-example-single",
   "version": "1.0.0",
   "private": true,
-  "description": "Example single package project demonstrating legacy linking mode",
+  "description": "Example single package project demonstrating linking without btconfig.json",
   "main": "index.js",
   "scripts": {
     "build": "npx btc build",
-    "link": "npx btc link --no-cache",
+    "link": "npx btc link",
     "push": "npx btc push",
     "dev": "npx btc dev"
   },

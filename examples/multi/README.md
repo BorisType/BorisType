@@ -99,4 +99,4 @@ dist/
 
 Если `btconfig.json` отсутствует или не содержит секцию `linking`, система автоматически использует старый режим линковки, читая настройки из `package.json` текущего проекта (`ws:package`, `ws:root` и т.д.).
 
-**Приоритет:** `btconfig.json` > `package.json` (legacy режим)
+**Приоритет:** `btconfig.json` > `package.json` (одиночный пакет)

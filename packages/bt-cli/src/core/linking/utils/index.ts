@@ -9,6 +9,8 @@ export {
   copyNodeModulesWithCache,
   processPackageDirectory,
   copyPackageContent,
+  discoverLibraries,
+  computeLibraryContentHash,
   type CopyNodeModulesOptions,
 } from "./node-modules";
 export {

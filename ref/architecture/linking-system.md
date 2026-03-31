@@ -8,25 +8,25 @@
 
 ---
 
-## Текущая реализация (v0.0.1-alpha.10)
+## Текущая реализация
 
 ### Унифицированный механизм линковки
 
 Система использует **единый механизм** линковки для всех случаев:
 
-- Legacy режим (одиночный пакет) работает как частный случай multi-package режима
+- Одиночный пакет (без `btconfig.json`) работает как частный случай multi-package режима
 - Multi-package режим поддерживает несколько пакетов с различными типами
 
 **Выбор режима:** автоматический
 
 - Если `btconfig.json` присутствует → использует конфигурацию из него
-- Если отсутствует → создается виртуальный `btconfig` для текущего проекта (legacy совместимость)
+- Если отсутствует → создается виртуальный `btconfig` для текущего проекта
 
-**Внутренняя реализация:** код `processSinglePackageLinking` полностью удален, используется только `processMultiPackageLinking` с автоопределением режима по `name === '.'`
+**Внутренняя реализация:** используется единый `processPackagesLinking()` с автоопределением режима. Для одиночных пакетов `resolvePackagesToLink()` создает виртуальный список пакетов из текущего package.json.
 
 ---
 
-### Legacy режим (одиночный пакет)
+### Одиночный пакет (без btconfig.json)
 
 **Конфигурация через package.json:**
 
@@ -43,11 +43,11 @@
 **Ключевые поля:**
 
 - `ws:package`: тип пакета
-  - `"standalone"` (рекомендуется) или `"app"` (legacy) — автономное приложение
+  - `"standalone"` — автономное приложение (обратная совместимость: `"app"`)
   - `"component"` — компонент платформы
-  - `"bt"` — утилитарный пакет BorisType
-  - `"library"` или `"lib"` (legacy) — библиотека (не линкуется напрямую)
-- `ws:root`: путь внутри `dist/` для `standalone` и `bt` (обязательно)
+  - `"system"` — системный пакет (обратная совместимость: `"bt"`)
+  - `"library"` — библиотека, не линкуется напрямую (обратная совместимость: `"lib"`)
+- `ws:root`: путь внутри `dist/` для `standalone` (обязательно)
   - **Для `component`:** НЕ должен быть указан, используется `./components/{package.name}`
 - `main`: точка входа → создается `init.xml` или файлы в `spxml/` для компонентов
 - `ws:apiext`: (опционально) кастомная конфигурация API расширений
@@ -55,16 +55,16 @@
 **Процесс:**
 
 1. Читает `package.json` текущего проекта
-2. Создает виртуальный `btconfig` с одним пакетом `name: '.'`
-3. Загружает зависимости компилятора (polyfill)
-4. Определяет тип пакета через `normalizePackageType()` (маппинг app→standalone, lib→library)
+2. Создает виртуальный список пакетов (через `resolvePackagesToLink()`)
+3. Загружает системные зависимости (runtime, polyfill)
+4. Определяет тип пакета через `normalizePackageType()` (маппинг: app→standalone, lib→library, bt→system)
 5. Копирует `build/` → `dist/{target}/` где target:
-   - `standalone`/`bt`: из `ws:root`
+   - `standalone`: из `ws:root`
    - `component`: автоматически `./components/{package.name}`
-6. Копирует `node_modules` (только пакеты с `ws:package`)
-7. Создает `init.xml` для `standalone`/`bt` или файлы в `spxml/` для `component`
+6. Копирует `node_modules` (только пакеты с `ws:package: "library"`)
+7. Создает `init.xml` для `standalone` или файлы в `spxml/` для `component`
 8. Для `component`: создает `package.json` (component.json) в корне
-9. Генерирует модуль `bt:filemap` для executable objects
+9. Генерирует per-module `.filemap.json` для executable objects
 10. Создает `api_ext.xml` с порядком загрузки (компоненты исключаются)
 
 **Запуск:**
@@ -125,16 +125,16 @@ npx btc link           # Линковка
 
 **Условная обязательность:**
 
-Система определяет тип пакета через функцию `normalizePackageType()` (маппинг: app→standalone, lib→library):
+Система определяет тип пакета через функцию `normalizePackageType()` (маппинг: app→standalone, lib→library, bt→system):
 
-**Для executable BorisType пакетов** (`ws:package: "standalone"`, `"component"`, `"bt"`):
+**Для executable BorisType пакетов** (`ws:package: "standalone"`, `"component"`, `"system"`):
 
 - `source` опционально:
   - Явно указан → используется указанный путь **(приоритет)**
   - Не указан → `{name}/build` **(по умолчанию)**
 - `target` опционально:
   - **Для `component`:** автоматически `./components/{package.name}`, `ws:root` **ЗАПРЕЩЕН**
-  - **Для `standalone` и `bt`:**
+  - **Для `standalone`:**
     - Явно указан → используется указанный путь **(приоритет)**
     - Не указан → берется `ws:root` из package.json **(fallback)**
     - Ничего не указано → **ОШИБКА**
@@ -160,27 +160,28 @@ npx btc link           # Линковка
 
 **Процесс:**
 
-1. Читает `btconfig.json` (или создает виртуальный для legacy режима)
-2. Загружает зависимости компилятора (polyfill)
-3. Для каждого пакета в `linking.packages`:
-   - Проверяет `package.json` → вызывает `normalizePackageType()` → определяет тип
+1. Читает `btconfig.json` (или создает виртуальный через `resolvePackagesToLink()`)
+2. **STAGE 1:** Загружает системные зависимости (runtime, polyfill)
+   - Находит system-пакеты в `node_modules`
+   - Линкует через `linkPackage()` → `systemLinker` (только копирование, всё уже готово)
+   - Режим линковки определяется `--linking-system-as` (component/standalone)
+3. **STAGE 2:** Для каждого пакета в `linking.packages`:
+   - Парсит `package.json` → `normalizePackageType()` → определяет тип
    - Проверка на `library`: **ERROR** (нельзя линковать напрямую)
    - Определяет `source` (приоритет: явный > `{name}/build` > error)
    - Определяет `target`:
      - `component`: автоматически `./components/{package.name}`, проверка на `ws:root` → **ERROR**
-     - `standalone`/`bt`: приоритет: явный > `ws:root` > error
+     - `standalone`: приоритет: явный > `ws:root` > error
      - Обычная директория: обязательно
-   - Копирует `source` → `dist/{target}`
-   - **Только для executable BT пакетов** (`standalone`, `component`, `bt`):
-     - Обрабатывает `.executables.json` (executable objects)
-     - Копирует `node_modules` (пакеты с `ws:package`)
-     - Создает файлы инициализации:
-       - `component`: `spxml/{name}.xml`, `spxml/{name}.js`, `package.json` (component.json)
-       - `standalone`/`bt`: `init.xml`
-     - Добавляет в `api_ext.xml` (кроме `component`)
-4. Копирует зависимости компилятора (polyfill) → добавляет **в начало** списка
-5. Генерирует модуль `bt:filemap` → добавляется **самым первым** в `api_ext.xml`
-6. Создает `api_ext.xml` с правильным порядком: bt:filemap → bt.polyfill → пользовательские (без components)
+   - Собирает executables из `.executables.json`
+   - Линкует через `linkPackage()` → диспатч на нужный linker:
+     - `standaloneLinker`: копирование, генерация `init.xml`, `.filemap.json`, запись в `api_ext.xml`
+     - `componentLinker`: копирование, генерация `spxml/`, `package.json` (component.json), `.filemap.json`
+   - Копирует `node_modules` (только пакеты с `ws:package: "library"`)
+4. **STAGE 3:** Создает `api_ext.xml`:
+   - Собирает `apiExtEntries` из всех слинкованных пакетов
+   - Порядок: system пакеты → пользовательские standalone пакеты
+   - Компоненты НЕ включаются (apiext = undefined)
 
 **Запуск:**
 
@@ -196,23 +197,20 @@ npx btc link
 
 ## Итоговая структура dist/
 
-### Legacy режим
+### Одиночный пакет
 
 ```
 dist/
 ├── wt/
-│   ├── myapp/              # ws:root
-│   │   ├── index.js
-│   │   ├── utils.js
-│   │   └── node_modules/
-│   └── bt/
-│       ├── polyfill/       # зависимость компилятора (auto)
-│       │   ├── init.xml
-│       │   └── ...
-│       └── filemap/        # автогенерируемый модуль (auto)
-│           ├── init.xml
-│           ├── index.js
-│           └── filemap.json
+│   └── myapp/              # ws:root
+│       ├── index.js
+│       ├── utils.js
+│       ├── init.xml
+│       ├── .filemap.json   # per-module executables маппинг
+│       └── node_modules/
+├── components/             # system пакеты в режиме component (по умолчанию)
+│   └── bt-runtime/
+│       └── ...
 └── source/
     └── api_ext.xml
 ```
@@ -221,26 +219,22 @@ dist/
 
 ```
 dist/
-├── components/             # директория для component пакетов
+├── components/             # директория для component и system-component пакетов
+│   ├── bt-runtime/         # system пакет в режиме component (по умолчанию)
+│   │   └── ...
 │   └── my-component/       # component пакет
 │       ├── index.js
 │       ├── package.json    # component.json (метаданные компонента)
+│       ├── .filemap.json   # per-module executables маппинг
 │       ├── node_modules/
 │       └── spxml/          # файлы инициализации компонента
 │           ├── my-component.xml
 │           └── my-component.js
 ├── wt/
-│   ├── bt/
-│   │   ├── polyfill/       # зависимость компилятора (auto, первым)
-│   │   │   ├── init.xml
-│   │   │   └── ...
-│   │   └── filemap/        # автогенерируемый модуль (auto)
-│   │       ├── init.xml
-│   │       ├── index.js
-│   │       └── filemap.json
 │   ├── backend/            # standalone пакет (target из ws:root или btconfig)
 │   │   ├── index.js
 │   │   ├── init.xml
+│   │   ├── .filemap.json   # per-module executables маппинг
 │   │   ├── ...
 │   │   └── node_modules/
 │   └── frontend/           # обычная директория (target из btconfig)
@@ -254,19 +248,27 @@ dist/
 
 ## Ключевые компоненты
 
-### 1. bt:filemap модуль
+### 1. Filemap (.filemap.json)
 
 **Назначение:** разрешение путей к executable objects (исполняемым объектам)
 
-**Генерируется автоматически** для всех режимов.
+**Генерируется per-module** — каждый executable пакет содержит собственный `.filemap.json` в корне своей целевой директории.
 
 **Содержимое:**
 
-- `init.xml` — инициализация модуля
-- `index.js` — функция `getFileUrl(key)` для получения URL файла
-- `filemap.json` — маппинг ключей вида `${packageName}+${packageVersion}+${filePath}` на URL
+- `.filemap.json` — маппинг ключей вида `${packageName}+${packageVersion}+${filePath}` на URL
 
-**Расположение:** `dist/wt/bt/filemap/`
+**Формат:**
+
+```json
+{
+  "my-app+1.0.0+agents/my-agent.js": "x-local://wt/myapp/agents/my-agent.js"
+}
+```
+
+**Ключ формируется как:** `${packageName}+${packageVersion}+${filePath}`
+
+> **Примечание:** Глобальный модуль `bt:filemap` больше не генерируется. Вместо этого каждый пакет содержит собственный `.filemap.json`.
 
 **Executable objects** — это специальные объекты BorisScript, которые могут быть выполнены платформой (агенты, обработчики событий и т.д.). Транспилятор отмечает их в `.executables.json`, а система линковки создает маппинг для доступа к ним по ключу.
 
@@ -319,8 +321,15 @@ XML файл, описывающий какие модули должны быт
 
 **Генерируется автоматически** на основе:
 
-- Поля `ws:apiext` в `package.json` каждого BT пакета
+- Поля `ws:apiext` в `package.json` каждого standalone пакета
 - Автоматически создаваемых расширений для модулей с `main`
+- System пакетов в режиме `standalone`
+
+**Не включает:**
+
+- Component пакеты (инициализируются через `spxml/`)
+- System пакеты в режиме `component`
+- Library пакеты
 
 **Пример:**
 
@@ -328,27 +337,17 @@ XML файл, описывающий какие модули должны быт
 <?xml version="1.0" encoding="utf-8"?>
 <api_ext>
   <apis>
-    <!-- 1. Система разрешения путей (всегда первым) -->
+    <!-- 1. System пакеты (runtime) — если используется standalone режим -->
     <api>
-      <name>bt:filemap</name>
+      <name>bt:runtime</name>
       <libs>
         <lib>
-          <path>x-local://wt/bt/filemap/init.xml</path>
+          <path>x-local://wt/bt/runtime/init.xml</path>
         </lib>
       </libs>
     </api>
 
-    <!-- 2. Polyfill (зависимость компилятора, вторым) -->
-    <api>
-      <name>bt.polyfill</name>
-      <libs>
-        <lib>
-          <path>x-local://wt/bt/polyfill/init.xml</path>
-        </lib>
-      </libs>
-    </api>
-
-    <!-- 3. Пользовательские standalone/bt модули -->
+    <!-- 2. Пользовательские standalone модули -->
     <!-- ВАЖНО: component пакеты НЕ включаются (своя логика загрузки) -->
     <api>
       <name>module:backend</name>
@@ -366,9 +365,8 @@ XML файл, описывающий какие модули должны быт
 
 Модули загружаются строго последовательно в порядке объявления в `api_ext.xml`:
 
-1. `bt:filemap` — должен быть первым (система путей)
-2. `bt.polyfill` — должен быть вторым (полифиллы для JS)
-3. Пользовательские модули — после системных
+1. System пакеты (runtime) — должны быть первыми
+2. Пользовательские standalone модули — после системных
 
 Нарушение порядка приведет к ошибкам выполнения.
 
@@ -378,19 +376,35 @@ XML файл, описывающий какие модули должны быт
 
 ### 4. Копирование node_modules
 
-Система автоматически копирует зависимости из `node_modules`, но **только те пакеты**, которые содержат поле `ws:package` в своем `package.json`.
+Система автоматически копирует зависимости из `node_modules`, но **только те пакеты**, которые содержат поле `ws:package: "library"` в своем `package.json`.
 
-**Поддерживаемые типы:**
+**Двухуровневое кэширование:**
 
-- `ws:package: "app"` — полноценный BorisScript пакет (приложение)
-- `ws:package: "lib"` — библиотечный пакет
+Для оптимизации повторных линковок используется двухуровневый кэш (`.btc/linking-cache.json`):
+
+- **Tier 1 — Lockfile hash**: SHA256 от `pnpm-lock.yaml` или `package-lock.json`. Lockfile ищется поднимаясь от директории пакета к корню workspace (поддержка monorepo). Если lockfile hash изменился — все библиотеки перекопируются.
+- **Tier 2 — Per-library content hash**: Для каждой локальной (workspace/file) библиотеки вычисляется SHA256 от содержимого файлов. Если lockfile не изменился, проверяются только локальные библиотеки — копируются только те, чей контент изменился.
+
+**Определение локальных пакетов:**
+
+В pnpm все пакеты представлены как symlinks. Различие:
+
+- **Локальный пакет**: symlink, чей `realpath` находится ВНЕ `node_modules/` (указывает на workspace-директорию)
+- **Registry пакет**: symlink, чей `realpath` внутри `node_modules/.pnpm/` (content-addressable store)
+
+**Cleanup**: Если библиотека была в кэше, но больше не найдена в `node_modules`, она удаляется из `dist/`.
+
+**Флаги:**
+
+- `--no-cache` — отключает кэш (полное копирование каждый раз)
+- `--clean` — удаляет кэш и `dist/` перед линковкой
 
 **Особенности:**
 
-- Следует по symlinks (поддержка `file:` зависимостей в npm)
+- Следует по symlinks (поддержка pnpm workspace и `file:` зависимостей)
 - Рекурсивно копирует вложенные `node_modules`
 - Пропускает служебные директории: `.git`, `.bin`, `node_modules/.cache`, и т.д.
-- Поддерживает scoped пакеты (`@boristype/polyfill`)
+- Поддерживает scoped пакеты (`@boristype/runtime`)
 
 ---
 
@@ -454,45 +468,21 @@ function init() {
 
 ## TypeScript типы
 
-Полные определения типов: [`btc/src/core/btconfig.types.ts`](../btc/src/core/btconfig.types.ts)
+Полные определения типов: [`packages/bt-cli/src/core/config.ts`](../../packages/bt-cli/src/core/config.ts)
 
 ```typescript
-/**
- * Описание отдельного пакета для линковки
- */
-export type BtConfigLinkingPackage = {
-  /**
-   * Имя пакета - соответствует директории
-   */
-  name: string;
-
-  /**
-   * Путь к source директории (опционально)
-   *
-   * Для BorisType пакетов (ws:package: "app"):
-   * - Если указан: используется указанный путь (приоритет)
-   * - Если не указан: используется ./{name}/build (по умолчанию)
-   *
-   * Для обычных директорий:
-   * - ОБЯЗАТЕЛЬНО должен быть указан
-   */
-  source?: string;
-
-  /**
-   * Целевой путь внутри dist/ (опционально)
-   *
-   * Для BorisType пакетов (ws:package: "app"):
-   * - Если указан: используется указанный путь (приоритет)
-   * - Если не указан: используется ws:root из package.json
-   *
-   * Для обычных директорий:
-   * - ОБЯЗАТЕЛЬНО должен быть указан
-   */
-  target?: string;
+export type BtConfigLinkingPackageBase = {
+  name?: string; // Имя пакета или "." для текущего
+  source?: string; // Путь к source директории (default: ./build)
+  target?: string; // Целевой путь в dist/ (default: ws:root)
 };
 
-export type BtConfigLinking = {
-  packages: BtConfigLinkingPackage[];
+export type BtConfigLinkingPackage = BtConfigLinkingPackageBase & {
+  name: string; // ОБЯЗАТЕЛЬНО для пакетов в packages[]
+};
+
+export type BtConfigLinking = BtConfigLinkingPackageBase & {
+  packages?: BtConfigLinkingPackage[]; // Multi-package конфигурация
 };
 
 export type BtConfig = {
@@ -501,60 +491,74 @@ export type BtConfig = {
 };
 ```
 
+Типы пакетов: [`packages/bt-cli/src/core/linking/types.ts`](../../packages/bt-cli/src/core/linking/types.ts)
+
+```typescript
+export type PackageType = "standalone" | "component" | "system" | "library";
+```
+
 ---
 
 ## Детали реализации
 
+### Структура модуля линковки
+
+Модуль линковки организован в директории `packages/bt-cli/src/core/linking/`:
+
+| Файл/Директория   | Назначение                                                                             |
+| ----------------- | -------------------------------------------------------------------------------------- |
+| `index.ts`        | Точки входа: `processLinking()`, `processPackagesLinking()`, `resolvePackagesToLink()` |
+| `context.ts`      | Создание LinkingContext — реестр, кэш, пути                                            |
+| `types.ts`        | Типы: PackageType, PackageInfo, LinkingContext, LinkedPackage и др.                    |
+| `cache.ts`        | LinkingCache — двухуровневый кэш для node_modules                                      |
+| `dependencies.ts` | Построение дерева зависимостей, определение system пакетов                             |
+| `executables.ts`  | Сбор executables из `.executables.json`                                                |
+| `parsers.ts`      | Парсинг PackageInfo из DependencyNode или BtConfigLinkingPackage                       |
+| `generators/`     | Генераторы: api-ext.xml, component XML/JS, filemap, init-xml, package-json             |
+| `linkers/`        | Линкеры по типу пакета: standalone, component, system + диспатч-реестр                 |
+| `utils/`          | Утилиты: copy, node-modules, package-type, url, write                                  |
+
 ### Определение типа пакета
 
-**Код:** [`btc/src/core/linking.ts:40-67`](../btc/src/core/linking.ts#L40-L67)
+**Код:** [`packages/bt-cli/src/core/linking/utils/package-type.ts`](../../packages/bt-cli/src/core/linking/utils/package-type.ts)
 
 ```typescript
 /**
  * Нормализует тип пакета, мапит старые значения на новые для обратной совместимости
+ * @example
+ * normalizePackageType('app')        // -> 'standalone'
+ * normalizePackageType('lib')        // -> 'library'
+ * normalizePackageType('bt')         // -> 'system'
+ * normalizePackageType('standalone') // -> 'standalone'
  */
-function normalizePackageType(wsPackage: string | undefined): PackageType | null {
+export function normalizePackageType(wsPackage: string | undefined): PackageType | null {
   if (!wsPackage) {
     return null;
   }
 
-  // Маппинг старых типов на новые (обратная совместимость)
-  const typeMapping: Record<string, PackageType> = {
-    app: "standalone",
-    lib: "library",
-  };
-
-  // Проверяем маппинг
-  if (typeMapping[wsPackage]) {
-    return typeMapping[wsPackage];
+  // Legacy mapping: app → standalone, lib → library, bt → system
+  if (LEGACY_TYPE_MAPPING[wsPackage]) {
+    return LEGACY_TYPE_MAPPING[wsPackage];
   }
 
-  // Новые типы
-  const validTypes: PackageType[] = ["standalone", "component", "library", "bt"];
-  if (validTypes.includes(wsPackage as PackageType)) {
+  if (VALID_PACKAGE_TYPES.includes(wsPackage as PackageType)) {
     return wsPackage as PackageType;
   }
 
   return null;
 }
-
-/**
- * Проверяет, является ли тип пакета исполняемым
- * standalone, component, bt - полная линковка
- * library - только копирование в node_modules
- */
-function isExecutablePackageType(packageType: PackageType): boolean {
-  return packageType === "standalone" || packageType === "component" || packageType === "bt";
-}
 ```
 
-**Текущая реализация:** поддержка четырех типов с обратной совместимостью
+Вспомогательные функции:
+
+- `isExecutablePackageType(type)` — проверяет, нужна ли полная линковка (standalone, component, system)
+- `getValidPackageTypes()` / `getLegacyPackageTypes()` — списки валидных типов
 
 ---
 
 ### Определение source и target
 
-**Код:** [`btc/src/core/linking.ts:190-240`](../btc/src/core/linking.ts#L190-L240)
+**Код:** [`packages/bt-cli/src/core/linking/parsers.ts`](../../packages/bt-cli/src/core/linking/parsers.ts)
 
 **Приоритет для source:**
 
@@ -567,7 +571,7 @@ function isExecutablePackageType(packageType: PackageType): boolean {
 1. **Для component пакетов:**
    - Автоматически `./components/{package.name}`
    - `ws:root` **ЗАПРЕЩЕН** → ошибка
-2. **Для standalone и bt пакетов:**
+2. **Для standalone пакетов:**
    - Явно указан в `btconfig.json` → используется он
    - BT пакет с `ws:root` → значение `ws:root`
    - BT пакет без `ws:root` → ошибка
@@ -576,42 +580,44 @@ function isExecutablePackageType(packageType: PackageType): boolean {
 
 ---
 
-### Порядок пакетов в api_ext.xml
+### Диспатч линковки по типу пакета
 
-**Код:** [`btc/src/core/linking.ts:320-360`](../btc/src/core/linking.ts#L320-L360)
+**Код:** [`packages/bt-cli/src/core/linking/linkers/index.ts`](../../packages/bt-cli/src/core/linking/linkers/index.ts)
 
 ```typescript
-// Копируем зависимости компилятора (polyfill) - они должны быть первыми
-const compilerPackages: WsPackageInfo[] = [];
-for (const dep of compilerDeps) {
-  // ... копирование и подготовка
-  compilerPackages.push(depPackageInfo);
-}
-
-// Объединяем: сначала polyfill, потом пользовательские пакеты
-const linkingPackages = [...compilerPackages, ...userPackages];
-
-// bt:filemap добавляется самым первым
-const allPackages = [fileMapPackage, ...linkingPackages];
-
-// Создаем api_ext.xml
-// buildApiExt фильтрует pkg.apiext !== undefined
-// Компоненты имеют apiext = undefined → исключаются автоматически
-const apiExtXml = buildApiExt(allPackages);
+const linkerRegistry = new Map<PackageType, PackageLinker>([
+  ["standalone", standaloneLinker], // init.xml, .filemap.json, api_ext entry
+  ["component", componentLinker], // spxml/, package.json, .filemap.json
+  ["system", systemLinker], // только копирование (уже готов)
+  // library — обрабатывается через node_modules, линкер не нужен
+]);
 ```
+
+Каждый линкер реализует интерфейс `PackageLinker` с методом `link(pkg, ctx) → LinkedPackage`.
+
+---
+
+### Порядок пакетов в api_ext.xml
+
+**Код:** [`packages/bt-cli/src/core/linking/index.ts`](../../packages/bt-cli/src/core/linking/index.ts)
+
+Порядок определяется стадиями линковки:
+
+1. **STAGE 1:** System пакеты (runtime) — добавляют apiext если `systemLinkMode === "standalone"`
+2. **STAGE 2:** Пользовательские пакеты — standalone добавляют apiext, component — нет
+3. **STAGE 3:** Сбор всех `apiExtEntries` и генерация `api_ext.xml`
 
 **Итоговый порядок в api_ext.xml:**
 
-1. bt:filemap (всегда первым)
-2. bt.polyfill (зависимость компилятора, вторым)
-3. Пользовательские standalone/bt пакеты (в порядке из `btconfig.json`)
-4. **component пакеты НЕ включаются** (apiext = undefined, своя логика загрузки)
+1. System пакеты (если standalone режим)
+2. Пользовательские standalone пакеты (в порядке из `btconfig.json`)
+3. **component пакеты НЕ включаются** (apiext = undefined, своя логика загрузки)
 
 ---
 
 ## Примеры
 
-### Простой проект (Legacy)
+### Простой проект
 
 **Структура:**
 
@@ -631,7 +637,7 @@ my-app/
   "name": "my-app",
   "version": "1.0.0",
   "main": "index.js",
-  "ws:package": "app",
+  "ws:package": "standalone",
   "ws:root": "./wt/myapp"
 }
 ```
@@ -648,13 +654,13 @@ npx btc link           # build/ → dist/wt/myapp/
 ```
 dist/
 ├── wt/
-│   ├── myapp/
-│   │   ├── index.js
-│   │   ├── utils.js
-│   │   └── init.xml
-│   └── bt/
-│       ├── polyfill/
-│       └── filemap/
+│   └── myapp/
+│       ├── index.js
+│       ├── utils.js
+│       ├── init.xml
+│       └── .filemap.json
+├── components/
+│   └── bt-runtime/    # system пакет (по умолчанию component режим)
 └── source/
     └── api_ext.xml
 ```
@@ -673,7 +679,7 @@ my-project/
 │   ├── src/
 │   │   ├── index.ts
 │   │   └── api.ts
-│   ├── package.json      # ws:package: "app", ws:root: "./wt/backend"
+│   ├── package.json      # ws:package: "standalone", ws:root: "./wt/backend"
 │   └── tsconfig.json
 ├── frontend/
 │   └── src/
@@ -721,14 +727,14 @@ npx btc link
 
 ```
 dist/
+├── components/
+│   └── bt-runtime/         # system пакет (по умолчанию component режим)
 ├── wt/
-│   ├── bt/
-│   │   ├── polyfill/
-│   │   └── filemap/
-│   ├── backend/            # BT пакет
+│   ├── backend/            # standalone пакет
 │   │   ├── index.js
 │   │   ├── api.js
 │   │   ├── init.xml
+│   │   ├── .filemap.json
 │   │   └── node_modules/
 │   └── static/             # обычная директория
 │       ├── index.html
@@ -759,10 +765,9 @@ dist/
 
 - `ws:package: "app"` → `"standalone"` (через `normalizePackageType()`)
 - `ws:package: "lib"` → `"library"` (через `normalizePackageType()`)
+- `ws:package: "bt"` → `"system"` (через `normalizePackageType()`)
 
 **Рекомендуется:** использовать новые названия в новых проектах
-
-**Текущее состояние (v0.0.1-alpha.10):** полная поддержка всех четырех типов с обратной совместимостью
 
 ---
 
@@ -770,7 +775,7 @@ dist/
 
 Система поддерживает четыре типа BorisType пакетов:
 
-#### 1. `standalone` (текущий `app`)
+#### 1. `standalone`
 
 **Назначение:** автономный пакет-приложение
 
@@ -878,7 +883,7 @@ dist/components/my-component/
 
 ---
 
-#### 3. `library` (текущий `lib`)
+#### 3. `library`
 
 **Назначение:** переиспользуемая библиотека
 
@@ -920,42 +925,38 @@ dist/components/my-component/
 
 ---
 
-#### 4. `bt` (утилитарный пакет BorisType)
+#### 4. `system`
 
 **Назначение:** системные зависимости, необходимые для работы транспилированного кода
 
 **Характеристики:**
 
-- Регистрируется глобально при запуске системы **перед всеми остальными** пакетами
-- Необходим для работы кода после транспиляции (например, `polyfill`)
-- Может линковаться как `standalone` или как `component` в зависимости от настроек
-- Загружается автоматически компилятором
+- Уже **полностью готовы** к линковке — ничего не генерируется, только копирование
+- Необходимы для работы кода после транспиляции (runtime, polyfill)
+- Режим линковки определяется через CLI: `--linking-system-as`:
+  - `component` (по умолчанию): `components/<ws:name>`, НЕ добавляются в `api_ext.xml`
+  - `standalone`: по `ws:root`, добавляются в `api_ext.xml`
+- Загружаются автоматически — пользователь не управляет напрямую
+- Можно пропустить через `--external-runtime` (runtime управляется внешне)
 
 **Примеры:**
 
-- `@boristype/polyfill` — полифиллы для JS функций
-- Будущие системные утилиты
+- `@boristype/runtime` — runtime библиотека (polyfills, require и т.д.)
 
-**Линковка:**
-
-- Добавляется автоматически компилятором
-- Пользователь не управляет напрямую
-- Всегда помещается в начало `api_ext.xml`
-
-**Расположение:** `dist/wt/bt/{package-name}/` или `dist/components/bt/{package-name}/`
+**Расположение:** `dist/components/{package-name}/` (component) или `dist/wt/{ws:root}/` (standalone)
 
 ---
 
 ### Сводная таблица типов пакетов
 
-| Тип          | Старое название | api_ext.xml          | Расположение           | node_modules | Инициализация               | Executable objects | component.json |
-| ------------ | --------------- | -------------------- | ---------------------- | ------------ | --------------------------- | ------------------ | -------------- |
-| `standalone` | `app`           | ✅ Да                | `wt/{ws:root}/`        | ✅ Да        | `init.xml`                  | ✅ Да              | ❌ Нет         |
-| `component`  | —               | ❌ Нет (своя логика) | `components/{name}/`   | ✅ Да        | `spxml/*.xml`, `spxml/*.js` | ✅ Да              | ✅ Да          |
-| `library`    | `lib`           | ❌ Нет               | `node_modules/{name}/` | ❌ Нет       | ❌ Нет                      | ❌ Нет             | ❌ Нет         |
-| `bt`         | —               | ✅ Да (первым)       | `wt/bt/{name}/`        | ✅ Да        | `init.xml`                  | ❌ Нет\*           | ❌ Нет         |
+| Тип          | Обратная совместимость | api_ext.xml            | Расположение              | node_modules | Инициализация               | Executable objects | component.json |
+| ------------ | ---------------------- | ---------------------- | ------------------------- | ------------ | --------------------------- | ------------------ | -------------- |
+| `standalone` | `app`                  | ✅ Да                  | `wt/{ws:root}/`           | ✅ Да        | `init.xml`                  | ✅ Да              | ❌ Нет         |
+| `component`  | —                      | ❌ Нет (своя логика)   | `components/{name}/`      | ✅ Да        | `spxml/*.xml`, `spxml/*.js` | ✅ Да              | ✅ Да          |
+| `library`    | `lib`                  | ❌ Нет                 | `node_modules/{name}/`    | ❌ Нет       | ❌ Нет                      | ❌ Нет             | ❌ Нет         |
+| `system`     | `bt`                   | ⚙️ Зависит от режима\* | `components/` или `wt/`\* | ✅ Да        | Уже готово                  | ❌ Нет             | ❌ Нет         |
 
-\* Зависит от конкретного пакета (обычно нет)
+\* System пакеты: `--linking-system-as component` (по умолчанию) → `components/{name}/`, не в api_ext; `--linking-system-as standalone` → `wt/{ws:root}/`, добавляется в api_ext
 
 ---
 
@@ -972,12 +973,12 @@ dist/components/my-component/
 **Поддержка:**
 
 - Доступны только в `standalone` и `component` пакетах
-- Недоступны в `library` и `bt` пакетах (за редким исключением)
+- Недоступны в `library` и `system` пакетах
 
 **Механизм:**
 
 1. Транспилятор помечает executable objects в `.executables.json`
-2. Система линковки создает маппинг в `bt:filemap` модуле
+2. Система линковки создает per-module маппинг в `.filemap.json`
 3. Платформа обращается к объектам через систему разрешения путей
 
 **Назначение линковки для standalone/component:**
@@ -1049,10 +1050,11 @@ export { createHandler } from "./handlers";
 
 ### Связанные файлы
 
-- **Реализация:** [`btc/src/core/linking.ts`](../../packages/bt-cli/src/core/linking.ts)
-- **Типы:** [`btc/src/core/btconfig.types.ts`](../../packages/bt-cli/src/core/btconfig.types.ts)
+- **Реализация:** [`packages/bt-cli/src/core/linking/`](../../packages/bt-cli/src/core/linking/)
+- **Типы конфигурации:** [`packages/bt-cli/src/core/config.ts`](../../packages/bt-cli/src/core/config.ts)
+- **Типы линковки:** [`packages/bt-cli/src/core/linking/types.ts`](../../packages/bt-cli/src/core/linking/types.ts)
 - **JSON Schema:** [`schemas/btconfig.schema.json`](../../schemas/btconfig.schema.json)
-- **Документация:** [`docs/Linking.md`](../../docs/Linking.md)
+- **Документация:** [`docs/guides/linking.md`](../../docs/guides/linking.md)
 - **Конфигурация:** [`docs/reference/btconfig.md`](../../docs/reference/btconfig.md)
 - **Примеры:** [`examples/README.md`](../../examples/README.md)
 
