@@ -1,6 +1,6 @@
 {
   "name": "@boristype/runtime",
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0-alpha.6",
   "description": "BorisScript runtime polyfills for the BorisType compiler",
   "files": [
     "build",

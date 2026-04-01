@@ -1,6 +1,6 @@
 {
   "name": "@boristype/eslint-plugin",
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0-alpha.6",
   "description": "ESLint plugin with custom rules for BorisType/BorisScript development",
   "main": "build/index.js",
   "types": "build/index.d.ts",
