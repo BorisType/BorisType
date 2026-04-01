@@ -11,6 +11,7 @@ import ts from "typescript";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { logger } from "./utils/logger.js";
+import type { BtConfigObjects } from "./objects/types.js";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -95,6 +96,8 @@ export type BtConfig = {
   $schema?: string;
   /** Конфигурация линковки */
   linking?: BtConfigLinking;
+  /** Конфигурация синхронизации объектов платформы */
+  objects?: BtConfigObjects;
 };
 
 // ─── tsconfig.json ──────────────────────────────────────────────
