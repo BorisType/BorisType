@@ -8,6 +8,7 @@
   },
   "files": [
     "build",
+    "resources",
     "README.md"
   ],
   "scripts": {

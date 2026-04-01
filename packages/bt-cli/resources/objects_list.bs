@@ -1,0 +1,14 @@
+// objects_list.bs
+//
+// Запрашивает spxml_objects за объектами, изменёнными после указанной даты.
+// Вход: sinceDate подставляется через шаблон {{since_date}}
+// Выход: JSON-строка с массивом [{id, form, modified}, ...]
+//
+// var sSinceDate = '{{since_date}}';
+// ...
+// return JSON-строку
+
+var query = "sql:SELECT * FROM dbo.[(spxml_objects)] so WHERE so.modified >= CAST('{{since_date}}' AS DATETIME) ORDER BY so.modified DESC";
+var objects = ArraySelectAll(tools.xquery(query));
+var result = ArrayExtract(objects, "return { 'id': This.id.Value, 'form': This.form.Value, 'modified': This.modified.Value }");
+return EncodeJson(result);

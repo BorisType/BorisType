@@ -1,0 +1,12 @@
+// objects_fetch.bs
+//
+// Получает полный XML-документ объекта по ID.
+// Вход: object_id подставляется через шаблон {{object_id}}
+// Выход: XML-строка документа
+//
+// var sObjectId = '{{object_id}}';
+// ...
+// return XML-строку
+
+var doc = tools.open_doc('{{object_id}}');
+return doc.TopElem.Xml;
