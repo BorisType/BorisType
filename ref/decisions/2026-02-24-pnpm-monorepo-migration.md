@@ -1,6 +1,6 @@
 # 005. Миграция на pnpm monorepo
 
-**Date:** 2026-02-23  
+**Date:** 2026-02-24  
 **Status:** Accepted
 
 ## Context

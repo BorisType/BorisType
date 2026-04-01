@@ -1,6 +1,6 @@
 # ADR 003: Явная проверка nullish для Optional Chaining
 
-**Дата:** 2024-11 (реализовано с IR pipeline)  
+**Дата:** 2026-02-23
 **Статус:** Принято  
 **Компонент:** Lowering optional chaining (`?.`) в bt-ir
 

@@ -1,6 +1,6 @@
 # 008. Expression Extraction для ограничений парсера BorisScript
 
-**Date:** 2026-03-02  
+**Date:** 2026-03-03  
 **Status:** Accepted
 
 ## Context

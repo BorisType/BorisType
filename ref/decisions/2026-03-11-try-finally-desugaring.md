@@ -1,6 +1,6 @@
 # 010. Десахаризация try-catch-finally через state machine
 
-**Date:** 2026-03-10  
+**Date:** 2026-03-11  
 **Status:** Accepted
 
 ## Context
