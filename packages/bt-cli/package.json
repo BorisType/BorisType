@@ -39,6 +39,7 @@
     "@boristype/bt-ir": "workspace:*",
     "@boristype/ws-client": "workspace:*",
     "@boristype/ws-version": "workspace:*",
+    "@inquirer/prompts": "^8.3.0",
     "@types/archiver": "^7.0.0",
     "archiver": "^7.0.1",
     "chalk": "^5.6.0",

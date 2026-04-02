@@ -10,6 +10,7 @@
 
 import * as fs from "node:fs";
 import type { FetchedObject, ObjectChange, ObjectMetadata, ChangeSet } from "./types.js";
+import { DEFAULT_EXCLUDE_TYPES } from "./types.js";
 import { buildLocalObjectIndex } from "./local-index.js";
 import { extractMetadata, normalizeXmlForComparison, computeHash, classifyOwnership } from "./xml-utils.js";
 
@@ -19,8 +20,8 @@ import { extractMetadata, normalizeXmlForComparison, computeHash, classifyOwners
  * Опции для processObjects.
  */
 export type ProcessObjectsOptions = {
-  /** Разрешённые типы объектов из btconfig.objects.include */
-  includeTypes: string[];
+  /** Дополнительные типы для исключения (из btconfig.objects.exclude) */
+  excludeTypes?: string[];
   /** Имя пользователя из btconfig.properties (для ownership) */
   username: string;
   /** Рабочая директория проекта */
@@ -33,21 +34,22 @@ export type ProcessObjectsOptions = {
 
 /**
  * Фильтрует объекты по типу (record.form).
+ * Исключает типы из DEFAULT_EXCLUDE_TYPES и пользовательского excludeTypes.
  *
  * @param objects - Массив скачанных объектов
- * @param includeTypes - Разрешённые типы
+ * @param excludeTypes - Дополнительные типы для исключения (из btconfig)
  * @returns Принятые и отфильтрованные объекты
  */
-function filterByType(objects: FetchedObject[], includeTypes: string[]): { accepted: FetchedObject[]; filteredOut: FetchedObject[] } {
-  const typeSet = new Set(includeTypes);
+function filterByType(objects: FetchedObject[], excludeTypes: string[] = []): { accepted: FetchedObject[]; filteredOut: FetchedObject[] } {
+  const excludeSet = new Set([...DEFAULT_EXCLUDE_TYPES, ...excludeTypes]);
   const accepted: FetchedObject[] = [];
   const filteredOut: FetchedObject[] = [];
 
   for (const obj of objects) {
-    if (typeSet.has(obj.record.form)) {
-      accepted.push(obj);
-    } else {
+    if (excludeSet.has(obj.record.form)) {
       filteredOut.push(obj);
+    } else {
+      accepted.push(obj);
     }
   }
 
@@ -122,7 +124,7 @@ function processOneObject(
  * Обрабатывает все скачанные объекты.
  *
  * Pipeline:
- * 1. Фильтрация по типу (btconfig.objects.include)
+ * 1. Фильтрация по типу (DEFAULT_EXCLUDE_TYPES + btconfig.objects.exclude)
  * 2. Извлечение метаданных из XML
  * 3. Построение локального индекса (scan packages)
  * 4. Нормализация XML, hash compare, classification
@@ -132,8 +134,8 @@ function processOneObject(
  * @returns ChangeSet для interactive UI
  */
 export function processObjects(fetched: FetchedObject[], options: ProcessObjectsOptions): ChangeSet {
-  // 1. Filter by type
-  const { accepted, filteredOut } = filterByType(fetched, options.includeTypes);
+  // 1. Filter by type (exclude defaults + user config)
+  const { accepted, filteredOut } = filterByType(fetched, options.excludeTypes);
 
   // 2. Build local index
   const localIndex = buildLocalObjectIndex(options.cwd, options.packages);

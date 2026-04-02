@@ -142,9 +142,15 @@ export type ObjectsCache = {
 // ─── Config Types ───────────────────────────────────────────────
 
 /**
+ * Типы объектов, исключаемые по умолчанию при pull.
+ * Пользователь может расширить список через btconfig.json → objects.exclude.
+ */
+export const DEFAULT_EXCLUDE_TYPES: readonly string[] = ["collaborator"];
+
+/**
  * Секция objects в btconfig.json
  */
 export type BtConfigObjects = {
-  /** Типы объектов для включения при pull (имена каталогов из spxml_objects.form) */
-  include: string[];
+  /** Дополнительные типы объектов для исключения (добавляются к DEFAULT_EXCLUDE_TYPES) */
+  exclude?: string[];
 };

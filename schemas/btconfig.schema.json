@@ -41,18 +41,16 @@
       "description": "Platform objects sync configuration",
       "type": "object",
       "properties": {
-        "include": {
-          "description": "Object types to include during pull (catalog names from spxml_objects.form)",
+        "exclude": {
+          "description": "Additional object types to exclude during pull (added to default exclude list)",
           "type": "array",
           "items": {
             "type": "string",
             "minLength": 1
           },
-          "minItems": 1,
-          "examples": [["server_agent", "group"]]
+          "examples": [["document_comment", "notification"]]
         }
       },
-      "required": ["include"],
       "additionalProperties": false
     }
   },
