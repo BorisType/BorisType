@@ -40,6 +40,31 @@ function renderTemplate(template: string, vars: Record<string, string>): string 
   return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? "");
 }
 
+// ─── Server Response ────────────────────────────────────────────
+
+/**
+ * Обёртка ответа BS-скриптов: `{ error: boolean, data?, message? }`.
+ */
+type ServerResponse<T> = { error: false; data: T } | { error: true; message: string };
+
+/**
+ * Парсит ответ BS-скрипта и проверяет на ошибку.
+ *
+ * @param raw - Сырая строка от evaluator.eval()
+ * @param context - Описание операции для сообщения об ошибке
+ * @returns Данные из поля `data`
+ * @throws Error если скрипт вернул `{ error: true }`
+ */
+function parseServerResponse<T>(raw: string, context: string): T {
+  const response = JSON.parse(raw) as ServerResponse<T>;
+
+  if (response.error) {
+    throw new Error(`Server error (${context}): ${response.message}`);
+  }
+
+  return response.data;
+}
+
 // ─── Queries ────────────────────────────────────────────────────
 
 /**
@@ -55,8 +80,8 @@ export async function listModifiedObjects(evaluator: Evaluator, sinceDate: strin
   const template = loadTemplate("objects_list.bs");
   const script = renderTemplate(template, { since_date: sinceDate });
 
-  const result = await evaluator.eval(script);
-  return JSON.parse(result) as SpxmlObjectRecord[];
+  const raw = await evaluator.eval(script);
+  return parseServerResponse<SpxmlObjectRecord[]>(raw, "objects_list");
 }
 
 /**
@@ -71,7 +96,8 @@ export async function fetchObjectXml(evaluator: Evaluator, objectId: string): Pr
   const template = loadTemplate("objects_fetch.bs");
   const script = renderTemplate(template, { object_id: objectId });
 
-  return await evaluator.eval(script);
+  const raw = await evaluator.eval(script);
+  return parseServerResponse<string>(raw, `objects_fetch ${objectId}`);
 }
 
 // ─── Pull Pipeline ──────────────────────────────────────────────

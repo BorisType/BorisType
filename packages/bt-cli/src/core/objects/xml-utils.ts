@@ -54,6 +54,7 @@ export function extractMetadata(fetched: FetchedObject): ObjectMetadata {
   return {
     id: fetched.record.id,
     type: fetched.record.form,
+    code: String(root?.code ?? ""),
     name: String(root?.name ?? ""),
     modifiedDate: fetched.record.modified,
     modificationAuthor: String(docInfo?.modification_author_login ?? ""),

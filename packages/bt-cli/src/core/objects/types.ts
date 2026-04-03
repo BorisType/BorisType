@@ -40,6 +40,8 @@ export type ObjectMetadata = {
   id: string;
   /** Тип каталога (из record.form) */
   type: string;
+  /** Код объекта (из XML \<code\>) */
+  code: string;
   /** Человекочитаемое название (из XML \<name\>) */
   name: string;
   /** Дата модификации (из record.modified) */
@@ -145,7 +147,7 @@ export type ObjectsCache = {
  * Типы объектов, исключаемые по умолчанию при pull.
  * Пользователь может расширить список через btconfig.json → objects.exclude.
  */
-export const DEFAULT_EXCLUDE_TYPES: readonly string[] = ["collaborator"];
+export const DEFAULT_EXCLUDE_TYPES: readonly string[] = ["collaborator", "object_claim", "action_report"];
 
 /**
  * Секция objects в btconfig.json

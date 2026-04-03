@@ -11,6 +11,21 @@ import { checkbox, select } from "@inquirer/prompts";
 import { logger } from "../logger.js";
 import type { ChangeSet, ObjectChange, SelectedObject, SelectionResult } from "./types.js";
 
+// ─── Helpers ────────────────────────────────────────────────────
+
+/**
+ * Проверяет, является ли ошибка результатом Ctrl+C / Escape в inquirer prompt.
+ *
+ * @param err - Пойманная ошибка
+ * @returns true если пользователь прервал ввод
+ */
+function isPromptCancelled(err: unknown): boolean {
+  if (err instanceof Error) {
+    return err.name === "ExitPromptError" || err.message.includes("User force closed");
+  }
+  return false;
+}
+
 // ─── Types ──────────────────────────────────────────────────────
 
 /**
@@ -22,6 +37,55 @@ export type PromptSelectionOptions = {
   /** Пакет по умолчанию для новых объектов (--assign-to) */
   assignTo?: string;
 };
+
+// ─── Formatting Helpers ─────────────────────────────────────────
+
+/** Ширины колонок таблицы */
+const COL = { id: 20, code: 20, name: 40, type: 20, modified: 20, status: 10 } as const;
+
+/**
+ * Обрезает строку до maxLen символов с многоточием в середине.
+ * Если строка помещается — возвращает как есть.
+ *
+ * @example truncateMiddle("очень длинная строка", 15) → "очень ...строка"
+ *
+ * @param str - Исходная строка
+ * @param maxLen - Максимальная длина
+ * @returns Обрезанная строка
+ */
+function truncateMiddle(str: string, maxLen: number): string {
+  if (str.length <= maxLen) return str;
+  const ellipsis = "...";
+  const available = maxLen - ellipsis.length;
+  const headLen = Math.ceil(available / 2);
+  const tailLen = Math.floor(available / 2);
+  return str.slice(0, headLen) + ellipsis + str.slice(str.length - tailLen);
+}
+
+/**
+ * Форматирует строку: обрезает + pad до нужной ширины.
+ *
+ * @param value - Значение
+ * @param width - Ширина колонки
+ * @returns Форматированная строка
+ */
+function col(value: string, width: number): string {
+  return truncateMiddle(value, width).padEnd(width);
+}
+
+/**
+ * Форматирует дату: убирает T и таймзону.
+ * "2026-04-01T15:30:00+03:00" → "2026-04-01 15:30:00"
+ *
+ * @param dateStr - ISO 8601 дата
+ * @returns Форматированная дата
+ */
+function formatDate(dateStr: string): string {
+  return dateStr
+    .replace("T", " ")
+    .replace(/[+-]\d{2}:\d{2}$/, "")
+    .replace(/Z$/, "");
+}
 
 // ─── Summary ────────────────────────────────────────────────────
 
@@ -43,23 +107,55 @@ export function printSummary(changeSet: ChangeSet, totalFetched: number): void {
   console.log();
 }
 
-// ─── Formatting ─────────────────────────────────────────────────
+// ─── Table Formatting ───────────────────────────────────────────
 
 /**
  * Форматирует ObjectChange в строку для checkbox choice.
+ *
+ * Колонки: ★ ID code name type modified status package
  *
  * @param change - Объект изменения
  * @returns Форматированная строка
  */
 function formatChangeLabel(change: ObjectChange): string {
   const star = change.ownership === "ours" ? "★" : " ";
-  const name = change.metadata.name || change.metadata.id;
-  const type = change.metadata.type;
-  const date = change.metadata.modifiedDate;
-  const status = change.status;
+  const id = col(change.metadata.id, COL.id);
+  const code = col(change.metadata.code || "—", COL.code);
+  const name = col(change.metadata.name || "—", COL.name);
+  const type = col(change.metadata.type, COL.type);
+  const date = col(formatDate(change.metadata.modifiedDate), COL.modified);
+  const status = col(change.status, COL.status);
   const pkg = change.existingPackage ?? "—";
 
-  return `${star} ${name.padEnd(30)} ${type.padEnd(16)} ${date.padEnd(20)} ${status.padEnd(10)} ${pkg}`;
+  return `${star} ${id} ${code} ${name} ${type} ${date} ${status} ${pkg}`;
+}
+
+/**
+ * Выводит заголовок таблицы.
+ */
+function printTableHeader(): void {
+  const header =
+    `  ${"".padEnd(3)} ` +
+    `${"ID".padEnd(COL.id)} ` +
+    `${"Code".padEnd(COL.code)} ` +
+    `${"Name".padEnd(COL.name)} ` +
+    `${"Type".padEnd(COL.type)} ` +
+    `${"Modified".padEnd(COL.modified)} ` +
+    `${"Status".padEnd(COL.status)} ` +
+    `Package`;
+
+  const separator =
+    `  ${"─".repeat(3)} ` +
+    `${"─".repeat(COL.id)} ` +
+    `${"─".repeat(COL.code)} ` +
+    `${"─".repeat(COL.name)} ` +
+    `${"─".repeat(COL.type)} ` +
+    `${"─".repeat(COL.modified)} ` +
+    `${"─".repeat(COL.status)} ` +
+    `${"─".repeat(10)}`;
+
+  console.log(header);
+  console.log(separator);
 }
 
 // ─── Interactive Selection ──────────────────────────────────────
@@ -69,19 +165,18 @@ function formatChangeLabel(change: ObjectChange): string {
  *
  * Показывает checkbox list с pre-selected "ours" объектами.
  * После выбора запрашивает package assignment для новых объектов.
+ * Ctrl+C корректно прерывает выбор.
  *
  * @param changeSet - Результат processing
- * @returns Результат выбора: selected + skipped
+ * @returns Результат выбора: selected + skipped, или null если Ctrl+C
  */
-async function selectObjectsInteractive(changeSet: ChangeSet): Promise<SelectionResult> {
+async function selectObjectsInteractive(changeSet: ChangeSet): Promise<SelectionResult | null> {
   if (changeSet.changes.length === 0) {
     logger.info("No changes to select.");
     return { selected: [], skipped: [] };
   }
 
-  // Header
-  console.log(`  ${"".padEnd(3)} ${"Name".padEnd(30)} ${"Type".padEnd(16)} ${"Modified".padEnd(20)} ${"Status".padEnd(10)} ${"Package"}`);
-  console.log(`  ${"─".repeat(3)} ${"─".repeat(30)} ${"─".repeat(16)} ${"─".repeat(20)} ${"─".repeat(10)} ${"─".repeat(10)}`);
+  printTableHeader();
 
   const choices = changeSet.changes.map((change) => ({
     name: formatChangeLabel(change),
@@ -89,11 +184,19 @@ async function selectObjectsInteractive(changeSet: ChangeSet): Promise<Selection
     checked: change.ownership === "ours",
   }));
 
-  const selected = await checkbox<ObjectChange>({
-    message: "Select objects to pull (★ = ours by author)",
-    choices,
-    pageSize: 20,
-  });
+  let selected: ObjectChange[];
+  try {
+    selected = await checkbox<ObjectChange>({
+      message: "Select objects to pull (★ = ours by author)",
+      choices,
+      pageSize: 20,
+    });
+  } catch (err) {
+    if (isPromptCancelled(err)) {
+      return null;
+    }
+    throw err;
+  }
 
   const selectedSet = new Set(selected.map((c) => c.metadata.id));
   const skipped = changeSet.changes.filter((c) => !selectedSet.has(c.metadata.id));
@@ -102,7 +205,16 @@ async function selectObjectsInteractive(changeSet: ChangeSet): Promise<Selection
   const result: SelectedObject[] = [];
 
   for (const change of selected) {
-    const targetPackage = await resolveTargetPackage(change, changeSet.availablePackages);
+    let targetPackage: string | null;
+    try {
+      targetPackage = await resolveTargetPackage(change, changeSet.availablePackages);
+    } catch (err) {
+      if (isPromptCancelled(err)) {
+        return null;
+      }
+      throw err;
+    }
+
     if (targetPackage !== null) {
       result.push({ change, targetPackage });
     } else {
@@ -204,5 +316,12 @@ export async function promptObjectSelection(
     return result;
   }
 
-  return selectObjectsInteractive(changeSet);
+  const result = await selectObjectsInteractive(changeSet);
+
+  if (result === null) {
+    logger.warning("\nAborted by user.");
+    return { selected: [], skipped: changeSet.changes };
+  }
+
+  return result;
 }

@@ -3,9 +3,10 @@
 import { program } from "commander";
 import packageInfo from "../package.json";
 
-import { initCommand, buildCommand, linkCommand, artifactCommand, devCommand, pushCommand } from "./cli/commands";
+import { initCommand, buildCommand, linkCommand, artifactCommand, devCommand, pushCommand, objectsPullCommand } from "./cli/commands";
 import type { BtcCompileOptions } from "./core/building/types";
 import type { PushCommandOptions } from "./core/pushing/types";
+import type { ObjectsPullCommandOptions } from "./cli/commands/objects-pull";
 
 // Реэкспорт типов для обратной совместимости
 export type { BtcCompileOptions, BtcConfiguration } from "./core/building/types";
@@ -82,5 +83,32 @@ program
   .action(async (options: PushCommandOptions) => {
     await pushCommand(options);
   });
+
+// Команда objects (подкоманды)
+const objectsCmd = program.command("objects").description("Manage platform objects");
+
+// Общие connection options для objects subcommands
+const connectionOptions = [
+  ["--host <host>", "WSHCM server host (default: localhost)"],
+  ["--port <port>", "WSHCM server port (default: 80)"],
+  ["--username <username>", "Username for authentication (default: user1)"],
+  ["--password <password>", "Password for authentication (default: user1)"],
+  ["--https", "Use HTTPS instead of HTTP"],
+] as const;
+
+const pullCmd = objectsCmd
+  .command("pull")
+  .description("Pull modified objects from server")
+  .option("--all", "Accept all ours objects without interactive selection", false)
+  .option("--assign-to <package>", "Default package for new objects (with --all)")
+  .option("--since <date>", 'Sync since date: ISO 8601, "today", "git", or commit hash (required on first run)');
+
+for (const [flag, desc] of connectionOptions) {
+  pullCmd.option(flag, desc);
+}
+
+pullCmd.action(async (options: ObjectsPullCommandOptions) => {
+  await objectsPullCommand(options);
+});
 
 program.parse(process.argv);
