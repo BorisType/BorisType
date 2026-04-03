@@ -16,6 +16,8 @@ export type SpxmlObjectRecord = {
   form: string;
   /** Дата последней модификации */
   modified: string;
+  /** Флаг удаления: null = не удалён, число = удалён */
+  is_deleted: number | null;
 };
 
 /**
@@ -83,10 +85,24 @@ export type ChangeSet = {
   changes: ObjectChange[];
   /** Объекты без реальных изменений (unchanged после hash compare) */
   unchanged: ObjectChange[];
-  /** Объекты отфильтрованные по типу */
-  filteredByType: FetchedObject[];
+  /** Удалённые объекты, которые существуют локально */
+  deleted: DeletedObject[];
+  /** Количество объектов отфильтрованных по типу (excluded до fetch) */
+  filteredByTypeCount: number;
   /** Доступные пакеты для назначения */
   availablePackages: string[];
+};
+
+/**
+ * Удалённый объект (is_deleted != null), существующий локально.
+ */
+export type DeletedObject = {
+  /** Запись из spxml_objects */
+  record: SpxmlObjectRecord;
+  /** Пакет, в котором объект существует */
+  packageName: string;
+  /** Абсолютный путь к файлу */
+  filePath: string;
 };
 
 // ─── Interactive UI Types (Phase 4) ─────────────────────────────

@@ -1,16 +1,16 @@
 /**
  * Client-side processing для platform objects sync.
  *
- * Принимает FetchedObject[] из Phase 2 и выполняет всю обработку локально:
- * фильтрация по типу, извлечение метаданных из XML, классификация ownership,
- * построение локального индекса, нормализация XML, hash compare.
+ * Принимает PullResult из Phase 2 и выполняет обработку:
+ * извлечение метаданных из XML, классификация ownership,
+ * построение локального индекса, нормализация XML, hash compare,
+ * определение удалённых объектов для удаления.
  *
  * @module objects/processing
  */
 
 import * as fs from "node:fs";
-import type { FetchedObject, ObjectChange, ObjectMetadata, ChangeSet } from "./types.js";
-import { DEFAULT_EXCLUDE_TYPES } from "./types.js";
+import type { FetchedObject, SpxmlObjectRecord, ObjectChange, ObjectMetadata, ChangeSet, DeletedObject } from "./types.js";
 import { buildLocalObjectIndex } from "./local-index.js";
 import { extractMetadata, normalizeXmlForComparison, computeHash, classifyOwnership } from "./xml-utils.js";
 
@@ -20,41 +20,17 @@ import { extractMetadata, normalizeXmlForComparison, computeHash, classifyOwners
  * Опции для processObjects.
  */
 export type ProcessObjectsOptions = {
-  /** Дополнительные типы для исключения (из btconfig.objects.exclude) */
-  excludeTypes?: string[];
   /** Имя пользователя из btconfig.properties (для ownership) */
   username: string;
   /** Рабочая директория проекта */
   cwd: string;
   /** Имена пакетов из btconfig (или ["."] для single) */
   packages: string[];
+  /** Удалённые записи из server list (is_deleted != null) */
+  deletedRecords?: SpxmlObjectRecord[];
+  /** Количество записей отфильтрованных по типу (для summary) */
+  filteredByTypeCount?: number;
 };
-
-// ─── Filtering ──────────────────────────────────────────────────
-
-/**
- * Фильтрует объекты по типу (record.form).
- * Исключает типы из DEFAULT_EXCLUDE_TYPES и пользовательского excludeTypes.
- *
- * @param objects - Массив скачанных объектов
- * @param excludeTypes - Дополнительные типы для исключения (из btconfig)
- * @returns Принятые и отфильтрованные объекты
- */
-function filterByType(objects: FetchedObject[], excludeTypes: string[] = []): { accepted: FetchedObject[]; filteredOut: FetchedObject[] } {
-  const excludeSet = new Set([...DEFAULT_EXCLUDE_TYPES, ...excludeTypes]);
-  const accepted: FetchedObject[] = [];
-  const filteredOut: FetchedObject[] = [];
-
-  for (const obj of objects) {
-    if (excludeSet.has(obj.record.form)) {
-      filteredOut.push(obj);
-    } else {
-      accepted.push(obj);
-    }
-  }
-
-  return { accepted, filteredOut };
-}
 
 // ─── Change Detection ───────────────────────────────────────────
 
@@ -118,33 +94,60 @@ function processOneObject(
   };
 }
 
+// ─── Deleted Objects ────────────────────────────────────────────
+
+/**
+ * Находит удалённые объекты, которые существуют локально.
+ *
+ * @param deletedRecords - Записи с is_deleted != null из server list
+ * @param localIndex - Локальный индекс объектов
+ * @returns Массив DeletedObject для удаления
+ */
+function findLocalDeletedObjects(
+  deletedRecords: SpxmlObjectRecord[],
+  localIndex: ReturnType<typeof buildLocalObjectIndex>,
+): DeletedObject[] {
+  const result: DeletedObject[] = [];
+
+  for (const record of deletedRecords) {
+    const localEntry = localIndex[record.id];
+    if (localEntry) {
+      result.push({
+        record,
+        packageName: localEntry.packageName,
+        filePath: localEntry.filePath,
+      });
+    }
+  }
+
+  return result;
+}
+
 // ─── Main Pipeline ──────────────────────────────────────────────
 
 /**
  * Обрабатывает все скачанные объекты.
  *
  * Pipeline:
- * 1. Фильтрация по типу (DEFAULT_EXCLUDE_TYPES + btconfig.objects.exclude)
- * 2. Извлечение метаданных из XML
- * 3. Построение локального индекса (scan packages)
- * 4. Нормализация XML, hash compare, classification
+ * 1. Построение локального индекса (scan packages)
+ * 2. Извлечение метаданных, нормализация XML, hash compare, classification
+ * 3. Определение удалённых объектов (те что существуют локально)
+ *
+ * Фильтрация по типу выполняется ранее — в pullAllObjects (до fetch).
  *
  * @param fetched - Массив объектов из Phase 2 (с полным XML)
  * @param options - Конфигурация обработки
  * @returns ChangeSet для interactive UI
  */
 export function processObjects(fetched: FetchedObject[], options: ProcessObjectsOptions): ChangeSet {
-  // 1. Filter by type (exclude defaults + user config)
-  const { accepted, filteredOut } = filterByType(fetched, options.excludeTypes);
-
-  // 2. Build local index
+  // 1. Build local index
   const localIndex = buildLocalObjectIndex(options.cwd, options.packages);
 
-  // 3. Process each object: extract metadata, normalize, hash, classify
+  // 2. Process each object: extract metadata, normalize, hash, classify
   const changes: ObjectChange[] = [];
   const unchanged: ObjectChange[] = [];
 
-  for (const obj of accepted) {
+  for (const obj of fetched) {
     const metadata = extractMetadata(obj);
     const change = processOneObject(obj, metadata, options.username, localIndex);
 
@@ -155,10 +158,14 @@ export function processObjects(fetched: FetchedObject[], options: ProcessObjects
     }
   }
 
+  // 3. Find deleted objects that exist locally
+  const deleted = findLocalDeletedObjects(options.deletedRecords ?? [], localIndex);
+
   return {
     changes,
     unchanged,
-    filteredByType: filteredOut,
+    deleted,
+    filteredByTypeCount: options.filteredByTypeCount ?? 0,
     availablePackages: options.packages,
   };
 }

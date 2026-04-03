@@ -40,8 +40,42 @@ export type PromptSelectionOptions = {
 
 // ─── Formatting Helpers ─────────────────────────────────────────
 
-/** Ширины колонок таблицы */
-const COL = { id: 20, code: 20, name: 40, type: 20, modified: 20, status: 10 } as const;
+/**
+ * Минимальные ширины колонок (символов).
+ * Если терминал широкий — колонки растягиваются пропорционально.
+ */
+const MIN_COL = { id: 16, code: 12, name: 20, type: 14, modified: 20, status: 10 } as const;
+
+/**
+ * Пропорции колонок для распределения свободного места.
+ * name получает больше всего доп. ширины.
+ */
+const COL_WEIGHT = { id: 1, code: 1, name: 3, type: 1, modified: 0, status: 0 } as const;
+
+/**
+ * Вычисляет ширины колонок на основе текущей ширины терминала.
+ *
+ * @returns Объект с вычисленными ширинами
+ */
+function computeColWidths(): Record<string, number> {
+  const termWidth = process.stdout.columns || 120;
+  // Overhead: "  " prefix (2) + star+space (2) + spaces between 7 cols (7) + "Package" label (~10)
+  const overhead = 2 + 2 + 7 + 10;
+  const minTotal = MIN_COL.id + MIN_COL.code + MIN_COL.name + MIN_COL.type + MIN_COL.modified + MIN_COL.status;
+  const available = Math.max(0, termWidth - overhead - minTotal);
+  const totalWeight = COL_WEIGHT.id + COL_WEIGHT.code + COL_WEIGHT.name + COL_WEIGHT.type + COL_WEIGHT.modified + COL_WEIGHT.status;
+
+  const extra = (key: keyof typeof COL_WEIGHT) => (totalWeight > 0 ? Math.floor((available * COL_WEIGHT[key]) / totalWeight) : 0);
+
+  return {
+    id: MIN_COL.id + extra("id"),
+    code: MIN_COL.code + extra("code"),
+    name: MIN_COL.name + extra("name"),
+    type: MIN_COL.type + extra("type"),
+    modified: MIN_COL.modified + extra("modified"),
+    status: MIN_COL.status + extra("status"),
+  };
+}
 
 /**
  * Обрезает строку до maxLen символов с многоточием в середине.
@@ -101,8 +135,11 @@ export function printSummary(changeSet: ChangeSet, totalFetched: number): void {
 
   console.log();
   logger.info(`Fetched ${totalFetched} objects from server.`);
-  logger.info(`  Filtered by type: ${changeSet.filteredByType.length} excluded`);
+  logger.info(`  Filtered by type: ${changeSet.filteredByTypeCount} excluded`);
   logger.info(`  Unchanged (volatile fields only): ${changeSet.unchanged.length}`);
+  if (changeSet.deleted.length > 0) {
+    logger.info(`  Deleted on server: ${changeSet.deleted.length} (will remove local files)`);
+  }
   logger.info(`  Real changes: ${changeSet.changes.length} (${newCount} new, ${modifiedCount} modified)`);
   console.log();
 }
@@ -115,16 +152,17 @@ export function printSummary(changeSet: ChangeSet, totalFetched: number): void {
  * Колонки: ★ ID code name type modified status package
  *
  * @param change - Объект изменения
+ * @param w - Вычисленные ширины колонок
  * @returns Форматированная строка
  */
-function formatChangeLabel(change: ObjectChange): string {
+function formatChangeLabel(change: ObjectChange, w: Record<string, number>): string {
   const star = change.ownership === "ours" ? "★" : " ";
-  const id = col(change.metadata.id, COL.id);
-  const code = col(change.metadata.code || "—", COL.code);
-  const name = col(change.metadata.name || "—", COL.name);
-  const type = col(change.metadata.type, COL.type);
-  const date = col(formatDate(change.metadata.modifiedDate), COL.modified);
-  const status = col(change.status, COL.status);
+  const id = col(change.metadata.id, w.id);
+  const code = col(change.metadata.code || "—", w.code);
+  const name = col(change.metadata.name || "—", w.name);
+  const type = col(change.metadata.type, w.type);
+  const date = col(formatDate(change.metadata.modifiedDate), w.modified);
+  const status = col(change.status, w.status);
   const pkg = change.existingPackage ?? "—";
 
   return `${star} ${id} ${code} ${name} ${type} ${date} ${status} ${pkg}`;
@@ -132,26 +170,28 @@ function formatChangeLabel(change: ObjectChange): string {
 
 /**
  * Выводит заголовок таблицы.
+ *
+ * @param w - Вычисленные ширины колонок
  */
-function printTableHeader(): void {
+function printTableHeader(w: Record<string, number>): void {
   const header =
     `  ${"".padEnd(3)} ` +
-    `${"ID".padEnd(COL.id)} ` +
-    `${"Code".padEnd(COL.code)} ` +
-    `${"Name".padEnd(COL.name)} ` +
-    `${"Type".padEnd(COL.type)} ` +
-    `${"Modified".padEnd(COL.modified)} ` +
-    `${"Status".padEnd(COL.status)} ` +
+    `${"ID".padEnd(w.id)} ` +
+    `${"Code".padEnd(w.code)} ` +
+    `${"Name".padEnd(w.name)} ` +
+    `${"Type".padEnd(w.type)} ` +
+    `${"Modified".padEnd(w.modified)} ` +
+    `${"Status".padEnd(w.status)} ` +
     `Package`;
 
   const separator =
     `  ${"─".repeat(3)} ` +
-    `${"─".repeat(COL.id)} ` +
-    `${"─".repeat(COL.code)} ` +
-    `${"─".repeat(COL.name)} ` +
-    `${"─".repeat(COL.type)} ` +
-    `${"─".repeat(COL.modified)} ` +
-    `${"─".repeat(COL.status)} ` +
+    `${"─".repeat(w.id)} ` +
+    `${"─".repeat(w.code)} ` +
+    `${"─".repeat(w.name)} ` +
+    `${"─".repeat(w.type)} ` +
+    `${"─".repeat(w.modified)} ` +
+    `${"─".repeat(w.status)} ` +
     `${"─".repeat(10)}`;
 
   console.log(header);
@@ -176,10 +216,11 @@ async function selectObjectsInteractive(changeSet: ChangeSet): Promise<Selection
     return { selected: [], skipped: [] };
   }
 
-  printTableHeader();
+  const w = computeColWidths();
+  printTableHeader(w);
 
   const choices = changeSet.changes.map((change) => ({
-    name: formatChangeLabel(change),
+    name: formatChangeLabel(change, w),
     value: change,
     checked: change.ownership === "ours",
   }));
@@ -190,6 +231,11 @@ async function selectObjectsInteractive(changeSet: ChangeSet): Promise<Selection
       message: "Select objects to pull (★ = ours by author)",
       choices,
       pageSize: 20,
+      theme: {
+        style: {
+          renderSelectedChoices: (selectedChoices: ReadonlyArray<unknown>) => `${selectedChoices.length} object(s)`,
+        },
+      },
     });
   } catch (err) {
     if (isPromptCancelled(err)) {

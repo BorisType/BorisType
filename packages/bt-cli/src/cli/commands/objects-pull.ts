@@ -17,7 +17,7 @@ import { resolvePushConnectionOptions } from "../../core/pushing/index.js";
 import { pullAllObjects } from "../../core/objects/server-query.js";
 import { processObjects } from "../../core/objects/processing.js";
 import { promptObjectSelection } from "../../core/objects/interactive.js";
-import { writeObjectFiles, printWriteSummary } from "../../core/objects/file-writer.js";
+import { writeObjectFiles, deleteObjectFiles, printWriteSummary } from "../../core/objects/file-writer.js";
 import { loadObjectsCache, updateObjectsCache } from "../../core/objects/cache.js";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ function resolveSinceValue(value: string, cwd: string): string {
 async function executePullPipeline(cwd: string, sinceDate: string, cliOptions: ObjectsPullCommandOptions): Promise<void> {
   const btconfig = getBTConfig(cwd);
   const connectionOptions = resolvePushConnectionOptions(cwd, cliOptions);
-  const excludeTypes = btconfig?.objects?.exclude;
+  const excludeTypes = btconfig?.objects?.exclude ?? [];
   const packageNames = resolvePackageNames(cwd);
 
   // Connect
@@ -140,39 +140,44 @@ async function executePullPipeline(cwd: string, sinceDate: string, cliOptions: O
   try {
     logger.info(`Fetching objects modified since ${sinceDate}...`);
 
-    const fetched = await pullAllObjects(evaluator, sinceDate, (done, total) => {
+    // Phase 2: list → filter by type → separate deleted → fetch live
+    const pullResult = await pullAllObjects(evaluator, sinceDate, excludeTypes, (done, total) => {
       process.stdout.write(`\r  Fetching objects... [${done}/${total}]`);
     });
 
-    if (fetched.length > 0) {
+    if (pullResult.fetched.length > 0) {
       process.stdout.write("\n");
     }
 
-    if (fetched.length === 0) {
+    if (pullResult.fetched.length === 0 && pullResult.deleted.length === 0) {
       logger.success("No modified objects found on server.");
       return;
     }
 
-    // Process
-    const changeSet = processObjects(fetched, {
-      excludeTypes,
+    // Phase 3: Process
+    const changeSet = processObjects(pullResult.fetched, {
       username: connectionOptions.username,
       cwd,
       packages: packageNames,
+      deletedRecords: pullResult.deleted,
+      filteredByTypeCount: pullResult.filteredByTypeCount,
     });
 
-    // Interactive / auto selection
-    const selection = await promptObjectSelection(changeSet, fetched.length, {
+    // Phase 5 (deleted): Remove local files + update deleted.xml
+    const deletedCount = deleteObjectFiles(cwd, changeSet.deleted);
+
+    // Phase 4: Interactive / auto selection
+    const selection = await promptObjectSelection(changeSet, pullResult.fetched.length + pullResult.deleted.length, {
       all: cliOptions.all,
       assignTo: cliOptions.assignTo,
     });
 
-    if (selection.selected.length === 0) {
+    if (selection.selected.length === 0 && deletedCount === 0) {
       logger.info("No objects selected. Nothing to write.");
       return;
     }
 
-    // Write files
+    // Phase 5 (write): Write selected objects
     const written = writeObjectFiles(cwd, selection.selected);
 
     // Update cache
@@ -185,7 +190,7 @@ async function executePullPipeline(cwd: string, sinceDate: string, cliOptions: O
     updateObjectsCache(cwd, written, typeMap, packageMap);
 
     // Summary
-    printWriteSummary(written);
+    printWriteSummary(written, deletedCount);
   } finally {
     await evaluator.close();
   }

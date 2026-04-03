@@ -12,6 +12,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { Evaluator } from "@boristype/ws-client";
 import type { SpxmlObjectRecord, FetchedObject } from "./types.js";
+import { DEFAULT_EXCLUDE_TYPES } from "./types.js";
 import { logger } from "../logger.js";
 
 // ─── Resources ──────────────────────────────────────────────────
@@ -103,37 +104,79 @@ export async function fetchObjectXml(evaluator: Evaluator, objectId: string): Pr
 // ─── Pull Pipeline ──────────────────────────────────────────────
 
 /**
- * Выполняет полный цикл: list → fetch ALL.
- * Возвращает массив FetchedObject с XML для каждого объекта.
+ * Результат pull pipeline: fetched объекты, deleted записи, и счётчик excluded.
+ */
+export type PullResult = {
+  /** Объекты с XML (после fetch) */
+  fetched: FetchedObject[];
+  /** Записи удалённых объектов (is_deleted != null) — fetch не выполнялся */
+  deleted: SpxmlObjectRecord[];
+  /** Количество записей отфильтрованных по типу (excluded до fetch) */
+  filteredByTypeCount: number;
+};
+
+/**
+ * Выполняет полный цикл: list → filter by type → separate deleted → fetch live.
+ *
+ * Фильтрация по типу выполняется ДО fetch (по record.form).
+ * Удалённые объекты (is_deleted != null) НЕ fetch'ятся.
  *
  * @param evaluator - Evaluator для выполнения кода на сервере
  * @param sinceDate - Дата начала (ISO 8601)
+ * @param excludeTypes - Дополнительные типы для исключения (из btconfig)
  * @param onProgress - Callback для отображения прогресса (fetched, total)
- * @returns Массив объектов с полным XML
+ * @returns PullResult: fetched, deleted, filteredByTypeCount
  */
 export async function pullAllObjects(
   evaluator: Evaluator,
   sinceDate: string,
+  excludeTypes: string[] = [],
   onProgress?: (fetched: number, total: number) => void,
-): Promise<FetchedObject[]> {
+): Promise<PullResult> {
   const records = await listModifiedObjects(evaluator, sinceDate);
 
-  if (records.length === 0) return [];
+  if (records.length === 0) return { fetched: [], deleted: [], filteredByTypeCount: 0 };
 
-  const results: FetchedObject[] = [];
+  // 1. Filter by type BEFORE fetch
+  const excludeSet = new Set([...DEFAULT_EXCLUDE_TYPES, ...excludeTypes]);
+  const accepted: SpxmlObjectRecord[] = [];
+  let filteredByTypeCount = 0;
 
-  for (let i = 0; i < records.length; i++) {
-    const record = records[i];
+  for (const record of records) {
+    if (excludeSet.has(record.form)) {
+      filteredByTypeCount++;
+    } else {
+      accepted.push(record);
+    }
+  }
+
+  // 2. Separate deleted from live
+  const deleted: SpxmlObjectRecord[] = [];
+  const toFetch: SpxmlObjectRecord[] = [];
+
+  for (const record of accepted) {
+    if (record.is_deleted) {
+      deleted.push(record);
+    } else {
+      toFetch.push(record);
+    }
+  }
+
+  // 3. Fetch only live objects
+  const fetched: FetchedObject[] = [];
+
+  for (let i = 0; i < toFetch.length; i++) {
+    const record = toFetch[i];
 
     try {
       const xml = await fetchObjectXml(evaluator, record.id);
-      results.push({ record, xml });
+      fetched.push({ record, xml });
     } catch (err) {
       logger.warning(`Failed to fetch object ${record.id} (${record.form}): ${err}`);
     }
 
-    onProgress?.(i + 1, records.length);
+    onProgress?.(i + 1, toFetch.length);
   }
 
-  return results;
+  return { fetched, deleted, filteredByTypeCount };
 }
