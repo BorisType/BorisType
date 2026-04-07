@@ -14,8 +14,6 @@ const BASE_PARSER_OPTIONS = {
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
   parseTagValue: false,
-  format: true,
-  indentBy: "\t",
   processEntities: true,
   htmlEntities: true,
   cdataPropName: "__cdata",
@@ -25,7 +23,6 @@ const BASE_PARSER_OPTIONS = {
 const BASE_BUILDER_OPTIONS = {
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
-  parseTagValue: false,
   format: true,
   indentBy: "\t",
   processEntities: true,
