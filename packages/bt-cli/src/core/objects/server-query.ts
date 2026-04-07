@@ -93,12 +93,20 @@ export async function listModifiedObjects(evaluator: Evaluator, sinceDate: strin
  * @param objectId - ID объекта
  * @returns XML-строка документа
  */
-export async function fetchObjectXml(evaluator: Evaluator, objectId: string): Promise<string> {
+/**
+ * Результат fetch одного объекта: XML + FormUrl.
+ */
+type FetchResult = {
+  xml: string;
+  form: string;
+};
+
+export async function fetchObjectXml(evaluator: Evaluator, objectId: string): Promise<FetchResult> {
   const template = loadTemplate("objects_fetch.bs");
   const script = renderTemplate(template, { object_id: objectId });
 
   const raw = await evaluator.eval(script);
-  return parseServerResponse<string>(raw, `objects_fetch ${objectId}`);
+  return parseServerResponse<FetchResult>(raw, `objects_fetch ${objectId}`);
 }
 
 // ─── Pull Pipeline ──────────────────────────────────────────────
@@ -169,8 +177,8 @@ export async function pullAllObjects(
     const record = toFetch[i];
 
     try {
-      const xml = await fetchObjectXml(evaluator, record.id);
-      fetched.push({ record, xml });
+      const { xml, form } = await fetchObjectXml(evaluator, record.id);
+      fetched.push({ record, xml, form });
     } catch (err) {
       logger.warning(`Failed to fetch object ${record.id} (${record.form}): ${err}`);
     }

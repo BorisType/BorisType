@@ -10,10 +10,12 @@ try {
   RegisterCodeLibrary("./destructuring.js");
   RegisterCodeLibrary("./require.js");
   RegisterCodeLibrary("./cache.js");
+  RegisterCodeLibrary("./objects.js");
 
   bt.init_polyfill();
   bt.init_require();
   bt.init_cache();
+  bt.init_objects();
 
   LogEvent(LOG_CODE, "INFO:     bt:runtime module registration success");
   alert("[bt:runtime]  INFO:      bt:runtime module registration success");

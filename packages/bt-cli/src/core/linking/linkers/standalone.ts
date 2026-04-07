@@ -65,6 +65,13 @@ export const standaloneLinker: PackageLinker = {
       });
     }
 
+    // 2.5. Копируем objects/ (ВРЕМЕННО: до рефакторинга линковки всего содержимого пакета)
+    const objectsDir = path.join(projectPath, "objects");
+    if (fs.existsSync(objectsDir)) {
+      copyRecursive(objectsDir, path.join(fullTargetPath, "objects"));
+      logger.success(`  ├─ Copied objects/`);
+    }
+
     // 3. Создаём init.xml (только если его нет в build/)
     const mainFile = packageJson.main;
     const initXmlPath = path.join(fullTargetPath, "init.xml");

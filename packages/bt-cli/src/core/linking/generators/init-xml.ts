@@ -28,7 +28,7 @@ export function buildInitXml(mainFile: string, rootUrl: string): string {
     "SPXML-INLINE-FORM": {
       OnInit: {
         "@_PROPERTY": "1",
-        "@_EXPR": `\n    bt.require('${mainFile}', '${rootUrl}')\n  `,
+        "@_EXPR": `\n    bt.loadObjects('${rootUrl}/objects');\n    bt.require('${mainFile}', '${rootUrl}');\n  `,
       },
     },
   };

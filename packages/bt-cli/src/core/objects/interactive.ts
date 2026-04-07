@@ -44,7 +44,13 @@ export type PromptSelectionOptions = {
  * Минимальные ширины колонок (символов).
  * Если терминал широкий — колонки растягиваются пропорционально.
  */
-const MIN_COL = { id: 16, code: 12, name: 20, type: 14, modified: 20, status: 10 } as const;
+const MIN_COL = { id: 19, code: 12, name: 20, type: 14, modified: 20, status: 10 } as const;
+
+/**
+ * Максимальные ширины колонок (символов).
+ * Колонки не растягиваются шире этого значения.
+ */
+const MAX_COL = { id: 19 } as const;
 
 /**
  * Пропорции колонок для распределения свободного места.
@@ -68,7 +74,7 @@ function computeColWidths(): Record<string, number> {
   const extra = (key: keyof typeof COL_WEIGHT) => (totalWeight > 0 ? Math.floor((available * COL_WEIGHT[key]) / totalWeight) : 0);
 
   return {
-    id: MIN_COL.id + extra("id"),
+    id: Math.min(MIN_COL.id + extra("id"), MAX_COL.id),
     code: MIN_COL.code + extra("code"),
     name: MIN_COL.name + extra("name"),
     type: MIN_COL.type + extra("type"),

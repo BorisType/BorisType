@@ -54,6 +54,7 @@ function processOneObject(
     return {
       metadata,
       xml: fetched.xml,
+      form: fetched.form,
       normalizedXml: normalizedRemote,
       status: "new",
       ownership,
@@ -84,6 +85,7 @@ function processOneObject(
   return {
     metadata,
     xml: fetched.xml,
+    form: fetched.form,
     normalizedXml: normalizedRemote,
     status,
     ownership,

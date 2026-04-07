@@ -29,6 +29,8 @@ export type FetchedObject = {
   record: SpxmlObjectRecord;
   /** Полный XML документа */
   xml: string;
+  /** FormUrl документа (из doc.FormUrl на сервере) */
+  form: string;
 };
 
 // ─── Client Processing Types (Phase 3) ─────────────────────────
@@ -61,6 +63,8 @@ export type ObjectChange = {
   metadata: ObjectMetadata;
   /** Полный XML (уже скачан) */
   xml: string;
+  /** FormUrl документа (из doc.FormUrl на сервере) */
+  form: string;
   /** Нормализованный XML для сравнения (volatile fields stripped) */
   normalizedXml: string;
   /** Статус изменения */

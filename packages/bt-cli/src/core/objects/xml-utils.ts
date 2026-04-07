@@ -7,25 +7,8 @@
  */
 
 import * as crypto from "node:crypto";
-import { XMLParser, XMLBuilder } from "fast-xml-parser";
+import { xmlParser, xmlBuilderKeepEmpty } from "../utils/xml.js";
 import type { FetchedObject, ObjectMetadata } from "./types.js";
-
-// ─── XML Parser/Builder ─────────────────────────────────────────
-
-const parser = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: "@_",
-  parseTagValue: false,
-  trimValues: true,
-});
-
-const builder = new XMLBuilder({
-  ignoreAttributes: false,
-  attributeNamePrefix: "@_",
-  format: true,
-  indentBy: "\t",
-  suppressEmptyNode: false,
-});
 
 // ─── Volatile Fields ────────────────────────────────────────────
 
@@ -44,7 +27,7 @@ const VOLATILE_FIELDS = new Set(["doc_info", "last_run_date", "last_run_result",
  * @returns Извлечённые метаданные
  */
 export function extractMetadata(fetched: FetchedObject): ObjectMetadata {
-  const parsed = parser.parse(fetched.xml);
+  const parsed = xmlParser.parse(fetched.xml);
 
   const rootKey = Object.keys(parsed).find((k) => k !== "?xml");
   const root = rootKey ? parsed[rootKey] : parsed;
@@ -90,14 +73,14 @@ function stripVolatileFields(obj: Record<string, unknown>): Record<string, unkno
  * @returns Нормализованная XML-строка
  */
 export function normalizeXmlForComparison(xml: string): string {
-  const parsed = parser.parse(xml);
+  const parsed = xmlParser.parse(xml);
 
   const rootKey = Object.keys(parsed).find((k) => k !== "?xml");
   if (!rootKey) return xml;
 
   parsed[rootKey] = stripVolatileFields(parsed[rootKey]);
 
-  return builder.build(parsed);
+  return xmlBuilderKeepEmpty.build(parsed);
 }
 
 // ─── Hashing ────────────────────────────────────────────────────

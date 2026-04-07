@@ -8,26 +8,11 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { XMLParser, XMLBuilder } from "fast-xml-parser";
 import { logger } from "../logger.js";
+import { xmlParser, xmlBuilderKeepEmpty } from "../utils/xml.js";
 import type { SelectedObject, WrittenFile, DeletedObject } from "./types.js";
 
 // ─── XML Normalization for Storage ──────────────────────────────
-
-const parser = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: "@_",
-  parseTagValue: false,
-  trimValues: true,
-});
-
-const builder = new XMLBuilder({
-  ignoreAttributes: false,
-  attributeNamePrefix: "@_",
-  format: true,
-  indentBy: "\t",
-  suppressEmptyNode: false,
-});
 
 /**
  * Нормализует XML для записи в файл.
@@ -45,8 +30,8 @@ const builder = new XMLBuilder({
  * @param objectId - ID объекта (для ensure <id>)
  * @returns Нормализованный XML для записи
  */
-export function normalizeXmlForStorage(xml: string, objectId: string): string {
-  const parsed = parser.parse(xml);
+export function normalizeXmlForStorage(xml: string, objectId: string, form?: string): string {
+  const parsed = xmlParser.parse(xml);
   const rootKey = Object.keys(parsed).find((k) => k !== "?xml");
 
   if (rootKey) {
@@ -55,6 +40,11 @@ export function normalizeXmlForStorage(xml: string, objectId: string): string {
     // Ensure <id> tag
     if (!root.id) {
       root.id = objectId;
+    }
+
+    // Inject SPXML-FORM attribute for persist
+    if (form) {
+      root["@_SPXML-FORM"] = form;
     }
   }
 
@@ -68,7 +58,7 @@ export function normalizeXmlForStorage(xml: string, objectId: string): string {
     }
   }
 
-  return builder.build(ordered);
+  return xmlBuilderKeepEmpty.build(ordered);
 }
 
 // ─── File Writing ───────────────────────────────────────────────
@@ -89,8 +79,8 @@ export function writeObjectFiles(cwd: string, selected: SelectedObject[]): Writt
   const written: WrittenFile[] = [];
 
   for (const { change, targetPackage } of selected) {
-    const { metadata, xml } = change;
-    const normalizedXml = normalizeXmlForStorage(xml, metadata.id);
+    const { metadata, xml, form } = change;
+    const normalizedXml = normalizeXmlForStorage(xml, metadata.id, form);
 
     const relativePath = path.join(targetPackage, "objects", metadata.type, `${metadata.id}.xml`);
     const absolutePath = path.join(cwd, relativePath);

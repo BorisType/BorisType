@@ -12,10 +12,12 @@ export function init() {
     RegisterCodeLibrary("../destructuring.js");
     RegisterCodeLibrary("../require.js");
     RegisterCodeLibrary("../cache.js");
+    RegisterCodeLibrary("../objects.js");
 
     bt.init_polyfill();
     bt.init_require();
     bt.init_cache();
+    bt.init_objects();
 
     alert("Component bt-runtime initialized");
     LogEvent(LOG_CODE, "INFO:     bt-runtime component registration success");

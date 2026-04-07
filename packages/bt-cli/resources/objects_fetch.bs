@@ -10,7 +10,7 @@
 
 try {
   var doc = tools.open_doc("{{object_id}}");
-  return tools.object_to_text({ error: false, data: doc.TopElem.Xml }, 'json');
+  return tools.object_to_text({ error: false, data: { xml: doc.TopElem.Xml, form : doc.FormUrl } }, 'json');
 } catch (err) {
   return tools.object_to_text({ error: true, message: (err + "") }, 'json');
 }

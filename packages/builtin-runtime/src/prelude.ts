@@ -3,12 +3,16 @@ import * as MathPolyfill from "./polyfill/Math";
 import * as ObjectPolyfill from "./polyfill/Object";
 import * as StringPolyfill from "./polyfill/String";
 import * as cache from "./cache/index";
+import * as Log from "./log";
+import * as objects from "./objects";
 
 export type TArray = typeof ArrayPolyfill;
 export type TMath = typeof MathPolyfill;
 export type TObject = typeof ObjectPolyfill;
 export type TString = typeof StringPolyfill;
 export type TCache = typeof cache;
+export type TLog = typeof Log;
+export type TObjects = typeof objects;
 
 export type Polyfill = {
   Array: TArray;
@@ -17,10 +21,11 @@ export type Polyfill = {
   String: TString;
 };
 
-export type BtType = {
-  init_polyfill: () => void;
-  init_require: () => void;
-  init_cache: () => void;
-};
+export type BtType = TObjects["bt"] &
+  TLog["bt"] & {
+    init_polyfill: () => void;
+    init_require: () => void;
+    init_cache: () => void;
+  };
 
 export declare const bt: BtType;

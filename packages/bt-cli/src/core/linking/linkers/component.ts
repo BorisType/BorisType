@@ -70,6 +70,13 @@ export const componentLinker: PackageLinker = {
       });
     }
 
+    // 2.5. Копируем objects/ (ВРЕМЕННО: до рефакторинга линковки всего содержимого пакета)
+    const objectsDir = path.join(projectPath, "objects");
+    if (fs.existsSync(objectsDir)) {
+      copyRecursive(objectsDir, path.join(fullTargetPath, "objects"));
+      logger.success(`  ├─ Copied objects/`);
+    }
+
     // 3. Проверяем существование spxml файлов
     const spxmlDir = path.join(fullTargetPath, "spxml");
     const xmlPath = path.join(spxmlDir, `${componentName}.xml`);
