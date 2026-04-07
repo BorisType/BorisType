@@ -40,7 +40,7 @@ export function extractMetadata(fetched: FetchedObject): ObjectMetadata {
     code: String(root?.code ?? ""),
     name: String(root?.name ?? ""),
     modifiedDate: fetched.record.modified,
-    modificationAuthor: String(docInfo?.modification_author_login ?? ""),
+    modificationAuthor: String(docInfo?.modification?.user_login ?? ""),
   };
 }
 
