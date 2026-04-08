@@ -10,6 +10,7 @@
 
 try {
   var query = "sql:SELECT * FROM dbo.[(spxml_objects)] so WHERE so.modified >= CAST('{{since_date}}' AS DATETIME) ORDER BY so.modified DESC";
+  alert("Executing query: " + query);
   var objects = ArraySelectAll(tools.xquery(query));
   var result = ArrayExtract(objects, "return { 'id': This.id.Value, 'form': This.form.Value, 'is_deleted': This.is_deleted.Value, 'modified': This.modified.Value }");
   return tools.object_to_text({ error: false, data: result }, 'json');

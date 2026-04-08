@@ -188,3 +188,18 @@ export async function pullAllObjects(
 
   return { fetched, deleted, filteredByTypeCount };
 }
+
+// ─── Server Time ────────────────────────────────────────────────
+
+/**
+ * Получает текущее время сервера в формате ISO 8601.
+ * Используется для корректного lastSync (серверное время для SQL запросов).
+ *
+ * @param evaluator - Evaluator для выполнения кода на сервере
+ * @returns ISO 8601 дата с таймзоной (например "2026-04-08T21:16:53+00:00")
+ */
+export async function getServerTime(evaluator: Evaluator): Promise<string> {
+  const script = loadTemplate("get_datetime.bs");
+  const raw = await evaluator.eval(script);
+  return parseServerResponse<string>(raw, "get_datetime");
+}

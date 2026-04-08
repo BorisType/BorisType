@@ -68,7 +68,7 @@ export type ObjectChange = {
   /** Нормализованный XML для сравнения (volatile fields stripped) */
   normalizedXml: string;
   /** Статус изменения */
-  status: "new" | "modified" | "unchanged";
+  status: "new" | "modified" | "unchanged" | "deleted";
   /** "ours" = автор совпадает с username, "theirs" = чужой */
   ownership: "ours" | "theirs";
   /** Пакет, в котором объект уже существует (null для new) */
@@ -89,8 +89,8 @@ export type ChangeSet = {
   changes: ObjectChange[];
   /** Объекты без реальных изменений (unchanged после hash compare) */
   unchanged: ObjectChange[];
-  /** Удалённые объекты, которые существуют локально */
-  deleted: DeletedObject[];
+  /** Удалённые объекты, которые существуют локально (status: "deleted") */
+  deleted: ObjectChange[];
   /** Количество объектов отфильтрованных по типу (excluded до fetch) */
   filteredByTypeCount: number;
   /** Доступные пакеты для назначения */

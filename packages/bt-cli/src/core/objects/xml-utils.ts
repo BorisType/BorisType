@@ -44,6 +44,34 @@ export function extractMetadata(fetched: FetchedObject): ObjectMetadata {
   };
 }
 
+/**
+ * Извлекает метаданные из локального XML файла.
+ * Используется для удалённых объектов, когда серверные данные недоступны.
+ * Тип определяется по имени корневого элемента XML.
+ *
+ * @param xml - Содержимое локального XML файла
+ * @param objectId - ID объекта
+ * @returns Извлечённые метаданные (поля могут быть пустыми)
+ */
+export function extractMetadataFromLocalXml(xml: string, objectId: string): ObjectMetadata {
+  const parsed = xmlParser.parse(xml);
+
+  const rootKey = Object.keys(parsed).find((k) => k !== "?xml");
+  const root = rootKey ? parsed[rootKey] : parsed;
+
+  const docInfo = root?.doc_info ?? {};
+  const modDate = docInfo?.modification?.date ?? "";
+
+  return {
+    id: objectId,
+    type: rootKey ?? "",
+    code: String(root?.code ?? ""),
+    name: String(root?.name ?? ""),
+    modifiedDate: String(modDate),
+    modificationAuthor: String(docInfo?.modification?.user_login ?? ""),
+  };
+}
+
 // ─── XML Normalization ──────────────────────────────────────────
 
 /**
@@ -75,10 +103,17 @@ function stripVolatileFields(obj: Record<string, unknown>): Record<string, unkno
 export function normalizeXmlForComparison(xml: string): string {
   const parsed = xmlParser.parse(xml);
 
+  // Strip ?xml declaration (local has it, remote doesn't)
+  delete parsed["?xml"];
+
   const rootKey = Object.keys(parsed).find((k) => k !== "?xml");
   if (!rootKey) return xml;
 
+  // Strip volatile fields
   parsed[rootKey] = stripVolatileFields(parsed[rootKey]);
+
+  // Strip SPXML-FORM attribute (added by normalizeXmlForStorage, absent in remote)
+  delete parsed[rootKey]["@_SPXML-FORM"];
 
   return xmlBuilderKeepEmpty.build(parsed);
 }

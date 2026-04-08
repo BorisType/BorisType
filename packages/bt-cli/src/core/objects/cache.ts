@@ -52,16 +52,18 @@ export function loadObjectsCache(cwd: string): ObjectsCache | null {
  * @param written - Записанные файлы (из file-writer)
  * @param typeMap - Маппинг objectId → type (из ObjectChange.metadata)
  * @param packageMap - Маппинг objectId → targetPackage (из SelectedObject)
+ * @param serverTime - Текущее время сервера (ISO 8601) для lastSync
  */
 export function updateObjectsCache(
   cwd: string,
   written: WrittenFile[],
   typeMap: Record<string, string>,
   packageMap: Record<string, string>,
+  serverTime: string,
 ): void {
   const existing = loadObjectsCache(cwd) ?? { lastSync: "", objects: {} };
 
-  existing.lastSync = new Date().toISOString();
+  existing.lastSync = new Date(serverTime).toISOString();
 
   for (const w of written) {
     existing.objects[w.objectId] = {

@@ -1,0 +1,12 @@
+// get_datetime.bs
+//
+// Возвращает текущую дату и время сервера в формате ISO 8601.
+// Вход: нет
+// Выход: строка даты (например "2026-04-08T21:16:53+00:00")
+
+try {
+  var date = StrXmlDate(Date());
+  return tools.object_to_text({ error: false, data: date }, 'json');
+} catch (err) {
+  return tools.object_to_text({ error: true, message: (err + "") }, 'json');
+}

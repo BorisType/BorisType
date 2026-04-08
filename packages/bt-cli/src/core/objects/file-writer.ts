@@ -10,7 +10,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { logger } from "../logger.js";
 import { xmlParser, xmlBuilderKeepEmpty } from "../utils/xml.js";
-import type { SelectedObject, WrittenFile, DeletedObject } from "./types.js";
+import type { SelectedObject, WrittenFile, ObjectChange } from "./types.js";
 
 // ─── XML Normalization for Storage ──────────────────────────────
 
@@ -110,16 +110,17 @@ export function writeObjectFiles(cwd: string, selected: SelectedObject[]): Writt
  * содержащий ID удалённых объектов для очистки на сервере.
  *
  * @param cwd - Рабочая директория проекта
- * @param deleted - Удалённые объекты (существующие локально)
+ * @param deletedChanges - ObjectChange записи со статусом "deleted" (подтверждённые пользователем)
  * @returns Количество удалённых файлов
  */
-export function deleteObjectFiles(cwd: string, deleted: DeletedObject[]): number {
-  if (deleted.length === 0) return 0;
+export function deleteObjectFiles(cwd: string, deletedChanges: ObjectChange[]): number {
+  if (deletedChanges.length === 0) return 0;
 
   // 1. Удалить XML-файлы
-  for (const obj of deleted) {
+  for (const change of deletedChanges) {
+    if (!change.existingPath) continue;
     try {
-      fs.unlinkSync(obj.filePath);
+      fs.unlinkSync(change.existingPath);
     } catch {
       // Файл уже удалён — не ошибка
     }
@@ -127,10 +128,11 @@ export function deleteObjectFiles(cwd: string, deleted: DeletedObject[]): number
 
   // 2. Сгруппировать по пакету
   const byPackage = new Map<string, string[]>();
-  for (const obj of deleted) {
-    const ids = byPackage.get(obj.packageName) ?? [];
-    ids.push(obj.record.id);
-    byPackage.set(obj.packageName, ids);
+  for (const change of deletedChanges) {
+    if (!change.existingPackage) continue;
+    const ids = byPackage.get(change.existingPackage) ?? [];
+    ids.push(change.metadata.id);
+    byPackage.set(change.existingPackage, ids);
   }
 
   // 3. Обновить deleted.xml в каждом пакете
@@ -138,7 +140,7 @@ export function deleteObjectFiles(cwd: string, deleted: DeletedObject[]): number
     updateDeletedXml(cwd, pkg, newIds);
   }
 
-  return deleted.length;
+  return deletedChanges.length;
 }
 
 /**

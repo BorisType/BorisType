@@ -10,9 +10,9 @@
  */
 
 import * as fs from "node:fs";
-import type { FetchedObject, SpxmlObjectRecord, ObjectChange, ObjectMetadata, ChangeSet, DeletedObject } from "./types.js";
+import type { FetchedObject, SpxmlObjectRecord, ObjectChange, ObjectMetadata, ChangeSet } from "./types.js";
 import { buildLocalObjectIndex } from "./local-index.js";
-import { extractMetadata, normalizeXmlForComparison, computeHash, classifyOwnership } from "./xml-utils.js";
+import { extractMetadata, extractMetadataFromLocalXml, normalizeXmlForComparison, computeHash, classifyOwnership } from "./xml-utils.js";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -99,27 +99,54 @@ function processOneObject(
 // ─── Deleted Objects ────────────────────────────────────────────
 
 /**
- * Находит удалённые объекты, которые существуют локально.
+ * Находит удалённые объекты, которые существуют локально, и строит ObjectChange.
+ * Метаданные извлекаются из локального XML файла.
  *
  * @param deletedRecords - Записи с is_deleted != null из server list
  * @param localIndex - Локальный индекс объектов
- * @returns Массив DeletedObject для удаления
+ * @param username - Имя пользователя для ownership classification
+ * @returns Массив ObjectChange со статусом "deleted"
  */
-function findLocalDeletedObjects(
+function buildDeletedChanges(
   deletedRecords: SpxmlObjectRecord[],
   localIndex: ReturnType<typeof buildLocalObjectIndex>,
-): DeletedObject[] {
-  const result: DeletedObject[] = [];
+  username: string,
+): ObjectChange[] {
+  const result: ObjectChange[] = [];
 
   for (const record of deletedRecords) {
     const localEntry = localIndex[record.id];
-    if (localEntry) {
-      result.push({
-        record,
-        packageName: localEntry.packageName,
-        filePath: localEntry.filePath,
-      });
+    if (!localEntry) continue;
+
+    let metadata: ObjectMetadata;
+    try {
+      const localXml = fs.readFileSync(localEntry.filePath, "utf-8");
+      metadata = extractMetadataFromLocalXml(localXml, record.id);
+    } catch {
+      metadata = {
+        id: record.id,
+        type: record.form,
+        code: "",
+        name: "",
+        modifiedDate: "",
+        modificationAuthor: "",
+      };
     }
+
+    const ownership = classifyOwnership(metadata, username);
+
+    result.push({
+      metadata,
+      xml: "",
+      form: "",
+      normalizedXml: "",
+      status: "deleted",
+      ownership,
+      existingPackage: localEntry.packageName,
+      existingPath: localEntry.filePath,
+      remoteHash: "",
+      localHash: null,
+    });
   }
 
   return result;
@@ -160,13 +187,14 @@ export function processObjects(fetched: FetchedObject[], options: ProcessObjects
     }
   }
 
-  // 3. Find deleted objects that exist locally
-  const deleted = findLocalDeletedObjects(options.deletedRecords ?? [], localIndex);
+  // 3. Build ObjectChange entries for deleted objects (from local XML)
+  const deletedChanges = buildDeletedChanges(options.deletedRecords ?? [], localIndex, options.username);
+  changes.push(...deletedChanges);
 
   return {
     changes,
     unchanged,
-    deleted,
+    deleted: deletedChanges,
     filteredByTypeCount: options.filteredByTypeCount ?? 0,
     availablePackages: options.packages,
   };

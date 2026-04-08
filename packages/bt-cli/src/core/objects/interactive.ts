@@ -8,6 +8,7 @@
  */
 
 import { checkbox, select } from "@inquirer/prompts";
+import util from "node:util";
 import { logger } from "../logger.js";
 import type { ChangeSet, ObjectChange, SelectedObject, SelectionResult } from "./types.js";
 
@@ -24,6 +25,41 @@ function isPromptCancelled(err: unknown): boolean {
     return err.name === "ExitPromptError" || err.message.includes("User force closed");
   }
   return false;
+}
+
+/**
+ * Применяет ANSI-цвет к строке через `util.styleText`.
+ * На Node < 21.7 возвращает строку без изменений.
+ *
+ * @param color - Имя цвета (из util.styleText)
+ * @param text - Текст для окраски
+ * @returns Окрашенная строка
+ */
+function colorize(color: string, text: string): string {
+  try {
+    return (util.styleText as Function)(color, text);
+  } catch {
+    return text;
+  }
+}
+
+/**
+ * Возвращает цвет для статуса изменения.
+ *
+ * @param status - Статус объекта
+ * @returns Имя цвета для util.styleText
+ */
+function statusColor(status: ObjectChange["status"]): string {
+  switch (status) {
+    case "new":
+      return "green";
+    case "modified":
+      return "blue";
+    case "deleted":
+      return "red";
+    default:
+      return "white";
+  }
 }
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -138,15 +174,16 @@ function formatDate(dateStr: string): string {
 export function printSummary(changeSet: ChangeSet, totalFetched: number): void {
   const newCount = changeSet.changes.filter((c) => c.status === "new").length;
   const modifiedCount = changeSet.changes.filter((c) => c.status === "modified").length;
+  const deletedCount = changeSet.changes.filter((c) => c.status === "deleted").length;
 
   console.log();
   logger.info(`Fetched ${totalFetched} objects from server.`);
   logger.info(`  Filtered by type: ${changeSet.filteredByTypeCount} excluded`);
   logger.info(`  Unchanged (volatile fields only): ${changeSet.unchanged.length}`);
-  if (changeSet.deleted.length > 0) {
-    logger.info(`  Deleted on server: ${changeSet.deleted.length} (will remove local files)`);
+  if (deletedCount > 0) {
+    logger.info(`  Deleted on server: ${deletedCount} (local files found)`);
   }
-  logger.info(`  Real changes: ${changeSet.changes.length} (${newCount} new, ${modifiedCount} modified)`);
+  logger.info(`  Real changes: ${changeSet.changes.length} (${newCount} new, ${modifiedCount} modified, ${deletedCount} deleted)`);
   console.log();
 }
 
@@ -167,11 +204,13 @@ function formatChangeLabel(change: ObjectChange, w: Record<string, number>): str
   const code = col(change.metadata.code || "—", w.code);
   const name = col(change.metadata.name || "—", w.name);
   const type = col(change.metadata.type, w.type);
-  const date = col(formatDate(change.metadata.modifiedDate), w.modified);
+  const date = col(change.metadata.modifiedDate ? formatDate(change.metadata.modifiedDate) : "—", w.modified);
   const status = col(change.status, w.status);
   const pkg = change.existingPackage ?? "—";
 
-  return `${star} ${id} ${code} ${name} ${type} ${date} ${status} ${pkg}`;
+  const color = statusColor(change.status);
+  const line = `${star} ${id} ${code} ${name} ${type} ${date} ${status} ${pkg}`;
+  return colorize(color, line);
 }
 
 /**
@@ -228,7 +267,7 @@ async function selectObjectsInteractive(changeSet: ChangeSet): Promise<Selection
   const choices = changeSet.changes.map((change) => ({
     name: formatChangeLabel(change, w),
     value: change,
-    checked: change.ownership === "ours",
+    checked: change.ownership === "ours" || change.status === "deleted",
   }));
 
   let selected: ObjectChange[];
@@ -327,7 +366,7 @@ function selectObjectsAll(changeSet: ChangeSet, defaultPackage?: string): Select
   const skipped: ObjectChange[] = [];
 
   for (const change of changeSet.changes) {
-    if (change.ownership === "ours") {
+    if (change.status === "deleted" || change.ownership === "ours") {
       const pkg = change.existingPackage ?? targetPackage;
       selected.push({ change, targetPackage: pkg });
     } else {

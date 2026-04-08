@@ -14,7 +14,7 @@ import { logger } from "../../core/logger.js";
 import { getBTConfig } from "../../core/config.js";
 import { resolvePackagesToLink } from "../../core/linking/index.js";
 import { resolvePushConnectionOptions } from "../../core/pushing/index.js";
-import { pullAllObjects } from "../../core/objects/server-query.js";
+import { pullAllObjects, getServerTime } from "../../core/objects/server-query.js";
 import { processObjects } from "../../core/objects/processing.js";
 import { promptObjectSelection } from "../../core/objects/interactive.js";
 import { writeObjectFiles, deleteObjectFiles, printWriteSummary } from "../../core/objects/file-writer.js";
@@ -83,28 +83,38 @@ function getGitCommitDate(cwd: string, ref: string = "HEAD"): string {
  * - 7-40 hex символов → git commit hash → дата этого коммита
  * - Всё остальное → ISO 8601 дата как есть
  *
+ * Если передан `offsetMs`, результат сдвигается на эту величину
+ * (приводит клиентское время к серверному).
+ *
  * @param value - Значение из CLI
  * @param cwd - Рабочая директория
+ * @param offsetMs - Разница серверного и клиентского времени в мс (server - client)
  * @returns ISO 8601 дата
  */
-function resolveSinceValue(value: string, cwd: string): string {
+function resolveSinceValue(value: string, cwd: string, offsetMs: number = 0): string {
+  let date: Date | null = null;
+
   if (value === "today") {
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    return today.toISOString();
-  }
-
-  if (value === "git") {
+    date = new Date();
+    date.setUTCHours(0, 0, 0, 0);
+  } else if (value === "git") {
     return getGitCommitDate(cwd);
-  }
-
-  // Git commit hash (7-40 hex chars)
-  if (/^[0-9a-f]{7,40}$/i.test(value)) {
+  } else if (/^[0-9a-f]{7,40}$/i.test(value)) {
+    // Git commit hash (7-40 hex chars)
     return getGitCommitDate(cwd, value);
+  } else {
+    // ISO 8601 date — may be user-provided (client time) or cached (server time)
+    date = new Date(value);
+    if (isNaN(date.getTime())) {
+      return value; // Unparseable, pass as-is
+    }
   }
 
-  // ISO 8601 date as-is
-  return value;
+  if (date && offsetMs !== 0) {
+    date = new Date(date.getTime() + offsetMs);
+  }
+
+  return date ? date.toISOString() : value;
 }
 
 // ─── Shared Pipeline ────────────────────────────────────────────
@@ -115,8 +125,14 @@ function resolveSinceValue(value: string, cwd: string): string {
  * @param cwd - Рабочая директория
  * @param sinceDate - ISO 8601 дата начала
  * @param cliOptions - Опции CLI
+ * @param sinceIsFromCache - true если sinceDate взят из кэша (уже в серверном времени)
  */
-async function executePullPipeline(cwd: string, sinceDate: string, cliOptions: ObjectsPullCommandOptions): Promise<void> {
+async function executePullPipeline(
+  cwd: string,
+  sinceDate: string,
+  cliOptions: ObjectsPullCommandOptions,
+  sinceIsFromCache: boolean = false,
+): Promise<void> {
   const btconfig = getBTConfig(cwd);
   const connectionOptions = resolvePushConnectionOptions(cwd, cliOptions);
   const excludeTypes = btconfig?.objects?.exclude ?? [];
@@ -138,6 +154,15 @@ async function executePullPipeline(cwd: string, sinceDate: string, cliOptions: O
   await evaluator.initialize();
 
   try {
+    // Get server time and compute offset
+    const serverTime = await getServerTime(evaluator);
+    const offsetMs = Date.parse(serverTime) - Date.now();
+
+    // Adjust sinceDate to server time if it came from CLI (client time)
+    if (!sinceIsFromCache && cliOptions.since) {
+      sinceDate = resolveSinceValue(cliOptions.since, cwd, offsetMs);
+    }
+
     logger.info(`Fetching objects modified since ${sinceDate}...`);
 
     // Phase 2: list → filter by type → separate deleted → fetch live
@@ -163,31 +188,35 @@ async function executePullPipeline(cwd: string, sinceDate: string, cliOptions: O
       filteredByTypeCount: pullResult.filteredByTypeCount,
     });
 
-    // Phase 5 (deleted): Remove local files + update deleted.xml
-    const deletedCount = deleteObjectFiles(cwd, changeSet.deleted);
-
     // Phase 4: Interactive / auto selection
     const selection = await promptObjectSelection(changeSet, pullResult.fetched.length + pullResult.deleted.length, {
       all: cliOptions.all,
       assignTo: cliOptions.assignTo,
     });
 
-    if (selection.selected.length === 0 && deletedCount === 0) {
+    // Separate confirmed deletions from writes
+    const confirmedDeleted = selection.selected.filter((s) => s.change.status === "deleted").map((s) => s.change);
+    const toWrite = selection.selected.filter((s) => s.change.status !== "deleted");
+
+    if (toWrite.length === 0 && confirmedDeleted.length === 0) {
       logger.info("No objects selected. Nothing to write.");
       return;
     }
 
+    // Phase 5 (deleted): Remove confirmed deleted files + update deleted.xml
+    const deletedCount = deleteObjectFiles(cwd, confirmedDeleted);
+
     // Phase 5 (write): Write selected objects
-    const written = writeObjectFiles(cwd, selection.selected);
+    const written = writeObjectFiles(cwd, toWrite);
 
     // Update cache
     const typeMap: Record<string, string> = {};
     const packageMap: Record<string, string> = {};
-    for (const { change, targetPackage } of selection.selected) {
+    for (const { change, targetPackage } of toWrite) {
       typeMap[change.metadata.id] = change.metadata.type;
       packageMap[change.metadata.id] = targetPackage;
     }
-    updateObjectsCache(cwd, written, typeMap, packageMap);
+    updateObjectsCache(cwd, written, typeMap, packageMap, serverTime);
 
     // Summary
     printWriteSummary(written, deletedCount);
@@ -211,6 +240,7 @@ export async function objectsPullCommand(cliOptions: ObjectsPullCommandOptions =
   const cwd = process.cwd();
 
   let sinceDate: string;
+  let sinceIsFromCache = false;
 
   if (cliOptions.since) {
     sinceDate = resolveSinceValue(cliOptions.since, cwd);
@@ -226,9 +256,10 @@ export async function objectsPullCommand(cliOptions: ObjectsPullCommandOptions =
       process.exit(1);
     }
     sinceDate = cache.lastSync;
+    sinceIsFromCache = true;
   }
 
   logger.info(`Pulling objects since ${sinceDate}...`);
 
-  await executePullPipeline(cwd, sinceDate, cliOptions);
+  await executePullPipeline(cwd, sinceDate, cliOptions, sinceIsFromCache);
 }
