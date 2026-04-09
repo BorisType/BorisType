@@ -73,7 +73,7 @@ export namespace bt {
   }
 
   function openObjectFromUrl(objectUrl: string): ObjectInfo {
-    const objectData = LoadUrlText(objectUrl, { DetectContentCharset: true });
+    const objectData = LoadUrlData(objectUrl);
     const objectFields = objectDataWithoutForm(objectData);
 
     const proper = OpenDocFromStr(objectData);
@@ -253,13 +253,25 @@ export namespace bt {
       }
 
       // Только сейчас можем установить значение примитивного поля
-      if (targetField.Value !== field.Value) {
-        targetField.Value = field.Value;
+      if (setValueAndCompare(targetField, sourceField)) {
         context.changed = true;
       }
     }
 
     // возвращаем признак является ли текущее поле составным
     return isComplexField;
+  }
+
+  function setValueAndCompare(targetField: XmlElem<unknown>, sourceField: XmlElem<unknown>): boolean {
+    // const valueType = targetField.FormElem.Type;
+    const oldValue = targetField.Value;
+
+    targetField.Value = sourceField.Value;
+
+    if (targetField.Value === oldValue) {
+      return false;
+    }
+
+    return true;
   }
 }
