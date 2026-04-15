@@ -15,6 +15,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
+    "build:extension": "cd packages/vs-code-extension && pnpm build",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -38,6 +39,7 @@
     "prettier": "^3.0.0",
     "syncpack": "^13.0.4",
     "turbo": "^2.7.5",
+    "typescript": "^5.9.2",
     "typescript-eslint": "^8.0.0",
     "vitepress": "^1.6.4",
     "vue": "^3.5.27"

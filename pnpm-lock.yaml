@@ -35,6 +35,9 @@ importers:
       turbo:
         specifier: ^2.7.5
         version: 2.7.5
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
       typescript-eslint:
         specifier: ^8.0.0
         version: 8.54.0(eslint@9.39.2)(typescript@5.9.3)
