@@ -8,6 +8,13 @@ import {
   registerWriteFileTool,
   registerListDirectoryTool,
   registerDeleteFileTool,
+  registerMoveFileTool,
+  registerEditFileTool,
+  registerReadMultipleFilesTool,
+  registerCreateDirectoryTool,
+  registerSearchFilesTool,
+  registerDirectoryTreeTool,
+  registerGetFileInfoTool,
 } from "./tools/index.js";
 
 /**
@@ -37,6 +44,13 @@ export async function startServer(options: McpServerOptions): Promise<void> {
   registerWriteFileTool(server, connection);
   registerListDirectoryTool(server, connection);
   registerDeleteFileTool(server, connection);
+  registerMoveFileTool(server, connection);
+  registerEditFileTool(server, connection);
+  registerReadMultipleFilesTool(server, connection);
+  registerCreateDirectoryTool(server, connection);
+  registerSearchFilesTool(server, connection);
+  registerDirectoryTreeTool(server, connection);
+  registerGetFileInfoTool(server, connection);
 
   // Graceful shutdown
   const shutdown = async () => {

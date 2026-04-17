@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { WshcmConnection } from "../connection.js";
+import { buildScript } from "../load.js";
+
+const scriptTemplate = readFileSync(new URL("../../resources/delete-file.bs", import.meta.url), "utf-8");
 
 /**
  * Регистрирует tool `wshcm_delete_file` — удаление файла на WSHCM сервере.
@@ -19,8 +23,8 @@ export function registerDeleteFileTool(server: McpServer, connection: WshcmConne
     },
     async ({ path }) => {
       try {
-        const escapedPath = path.replace(/\\/g, "\\\\\\\\").replace(/'/g, "\\\\'");
-        await connection.evaluator.eval(`DeleteFile('${escapedPath}'); return;`);
+        const script = buildScript(scriptTemplate, { path });
+        await connection.evaluator.eval(script);
         return {
           content: [{ type: "text" as const, text: `File deleted: ${path}` }],
         };

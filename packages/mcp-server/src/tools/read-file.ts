@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { WshcmConnection } from "../connection.js";
+import { buildScript } from "../load.js";
+
+const scriptTemplate = readFileSync(new URL("../../resources/read-file.bs", import.meta.url), "utf-8");
 
 /**
  * Регистрирует tool `wshcm_read_file` — чтение файла на WSHCM сервере.
@@ -17,10 +21,8 @@ export function registerReadFileTool(server: McpServer, connection: WshcmConnect
     },
     async ({ path }) => {
       try {
-        const escapedPath = path.replace(/\\/g, "\\\\\\\\").replace(/'/g, "\\\\'");
-        const content = await connection.evaluator.eval(
-          `return tools.load_url_text_server('${escapedPath}');`,
-        );
+        const script = buildScript(scriptTemplate, { path });
+        const content = await connection.evaluator.eval(script);
         return { content: [{ type: "text" as const, text: String(content ?? "") }] };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

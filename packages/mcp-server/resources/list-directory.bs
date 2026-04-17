@@ -1,0 +1,23 @@
+// Возвращает список файлов и папок в директории.
+//
+// Параметры (через интерполяцию):
+//   ${path} — x-local:// URL директории
+//
+// Возвращает:
+//   string — JSON-массив объектов { name: string, isDirectory: boolean }
+//
+// Ошибки:
+//   Выбрасывает исключение, если директория не найдена или недоступна.
+//   Если путь указывает на файл (не директорию), ReadDirectory вернёт пустой массив.
+
+var _items = ReadDirectory('${path}');
+var _result = [];
+var _i;
+var _entry;
+for (_i in _items) {
+  _entry = {};
+  _entry.name = FileName(_i);
+  _entry.isDirectory = IsDirectory(_i);
+  _result.push(_entry);
+}
+return EncodeJson(_result);
