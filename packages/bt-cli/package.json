@@ -17,7 +17,7 @@
   "author": "punkhomov",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   },
   "repository": {
     "type": "git",
@@ -28,7 +28,11 @@
   },
   "homepage": "https://github.com/BorisType/BorisType#readme",
   "devDependencies": {
-    "@types/node": "^26.6.2"
+    "@types/node": "^24.13.6",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "typescript": "^6.0.3"
   },
   "publishConfig": {
     "access": "public"
@@ -42,7 +46,6 @@
     "chalk": "^6.0.0",
     "chokidar": "^5.0.0",
     "commander": "^15.0.0",
-    "fast-xml-parser": "^5.11.1",
-    "typescript": "^6.0.3"
+    "fast-xml-parser": "^5.11.1"
   }
 }

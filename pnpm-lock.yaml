@@ -307,8 +307,8 @@ importers:
         version: 4.23.15
     devDependencies:
       '@types/node':
-        specifier: ^26.6.2
-        version: 26.6.2
+        specifier: ^24.13.6
+        version: 24.13.6
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -342,19 +342,19 @@ importers:
       fast-xml-parser:
         specifier: ^5.11.1
         version: 5.11.1
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.6
+        version: 24.13.6
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
-    devDependencies:
-      '@types/node':
-        specifier: ^26.6.2
-        version: 26.6.2
 
   packages/bt-ir:
     devDependencies:
       '@types/node':
-        specifier: ^26.6.2
-        version: 26.6.2
+        specifier: ^24.13.6
+        version: 24.13.6
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -386,8 +386,8 @@ importers:
         specifier: ^9.6.1
         version: 9.6.1
       '@types/node':
-        specifier: ^26.6.2
-        version: 26.6.2
+        specifier: ^24.13.6
+        version: 24.13.6
       '@typescript-eslint/parser':
         specifier: ^8.70.1
         version: 8.70.1(eslint@10.11.0)(typescript@6.0.3)
@@ -405,8 +405,8 @@ importers:
         version: 5.11.1
     devDependencies:
       '@types/node':
-        specifier: ^26.6.2
-        version: 26.6.2
+        specifier: ^24.13.6
+        version: 24.13.6
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -418,8 +418,8 @@ importers:
         version: 7.8.5
     devDependencies:
       '@types/node':
-        specifier: ^26.6.2
-        version: 26.6.2
+        specifier: ^24.13.6
+        version: 24.13.6
       '@types/semver':
         specifier: ^7.8.0
         version: 7.8.0
@@ -1271,6 +1271,9 @@ packages:
 
   '@types/mdurl@2.0.0':
     resolution: {integrity: sha512-RGdgjQUZba5p6QEFAVx2OGb8rQDL/cPRG7GiedRzMcJ1tYnUANBncjbSB1NRGwbvjcPeikRABz2nshyPk1bhWg==}
+
+  '@types/node@24.13.6':
+    resolution: {integrity: sha512-SGrw/h3KPFshy3OE6ZL53LMBG5vGQQ8/gIpiqz/kRZhPJ7HgwCEs8LBuNtWLa8dvGZVpSF7+Bf+c11HUrCb/yg==}
 
   '@types/node@26.6.2':
     resolution: {integrity: sha512-X1P21scMv4zGKLYqjdGjaKa7COa0RKVYYZZN/NfvLQ1JegxFhdhpZG/Lyn8AXx6CDUavKAd11v6BvfpkDByK8g==}
@@ -2194,6 +2197,9 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  undici-types@7.18.2:
+    resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
+
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
@@ -3002,6 +3008,10 @@ snapshots:
       '@types/unist': 3.0.3
 
   '@types/mdurl@2.0.0': {}
+
+  '@types/node@24.13.6':
+    dependencies:
+      undici-types: 7.18.2
 
   '@types/node@26.6.2':
     dependencies:
@@ -4039,6 +4049,8 @@ snapshots:
       - supports-color
 
   typescript@6.0.3: {}
+
+  undici-types@7.18.2: {}
 
   undici-types@8.9.0: {}
 
