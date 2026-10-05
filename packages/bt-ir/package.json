@@ -37,13 +37,13 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/node": "^24.7.2",
-    "typescript": "^5.9.2"
+    "@types/node": "^24.13.6",
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "typescript": "^5.9.2"
+    "typescript": "^6.0.3"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   }
 }

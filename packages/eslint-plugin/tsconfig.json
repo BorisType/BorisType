@@ -3,8 +3,6 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./build",
-    "module": "CommonJS",
-    "moduleResolution": "node",
     "esModuleInterop": true,
     "allowImportingTsExtensions": false,
     "rewriteRelativeImportExtensions": false

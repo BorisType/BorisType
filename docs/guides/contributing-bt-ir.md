@@ -46,6 +46,6 @@ TS Source → Scope Analyzer → IR Lowering → [Passes] → BT Emitter → BS 
 
 ## Подробнее
 
-- [Lowering vs Pass — алгоритм](../../ref/algorithms/bt-ir-lowering-vs-pass.md)
-- [ADR-011: Multi-Pass Refactoring](../../ref/decisions/011-bt-ir-multi-pass-refactoring.md)
-- [Архитектура IR Pipeline](../../ref/architecture/ir-pipeline.md)
+- [Lowering vs Pass — алгоритм](https://github.com/BorisType/BorisType/blob/main/ref/algorithms/bt-ir-lowering-vs-pass.md)
+- [ADR-011: Multi-Pass Refactoring](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-03-14-bt-ir-multi-pass-refactoring.md)
+- [Архитектура IR Pipeline](https://github.com/BorisType/BorisType/blob/main/ref/architecture/ir-pipeline.md)
