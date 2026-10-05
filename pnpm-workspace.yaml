@@ -7,9 +7,11 @@ packages:
   - "examples/library"
   - "examples/component"
 ignoreScripts: true
-ignoreDepScripts: true
+ignorePnpmfile: true
 blockExoticSubdeps: true
-minimumReleaseAge: 43200
+minimumReleaseAge: 20160
+minimumReleaseAgeStrict: true
+minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeExclude:
   - "@boristype/bt-cli"
   - "@boristype/bt-ir"
@@ -17,4 +19,14 @@ minimumReleaseAgeExclude:
   - "@boristype/ws-client"
   - "@boristype/ws-version"
   - "@boristype/http-handler"
-trustPolicy: strict
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 43200
+trustLockfile: false
+strictDepBuilds: true
+dangerouslyAllowAllBuilds: false
+verifyDepsBeforeRun: error
+verifyStoreIntegrity: true
+strictStorePkgContentCheck: true
+overrides:
+  "vitepress>vite": "^6.4.3"
+  "@vitejs/plugin-vue>vite": "^6.4.3"

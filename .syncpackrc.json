@@ -1,5 +1,5 @@
 {
-  "$schema": "https://unpkg.com/syncpack@13/dist/schema.json",
+  "$schema": "https://unpkg.com/syncpack@15/dist/schema.json",
   "versionGroups": [
     {
       "label": "Exact-pinned workspace deps in bt-cli (bt-ir, runtime)",
@@ -26,27 +26,27 @@
       "label": "ESLint aligned",
       "dependencies": ["eslint"],
       "dependencyTypes": ["dev", "prod"],
-      "pinVersion": "^9.0.0"
+      "pinVersion": "^10.11.0"
     },
     {
       "label": "ESLint TS parser aligned",
       "dependencies": ["@typescript-eslint/parser"],
-      "pinVersion": "^8.0.0"
+      "pinVersion": "^8.70.1"
     },
     {
       "label": "TypeScript aligned to latest",
       "dependencies": ["typescript"],
-      "pinVersion": "^5.9.2"
+      "pinVersion": "^6.0.3"
     },
     {
       "label": "@types/node aligned",
       "dependencies": ["@types/node"],
-      "pinVersion": "^24.7.2"
+      "pinVersion": "^26.6.2"
     },
     {
       "label": "fast-xml-parser aligned",
       "dependencies": ["fast-xml-parser"],
-      "pinVersion": "^5.3.3"
+      "pinVersion": "^5.11.1"
     }
   ]
 }

@@ -99,16 +99,14 @@ export function filter<T>(array: Array<T>, callback: (value: T, index: number, a
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (
-      !(
-        likeBoolResult === false ||
-        likeBoolResult === 0 ||
-        likeBoolResult === -0 ||
-        likeBoolResult === "" ||
-        likeBoolResult === null ||
-        likeBoolResult === undefined
-      )
-    ) {
+    if (!(
+      likeBoolResult === false ||
+      likeBoolResult === 0 ||
+      likeBoolResult === -0 ||
+      likeBoolResult === "" ||
+      likeBoolResult === null ||
+      likeBoolResult === undefined
+    )) {
       result.push(value);
     }
   }
@@ -124,16 +122,14 @@ export function find<T>(array: Array<T>, callback: (value: T, index: number, arr
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (
-      !(
-        likeBoolResult === false ||
-        likeBoolResult === 0 ||
-        likeBoolResult === -0 ||
-        likeBoolResult === "" ||
-        likeBoolResult === null ||
-        likeBoolResult === undefined
-      )
-    ) {
+    if (!(
+      likeBoolResult === false ||
+      likeBoolResult === 0 ||
+      likeBoolResult === -0 ||
+      likeBoolResult === "" ||
+      likeBoolResult === null ||
+      likeBoolResult === undefined
+    )) {
       return value;
     }
   }
@@ -149,16 +145,14 @@ export function findIndex<T>(array: Array<T>, callback: (value: T, index: number
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (
-      !(
-        likeBoolResult === false ||
-        likeBoolResult === 0 ||
-        likeBoolResult === -0 ||
-        likeBoolResult === "" ||
-        likeBoolResult === null ||
-        likeBoolResult === undefined
-      )
-    ) {
+    if (!(
+      likeBoolResult === false ||
+      likeBoolResult === 0 ||
+      likeBoolResult === -0 ||
+      likeBoolResult === "" ||
+      likeBoolResult === null ||
+      likeBoolResult === undefined
+    )) {
       return i;
     }
   }
@@ -174,16 +168,14 @@ export function findLast<T>(array: Array<T>, callback: (value: T, index: number,
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (
-      !(
-        likeBoolResult === false ||
-        likeBoolResult === 0 ||
-        likeBoolResult === -0 ||
-        likeBoolResult === "" ||
-        likeBoolResult === null ||
-        likeBoolResult === undefined
-      )
-    ) {
+    if (!(
+      likeBoolResult === false ||
+      likeBoolResult === 0 ||
+      likeBoolResult === -0 ||
+      likeBoolResult === "" ||
+      likeBoolResult === null ||
+      likeBoolResult === undefined
+    )) {
       return value;
     }
   }
@@ -199,16 +191,14 @@ export function findLastIndex<T>(array: Array<T>, callback: (value: T, index: nu
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (
-      !(
-        likeBoolResult === false ||
-        likeBoolResult === 0 ||
-        likeBoolResult === -0 ||
-        likeBoolResult === "" ||
-        likeBoolResult === null ||
-        likeBoolResult === undefined
-      )
-    ) {
+    if (!(
+      likeBoolResult === false ||
+      likeBoolResult === 0 ||
+      likeBoolResult === -0 ||
+      likeBoolResult === "" ||
+      likeBoolResult === null ||
+      likeBoolResult === undefined
+    )) {
       return i;
     }
   }
@@ -467,16 +457,14 @@ export function some<T>(array: Array<T>, callback: (value: T, index: number, arr
     const value = array[i];
 
     const likeBoolResult = bt.callFunction(callback, [value, i, array]);
-    if (
-      !(
-        likeBoolResult === false ||
-        likeBoolResult === 0 ||
-        likeBoolResult === -0 ||
-        likeBoolResult === "" ||
-        likeBoolResult === null ||
-        likeBoolResult === undefined
-      )
-    ) {
+    if (!(
+      likeBoolResult === false ||
+      likeBoolResult === 0 ||
+      likeBoolResult === -0 ||
+      likeBoolResult === "" ||
+      likeBoolResult === null ||
+      likeBoolResult === undefined
+    )) {
       return true;
     }
   }

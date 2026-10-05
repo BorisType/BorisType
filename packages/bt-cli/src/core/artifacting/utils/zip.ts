@@ -1,6 +1,5 @@
 import * as fs from "fs";
-import archiver from "archiver";
-import type { Archiver } from "archiver";
+import { ZipArchive, type Archiver, type ArchiverError } from "archiver";
 import { logger } from "../../logger";
 import type { ZipOptions } from "../types";
 
@@ -20,7 +19,7 @@ export async function createZipArchive(
 
   return new Promise((resolve, reject) => {
     const output = fs.createWriteStream(archivePath);
-    const archive = archiver("zip", {
+    const archive = new ZipArchive({
       zlib: { level: compressionLevel },
     });
 
@@ -32,7 +31,7 @@ export async function createZipArchive(
       reject(err);
     });
 
-    archive.on("warning", (err: archiver.ArchiverError) => {
+    archive.on("warning", (err: ArchiverError) => {
       if (err.code !== "ENOENT") {
         logger.warning(`Предупреждение при архивировании: ${err.message}`);
       }
