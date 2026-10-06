@@ -1,0 +1,18 @@
+# Replaces .husky/pre-commit + lint-staged (see git history).
+# Mirrors the previous behavior 1:1:
+# - *.ts -> eslint --fix, then prettier --write (sequential, same files)
+# - json/md/yml/yaml/mjs/cjs/js -> prettier --write
+# The two groups touch disjoint extensions, so they run in parallel.
+pre-commit:
+  parallel: true
+  commands:
+    ts:
+      glob:
+        - "*.ts"
+      run: pnpm exec eslint --fix {staged_files} && pnpm exec prettier --write {staged_files}
+      stage_fixed: true
+    format:
+      glob:
+        - "*.{json,md,yml,yaml,mjs,cjs,js}"
+      run: pnpm exec prettier --write {staged_files}
+      stage_fixed: true

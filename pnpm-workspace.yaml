@@ -19,6 +19,9 @@ minimumReleaseAgeExclude:
   - "@boristype/ws-client"
   - "@boristype/ws-version"
   - "@boristype/http-handler"
+  # Security hotfix GHSA-68fv (source-map-js DoS): 1.2.2 released 2026-09-30,
+  # younger than the 14d cooldown. Remove this line once 1.2.2 is older than 14 days (after 2026-10-14).
+  - "source-map-js@1.2.2"
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 43200
 trustLockfile: false
@@ -30,3 +33,5 @@ strictStorePkgContentCheck: true
 overrides:
   "vitepress>vite": "^6.4.3"
   "@vitejs/plugin-vue>vite": "^6.4.3"
+  # GHSA-68fv: force patched source-map-js (transitive via vitepress > vue compiler / postcss)
+  "source-map-js": "^1.2.2"
