@@ -26,6 +26,7 @@ import type { IRPass, PassContext } from "./types.ts";
 import { resolveControlTargets, type ControlTargetResolution } from "./control-target-resolver.ts";
 import type { BindingManager } from "../lowering/binding.ts";
 import { mapStatements } from "./walker.ts";
+import { BtDiagnosticCode, createBtDiagnosticAtLocation } from "../pipeline/diagnostics.ts";
 
 const NORMAL = 0;
 const RETURN = 1;
@@ -61,10 +62,22 @@ interface StatementListResult {
 /** Required lowering of synchronous labels/finalizers before target emission. */
 export const abruptCompletionDesugarPass: IRPass = {
   name: "abrupt-completion-desugar",
+  dependsOn: ["for-update-desugar"],
   run(program: IRProgram, ctx: PassContext): IRProgram {
     const resolution = resolveControlTargets(program);
     if (resolution.errors.length > 0) {
-      throw new Error(resolution.errors.map((error) => error.message).join("; "));
+      for (const error of resolution.errors) {
+        ctx.diagnostics.push(
+          createBtDiagnosticAtLocation(
+            ctx.sourceFile,
+            error.statement.loc,
+            error.message,
+            undefined,
+            BtDiagnosticCode.InvalidControlTarget,
+          ),
+        );
+      }
+      return program;
     }
 
     const body = transformExecutable(program.body, resolution, ctx);
@@ -160,7 +173,7 @@ function transformStatementList(statements: IRStatement[], context: TransformCon
     // the unconditional frame break makes a pending-state check redundant.
     const directBreak = result.statement.kind === "BlockStatement" && result.statement.body.at(-1)?.kind === "BreakStatement";
     if (result.mayComplete && !directBreak && index < transformed.length - 1) {
-      frameBody.push(breakFrameIfPending(context.names));
+      frameBody.push(breakIfPending(context.names));
     }
   }
   frameBody.push(IR.break());
@@ -268,7 +281,7 @@ function transformLabeledStatement(statement: IRLabeledStatement, context: Trans
 
   const frame = IR.while(
     IR.bool(true),
-    IR.block([body.statement, ...(body.mayComplete ? [breakFrameIfPending(context.names)] : []), IR.break()]),
+    IR.block([body.statement, ...(body.mayComplete ? [breakIfPending(context.names)] : []), IR.break()]),
   );
   const consume = IR.if(
     IR.binary("===", IR.id(context.names.type), IR.number(BREAK)),
@@ -576,10 +589,6 @@ function consumeSwitchBreak(targetId: number, names: CompletionNames): IRStateme
       ),
     ]),
   );
-}
-
-function breakFrameIfPending(names: CompletionNames): IRStatement {
-  return breakIfPending(names);
 }
 
 function breakIfPending(names: CompletionNames): IRStatement {

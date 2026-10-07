@@ -489,6 +489,10 @@ export function forEachStatement(stmts: IRStatement[], collector: (stmt: IRState
  */
 function visitStatementChildren(stmt: IRStatement, collector: (stmt: IRStatement) => void, enterFunctions: boolean): void {
   switch (stmt.kind) {
+    case "LabeledStatement":
+      visitStatementBodyChildren(stmt.body, collector, enterFunctions);
+      break;
+
     case "FunctionDeclaration": {
       if (!enterFunctions) return;
       const s = stmt as IRFunctionDeclaration;

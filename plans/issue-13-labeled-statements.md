@@ -1129,3 +1129,44 @@ smoke gate. Версия платформы не предоставлена. Н�
 1920 cases в трёх modes на C: такой exhaustive gate прошёл на supplied JS runtime.
 Raw/legacy C controls и C performance measurement не получены, поэтому точная
 внутренняя причина исходного comma-update зависания не объявляется доказанной.
+
+### PR review follow-up (2026-10-07)
+
+- `forEachStatement` теперь входит в labelled bodies, сохраняет preorder и
+  соблюдает `enterFunctions`; immutable regression fixtures покрывают chained,
+  single и block bodies и labels внутри функций.
+- Resolver больше не склеивает expected source errors в `PassFailed`: каждая
+  ошибка даёт BT90018 с корректным исходным диапазоном (CRLF/UTF-16, все modes,
+  обе entrypoints). Без source/loc предусмотрен positionless fallback.
+- Pass manager прекращает обход после новых Error diagnostics; warnings и уже
+  собранные TS diagnostics не скрываются. Invalid IR не доходит до emitter.
+- Completion pass декларирует dependency на `for-update-desugar`; missing и
+  reversed order отклоняются. Прямые `.run()` calls остаются ответственностью
+  вызывающего кода. Deprecated alias и ранний comma-predicate export сохранены.
+- Predicate перемещён в shared `ir/utils.ts`, без emitter → passes dependency;
+  typed exhaustive traversal покрыт тестами всех expression child positions.
+- Удалён redundant `breakFrameIfPending` alias, но `stripLabels` сохранён:
+  внутри native regions он действительно удаляет unused nested labels.
+- Changeset включает migration `PassContext.bindings`/pass order и исправление
+  standalone block indentation. Mandatory E2E/semantic pre-merge checklist:
+  [probes README](probes/README.md#обязательный-pre-merge-gate).
+- Pre-existing silent loss multiple declarations в classic for вынесен в
+  [#28](https://github.com/BorisType/BorisType/issues/28). Автоматизация execution
+  gates требует approved runtime provisioning и отслеживается в
+  [#29](https://github.com/BorisType/BorisType/issues/29).
+- При повторном запуске найден false-green botest на неизвестных suite filters:
+  0 tests / exit 0. CLI guard вынесен в
+  [#30](https://github.com/BorisType/BorisType/issues/30); checklist требует
+  проверять counts, корректные filtered suites — `labels try-catch-finally`.
+
+Восемь новых regression tests сначала упали на старой реализации, затем прошли
+после этих узких исправлений. Дополнительно закреплены indentation spaces/tabs
+и необходимость `stripLabels` в native regions. Полный локальный gate:
+55/55 IR/output tests, 5/5 ESLint test files, 148/148 E2E, 38/38 Node validations,
+5760/5760 strict comparisons; build, lint (0 errors / прежние 11 warnings),
+format, versions, frozen install и audit (0 vulnerabilities) прошли.
+Regenerated `BtAbruptProbe.js` и `Check27Fixed.js` сохранили прежние SHA-256:
+`b6aa0f732726b8c7b5dd85d87b99447a7dfffffb8cfd0c181c917bb4838e3fd3` и
+`e75c233ced0da30218ba88b39c86856ec7e1a491a815a1a479062424fae64879`.
+Проверенный head и runtime hash фиксируются в PR; предыдущие C результаты
+не выдаются за новый C запуск.

@@ -18,6 +18,55 @@ pnpm test:semantic
 покейсного сравнения. Generated artifacts ignored; они воспроизводятся командой
 выше. Сам JS runtime не добавляется в git.
 
+## Обязательный pre-merge gate
+
+Для PR, меняющих compiler/lowering/passes/emitter/runtime, одних зелёных CI checks
+недостаточно: до merge обязательно выполнить E2E и strict semantic gate на
+актуальном head. После каждого изменения compiler повторить проверку; результаты
+другого commit не считаются проверкой нового output.
+
+Сборка CI уже компилирует `tests/`, но не выполняет E2E/differential: для этого
+нужен внешний runtime. Без `main.js` ошибка ENOENT означает незапущенный gate,
+а не допустимый skip. Автоматизация и безопасное provisioning отслеживаются в
+[#29](https://github.com/BorisType/BorisType/issues/29).
+
+Из корня проекта:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm exec turbo run build
+```
+
+Подключить одобренный локальный JS runtime как
+`packages/botest/build/borisscript/main.js` (symlink или локальная копия; не commit).
+В этой рабочей среде symlink ссылается на `/home/agent/workspace/main.js`; для
+другой среды нужно явно выбрать свой файл, не скачивать произвольный runtime.
+Затем:
+
+```bash
+git rev-parse HEAD
+sha256sum packages/botest/build/borisscript/main.js
+pnpm --filter @boristype/bt-ir --filter @boristype/eslint-plugin test
+pnpm test
+pnpm test:semantic
+```
+
+В PR зафиксировать проверенный commit SHA, версию runtime (если известна) и его
+SHA-256, команды, counts и exit status. `test:semantic` должен пройти во всех
+трёх modes; advisory Node-check из botest не заменяет этот строгий gate.
+Для #27 ожидаются 148 E2E и 1920 × 3 = 5760 differential comparisons.
+Проверять ненулевую выборку: botest пока возвращает success для неизвестных
+фильтров с 0 tests ([#30](https://github.com/BorisType/BorisType/issues/30)).
+Для отдельной advisory Node проверки labels/finalizers корректные фильтры:
+`node packages/botest/build/index.js tests/build labels try-catch-finally --node-check`;
+ожидаются 38 BS tests и 38 Node validations.
+
+Если target execution shape меняется, regenerated C probes нужно снова
+выполнить на независимой C-платформе и записать MESSAGE/версию. Если output
+байт-в-байт совпадает с ранее проверенными артефактами, указать сравнение хешей
+и исходную C проверку; это не новый C запуск. Не публиковать supplied runtime
+в репозитории, artifacts или logs без согласованных прав на распространение.
+
 Pack включает все targeted regressions и регулярную выборку completion matrix:
 native catch не ловит return carrier, finalizer override, nested finalizers,
 chained labels, loop update/do-condition, switch fallthrough, caught override,

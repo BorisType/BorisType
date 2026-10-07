@@ -11,6 +11,7 @@
  */
 
 import * as ts from "typescript";
+import type { SourceLocation, SourcePosition } from "../ir/index.ts";
 
 // ============================================================================
 // Diagnostic codes
@@ -57,6 +58,8 @@ export const BtDiagnosticCode = {
   DestructuredCatchBinding: 90016,
   /** Annex B labelled function declarations are outside the synchronous subset. */
   LabelledFunctionUnsupported: 90017,
+  /** Invalid break/continue target or duplicate lexical label. */
+  InvalidControlTarget: 90018,
 } as const;
 
 // ============================================================================
@@ -89,6 +92,47 @@ export function createBtDiagnostic(
     category,
     code,
   };
+}
+
+/**
+ * Creates a diagnostic from an IR source range, without fabricating a TS node.
+ * IR lines are 1-based; columns and diagnostic offsets use UTF-16 code units.
+ * Missing, mismatched or invalid metadata falls back to a positionless diagnostic.
+ *
+ * @param file - Original source file, when available
+ * @param loc - IR range in that file, when available
+ * @param message - Diagnostic message
+ * @param category - Diagnostic severity (default: Error)
+ * @param code - BT diagnostic code (default: PassFailed)
+ */
+export function createBtDiagnosticAtLocation(
+  file: ts.SourceFile | undefined,
+  loc: SourceLocation | undefined,
+  message: string,
+  category: ts.DiagnosticCategory = ts.DiagnosticCategory.Error,
+  code: number = BtDiagnosticCode.PassFailed,
+): ts.Diagnostic {
+  if (file && loc && (loc.source === undefined || loc.source === file.fileName)) {
+    const start = sourcePositionOffset(file, loc.start);
+    const end = sourcePositionOffset(file, loc.end);
+    if (start !== undefined && end !== undefined && end >= start) {
+      return { file, start, length: end - start, messageText: message, category, code };
+    }
+  }
+  return createBtDiagnosticMessage(message, category, code);
+}
+
+function sourcePositionOffset(file: ts.SourceFile, position: SourcePosition): number | undefined {
+  const lines = file.getLineStarts();
+  if (!Number.isInteger(position.line) || !Number.isInteger(position.column) || position.line < 1 || position.column < 0) {
+    return undefined;
+  }
+  const start = lines[position.line - 1];
+  if (start === undefined) return undefined;
+  let end = lines[position.line] ?? file.text.length;
+  // A column cannot point into the following line, including CRLF terminators.
+  while (end > start && /[\r\n\u2028\u2029]/.test(file.text[end - 1])) end--;
+  return start + position.column <= end ? start + position.column : undefined;
 }
 
 /**

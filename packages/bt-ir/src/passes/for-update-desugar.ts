@@ -1,21 +1,10 @@
 /** Avoid the C runtime's unsafe comma-operator evaluation in for updates. */
-import { IR, type IRExpression, type IRProgram, type IRStatement } from "../ir/index.ts";
+import { IR, containsCommaOperator, type IRExpression, type IRProgram, type IRStatement } from "../ir/index.ts";
 import type { IRPass } from "./types.ts";
-import { mapExpression, mapStatements } from "./walker.ts";
+import { mapStatements } from "./walker.ts";
 
-/** Detect sequence operators anywhere in an expression, excluding list separators. */
-export function containsCommaOperator(expression: IRExpression): boolean {
-  let found = false;
-  mapExpression(expression, (node) => {
-    if (found) return node;
-    if (node.kind === "SequenceExpression" || (node.kind === "BinaryExpression" && node.operator === ",")) {
-      found = true;
-      return node;
-    }
-    return null;
-  });
-  return found;
-}
+/** @deprecated Import the shared predicate from ir/index instead. */
+export { containsCommaOperator } from "../ir/index.ts";
 
 /**
  * Normalize affected for loops before lexical jump resolution and finalizer lowering.

@@ -310,6 +310,19 @@ parenthesize/hoist. Comma-операторы в for updates обходятся �
 `while` без helper calls, с сохранением update после continue/finalizers и перед
 условием. Simple updates не меняются. Emitter отклоняет surviving comma updates.
 
+`runPasses` проверяет обязательную dependency на `for-update-desugar`, включая
+deprecated alias; при прямых вызовах `.run()` порядок обеспечивает вызывающий
+код. После новых Error diagnostics manager не запускает последующие passes,
+а обе compile entrypoints возвращают `success: false` и пустой `outputs`.
+Resolver сообщает каждую ошибку target/duplicate label отдельно с BT90018 и
+диапазоном исходника; при отсутствии source/loc диагностика positionless.
+`createBtDiagnosticAtLocation` доступен для других IR consumers. Общий
+`containsCommaOperator` экспортируется из `ir/index`; старый pass-module export
+сохранён как deprecated re-export.
+
+Execution gates обязательны перед merge compiler changes: см.
+[pre-merge checklist](../../plans/probes/README.md#обязательный-pre-merge-gate).
+
 Проверка: `pnpm --filter @boristype/bt-ir test`; строгая Node/BS матрица из корня
 monorepo: `pnpm test:semantic` (нужны build runtime/botest и предоставленный
 `packages/botest/build/borisscript/main.js`). C probe генерируется в

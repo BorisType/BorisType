@@ -45,6 +45,10 @@
 - [x] Superseding ADR, diagnostics и обновление recommended ESLint preset
 - [x] IR workaround для comma-update в C for: native continue/finalizer timing, output invariant
 - [x] Независимая C smoke проверка: Check27Fixed `0FU1FU2FU|E`, полный pack `OK: 60/60` (2026-10-07)
+- [x] PR review: positional BT90018, checked pass dependency, labelled collector traversal, mandatory manual execution gates
+- [ ] Multiple declarations в classic for initializer без silent loss ([#28](https://github.com/BorisType/BorisType/issues/28))
+- [ ] Безопасное CI provisioning JS runtime и required execution gates ([#29](https://github.com/BorisType/BorisType/issues/29))
+- [ ] Fail-closed botest на пустой выборке/неизвестных фильтрах ([#30](https://github.com/BorisType/BorisType/issues/30))
 
 ### Опыт разработчика
 

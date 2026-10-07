@@ -23,8 +23,7 @@ import type {
 import type { EmitContext } from "./emit-helpers.ts";
 import { getIndent, increaseIndent } from "./emit-helpers.ts";
 import { emitExpression, emitObjectExpression } from "./emit-expressions.ts";
-import { assertNever } from "../ir/index.ts";
-import { containsCommaOperator } from "../passes/for-update-desugar.ts";
+import { assertNever, containsCommaOperator } from "../ir/index.ts";
 
 /**
  * Генерирует код statement

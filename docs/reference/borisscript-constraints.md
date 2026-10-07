@@ -135,7 +135,9 @@ Catch-переменная остаётся локальной и не порт�
 
 Пока не поддерживаются patterns `catch ({message})` / `catch ([error])`
 (BT90016): используйте именованный параметр и destructuring в теле catch.
-`label: function f() {}` (Annex B) отклоняется с BT90017. Это преобразование
+`label: function f() {}` (Annex B) отклоняется с BT90017. Невалидная цель
+`break`/`continue` или duplicate lexical label даёт отдельную диагностику BT90018
+с диапазоном исходника; output при ошибке не генерируется. Это преобразование
 не добавляет async/generators, iterator closing, completion values для direct
 eval или identity произвольных thrown values: платформа превращает их в ошибки.
 

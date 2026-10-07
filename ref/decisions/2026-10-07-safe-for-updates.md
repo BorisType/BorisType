@@ -24,6 +24,9 @@ correctly. A bounded raw/legacy/fixed probe distinguishes these possibilities.
 Run immutable `forUpdateDesugarPass` before abrupt-completion target resolution
 in both compilation entrypoints and all compile modes. Detect binary comma and
 sequence IR recursively in updates; argument-list separators do not count.
+The completion pass declares this dependency for `runPasses`; callers using
+individual `.run()` methods must enforce the order themselves. The shared
+predicate lives in IR utilities, not in the pass/emitter layer boundary.
 
 Affected loops become:
 
