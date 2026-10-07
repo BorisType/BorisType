@@ -38,6 +38,14 @@
 - [x] Phase 3: ModeConfig, замена ctx.mode проверок
 - [x] ADR-011: Multi-pass refactoring
 
+### Structured control flow (#13, 2026-10)
+
+- [x] Synchronous labels, lexical target resolver и unified try/finally pass
+- [x] Catch shadowing/capture, strict Node ↔ JS BorisScript matrix, output fast paths
+- [x] Superseding ADR, diagnostics и обновление recommended ESLint preset
+- [x] IR workaround для comma-update в C for: native continue/finalizer timing, output invariant
+- [x] Независимая C smoke проверка: Check27Fixed `0FU1FU2FU|E`, полный pack `OK: 60/60` (2026-10-07)
+
 ### Опыт разработчика
 
 - [ ] Лучшие сообщения об ошибках в bt-ir компиляторе

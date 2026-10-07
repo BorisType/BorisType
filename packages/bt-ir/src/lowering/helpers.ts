@@ -34,6 +34,16 @@ export function getLoc(node: ts.Node, ctx: VisitorContext): SourceLocation | und
   };
 }
 
+/** Returns a stable id for a source control-flow target. */
+export function getControlTargetId(node: ts.Node, ctx: VisitorContext): number {
+  const existing = ctx.controlTargetIds.get(node);
+  if (existing !== undefined) return existing;
+
+  const id = ctx.nextControlTargetId.value++;
+  ctx.controlTargetIds.set(node, id);
+  return id;
+}
+
 // ============================================================================
 // Polyfill / Runtime helpers
 // ============================================================================

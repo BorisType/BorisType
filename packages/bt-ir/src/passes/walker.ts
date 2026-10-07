@@ -25,6 +25,7 @@ import type {
   IRSwitchStatement,
   IRTryStatement,
   IRCaseClause,
+  IRLabeledStatement,
   IRExpressionStatement,
   IRReturnStatement,
   IRThrowStatement,
@@ -142,6 +143,12 @@ function mapStatementChildren(stmt: IRStatement, mapper: StatementMapper, enterF
       return newBody === s.body ? stmt : IR.block(newBody, s.loc);
     }
 
+    case "LabeledStatement": {
+      const s = stmt as IRLabeledStatement;
+      const newBody = mapStatementBody(s.body, mapper, enterFunctions);
+      return newBody === s.body ? stmt : IR.labeled(s.label, newBody, s.controlTargetId, s.targetKind, s.loc);
+    }
+
     case "IfStatement": {
       const s = stmt as IRIfStatement;
       const newCons = mapStatementBody(s.consequent, mapper, enterFunctions);
@@ -153,25 +160,25 @@ function mapStatementChildren(stmt: IRStatement, mapper: StatementMapper, enterF
     case "WhileStatement": {
       const s = stmt as IRWhileStatement;
       const newBody = mapStatementBody(s.body, mapper, enterFunctions);
-      return newBody === s.body ? stmt : IR.while(s.test, newBody, s.loc);
+      return newBody === s.body ? stmt : IR.while(s.test, newBody, s.loc, s.controlTargetId);
     }
 
     case "DoWhileStatement": {
       const s = stmt as IRDoWhileStatement;
       const newBody = mapStatementBody(s.body, mapper, enterFunctions);
-      return newBody === s.body ? stmt : IR.doWhile(newBody, s.test, s.loc);
+      return newBody === s.body ? stmt : IR.doWhile(newBody, s.test, s.loc, s.controlTargetId);
     }
 
     case "ForStatement": {
       const s = stmt as IRForStatement;
       const newBody = mapStatementBody(s.body, mapper, enterFunctions);
-      return newBody === s.body ? stmt : IR.for(s.init, s.test, s.update, newBody, s.loc);
+      return newBody === s.body ? stmt : IR.for(s.init, s.test, s.update, newBody, s.loc, s.controlTargetId);
     }
 
     case "ForInStatement": {
       const s = stmt as IRForInStatement;
       const newBody = mapStatementBody(s.body, mapper, enterFunctions);
-      return newBody === s.body ? stmt : IR.forIn(s.left, s.right, newBody, s.loc);
+      return newBody === s.body ? stmt : IR.forIn(s.left, s.right, newBody, s.loc, s.controlTargetId);
     }
 
     case "SwitchStatement": {
@@ -182,7 +189,7 @@ function mapStatementChildren(stmt: IRStatement, mapper: StatementMapper, enterF
         if (newConsequent !== c.consequent) casesChanged = true;
         return newConsequent === c.consequent ? c : IR.case(c.test, newConsequent);
       });
-      return casesChanged ? IR.switch(s.discriminant, newCases, s.loc) : stmt;
+      return casesChanged ? IR.switch(s.discriminant, newCases, s.loc, s.controlTargetId) : stmt;
     }
 
     case "TryStatement": {

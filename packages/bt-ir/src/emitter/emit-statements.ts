@@ -24,6 +24,7 @@ import type { EmitContext } from "./emit-helpers.ts";
 import { getIndent, increaseIndent } from "./emit-helpers.ts";
 import { emitExpression, emitObjectExpression } from "./emit-expressions.ts";
 import { assertNever } from "../ir/index.ts";
+import { containsCommaOperator } from "../passes/for-update-desugar.ts";
 
 /**
  * Генерирует код statement
@@ -69,13 +70,15 @@ export function emitStatement(stmt: IRStatement, ctx: EmitContext): string {
       return `${pad}throw ${emitExpression(stmt.argument, ctx)};`;
 
     case "BreakStatement":
-      return stmt.label ? `${pad}break ${stmt.label};` : `${pad}break;`;
+      if (stmt.label) throw new Error("Labeled break reached BorisScript emitter before required desugaring");
+      return `${pad}break;`;
 
     case "ContinueStatement":
-      return stmt.label ? `${pad}continue ${stmt.label};` : `${pad}continue;`;
+      if (stmt.label) throw new Error("Labeled continue reached BorisScript emitter before required desugaring");
+      return `${pad}continue;`;
 
     case "BlockStatement":
-      return emitBlock(stmt, ctx);
+      return `${pad}${emitBlock(stmt, ctx)}`;
 
     case "EmptyStatement":
       return `${pad};`;
@@ -89,6 +92,9 @@ export function emitStatement(stmt: IRStatement, ctx: EmitContext): string {
     case "CaseClause":
       // CaseClause is emitted as part of SwitchStatement, not standalone
       return `${pad}/* unexpected standalone CaseClause */`;
+
+    case "LabeledStatement":
+      throw new Error("LabeledStatement reached BorisScript emitter before required desugaring");
 
     default:
       return assertNever(stmt as never);
@@ -213,6 +219,9 @@ function emitIf(ifStmt: IRIfStatement, ctx: EmitContext): string {
  * Генерирует код for
  */
 function emitFor(forStmt: IRForStatement, ctx: EmitContext): string {
+  if (forStmt.update && containsCommaOperator(forStmt.update)) {
+    throw new Error("Comma operator in for update reached BorisScript emitter before required desugaring");
+  }
   const pad = getIndent(ctx);
 
   const init = forStmt.init
@@ -287,6 +296,8 @@ function emitSwitch(switchStmt: IRSwitchStatement, ctx: EmitContext): string {
  * Генерирует код try
  */
 function emitTry(tryStmt: IRTryStatement, ctx: EmitContext): string {
+  if (tryStmt.finalizer) throw new Error("Native finally reached BorisScript emitter before required desugaring");
+  if (!tryStmt.handler?.param) throw new Error("BorisScript try requires a named catch parameter");
   const pad = getIndent(ctx);
   const lines: string[] = [];
 
@@ -295,10 +306,6 @@ function emitTry(tryStmt: IRTryStatement, ctx: EmitContext): string {
   if (tryStmt.handler) {
     const param = tryStmt.handler.param ? `(${tryStmt.handler.param})` : "";
     lines.push(`${pad}catch ${param} ${emitBlock(tryStmt.handler.body, ctx)}`);
-  }
-
-  if (tryStmt.finalizer) {
-    lines.push(`${pad}finally ${emitBlock(tryStmt.finalizer, ctx)}`);
   }
 
   return lines.join("\n");

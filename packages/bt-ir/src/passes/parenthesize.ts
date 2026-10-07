@@ -300,7 +300,7 @@ function processStmt(stmt: IRStatement): IRStatement {
       const newTest = processExpr(s.test);
       const newBody = processStmtBody(s.body);
       if (newTest === s.test && newBody === s.body) return stmt;
-      return IR.while(newTest, newBody, s.loc);
+      return IR.while(newTest, newBody, s.loc, s.controlTargetId);
     }
 
     case "DoWhileStatement": {
@@ -308,7 +308,7 @@ function processStmt(stmt: IRStatement): IRStatement {
       const newBody = processStmtBody(s.body);
       const newTest = processExpr(s.test);
       if (newBody === s.body && newTest === s.test) return stmt;
-      return IR.doWhile(newBody, newTest, s.loc);
+      return IR.doWhile(newBody, newTest, s.loc, s.controlTargetId);
     }
 
     case "ForStatement": {
@@ -333,7 +333,7 @@ function processStmt(stmt: IRStatement): IRStatement {
       if (newInit === s.init && newTest === s.test && newUpdate === s.update && newBody === s.body) {
         return stmt;
       }
-      return IR.for(newInit, newTest, newUpdate, newBody, s.loc);
+      return IR.for(newInit, newTest, newUpdate, newBody, s.loc, s.controlTargetId);
     }
 
     case "ForInStatement": {
@@ -341,7 +341,7 @@ function processStmt(stmt: IRStatement): IRStatement {
       const newRight = processExpr(s.right);
       const newBody = processStmtBody(s.body);
       if (newRight === s.right && newBody === s.body) return stmt;
-      return IR.forIn(s.left, newRight, newBody, s.loc);
+      return IR.forIn(s.left, newRight, newBody, s.loc, s.controlTargetId);
     }
 
     case "SwitchStatement": {
@@ -358,7 +358,7 @@ function processStmt(stmt: IRStatement): IRStatement {
         return c;
       });
       if (newDisc === s.discriminant && !casesChanged) return stmt;
-      return IR.switch(newDisc, casesChanged ? newCases : s.cases, s.loc);
+      return IR.switch(newDisc, casesChanged ? newCases : s.cases, s.loc, s.controlTargetId);
     }
 
     case "TryStatement": {
@@ -447,7 +447,7 @@ function processBlock(block: IRBlockStatement): IRBlockStatement {
  */
 export const parenthesizePass: IRPass = {
   name: "parenthesize",
-  dependsOn: ["try-finally-desugar"],
+  dependsOn: ["abrupt-completion-desugar"],
   run(program: IRProgram, _ctx: PassContext): IRProgram {
     const newBody = processBody(program.body);
     return newBody === program.body ? program : { ...program, body: newBody };

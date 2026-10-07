@@ -6,11 +6,22 @@
 
 export type { IRPass, PassContext } from "./types.ts";
 export { hoistPass } from "./hoist.ts";
+/** @deprecated Use abruptCompletionDesugarPass; this export is an alias. */
 export { tryFinallyDesugarPass } from "./try-finally-desugar.ts";
 export { parenthesizePass } from "./parenthesize.ts";
 export { cleanupGroupingPass } from "./cleanup-grouping.ts";
 export { commaSafetyPass } from "./comma-safety.ts";
 export { literalExtractPass } from "./literal-extract.ts";
+export { abruptCompletionDesugarPass } from "./abrupt-completion-desugar.ts";
+export { forUpdateDesugarPass, containsCommaOperator } from "./for-update-desugar.ts";
+export {
+  resolveControlTargets,
+  type ControlTargetKind,
+  type ResolvedControlTarget,
+  type ResolvedControlJump,
+  type ControlTargetResolution,
+  type ControlTargetResolutionError,
+} from "./control-target-resolver.ts";
 export {
   mapStatements,
   mapExpression,

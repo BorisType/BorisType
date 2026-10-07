@@ -1,7 +1,7 @@
 # 010. Десахаризация try-catch-finally через state machine
 
 **Date:** 2026-03-11  
-**Status:** Accepted
+**Status:** Superseded by [structured abrupt completions](2026-10-07-structured-abrupt-completion.md)
 
 ## Context
 

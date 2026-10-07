@@ -9,6 +9,7 @@
 
 import type * as ts from "typescript";
 import type { IRProgram } from "../ir/index.ts";
+import type { BindingManager } from "../lowering/binding.ts";
 
 /**
  * Контекст, разделяемый между passes.
@@ -21,6 +22,8 @@ export interface PassContext {
   diagnostics: ts.Diagnostic[];
   /** SourceFile, если доступен (для привязки диагностик к позиции) */
   sourceFile?: ts.SourceFile;
+  /** Shared collision-safe name allocator from scope analysis/lowering. */
+  bindings: BindingManager;
 }
 
 /**

@@ -28,6 +28,7 @@ import type {
   IRDoWhileStatement,
   IRSwitchStatement,
   IRCaseClause,
+  IRLabeledStatement,
   IRTryStatement,
   IRCatchClause,
   IRThrowStatement,
@@ -157,36 +158,43 @@ export const IR = {
     update: IRExpression | null,
     body: IRStatement,
     loc?: SourceLocation,
+    controlTargetId?: number,
   ): IRForStatement {
-    return { kind: "ForStatement", init, test, update, body, loc };
+    return { kind: "ForStatement", init, test, update, body, loc, controlTargetId };
   },
 
   /**
    * Создаёт for-in statement
    */
-  forIn(left: IRVariableDeclaration | IRIdentifier, right: IRExpression, body: IRStatement, loc?: SourceLocation): IRForInStatement {
-    return { kind: "ForInStatement", left, right, body, loc };
+  forIn(
+    left: IRVariableDeclaration | IRIdentifier,
+    right: IRExpression,
+    body: IRStatement,
+    loc?: SourceLocation,
+    controlTargetId?: number,
+  ): IRForInStatement {
+    return { kind: "ForInStatement", left, right, body, loc, controlTargetId };
   },
 
   /**
    * Создаёт while statement
    */
-  while(test: IRExpression, body: IRStatement, loc?: SourceLocation): IRWhileStatement {
-    return { kind: "WhileStatement", test, body, loc };
+  while(test: IRExpression, body: IRStatement, loc?: SourceLocation, controlTargetId?: number): IRWhileStatement {
+    return { kind: "WhileStatement", test, body, loc, controlTargetId };
   },
 
   /**
    * Создаёт do-while statement
    */
-  doWhile(body: IRStatement, test: IRExpression, loc?: SourceLocation): IRDoWhileStatement {
-    return { kind: "DoWhileStatement", test, body, loc };
+  doWhile(body: IRStatement, test: IRExpression, loc?: SourceLocation, controlTargetId?: number): IRDoWhileStatement {
+    return { kind: "DoWhileStatement", test, body, loc, controlTargetId };
   },
 
   /**
    * Создаёт switch statement
    */
-  switch(discriminant: IRExpression, cases: IRCaseClause[], loc?: SourceLocation): IRSwitchStatement {
-    return { kind: "SwitchStatement", discriminant, cases, loc };
+  switch(discriminant: IRExpression, cases: IRCaseClause[], loc?: SourceLocation, controlTargetId?: number): IRSwitchStatement {
+    return { kind: "SwitchStatement", discriminant, cases, loc, controlTargetId };
   },
 
   /**
@@ -194,6 +202,17 @@ export const IR = {
    */
   case(test: IRExpression | null, consequent: IRStatement[]): IRCaseClause {
     return { kind: "CaseClause", test, consequent };
+  },
+
+  /** Preserves a source label until the control-flow desugar pass. */
+  labeled(
+    label: string,
+    body: IRStatement,
+    controlTargetId: number,
+    targetKind: IRLabeledStatement["targetKind"],
+    loc?: SourceLocation,
+  ): IRLabeledStatement {
+    return { kind: "LabeledStatement", label, body, controlTargetId, targetKind, loc };
   },
 
   /**

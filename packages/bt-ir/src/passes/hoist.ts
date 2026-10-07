@@ -39,7 +39,7 @@ import { mapStatements, forEachStatement } from "./walker.ts";
  */
 export const hoistPass: IRPass = {
   name: "hoist",
-  dependsOn: ["try-finally-desugar"],
+  dependsOn: ["abrupt-completion-desugar"],
   run(program: IRProgram, _ctx: PassContext): IRProgram {
     if (program.noHoist) {
       // Bare mode: top-level без hoisting, но функции обрабатываем

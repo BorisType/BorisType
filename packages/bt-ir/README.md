@@ -255,7 +255,7 @@ TypeScript Source
       ↓
 [IR Lowering]        ← Преобразование TS AST → IR
       ↓
-[IR Passes]          ← try-finally desugar, hoist
+[IR Passes]          ← structured abrupt completions, hoist
       ↓
 [BT Emitter]         ← Генерация BorisScript
       ↓
@@ -275,6 +275,8 @@ BorisScript Output
 - **Шаблонные литералы** → Конкатенация строк
 - **for...of** → for...in (массивы BorisScript)
 - **let/const** → var с hoisting
+- **Labels / try-finally** → structured completion state без return-throw sentinel
+- **Catch bindings** → уникальный параметр, lexical scope и per-entry captured env
 - **Замыкания** → цепочка \_\_env для captured переменных
 - **Доступ к свойствам** → bt.getProperty() (script/module mode)
 - **Вызовы методов** → bt.callFunction() (script/module mode)
@@ -292,6 +294,32 @@ BorisScript Output
 - Обнаруживает captured переменные в замыканиях
 - Генерирует минимальную цепочку \_\_env
 - Правильный variable hoisting
+
+### Labels и finalizers
+
+Поддерживаются synchronous labelled statements, chained labels и
+`return/throw/break/continue` через вложенные finalizers. Generated output не
+содержит labels или native `finally`. Catch patterns пока отклоняются с BT90016;
+Annex B labelled functions — с BT90017. Произвольные thrown values сохраняют
+ограничения платформы, а iterator closing и async/generators не добавляются.
+
+`tryFinallyDesugarPass` — deprecated alias для `abruptCompletionDesugarPass`.
+PassContext теперь требует shared `bindings: BindingManager`. Пользовательские
+pipeline должны запускать `forUpdateDesugarPass` перед unified pass, затем
+parenthesize/hoist. Comma-операторы в for updates обходятся через first-entry
+`while` без helper calls, с сохранением update после continue/finalizers и перед
+условием. Simple updates не меняются. Emitter отклоняет surviving comma updates.
+
+Проверка: `pnpm --filter @boristype/bt-ir test`; строгая Node/BS матрица из корня
+monorepo: `pnpm test:semantic` (нужны build runtime/botest и предоставленный
+`packages/botest/build/borisscript/main.js`). C probe генерируется в
+`packages/bt-ir/build/semantic/BtAbruptProbe.js`; ожидается `OK: 60/60`.
+Для ограниченной по шагам проверки исправленного check27:
+`node packages/bt-ir/test/semantic/check27-diagnostic.mjs`, затем запустить
+`packages/bt-ir/build/semantic/Check27Fixed.js` на C, ожидается `0FU1FU2FU|E`.
+Оба результата вручную подтверждены пользователем на C 2026-10-07. Это 60
+selected bare-mode smoke cases; полная 1920-case матрица и script/module modes
+проверены на JS runtime. Версия C-платформы не предоставлена.
 
 ## CLI (Разработка)
 
@@ -332,7 +360,7 @@ bt-ir/
 │   ├── analyzer/         # Анализ scope
 │   ├── ir/               # Определения IR нод
 │   ├── lowering/         # Трансформация TS AST → IR (statements/, expressions/)
-│   ├── passes/           # IR → IR (try-finally desugar, hoist)
+│   ├── passes/           # IR → IR (abrupt completions, target resolver, hoist)
 │   └── emitter/          # Генерация IR → BorisScript
 ├── build/                # Скомпилированный вывод
 └── README.md             # Этот файл

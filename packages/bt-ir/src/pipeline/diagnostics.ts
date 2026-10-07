@@ -45,7 +45,7 @@ export const BtDiagnosticCode = {
   ComputedPropertyKey: 90010,
   /** Деструктуризация параметров не поддерживается */
   DestructuredParameter: 90011,
-  /** break/continue внутри try-finally не поддерживается */
+  /** @deprecated Reserved legacy code; structured completions support these jumps. */
   BreakContinueTryFinally: 90012,
   /** Ошибка IR pass */
   PassFailed: 90013,
@@ -53,6 +53,10 @@ export const BtDiagnosticCode = {
   EmitFailed: 90014,
   /** Ошибка IR transformation */
   TransformFailed: 90015,
+  /** Catch binding patterns require explicit destructuring in the body. */
+  DestructuredCatchBinding: 90016,
+  /** Annex B labelled function declarations are outside the synchronous subset. */
+  LabelledFunctionUnsupported: 90017,
 } as const;
 
 // ============================================================================
