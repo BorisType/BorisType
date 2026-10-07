@@ -22,6 +22,9 @@ minimumReleaseAgeExclude:
   # Security hotfix GHSA-68fv (source-map-js DoS): 1.2.2 released 2026-09-30,
   # younger than the 14d cooldown. Remove this line once 1.2.2 is older than 14 days (after 2026-10-14).
   - "source-map-js@1.2.2"
+  # GHSA-pqg4-j6r4-53mv security hotfix: 1.11.0 released 2026-09-29.
+  # Remove this cooldown exception after 2026-10-13T02:34:24Z (14 days).
+  - "shell-quote@1.11.0"
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 43200
 trustLockfile: false
@@ -35,3 +38,5 @@ overrides:
   "@vitejs/plugin-vue>vite": "^6.4.3"
   # GHSA-68fv: force patched source-map-js (transitive via vitepress > vue compiler / postcss)
   "source-map-js": "^1.2.2"
+  # GHSA-pqg4-j6r4-53mv: patched command quoting for Changesets' editor launcher.
+  "launch-editor>shell-quote": "1.11.0"

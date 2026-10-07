@@ -17,7 +17,7 @@ export interface VariableInfo {
   /** Имя переменной */
   name: string;
   /** Тип объявления */
-  kind: "const" | "let" | "var" | "function" | "parameter" | "import";
+  kind: "const" | "let" | "var" | "function" | "parameter" | "import" | "catch";
   /** Scope где объявлена переменная */
   declarationScope: Scope;
   /** Используется ли во вложенных scopes (требует __env) */
@@ -98,6 +98,12 @@ export function analyzeScopes(sourceFile: ts.SourceFile, bindings: BindingManage
 
   scopesById.set(moduleScope.id, moduleScope);
   nodeToScope.set(sourceFile, moduleScope);
+
+  // Name generation already happens while declarations are collected (for
+  // example, for shadowed and catch bindings). Reserve every source
+  // identifier first so generated physical names cannot collide with a
+  // declaration that appears later in the file.
+  bindings.registerSourceNames(collectSourceIdentifierNames(sourceFile));
 
   // Pass 1: Собираем все scopes и объявления переменных
   collectScopesAndDeclarations(sourceFile, moduleScope, scopesById, nodeToScope, allVariables);
@@ -289,6 +295,38 @@ function collectScopesAndDeclarations(
     return;
   }
 
+  // A catch binding is block-scoped in ECMAScript. BorisScript leaks native
+  // catch parameters into the surrounding runtime environment, so the
+  // logical source binding always receives a unique physical name.
+  if (ts.isCatchClause(node)) {
+    const catchScope: Scope = {
+      id: scopeIdCounter++,
+      type: "block",
+      name: `__catch_${scopeIdCounter}`,
+      parent: currentScope,
+      children: [],
+      variables: new Map(),
+      node: node.block,
+      depth: currentScope.depth,
+      hasCaptured: false,
+    };
+
+    currentScope.children.push(catchScope);
+    scopesById.set(catchScope.id, catchScope);
+    nodeToScope.set(node, catchScope);
+    nodeToScope.set(node.block, catchScope);
+
+    const binding = node.variableDeclaration?.name;
+    if (binding && ts.isIdentifier(binding)) {
+      registerVariable(catchScope, binding.text, "catch", allVariables);
+    }
+
+    // Walk statements directly: walking node.block itself would create a
+    // second, redundant block scope around the catch binding.
+    ts.forEachChild(node.block, (child) => collectScopesAndDeclarations(child, catchScope, scopesById, nodeToScope, allVariables));
+    return;
+  }
+
   // Block statement (if body, while body, etc.) создаёт block scope для let/const
   // Исключаем тела функций — они уже обработаны выше
   if (ts.isBlock(node) && !isFunctionBody(node)) {
@@ -392,11 +430,6 @@ function collectScopesAndDeclarations(
     }
   }
 
-  // Catch clause параметр — НЕ регистрируем как var.
-  // Параметр catch(err) является локальным для catch-блока,
-  // hoisting в function scope приводит к тому, что var err; затеняет catch-параметр.
-  // BorisScript нативно поддерживает catch(err), поэтому hoisting не нужен.
-
   // ClassDeclaration — регистрируем имя класса как функцию (конструктор) в текущем scope
   // Аналогично FunctionDeclaration: конструктор регистрируется в __env,
   // доступ из других функций идёт через __env цепочку
@@ -445,10 +478,8 @@ function collectScopesAndDeclarations(
  */
 function analyzeUsages(node: ts.Node, currentScope: Scope, nodeToScope: Map<ts.Node, Scope>): void {
   // Обновляем текущий scope если нода создаёт новый
-  // НО: block scopes (для циклов с let/const) НЕ меняют scope для usages
-  // Block scope нужен только для loop variable
   const nodeScope = nodeToScope.get(node);
-  if (nodeScope && nodeScope !== currentScope && nodeScope.type !== "block") {
+  if (nodeScope && nodeScope !== currentScope) {
     currentScope = nodeScope;
   }
 
@@ -465,12 +496,15 @@ function analyzeUsages(node: ts.Node, currentScope: Scope, nodeToScope: Map<ts.N
     if (varInfo) {
       varInfo.usedInScopes.add(currentScope);
 
-      // Если используется в scope отличном от объявления - captured
-      if (varInfo.declarationScope !== currentScope) {
-        // Проверяем что currentScope вложен в declarationScope
-        if (isScopeNestedIn(currentScope, varInfo.declarationScope)) {
+      // Lexical blocks do not capture a variable by themselves. Only a
+      // function boundary requires an environment reference.
+      let usageScope: Scope | null = currentScope;
+      while (usageScope && usageScope !== varInfo.declarationScope) {
+        if (usageScope.type === "function") {
           varInfo.isCaptured = true;
+          break;
         }
+        usageScope = usageScope.parent;
       }
     }
   }
@@ -522,7 +556,9 @@ function registerVariable(scope: Scope, name: string, kind: VariableInfo["kind"]
   // Проверяем shadowing — есть ли переменная с таким именем в parent scopes
   // Для let/const в block scope нужно переименовать если есть shadowing
   let renamedTo: string | undefined;
-  if (kind === "const" || kind === "let") {
+  if (kind === "catch") {
+    renamedTo = currentBindings.create("caught");
+  } else if (kind === "const" || kind === "let") {
     const shadowedVar = findVariableInParentScopes(name, scope.parent);
     if (shadowedVar) {
       // Генерируем уникальное имя через BindingManager
@@ -542,6 +578,21 @@ function registerVariable(scope: Scope, name: string, kind: VariableInfo["kind"]
   scope.variables.set(name, varInfo);
   allVariables.push(varInfo);
   return varInfo;
+}
+
+/** Collects identifiers before any generated name is allocated. */
+function collectSourceIdentifierNames(node: ts.Node): Set<string> {
+  const names = new Set<string>();
+
+  function visit(current: ts.Node): void {
+    if (ts.isIdentifier(current)) {
+      names.add(current.text);
+    }
+    ts.forEachChild(current, visit);
+  }
+
+  visit(node);
+  return names;
 }
 
 /**
@@ -586,15 +637,6 @@ function isFunctionBody(node: ts.Block): boolean {
     ts.isGetAccessorDeclaration(parent) ||
     ts.isSetAccessorDeclaration(parent)
   );
-}
-
-function isScopeNestedIn(inner: Scope, outer: Scope): boolean {
-  let current: Scope | null = inner.parent;
-  while (current) {
-    if (current === outer) return true;
-    current = current.parent;
-  }
-  return false;
 }
 
 function isVariableUsage(node: ts.Identifier): boolean {

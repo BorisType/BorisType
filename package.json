@@ -6,6 +6,7 @@
   "packageManager": "pnpm@12.5.1",
   "scripts": {
     "test": "node ./packages/botest/build/index.js tests/build",
+    "test:semantic": "pnpm --filter @boristype/bt-ir test:semantic",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format:check": "prettier --check .",

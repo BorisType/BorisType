@@ -47,5 +47,8 @@ jobs:
       - name: ESLint
         run: pnpm lint
 
+      - name: IR and ESLint unit tests
+        run: pnpm --filter @boristype/bt-ir --filter @boristype/eslint-plugin test
+
       - name: Prettier
         run: pnpm format:check

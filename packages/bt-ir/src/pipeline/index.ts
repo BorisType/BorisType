@@ -14,7 +14,8 @@ import { emit, type EmitOptions } from "../emitter/index.ts";
 import { analyzeScopes, printScopeTree } from "../analyzer/index.ts";
 import type { IRProgram } from "../ir/index.ts";
 import { runPasses, type PassContext } from "../passes/index.ts";
-import { tryFinallyDesugarPass } from "../passes/try-finally-desugar.ts";
+import { abruptCompletionDesugarPass } from "../passes/abrupt-completion-desugar.ts";
+import { forUpdateDesugarPass } from "../passes/for-update-desugar.ts";
 import { parenthesizePass } from "../passes/parenthesize.ts";
 import { cleanupGroupingPass } from "../passes/cleanup-grouping.ts";
 import { commaSafetyPass } from "../passes/comma-safety.ts";
@@ -161,12 +162,20 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
     console.log(JSON.stringify(ir, null, 2));
   }
 
-  const passCtx: PassContext = { diagnostics: allDiagnostics, sourceFile };
+  const passCtx: PassContext = { diagnostics: allDiagnostics, sourceFile, bindings: scopeAnalysis.bindings };
 
   try {
     ir = runPasses(
       ir,
-      [tryFinallyDesugarPass, parenthesizePass, commaSafetyPass, cleanupGroupingPass, literalExtractPass, hoistPass],
+      [
+        forUpdateDesugarPass,
+        abruptCompletionDesugarPass,
+        parenthesizePass,
+        commaSafetyPass,
+        cleanupGroupingPass,
+        literalExtractPass,
+        hoistPass,
+      ],
       passCtx,
     );
   } catch (e) {
@@ -294,12 +303,20 @@ export function compileSourceFile(sourceFile: ts.SourceFile, program: ts.Program
     console.log(JSON.stringify(ir, null, 2));
   }
 
-  const passCtx: PassContext = { diagnostics: allDiagnostics, sourceFile };
+  const passCtx: PassContext = { diagnostics: allDiagnostics, sourceFile, bindings: scopeAnalysis.bindings };
 
   try {
     ir = runPasses(
       ir,
-      [tryFinallyDesugarPass, parenthesizePass, commaSafetyPass, cleanupGroupingPass, literalExtractPass, hoistPass],
+      [
+        forUpdateDesugarPass,
+        abruptCompletionDesugarPass,
+        parenthesizePass,
+        commaSafetyPass,
+        cleanupGroupingPass,
+        literalExtractPass,
+        hoistPass,
+      ],
       passCtx,
     );
   } catch (e) {

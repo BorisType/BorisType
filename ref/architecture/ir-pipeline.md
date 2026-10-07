@@ -50,8 +50,17 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 
 **Passes (порядок важен):**
 
-1. **Try-Finally Desugar** — десахаризация try-finally в state machine
-2. **Hoist** — поднятие var/function declarations в начало scope
+1. **For Update Desugar** — comma-update → first-entry while; сохраняет source target id
+2. **Abrupt Completion Desugar** — lexical target resolution, labels и try-finally через structured completion state
+3. **Parenthesize → Comma Safety → Cleanup Grouping → Literal Extract** — безопасные expression contexts
+4. **Hoist** — поднятие var/function declarations в начало scope
+
+`abruptCompletionDesugarPass.dependsOn` требует `for-update-desugar`:
+`runPasses` отклоняет пропущенный/обратный порядок, в том числе при использовании
+deprecated alias. При новых Error diagnostics pass manager прекращает обход;
+pipeline не эмитит partial output. Уже собранные TypeScript diagnostics не
+скрываются. Невалидные jump targets и дубли lexical labels дают отдельные
+BT90018 с диапазоном IR source location (positionless fallback без source/loc).
 
 ### Компоненты
 
@@ -76,7 +85,7 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 **Алгоритм:**
 
 1. **Pass 1:** Собираем все scopes и объявления переменных
-2. **Pass 2:** Анализируем использования — если переменная используется во вложенном scope, она "captured"
+2. **Pass 2:** Разрешаем lexical scopes, включая catch; переменная captured только при использовании через границу функции
 
 **Результат:** `CapturedVarInfo[]` для каждого scope
 
@@ -108,12 +117,33 @@ BT-IR — бэкенд транспиляции TypeScript → BorisScript на 
 
 **Назначение:** Пост-обработка IR между lowering и emitter.
 
-| Pass                | Файл                     | Назначение                                |
-| ------------------- | ------------------------ | ----------------------------------------- |
-| Try-Finally Desugar | `try-finally-desugar.ts` | Десахаризация try-finally в state machine |
-| Hoist               | `hoist.ts`               | Поднятие var/function в начало scope      |
+| Pass                      | Файл                           | Назначение                              |
+| ------------------------- | ------------------------------ | --------------------------------------- |
+| For Update Desugar        | `for-update-desugar.ts`        | C-safe updates перед lexical resolution |
+| Abrupt Completion Desugar | `abrupt-completion-desugar.ts` | Labels и finalizers без throw sentinels |
+| Hoist                     | `hoist.ts`                     | Поднятие var/function в начало scope    |
 
 **Инфраструктура:** `walker.ts` — mapStatements, mapExpression, forEachStatement для обхода IR.
+
+`control-target-resolver.ts` фиксирует targets до rewrite и отдельно отмечает
+returns, пересекающие source finalizers. Loop/switch nodes сохраняют
+`controlTargetId`; expanded for-of и chained labels используют исходный target.
+`try-finally-desugar.ts` содержит только deprecated alias. См.
+[structured completion ADR](../decisions/2026-10-07-structured-abrupt-completion.md).
+
+`for-update-desugar.ts` распознаёт binary comma и sequence IR, включая вложенные
+подвыражения. Превращает affected for в init + first-entry flag + while; верхний
+discarded comma разбивается на statements. Значение update игнорируется, но
+value-consuming подвыражения сохраняются. Безопасный префикс loop body остаётся
+снаружи completion escape frames: condition break таргетит настоящий while,
+без state transition. Emitter проверяет отсутствие comma operators в updates.
+Read-only `containsCommaOperator` расположен в `ir/utils.ts`, без зависимости
+emitter → passes; прежний pass-module export сохранён как deprecated re-export.
+См. [safe-for-updates ADR](../decisions/2026-10-07-safe-for-updates.md).
+
+CI build/unit gates не заменяют обязательную ручную проверку выполнения перед
+merge: [E2E/semantic gate](../../plans/probes/README.md#обязательный-pre-merge-gate).
+Provisioning CI runtime отслеживается в [#29](https://github.com/BorisType/BorisType/issues/29).
 
 См. [ADR-011](../decisions/011-bt-ir-multi-pass-refactoring.md), [Lowering vs Pass](../algorithms/bt-ir-lowering-vs-pass.md).
 

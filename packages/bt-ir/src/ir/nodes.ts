@@ -73,6 +73,7 @@ export type IRStatement =
   | IRDoWhileStatement
   | IRSwitchStatement
   | IRCaseClause
+  | IRLabeledStatement
   | IRTryStatement
   | IRThrowStatement
   | IRBreakStatement
@@ -236,6 +237,8 @@ export interface IRForStatement extends IRNodeBase {
   update: IRExpression | null;
   /** Тело цикла */
   body: IRStatement;
+  /** Stable identity of the source control-flow target. */
+  controlTargetId?: number;
 }
 
 /**
@@ -251,6 +254,8 @@ export interface IRForInStatement extends IRNodeBase {
   right: IRExpression;
   /** Тело цикла */
   body: IRStatement;
+  /** Stable identity of the source control-flow target. */
+  controlTargetId?: number;
 }
 
 /**
@@ -262,6 +267,8 @@ export interface IRWhileStatement extends IRNodeBase {
   test: IRExpression;
   /** Тело */
   body: IRStatement;
+  /** Stable identity of the source control-flow target. */
+  controlTargetId?: number;
 }
 
 /**
@@ -273,6 +280,8 @@ export interface IRDoWhileStatement extends IRNodeBase {
   test: IRExpression;
   /** Тело */
   body: IRStatement;
+  /** Stable identity of the source control-flow target. */
+  controlTargetId?: number;
 }
 
 /**
@@ -284,6 +293,8 @@ export interface IRSwitchStatement extends IRNodeBase {
   discriminant: IRExpression;
   /** Case clauses */
   cases: IRCaseClause[];
+  /** Stable identity of the source control-flow target. */
+  controlTargetId?: number;
 }
 
 /**
@@ -295,6 +306,16 @@ export interface IRCaseClause extends IRNodeBase {
   test: IRExpression | null;
   /** Тело case */
   consequent: IRStatement[];
+}
+
+/** A source label preserved until abrupt-completion desugaring. */
+export interface IRLabeledStatement extends IRNodeBase {
+  kind: "LabeledStatement";
+  label: string;
+  body: IRStatement;
+  /** Shared with the labeled source statement and generated loop carrier. */
+  controlTargetId: number;
+  targetKind: "iteration" | "switch" | "statement";
 }
 
 /**
@@ -402,6 +423,7 @@ export interface IRBinaryExpression extends IRNodeBase {
 }
 
 export type BinaryOperator =
+  | ","
   | "+"
   | "-"
   | "*"

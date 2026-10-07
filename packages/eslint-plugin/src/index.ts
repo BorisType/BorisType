@@ -24,14 +24,14 @@ const rules = {
 
 /**
  * Recommended configuration preset.
- * Enables all rules as errors.
+ * Enables current target limitations as errors. Legacy compatibility rules
+ * remain available explicitly but are not recommended.
  */
 const configs = {
   recommended: {
     plugins: ["@boristype"],
     rules: {
       "@boristype/no-async-await": "error",
-      "@boristype/no-break-in-try-finally": "warn",
       "@boristype/no-generators": "error",
       "@boristype/no-prototype": "error",
       "@boristype/no-class-declaration": "error",

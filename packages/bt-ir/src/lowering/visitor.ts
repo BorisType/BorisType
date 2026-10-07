@@ -60,6 +60,10 @@ export interface VisitorContext {
   sourceFile: ts.SourceFile;
   /** Менеджер генерации уникальных имён */
   bindings: BindingManager;
+  /** Stable ids for source break/continue targets. Shared by child contexts. */
+  controlTargetIds: Map<ts.Node, number>;
+  /** Mutable counter shared by child contexts created with object spread. */
+  nextControlTargetId: { value: number };
   /** Результат анализа scopes */
   scopeAnalysis: ScopeAnalysisResult;
   /** Текущий scope */
@@ -237,6 +241,8 @@ export function transformToIR(
     typeChecker,
     sourceFile,
     bindings: scopeAnalysis.bindings,
+    controlTargetIds: new Map(),
+    nextControlTargetId: { value: 0 },
     scopeAnalysis,
     currentScope: scopeAnalysis.moduleScope,
     pendingStatements: [],

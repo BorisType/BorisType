@@ -6,11 +6,22 @@
 
 export type { IRPass, PassContext } from "./types.ts";
 export { hoistPass } from "./hoist.ts";
+/** @deprecated Use abruptCompletionDesugarPass; this export is an alias. */
 export { tryFinallyDesugarPass } from "./try-finally-desugar.ts";
 export { parenthesizePass } from "./parenthesize.ts";
 export { cleanupGroupingPass } from "./cleanup-grouping.ts";
 export { commaSafetyPass } from "./comma-safety.ts";
 export { literalExtractPass } from "./literal-extract.ts";
+export { abruptCompletionDesugarPass } from "./abrupt-completion-desugar.ts";
+export { forUpdateDesugarPass, containsCommaOperator } from "./for-update-desugar.ts";
+export {
+  resolveControlTargets,
+  type ControlTargetKind,
+  type ResolvedControlTarget,
+  type ResolvedControlJump,
+  type ControlTargetResolution,
+  type ControlTargetResolutionError,
+} from "./control-target-resolver.ts";
 export {
   mapStatements,
   mapExpression,
@@ -21,6 +32,7 @@ export {
   type MapStatementsOptions,
 } from "./walker.ts";
 
+import * as ts from "typescript";
 import type { IRProgram } from "../ir/index.ts";
 import type { IRPass, PassContext } from "./types.ts";
 
@@ -31,6 +43,7 @@ import type { IRPass, PassContext } from "./types.ts";
  * Если массив пустой — возвращает программу без изменений.
  * Валидирует порядок выполнения по `dependsOn`.
  * При ошибке в pass — добавляет имя pass в сообщение для отладки.
+ * Останавливается после pass, добавившего Error diagnostics, сохраняя их позиции.
  *
  * @param program - Входная IR программа
  * @param passes - Массив passes для применения
@@ -50,6 +63,7 @@ export function runPasses(program: IRProgram, passes: IRPass[], ctx: PassContext
       }
     }
 
+    const diagnosticCount = ctx.diagnostics.length;
     try {
       result = pass.run(result, ctx);
     } catch (e) {
@@ -59,6 +73,9 @@ export function runPasses(program: IRProgram, passes: IRPass[], ctx: PassContext
     }
 
     executed.add(pass.name);
+    if (ctx.diagnostics.slice(diagnosticCount).some((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error)) {
+      return result;
+    }
   }
 
   return result;
