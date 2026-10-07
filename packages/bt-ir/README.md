@@ -6,6 +6,10 @@ bt-ir — бэкенд компиляции для [BorisType](../README.md), т
 
 ## Обзор
 
+Поддерживается ограниченный subset TypeScript/JS, не весь ECMAScript.
+Актуальные mode-specific ограничения, known miscompilations и отдельные
+подтверждения JS/C: [технический контракт](../../docs/reference/borisscript-constraints.md).
+
 - **Вход:** TypeScript исходный код
 - **Выход:** BorisScript (.js файлы)
 - **Метод:** TypeScript AST → IR (Intermediate Representation) → BorisScript

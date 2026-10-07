@@ -58,7 +58,7 @@ export default defineConfig({
             { text: "Режимы компиляции", link: "/reference/compile-modes" },
             { text: "Типы пакетов", link: "/reference/package-types" },
             {
-              text: "Ограничения BorisScript",
+              text: "Ограничения BorisType и JS/C runtime",
               link: "/reference/borisscript-constraints",
             },
             { text: "Команда artifact", link: "/reference/artifact-command" },
