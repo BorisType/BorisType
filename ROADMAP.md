@@ -30,6 +30,7 @@
 - [x] Package-level README (файлы bt-ir, botest)
 - [x] ADR (записи архитектурных решений)
 - [x] Архив устаревшей документации
+- [x] Технический контракт ограничений BorisType: compile modes, JS/C evidence, output invariants и known miscompilations (2026-10-07)
 
 ### BT-IR Multi-Pass Refactoring (2026-03)
 
