@@ -23,7 +23,7 @@
   "devDependencies": {
     "@boristype/eslint-plugin": "workspace:^",
     "@changesets/cli": "^3.0.3",
-    "eslint": "^10.11.0",
+    "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
     "lefthook": "^2.1.14",
     "prettier": "^3.9.8",
