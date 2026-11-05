@@ -15,6 +15,7 @@
     "alwaysStrict": true,
     "noLib": true,
     "typeRoots": ["node_modules/@boristype/types/lib", "node_modules/@boristype/types/lib/xml"],
+    "types": ["*"],
     "declaration": true,
     "declarationMap": true
   },

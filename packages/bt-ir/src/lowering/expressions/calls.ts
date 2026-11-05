@@ -185,7 +185,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     // Импорты — live binding через moduleVar.exportedName
     // Если импорт captured, доступ к moduleVar через __env цепочку
     const importBinding = ctx.importBindings.get(funcName);
-    if (importBinding) {
+    if (importBinding && resolveVariableInScope(funcName, ctx.currentScope)?.kind === "import") {
       const moduleRef = importModuleVarAccess(importBinding.moduleVar, importBinding.isCaptured, ctx);
       const callee =
         importBinding.exportedName === "" ? moduleRef : IR.dot(moduleRef, importBinding.exportedName, getLoc(node.expression, ctx));
@@ -202,7 +202,8 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
     }
 
     if (!ctx.config.wrapCallExpression || isBuiltinFunction(funcName, ctx)) {
-      return IR.call(IR.id(funcName), args, loc);
+      const actualName = resolveVariableInScope(funcName, ctx.currentScope)?.renamedTo ?? funcName;
+      return IR.call(IR.id(actualName), args, loc);
     }
 
     // Резолвим через __env для function-kind, через env-цепочку для captured

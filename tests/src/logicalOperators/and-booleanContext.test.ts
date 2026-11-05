@@ -75,7 +75,7 @@ botest.assertValueEquals(iterations2, 0, "while: false && true never enters");
 
 let forCount = 0;
 let forFlag: any = true;
-for (; forFlag && true; ) {
+for (; forFlag && true;) {
   forCount = forCount + 1;
   forFlag = false;
 }

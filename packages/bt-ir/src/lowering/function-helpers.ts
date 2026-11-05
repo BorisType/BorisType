@@ -201,6 +201,10 @@ export function createInnerFunctionContext(options: InnerFunctionContextOptions)
     helperFlags: ctx.helperFlags,
     diagnostics: ctx.diagnostics,
     ...extra,
+    // Target identity allocation is file-wide and must not be replaced by a
+    // partially specified child context.
+    controlTargetIds: ctx.controlTargetIds,
+    nextControlTargetId: ctx.nextControlTargetId,
   };
 }
 

@@ -50,15 +50,15 @@ expression (`(__tmp = ...) == null || __tmp == undefined ? undefined : ...`).
 
 `maybeExtract` применяется во всех контекстах, где inline conditional может сломать парсер:
 
-| Контекст                                     | Почему опасно                   |
-| -------------------------------------------- | ------------------------------- | --- | --- | --- | ------------------------------------ | --- | --- |
-| Template literal spans                       | Ternary внутри `+` конкатенации |
-| Binary operators (`+`, `-`, `===`, ...)      | `?:` перехватывает операнд      |
-| Logical operators (`&&`, `                   |                                 | `)  | `   |     | `в null-check конфликтует с внешним` |     | `   |
-| Conditional expression (condition, branches) | Вложенный ternary `? : ?:`      |
-| Array literal elements                       | `?:` коллизия с `,` парсером    |
-| Object literal values                        | `?:` коллизия с парсером        |
-| Call expression arguments                    | Превентивная мера               |
+| Контекст                                     | Почему опасно                           |
+| -------------------------------------------- | --------------------------------------- |
+| Template literal spans                       | Ternary внутри `+` конкатенации         |
+| Binary operators (`+`, `-`, `===`, ...)      | `?:` перехватывает операнд              |
+| Logical operators (`&&`, `\|\|`)             | `?:` в null-check конфликтует с внешним |
+| Conditional expression (condition, branches) | Вложенный ternary `? : ?:`              |
+| Array literal elements                       | `?:` коллизия с `,` парсером            |
+| Object literal values                        | `?:` коллизия с парсером                |
+| Call expression arguments                    | Превентивная мера                       |
 
 ### 3. Оптимизация temp переменных optional chaining
 

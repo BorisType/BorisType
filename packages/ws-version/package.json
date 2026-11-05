@@ -15,11 +15,12 @@
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {
-    "semver": "^7.0.0"
+    "semver": "^7.8.5"
   },
   "devDependencies": {
-    "@types/semver": "^7.0.0",
-    "typescript": "^5.9.2"
+    "@types/node": "^24.13.6",
+    "@types/semver": "^7.8.0",
+    "typescript": "^6.0.3"
   },
   "keywords": [
     "version",
@@ -40,6 +41,6 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   }
 }

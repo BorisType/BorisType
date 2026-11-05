@@ -1,5 +1,10 @@
 # no-break-in-try-finally
 
+> Deprecated: текущий компилятор поддерживает `break`/`continue` через `finally`,
+> в том числе labelled jumps. Правило удалено из recommended; включайте его
+> явно только для старых версий компилятора. Ниже сохранено историческое описание.
+> См. [structured completions](../../../../ref/decisions/2026-10-07-structured-abrupt-completion.md).
+
 Предупреждает об использовании `break`/`continue` внутри `try`/`catch` блока при наличии `finally`.
 
 ## Причина

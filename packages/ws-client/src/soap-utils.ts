@@ -13,7 +13,6 @@ import { WshcmException } from "./exceptions.js";
 const soapParser = new XMLParser({
   htmlEntities: true,
   ignoreAttributes: false,
-  htmlEntities: true,
   attributeNamePrefix: "@_",
   removeNSPrefix: true,
   trimValues: true,

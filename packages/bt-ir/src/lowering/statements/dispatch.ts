@@ -10,7 +10,7 @@ import * as ts from "typescript";
 import { IR, type IRStatement } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
 import { visitExpression, resolveCallableRef } from "../expressions.ts";
-import { getLoc } from "../helpers.ts";
+import { getControlTargetId, getLoc } from "../helpers.ts";
 import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 import { visitBareFunctionDeclaration, visitBareVariableStatement, visitBareNamespaceDeclaration } from "../bare-visitors.ts";
 import {
@@ -29,6 +29,36 @@ import { visitBlock, visitReturnStatement } from "./blocks.ts";
  * Обрабатывает statement
  */
 export function visitStatement(node: ts.Node, ctx: VisitorContext): IRStatement | IRStatement[] | null {
+  // Label is preserved in IR and removed by abrupt-completion desugaring.
+  if (ts.isLabeledStatement(node)) {
+    let sourceTarget: ts.Statement = node.statement;
+    while (ts.isLabeledStatement(sourceTarget)) {
+      sourceTarget = sourceTarget.statement;
+    }
+    if (ts.isFunctionDeclaration(sourceTarget)) {
+      ctx.diagnostics.push(
+        createBtDiagnostic(
+          ctx.sourceFile,
+          sourceTarget,
+          "Labelled function declarations (Annex B) are not supported; label a block instead.",
+          ts.DiagnosticCategory.Error,
+          BtDiagnosticCode.LabelledFunctionUnsupported,
+        ),
+      );
+      return null;
+    }
+
+    const lowered = visitStatement(node.statement, ctx);
+    const body = Array.isArray(lowered) ? IR.block(lowered) : (lowered ?? IR.empty(getLoc(node.statement, ctx)));
+    const targetKind = ts.isIterationStatement(sourceTarget, false)
+      ? "iteration"
+      : ts.isSwitchStatement(sourceTarget)
+        ? "switch"
+        : "statement";
+
+    return IR.labeled(node.label.text, body, getControlTargetId(sourceTarget, ctx), targetKind, getLoc(node, ctx));
+  }
+
   // Function declaration
   if (ts.isFunctionDeclaration(node)) {
     if (!ctx.config.useEnvDescPattern) return visitBareFunctionDeclaration(node, ctx);

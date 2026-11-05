@@ -63,4 +63,5 @@ src/
 npm run build    # tsc → build/
 ```
 
-Требуется Node.js 22+.
+Для разработки monorepo используются Node.js 24.22.2 и pnpm 12.16.1;
+версии закреплены в корневых `.node-version` и `package.json#packageManager`.

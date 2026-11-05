@@ -1,6 +1,14 @@
 {
   "name": "Try-catch-finally",
   "tests": {
+    "comma-update-continue.test.js": "comma update after labelled continue and finally",
+    "comma-update-override.test.js": "finalizer override preserves comma-update timing",
+    "return-error-object.test.js": "return of a caught error uses no mutating throw sentinel",
+    "catch-binding-parameter.test.js": "catch shadows function parameter and nested lexical binding",
+    "catch-binding-per-entry.test.js": "catch closures retain separate per-entry bindings",
+    "catch-binding-callable.test.js": "catch callable shadows its outer function",
+    "finalizer-local-catch.test.js": "local catch preserves pending completion and outer catch clears override",
+    "function-in-block.test.js": "nested block function gets independent finalizer lowering",
     "basic.test.js": "basic try-catch-finally usage",
     "try-finally-no-error.test.js": "try-finally without error runs both blocks",
     "try-finally-with-error.test.js": "try-finally with error runs finally then propagates",
@@ -8,12 +16,49 @@
     "catch-rethrow.test.js": "catch rethrows, finally runs, error propagates",
     "nested.test.js": "nested try-catch-finally constructs",
     "try-catch-only.test.js": "regression: try-catch without finally works",
+    "catch-binding-captured.test.js": "closure retains a catch binding after catch exits",
+    "catch-binding-shadowing.test.js": "catch binding does not overwrite an outer variable",
+    "catch-binding-collision.test.js": "generated catch binding avoids source-name collisions",
+    "catch-optional-binding.test.js": "optional catch binding uses target-safe syntax",
     "catch-no-param.test.js": "catch without parameter works with finally",
     "return-in-try.test.js": "return in try, finally still runs",
     "return-in-catch.test.js": "return in catch, finally still runs",
     "return-in-finally.test.js": "return in finally overrides return in try",
     "return-conditional.test.js": "conditional return in try with finally",
     "return-try-no-error.test.js": "return in try with catch+finally, no error",
-    "return-multiple.test.js": "multiple return paths in try with finally"
+    "return-multiple.test.js": "multiple return paths in try with finally",
+    "return-not-caught.test.js": "return completion is not intercepted by a user catch",
+    "return-expression-throws.test.js": "exception from return expression propagates after finally",
+    "nested-throw-source-catch.test.js": "source catch receives throw after a nested finalizer",
+    "loop-jumps-finally.test.js": "labeled break and continue cross finally",
+    "continue-switch-finally.test.js": "continue inside switch crosses finally to its loop",
+    "nested-pending-return.test.js": "nested finalizers preserve a pending return",
+    "finalizer-jump-override.test.js": "finalizer jumps override pending loop completions",
+    "finalizer-return-throw-override.test.js": "finalizer return and throw override pending completions"
+  },
+  "codeChecks": {
+    "comma-update-continue.test.js": {
+      "require": ["__forFirst[0-9]+"],
+      "forbid": ["for \\("]
+    },
+    "comma-update-override.test.js": {
+      "require": ["__forFirst[0-9]+"],
+      "forbid": ["for \\("]
+    },
+    "catch-binding-captured.test.js": {
+      "require": ["__[A-Za-z]+[0-9]+_env\\.__caught[0-9]+ = __caught[0-9]+;"]
+    },
+    "catch-binding-collision.test.js": {
+      "forbid": ["catch \\(__caught0\\)"],
+      "require": ["catch \\(__caught[1-9][0-9]*\\)"]
+    },
+    "catch-binding-shadowing.test.js": {
+      "forbid": ["catch \\(error\\)"],
+      "require": ["catch \\(__[A-Za-z]+[0-9]+\\)"]
+    },
+    "catch-optional-binding.test.js": {
+      "forbid": ["catch[ ]+\\{"],
+      "require": ["catch \\(__[A-Za-z]+[0-9]+\\)"]
+    }
   }
 }

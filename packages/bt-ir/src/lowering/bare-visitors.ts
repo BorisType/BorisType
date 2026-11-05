@@ -16,7 +16,7 @@ import { IR, type IRStatement, type IRExpression, type IRFunctionParam } from ".
 import type { VisitorContext } from "./visitor.ts";
 import { visitExpression } from "./expressions.ts";
 import { visitStatementList, visitStatement } from "./statements.ts";
-import { getLoc } from "./helpers.ts";
+import { getLoc, resolveVariableInScope } from "./helpers.ts";
 import { createBtDiagnostic, BtDiagnosticCode } from "../pipeline/diagnostics.ts";
 
 // ============================================================================
@@ -81,7 +81,8 @@ export function visitBareVariableStatement(node: ts.VariableStatement, ctx: Visi
     if (ts.isIdentifier(decl.name)) {
       const varName = decl.name.text;
       const init = decl.initializer ? visitExpression(decl.initializer, ctx) : null;
-      results.push(IR.varDecl(varName, init, getLoc(decl, ctx)));
+      const actualName = resolveVariableInScope(varName, ctx.currentScope)?.renamedTo ?? varName;
+      results.push(IR.varDecl(actualName, init, getLoc(decl, ctx)));
     }
     // Деструктуризация объекта: const { a, b } = obj
     else if (ts.isObjectBindingPattern(decl.name) && decl.initializer) {
@@ -93,7 +94,7 @@ export function visitBareVariableStatement(node: ts.VariableStatement, ctx: Visi
             continue;
           }
           const propertyName = element.propertyName ? (element.propertyName as ts.Identifier).text : element.name.text;
-          const variableName = element.name.text;
+          const variableName = resolveVariableInScope(element.name.text, ctx.currentScope)?.renamedTo ?? element.name.text;
           const val = IR.dot(init, propertyName, getLoc(decl, ctx));
           const initExpr = element.initializer
             ? IR.conditional(IR.binary("!==", val, IR.id("undefined")), val, visitExpression(element.initializer, ctx), getLoc(decl, ctx))
@@ -117,7 +118,7 @@ export function visitBareVariableStatement(node: ts.VariableStatement, ctx: Visi
             // rest не поддерживается в bare
             continue;
           }
-          const variableName = element.name.text;
+          const variableName = resolveVariableInScope(element.name.text, ctx.currentScope)?.renamedTo ?? element.name.text;
           const val = IR.member(IR.id("__arr"), IR.number(index), true, getLoc(decl, ctx));
           results.push(IR.varDecl(variableName, val, getLoc(decl, ctx)));
           index++;
@@ -319,6 +320,8 @@ function createBareFnCtx(node: ts.Node, ctx: VisitorContext): VisitorContext {
     typeChecker: ctx.typeChecker,
     sourceFile: ctx.sourceFile,
     bindings: ctx.bindings,
+    controlTargetIds: ctx.controlTargetIds,
+    nextControlTargetId: ctx.nextControlTargetId,
     scopeAnalysis: ctx.scopeAnalysis,
     currentScope: funcScope,
     pendingStatements: [],

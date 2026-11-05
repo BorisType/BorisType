@@ -15,7 +15,7 @@ import * as ts from "typescript";
 import { IR, type IRStatement, type IRExpression, type IRIdentifier } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
 import { visitExpression } from "../expressions.ts";
-import { getLoc, resolveVariableInScope } from "../helpers.ts";
+import { getControlTargetId, getLoc, resolveVariableInScope } from "../helpers.ts";
 import { visitStatementAsBlock } from "./blocks.ts";
 
 /**
@@ -39,7 +39,7 @@ export function visitForStatement(node: ts.ForStatement, ctx: VisitorContext): I
   const update = node.incrementor ? visitExpression(node.incrementor, ctx) : null;
   const body = visitStatementAsBlock(node.statement, ctx);
 
-  return IR.for(init, test, update, body, getLoc(node, ctx));
+  return IR.for(init, test, update, body, getLoc(node, ctx), getControlTargetId(node, ctx));
 }
 
 /**
@@ -64,7 +64,7 @@ export function visitForInStatement(node: ts.ForInStatement, ctx: VisitorContext
   const right = visitExpression(node.expression, ctx);
   const body = visitStatementAsBlock(node.statement, ctx);
 
-  return IR.forIn(left, right, body, getLoc(node, ctx));
+  return IR.forIn(left, right, body, getLoc(node, ctx), getControlTargetId(node, ctx));
 }
 
 /**
@@ -133,7 +133,7 @@ export function visitForOfStatement(node: ts.ForOfStatement, ctx: VisitorContext
     body.body.unshift(IR.varDecl(actualName, IR.id(loopVar)));
   }
 
-  const forIn = IR.forIn(IR.varDecl(loopVar, null), arrRef, body, getLoc(node, ctx));
+  const forIn = IR.forIn(IR.varDecl(loopVar, null), arrRef, body, getLoc(node, ctx), getControlTargetId(node, ctx));
 
   // Если не нужна временная переменная для массива
   if (isSimple) {
@@ -148,12 +148,22 @@ export function visitForOfStatement(node: ts.ForOfStatement, ctx: VisitorContext
  * Обрабатывает while statement
  */
 export function visitWhileStatement(node: ts.WhileStatement, ctx: VisitorContext): IRStatement {
-  return IR.while(visitExpression(node.expression, ctx), visitStatementAsBlock(node.statement, ctx), getLoc(node, ctx));
+  return IR.while(
+    visitExpression(node.expression, ctx),
+    visitStatementAsBlock(node.statement, ctx),
+    getLoc(node, ctx),
+    getControlTargetId(node, ctx),
+  );
 }
 
 /**
  * Обрабатывает do-while statement
  */
 export function visitDoWhileStatement(node: ts.DoStatement, ctx: VisitorContext): IRStatement {
-  return IR.doWhile(visitStatementAsBlock(node.statement, ctx), visitExpression(node.expression, ctx), getLoc(node, ctx));
+  return IR.doWhile(
+    visitStatementAsBlock(node.statement, ctx),
+    visitExpression(node.expression, ctx),
+    getLoc(node, ctx),
+    getControlTargetId(node, ctx),
+  );
 }

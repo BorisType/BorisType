@@ -33,16 +33,17 @@ import { importModuleVarAccess } from "./module-access.ts";
 export function visitIdentifier(node: ts.Identifier, ctx: VisitorContext): IRExpression {
   const name = node.text;
   const loc = getLoc(node, ctx);
+  const varInfo = resolveVariableInScope(name, ctx.currentScope);
 
   // Without env/desc pattern: direct identifier, no importBindings/argsAccess/envAccess
   if (!ctx.config.useEnvDescPattern) {
-    return IR.id(name, loc);
+    return IR.id(varInfo?.renamedTo ?? name, loc);
   }
 
   // Импорты — live binding через moduleVar.exportedName
   // Если импорт captured, доступ к moduleVar через __env цепочку
   const importBinding = ctx.importBindings.get(name);
-  if (importBinding) {
+  if (importBinding && varInfo?.kind === "import") {
     const moduleRef = importModuleVarAccess(importBinding.moduleVar, importBinding.isCaptured, ctx);
     if (importBinding.exportedName === "") {
       // import * as ns — ссылка на весь модуль
@@ -53,9 +54,8 @@ export function visitIdentifier(node: ts.Identifier, ctx: VisitorContext): IRExp
 
   // Проверяем параметр функции
   const paramIndex = ctx.functionParams.get(name);
-  if (paramIndex !== undefined) {
+  if (paramIndex !== undefined && varInfo?.kind === "parameter") {
     // Если параметр captured (используется в замыкании), доступ через __env
-    const varInfo = resolveVariableInScope(name, ctx.currentScope);
     if (varInfo && varInfo.isCaptured) {
       const actualName = varInfo.renamedTo ?? name;
       return resolveEnvAccess(varInfo.declarationScope, actualName, ctx, getLoc(node, ctx));
@@ -64,7 +64,6 @@ export function visitIdentifier(node: ts.Identifier, ctx: VisitorContext): IRExp
   }
 
   // Проверяем captured переменную
-  const varInfo = resolveVariableInScope(name, ctx.currentScope);
   if (varInfo) {
     // Используем переименованное имя если есть (block scope shadowing)
     const actualName = varInfo.renamedTo ?? name;

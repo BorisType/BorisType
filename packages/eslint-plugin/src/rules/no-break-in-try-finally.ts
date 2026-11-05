@@ -1,9 +1,8 @@
 /**
- * @fileoverview Rule to warn about break/continue inside try block with finally.
+ * @fileoverview Legacy compiler compatibility rule (deprecated).
  *
- * BorisType desugars try-catch-finally into try-catch only (no native finally).
- * break/continue that exits the try block will skip the inlined finally body.
- * This rule warns about such cases.
+ * Current BorisType supports these jumps through structured completions.
+ * Opt in only when targeting a compiler with the old throw-sentinel pass.
  *
  * Only flags break/continue that **targets a loop/switch outside the try block**.
  * break/continue targeting an inner loop inside try is safe.
@@ -96,18 +95,19 @@ function isDescendantOf(node: Rule.Node, ancestor: Rule.Node): boolean {
 const rule: Rule.RuleModule = {
   meta: {
     type: "problem",
+    deprecated: true,
     docs: {
-      description: "Warn about break/continue inside try with finally (may skip finally in BorisScript)",
-      recommended: true,
+      description: "Legacy compiler compatibility: jumps crossing finally",
+      recommended: false,
       url: "https://github.com/BorisType/BorisType/blob/main/packages/eslint-plugin/docs/rules/no-break-in-try-finally.md",
     },
     schema: [],
     messages: {
       noBreakInTryFinally:
-        "break inside try/catch with finally will skip the finally block in BorisScript. " +
+        "Legacy BorisType compilers may skip finally when break exits try/catch. " +
         "Extract the loop or move the break outside try-finally.",
       noContinueInTryFinally:
-        "continue inside try/catch with finally will skip the finally block in BorisScript. " +
+        "Legacy BorisType compilers may skip finally when continue exits try/catch. " +
         "Extract the loop or move the continue outside try-finally.",
     },
   },

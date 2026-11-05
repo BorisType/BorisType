@@ -15,11 +15,11 @@
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {
-    "fast-xml-parser": "^5.3.3"
+    "fast-xml-parser": "^5.11.1"
   },
   "devDependencies": {
-    "@types/node": "^24.7.2",
-    "typescript": "^5.9.2"
+    "@types/node": "^24.13.6",
+    "typescript": "^6.0.3"
   },
   "keywords": [
     "wshcm",
@@ -41,6 +41,6 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   }
 }

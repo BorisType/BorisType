@@ -1,0 +1,23 @@
+{
+  "name": "Labeled control flow",
+  "tests": {
+    "block-break.test.js": "break exits an arbitrary labeled statement",
+    "nested-continue.test.js": "labeled continue exits nested loops",
+    "switch-break.test.js": "switch break and labeled outer break keep distinct targets",
+    "for-of-expanded.test.js": "label targets the generated loop of an expanded for-of"
+  },
+  "codeChecks": {
+    "block-break.test.js": {
+      "forbid": ["done[ ]*:", "break[ ]+done"]
+    },
+    "nested-continue.test.js": {
+      "forbid": ["outer[ ]*:", "continue[ ]+outer;"]
+    },
+    "switch-break.test.js": {
+      "forbid": ["outer[ ]*:", "break[ ]+outer;"]
+    },
+    "for-of-expanded.test.js": {
+      "forbid": ["outer[ ]*:", "(break|continue)[ ]+outer;"]
+    }
+  }
+}

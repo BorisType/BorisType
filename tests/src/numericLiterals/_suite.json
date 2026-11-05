@@ -5,6 +5,8 @@
     "hex-octal-binary.test.js": "Hex, octal, binary → decimal conversion",
     "separators.test.js": "Numeric separators (underscores)",
     "exponents.test.js": "Exponential notation",
-    "edge-cases.test.js": "Edge cases (zero, negative, large safe integers)"
-  }
+    "edge-cases.test.js": "Edge cases (zero, negative, large safe integers)",
+    "platform-integer.test.js": "Platform integer text beyond JS safe range (ADR 2026-03-30; BS only)"
+  },
+  "skipNodeCheck": ["platform-integer.test.js"]
 }

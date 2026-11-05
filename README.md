@@ -3,6 +3,17 @@
 > Инструмент для компиляции TypeScript в валидный код на **BorisScript** и последующей сборки проекта для поставки.  
 > ⚠️ **Проект в активной разработке — не готов для продакшн-использования!**
 
+Поддерживаемый subset и известные расхождения:
+[ограничения BorisType и совместимость JS/C runtime](docs/reference/borisscript-constraints.md).
+
+С 2026-11-05 поддерживаемое направление разработки — **bare mode**.
+Развитие `script` и `module` приостановлено до принятия стратегии памяти:
+их env/descriptor graph может создавать сильные циклы, которые не освобождает
+reference counting C-runtime без сборщика циклов. Реализации и регрессионные
+тесты сохранены; CLI по-прежнему выбирает `module` по умолчанию.
+Выбирайте bare явно с учётом [приоритета выбора режима](docs/reference/compile-modes.md).
+[Решение и условия возобновления](ref/decisions/2026-11-05-script-module-memory-freeze.md).
+
 ## Установка
 
 ```sh
@@ -133,7 +144,9 @@ npx btc dev --no-push    # Без автоматического push
 
 ## Сборка из исходников
 
-> Требуется Node.js 22+ и pnpm 10+
+> Для разработки: Node.js 24.22.2 (ветка 24 LTS) и pnpm 12.16.1.
+> Версия Node закреплена в `.node-version`, pnpm — в `package.json#packageManager`;
+> эти же значения используют CI workflows.
 
 ```sh
 git clone https://github.com/BorisType/BorisType.git
