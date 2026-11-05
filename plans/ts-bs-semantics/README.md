@@ -1,6 +1,14 @@
 # TS → BS: исследование и восстановление семантики
 
-Дата начала: 2026-10-07. Статус: план и предварительный реестр; реализация не начата.
+Дата начала: 2026-10-07. Обновлено: 2026-11-05. Статус: первый research/test
+срез завершён как checkpoint; production compiler не изменён.
+
+Развитие **script/module приостановлено до решения стратегии памяти** C-runtime
+(reference counting без сборщика циклов, по сообщению пользователя). Реализации,
+регрессии и текущие исследовательские изменения сохраняются. Поддерживаемое
+направление дальнейшей разработки — bare, с его ограниченным native subset.
+[Решение и условия возобновления](../../ref/decisions/2026-11-05-script-module-memory-freeze.md),
+[измеримый checkpoint](./results/2026-11-05-research-checkpoint.md).
 
 Цель — максимально широкая достижимая JS-семантика через преобразования, с
 предсказуемым и недорогим BorisScript output на **двух независимых runtime**.
@@ -27,7 +35,7 @@
 [brief по expression lowering](./research/01-expression-evaluation.md), не как
 уже принятое архитектурное решение.
 
-## Рекомендуемый маршрут
+## Маршрут после снятия ограничений по памяти
 
 1. Зафиксировать существующие failures и научить проверочный запуск надёжно
    отличать pass, failure, отсутствие runtime и нулевую выборку. Для начала нужен
@@ -87,6 +95,10 @@ Performance review сопровождает каждый шаг, не перен
 
 ## Текущий прогресс
 
+- [x] F-02a: 23 named expression cases / 48 comparisons; 38 exact XFAIL, 10 controls.
+- [x] E-01 JS-срез: audit pending producers/consumers, raw parser survey,
+      A/B/C/inline prototypes, output/cost comparison.
+- [x] Подготовлен draft E-02 и два bounded C shape probes; дизайн ещё не принят.
 - [x] Поверхностный аудит и выборочные in-memory probes выполнены до создания папки.
 - [x] Context, findings, feature map, workflow и backlog записаны.
 - [x] Подготовлен brief первого точечного исследования.
@@ -96,9 +108,17 @@ Performance review сопровождает каждый шаг, не перен
 - [ ] Первый implementation slice завершён и проверен.
 - [ ] Весь согласованный inventory прошёл итоговые gates.
 
-## Первый рабочий пакет
+## Первый рабочий пакет (завершённый research checkpoint)
 
 Начать с `F-01` + `F-02` + `E-01`: перенести контрпримеры `R01–R03` в
 воспроизводимый runner, исследовать pending-statements и сравнить варианты из
 brief. Deliverable: отчёт, рекомендуемая модель, мини-spec и несколько маленьких
 implementation tasks. Создание этой папки само по себе не запускает реализацию.
+
+Первый пакет начат по разрешению пользователя 2026-10-08. Результат:
+[исследование и варианты](./research/01-expression-evaluation-results.md),
+[draft spec](./specs/01-expression-evaluation.md),
+[leaf/handoff](./tasks/F-02-expression-baseline.md),
+[проверки и C файлы](./results/2026-10-08-expression-baseline.md).
+Рекомендация B + проверенный inline fast path предварительная; скобки нельзя
+отвергать по старому ADR без native evidence. Полное F-01 ещё не завершено.

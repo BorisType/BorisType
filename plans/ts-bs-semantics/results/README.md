@@ -1,6 +1,11 @@
 # L5. Результаты и evidence
 
-Пока здесь нет новых implementation acceptance reports. Historical baseline —
+Текущая точка остановки: [research/test checkpoint 2026-11-05](./2026-11-05-research-checkpoint.md).
+Развитие script/module отложено до принятия стратегии памяти; прежние результаты
+и регрессионные проверки сохранены.
+
+Первый research report: [expression baseline / sketches](./2026-10-08-expression-baseline.md).
+Новых implementation acceptance reports пока нет. Historical baseline —
 в [00-context.md](../00-context.md), observations — в [02-findings.md](../02-findings.md).
 
 ## Manifest результата

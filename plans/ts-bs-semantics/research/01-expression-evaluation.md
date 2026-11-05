@@ -3,6 +3,10 @@
 Статус: research brief, не accepted spec/ADR. Findings: R01–R03; downstream —
 R05/R07/R12 и все consumers pending-statements. Основной пакет: bt-ir.
 
+Обновление 2026-10-08: [первый отчёт](./01-expression-evaluation-results.md)
+воспроизводит failures, сравнивает A/B/C и дополнительно inline/grouping.
+Ниже сохранён исходный brief; некоторые parser гипотезы уточнены native probes.
+
 ## Что уже известно
 
 `maybeExtract` переносит execution assignment в общий `ctx.pendingStatements`.

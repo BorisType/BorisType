@@ -1,5 +1,14 @@
 # Быстрый старт
 
+С 2026-11-05 поддерживаемое направление разработки — **bare mode**.
+Дальнейшее руководство описывает существующий экспериментальный module pipeline;
+его развитие, как и script mode, приостановлено до решения стратегии памяти
+C-runtime. Для low-level bare-кода используйте `btc build --compile-mode bare`
+или `/// @bt-mode bare`; модульные import/export и closure/polyfill infrastructure
+этим режимом не предоставляются. Default CLI пока остаётся `module`.
+См. [статус и приоритет режимов](../reference/compile-modes) и
+[ограничения памяти](../reference/borisscript-constraints#память-и-граница-поддержки).
+
 ## Требования
 
 - **Node.js 22+**

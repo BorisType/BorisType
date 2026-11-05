@@ -4,12 +4,16 @@ Backlog family IDs живут в [05-backlog.md](../05-backlog.md). После �
 создавать leaf files, например `E-04a-logical-rhs.md`. Новая задача ссылается на
 research/spec/test cases, а не дублирует общее описание всей программы.
 
+Первый выполненный leaf: [F-02a expression baseline](./F-02-expression-baseline.md).
+Он содержит отложенные slices, пока не spec-ready; развитие script/module
+приостановлено до [стратегии памяти](../../../ref/decisions/2026-11-05-script-module-memory-freeze.md).
+
 ## Шаблон карточки
 
 ```markdown
 # <ID>: <один проверяемый результат>
 
-Status: queued | researching | spec-ready | tests-ready | implementing | validating | done
+Status: queued | researching | spec-ready | tests-ready | implementing | validating | done | on hold
 Depends on: <IDs>
 Research/spec: <links and rule IDs>
 Findings/tests: <IDs>
