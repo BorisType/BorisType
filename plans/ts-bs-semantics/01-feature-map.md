@@ -4,6 +4,10 @@
 `F-01` должен сопоставить её с фактическими dispatch branches, operator tokens,
 modifiers, TypeChecker decisions и runtime exports. Пустая клетка не означает support.
 
+2026-10-08: [expression pending producer/consumer и dispatch audit](./research/01-expression-evaluation-results.md)
+сверен с кодом; все остальные family-specific modifiers/helpers/type decisions
+ещё требуют F-01. Это не отметка complete для всей карты.
+
 ## Семантические семейства
 
 | ID     | Семейство                                      | Основные места реализации                                                                       | Что надо доисследовать                                                                                                           |

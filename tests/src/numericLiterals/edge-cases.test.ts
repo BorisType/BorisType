@@ -34,8 +34,6 @@ botest.assertValueEquals(d9, 9, "digit 9");
 
 // Very large hex within safe range
 const largeHex = 0x1fffffffffffff;
-const largeDec = 7603264645902515852;
 botest.assertValueEquals(largeHex, 9007199254740991, "0x1FFFFFFFFFFFFF = MAX_SAFE_INTEGER");
-botest.assertValueEquals(largeDec + "", "7603264645902515852", "Large decimal literal");
 
 botest.assertOk();

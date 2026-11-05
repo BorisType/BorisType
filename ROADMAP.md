@@ -8,6 +8,18 @@
 
 ## Текущий спринт (В процессе)
 
+### Граница поддержки и память (2026-11-05)
+
+- [x] Сохранить F-02a/E-01 research/test checkpoint: cases, baseline, prototypes, draft spec
+- [x] Зафиксировать приостановку развития script/module до решения lifetime/циклов на C
+- [x] Сохранить реализации, defaults и regression checks всех трёх режимов
+- [ ] Исследовать и принять стратегию памяти, затем подтвердить её ограниченными C memory tests
+
+Поддерживаемое направление развития сейчас — **bare**; это не гарантия отсутствия
+пользовательских циклов или полная JS-семантика.
+[ADR и условия возобновления](ref/decisions/2026-11-05-script-module-memory-freeze.md),
+[checkpoint](plans/ts-bs-semantics/results/2026-11-05-research-checkpoint.md).
+
 ### Миграция на pnpm monorepo
 
 - [x] Структура packages/ (bt-cli, bt-ir, ws-client, ws-version, botest, builtin-runtime, builtin-botest)
@@ -50,6 +62,18 @@
 - [ ] Multiple declarations в classic for initializer без silent loss ([#28](https://github.com/BorisType/BorisType/issues/28))
 - [ ] Безопасное CI provisioning JS runtime и required execution gates ([#29](https://github.com/BorisType/BorisType/issues/29))
 - [ ] Fail-closed botest на пустой выборке/неизвестных фильтрах ([#30](https://github.com/BorisType/BorisType/issues/30))
+
+### TS → BS semantic correctness (2026-10)
+
+- [x] Иерархический research/spec/task/evidence план в `plans/ts-bs-semantics`
+- [x] Первый expression baseline: 23 cases / 48 comparisons, exact XFAIL и процессный watchdog
+- [x] Pending producer/consumer audit; A/B/C/inline prototypes и structural cost report
+- [ ] Два C expression shape probes (готовы, ожидают ручного запуска)
+- [ ] После решения памяти: принять evaluation spec/ADR и выполнить первый маленький production slice
+- [ ] Остальные family inventories, interactions и JS/C acceptance (script/module on hold)
+
+Результаты и границы: [expression research](plans/ts-bs-semantics/research/01-expression-evaluation-results.md).
+38 наблюдаемых miscompilations пока не исправлены; это evidence, не новая feature guarantee.
 
 ### Опыт разработчика
 

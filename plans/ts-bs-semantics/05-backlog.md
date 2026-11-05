@@ -1,6 +1,17 @@
 # L4. Волны и маленькие задачи
 
-Все пункты ниже — **planned**, не implemented. IDs — стабильные ссылки, не номера PR.
+**2026-11-05: script/module development on hold.** Таблицы сохраняют inventory,
+но не разрешают начинать implementation этих режимов. E-03–E-08 и зависимые
+reference/function/module/class/polyfill slices отложены в части script/module
+до [стратегии памяти](../../ref/decisions/2026-11-05-script-module-memory-freeze.md).
+Bare — активное направление; отдельный bare leaf требует собственного scope/spec
+и не должен расширять script/module ABI. Текущий F-02a/E-01 срез закрыт
+[checkpoint](./results/2026-11-05-research-checkpoint.md), regression checks сохраняются.
+
+Таблицы ниже задают первоначальный план. 2026-10-08: F-02a первого expression
+среза выполнен; F-01 частично исследован, E-01 JS report готов, C pending;
+E-02 draft. Production implementation tasks ещё queued. Подробности:
+[result](./results/2026-10-08-expression-baseline.md). IDs — стабильные ссылки, не номера PR.
 Каждый implementation leaf требует собственной research/spec/test readiness по
 [workflow](./03-workflow.md). Таблица задаёт границы, а не заранее утверждённый дизайн.
 Tasks с неоднородным diff дополнительно делятся в `tasks/`; одна строка не обязана
@@ -38,7 +49,7 @@ polyfill. Основной expression design идёт своим маршрут�
 | E-01 | Исследование pending statements и сравнение дизайнов | F-02; recommended option, prototype/output trade-offs; brief в research, не массовый rewrite                  |
 | E-02 | Spec evaluation points + выбранная representation    | E-01; порядок, count, laziness, throws, mode boundaries; ADR для shared design                                |
 | E-03 | Core API/IR primitive + один vertical slice          | E-02/F-05; immutable/hygienic, не меняет simple path, bootstrap-safe; branch case R01                         |
-| E-04 | Logical/conditional branch evaluation                | E-03; R01, nested &&/                                                                                         |     | /??/?:, effects only selected branch, boolean vs value semantics |
+| E-04 | Logical/conditional branch evaluation                | E-03; R01, nested logical/nullish/conditional, effects only selected branch, boolean vs value semantics       |
 | E-05 | Ordered operands/callee/arguments                    | E-03; R02, early operand reads frozen before later effects, throws stop remaining args                        |
 | E-06 | While/do-while/for evaluation frequency              | E-03; R03, tests/updates repeated at correct points, continue + finalizers + condition throw                  |
 | E-07 | Literals/defaults/switch consumers migration         | E-04/E-05; each consumer separately, object/array/template source order, case expressions only when evaluated |
@@ -150,7 +161,7 @@ case не закрывает Array family. R19 — независимо испр
 | X-02 | Final JS/C output/cost acceptance      | Current commit/hash/modes, runtime setup/version, remaining unknowns/deferred tasks явно перечислены             |
 | X-03 | Documentation/inventory reconciliation | Reference, modes, READMEs, ROADMAP, outdated architecture/ADR statements; public guarantees совпадают с evidence |
 
-## Предлагаемый первый цикл
+## Отложенный первый implementation цикл
 
 `F-02 (R01–R03 + controls) → E-01 → E-02 → E-03 → E-04`, с поддержкой
 F-01/F-04/F-05. Затем E-05/E-06 и reference model. До E-03 сначала показать

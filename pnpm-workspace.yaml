@@ -34,8 +34,10 @@ verifyDepsBeforeRun: error
 verifyStoreIntegrity: true
 strictStorePkgContentCheck: true
 overrides:
-  "vitepress>vite": "^6.4.3"
-  "@vitejs/plugin-vue>vite": "^6.4.3"
+  # GHSA-587h-7wmj-h5pm: patched editor launch handling on Windows.
+  "vitepress>vite": "^6.4.4"
+  "@vitejs/plugin-vue>vite": "^6.4.4"
+  "@changesets/cli>launch-editor": "^2.14.2"
   # GHSA-68fv: force patched source-map-js (transitive via vitepress > vue compiler / postcss)
   "source-map-js": "^1.2.2"
   # GHSA-pqg4-j6r4-53mv: patched command quoting for Changesets' editor launcher.

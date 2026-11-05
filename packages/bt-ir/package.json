@@ -17,6 +17,8 @@
     "dev": "tsc --watch",
     "test": "node --test test/*.test.mjs",
     "test:semantic": "node test/semantic/run-abrupt.mjs",
+    "test:expressions": "node test/semantic/run-expressions.mjs",
+    "test:expressions:baseline": "node test/semantic/run-expressions.mjs --baseline",
     "prepublishOnly": "pnpm build"
   },
   "keywords": [

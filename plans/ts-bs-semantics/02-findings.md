@@ -4,40 +4,47 @@
 Большинство новых observations относятся к `script`; перенос на остальные modes
 и C — отдельная работа. Это не permanent test suite: executable cases создаёт `F-02`.
 
+Обновление 2026-10-08: R01–R03 и расширенные expression/default probes перенесены
+в [permanent catalog](../../packages/bt-ir/test/semantic/expression-cases.mjs),
+повторены strict-valid в script/module. [Research/results](./research/01-expression-evaluation-results.md)
+содержит raw IR/output, варианты и новые R28/R29. C pending; findings не fixed.
+
 Priority: P1 — общая потеря effects/state или опасность незавершения; P2 — локальная
 ошибка обычной фичи/диагностики. Priority не утверждает невозможность других failures.
 
 ## Новые observations
 
-| ID  | Priority | Статус/mode          | Expected → actual                                                                                     | Семейство     |
-| --- | -------- | -------------------- | ----------------------------------------------------------------------------------------------------- | ------------- |
-| R01 | P1       | observed/script      | skipped RHS/branch: count 0 → 1 у `&&`, `??`, ternary с extracted optional chain                      | EXPR          |
-| R02 | P1       | observed/script      | arguments trace `AB                                                                                   | 3`→`BA        | 3`                                            | EXPR/CALL |
-| R03 | P1       | observed/script      | while trace `3                                                                                        | 2`→`1         | 5` с guard; source call извлечён перед loop   | EXPR/ITER |
-| R04 | P1       | observed/script      | assignment value `7                                                                                   | 7`→`undefined | 7`                                            | REF       |
-| R05 | P1       | observed/script      | compound receiver/key trace `GKR                                                                      | 3`→`GKGKR     | 3`                                            | REF       |
-| R06 | P1       | observed/module init | exported mutable value 2 → 1; captured exported value → `value not defined`                           | MOD/SCOPE     |
-| R07 | P2       | observed/script      | arrow/function-expression default 7 → undefined; declaration explicit undefined 7 → undefined         | FUNC          |
-| R08 | P2       | observed/script      | rest length 3 → `Unknown object property: Array`; emitted `bt.Array.slice`                            | FUNC/LIB      |
-| R09 | P2       | observed/script      | lexical arrow this 3 → read of undefined error                                                        | FUNC/SCOPE    |
-| R10 | P2       | observed/script      | `f?.()` for undefined → callable error instead of undefined                                           | CALL          |
-| R11 | P2       | observed/script      | optional method with value 1 should throw → no throw                                                  | CALL          |
-| R12 | P1       | observed/script      | destructuring source count 1 → 2; default repeats read/call too                                       | BIND          |
-| R13 | P2       | observed/script      | nested binding b=3 → `b not defined`; compile succeeded                                               | BIND/TS       |
-| R14 | P2       | observed/script      | template `"23"` → numeric 5                                                                           | LIT           |
-| R15 | P2       | observed/script      | method in object with spread → dropped, callable error                                                | SPREAD/LIT    |
-| R16 | P2       | observed/script      | implicit derived constructor field 7 → undefined                                                      | CLASS         |
-| R17 | P2       | observed/script      | explicit undefined deleteCount leaves array intact → deletes tail                                     | LIB           |
-| R18 | P2       | observed/script      | reduce with explicit undefined initial value calls callback 2 times → 1                               | LIB           |
-| R19 | P2       | observed/script      | copyWithin end=0 should not copy → `[1,1,2]`                                                          | LIB           |
-| R20 | P2       | observed/script      | number.toFixed → missing Number polyfill error                                                        | LIB           |
-| R21 | P2       | observed/script      | tuple join → callable error; readonly number[] control passed                                         | LIB/TS        |
-| R22 | P2       | observed/bare        | source `__lit0` remains 7 → overwritten by literal-extract                                            | SAFE          |
-| R23 | P2       | observed/script      | `**`, `                                                                                               |               | =` compile successfully → target syntax error | TS/SAFE   |
-| R24 | P2       | observed/script      | postfix property update → BT90005 rejection; delete property → invalid native argument                | REF           |
-| R25 | P2       | observed/script      | string for-of → not-an-array error; array for-in keys `0;1;` → values `10;20;`                        | ITER          |
-| R26 | P2       | observed/script      | typeof source function should be `function` → runtime generic error                                   | FUNC/TS       |
-| R27 | P2       | code-only            | default import reads `__default`, export assignment writes `default`; end-to-end reproduction pending | MOD           |
+| ID  | Priority | Статус/mode                     | Expected → actual                                                                                                   | Семейство    |
+| --- | -------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------ |
+| R01 | P1       | observed/script                 | skipped RHS/branch: count 0 → 1 у `&&`, `??`, ternary с extracted optional chain                                    | EXPR         |
+| R02 | P1       | observed/script/module          | arguments trace `AB\|3` → `BA\|3`                                                                                   | EXPR/CALL    |
+| R03 | P1       | observed/script/module          | while trace `3\|2` → `1\|5` с guard; source call извлечён перед loop                                                | EXPR/ITER    |
+| R04 | P1       | observed/script                 | assignment value `7\|7` → `undefined\|7`                                                                            | REF          |
+| R05 | P1       | observed/script                 | compound receiver/key trace `GKR\|3` → `GKGKR\|3`                                                                   | REF          |
+| R06 | P1       | observed/module init            | exported mutable value 2 → 1; captured exported value → `value not defined`                                         | MOD/SCOPE    |
+| R07 | P2       | observed/script                 | arrow/function-expression default 7 → undefined; declaration explicit undefined 7 → undefined                       | FUNC         |
+| R08 | P2       | observed/script                 | rest length 3 → `Unknown object property: Array`; emitted `bt.Array.slice`                                          | FUNC/LIB     |
+| R09 | P2       | observed/script                 | lexical arrow this 3 → read of undefined error                                                                      | FUNC/SCOPE   |
+| R10 | P2       | observed/script                 | `f?.()` for undefined → callable error instead of undefined                                                         | CALL         |
+| R11 | P2       | observed/script                 | optional method with value 1 should throw → no throw                                                                | CALL         |
+| R12 | P1       | observed/script                 | destructuring source count 1 → 2; default repeats read/call too                                                     | BIND         |
+| R13 | P2       | observed/script                 | nested binding b=3 → `b not defined`; compile succeeded                                                             | BIND/TS      |
+| R14 | P2       | observed/script                 | template `"23"` → numeric 5                                                                                         | LIT          |
+| R15 | P2       | observed/script                 | method in object with spread → dropped, callable error                                                              | SPREAD/LIT   |
+| R16 | P2       | observed/script                 | implicit derived constructor field 7 → undefined                                                                    | CLASS        |
+| R17 | P2       | observed/script                 | explicit undefined deleteCount leaves array intact → deletes tail                                                   | LIB          |
+| R18 | P2       | observed/script                 | reduce with explicit undefined initial value calls callback 2 times → 1                                             | LIB          |
+| R19 | P2       | observed/script                 | copyWithin end=0 should not copy → `[1,1,2]`                                                                        | LIB          |
+| R20 | P2       | observed/script                 | number.toFixed → missing Number polyfill error                                                                      | LIB          |
+| R21 | P2       | observed/script                 | tuple join → callable error; readonly number[] control passed                                                       | LIB/TS       |
+| R22 | P2       | observed/bare                   | source `__lit0` remains 7 → overwritten by literal-extract                                                          | SAFE         |
+| R23 | P2       | observed/script                 | `**`, `\|\|=` compile successfully → target syntax error                                                            | TS/SAFE      |
+| R24 | P2       | observed/script                 | postfix property update → BT90005 rejection; delete property → invalid native argument                              | REF          |
+| R25 | P2       | observed/script                 | string for-of → not-an-array error; array for-in keys `0;1;` → values `10;20;`                                      | ITER         |
+| R26 | P2       | observed/script                 | typeof source function should be `function` → runtime generic error                                                 | FUNC/TS      |
+| R27 | P2       | code-only                       | default import reads `__default`, export assignment writes `default`; end-to-end reproduction pending               | MOD          |
+| R28 | P2       | observed/raw JS + script output | dynamic `case key:` / extracted case expression → parser требует literal; C unknown                                 | EXPR/CF/SAFE |
+| R29 | P1       | observed/script/module          | extracted default executes in body even when passed argument; missing argument reads uninitialized temp before body | EXPR/FUNC    |
 
 R06 проверяет initializer через `__init(lib, module)` в JS probe; полный
 двухфайловый require/codelibrary pipeline ещё не проверен этим case.

@@ -1,7 +1,13 @@
 # L2. Точечные исследования
 
 Создавать `NN-<feature>.md`. Не заполнять будущие исследования выдуманными
-результатами. Сейчас есть только [первый brief](./01-expression-evaluation.md).
+результатами. Первое направление: [brief](./01-expression-evaluation.md) и
+[JS research results / design alternatives](./01-expression-evaluation-results.md).
+Последний не accepted architecture; C results pending.
+
+Текущий срез завершён как [checkpoint](../results/2026-11-05-research-checkpoint.md).
+Дальнейшее развитие script/module приостановлено до принятия стратегии памяти;
+сами исследования и runnable cases сохранены.
 
 Минимальная структура завершённого исследования:
 

@@ -1,6 +1,7 @@
 # Ограничения BorisType и совместимость JS/C runtime
 
-Состояние на 2026-10-07, после merge PR #27 (`fa493a2`). Документ описывает
+Семантическая основа — после merge PR #27 (`fa493a2`); expression research
+добавлен 2026-10-08, граница поддержки по памяти обновлена 2026-11-05. Документ описывает
 текущий контракт транспиляции, ограничения целевого языка и известные
 расхождения. Это не заявление о полной совместимости с ECMAScript.
 
@@ -26,9 +27,13 @@
 
 ## Основания и границы подтверждения
 
-JS-проверки используют supplied `main.js`, загружаемый адаптером botest. Версия
-runtime не сообщена; SHA-256:
+JS-проверки используют supplied `main.js`, загружаемый адаптером botest.
+Исходные наблюдения октября 2026 относятся к SHA-256:
 `8f999ef036db5b9d4ce9ce98b0d81709f7db265197919c2a337560fad56b5090`.
+Повторные regression/expression проверки 2026-11-05 выполнены на локально
+предоставленном runtime с другим SHA-256:
+`7ad30901c8b58de7255a38059e0793d2def16a9768e15ef603a8ea1a5e75e09c`.
+Версии обоих runtime не сообщены; тождество реализаций не предполагается.
 Адаптер предоставляет файловые/платформенные функции; это не полная WebSoft HCM.
 
 Исходный код C-интерпретатора и его версия недоступны. Подтверждённые C-данные —
@@ -49,6 +54,32 @@ runtime не сообщена; SHA-256:
 
 Отсутствие C-данных не означает ни поддержку, ни доказанный дефект. Нельзя
 переносить устройство JS-парсера и его ошибки на C без отдельного воспроизведения.
+
+## Память и граница поддержки
+
+С 2026-11-05 поддерживаемое направление развития — **bare**. Развитие
+**script/module приостановлено** до принятия стратегии ownership/lifetime.
+Режимы, defaults и регрессионные тесты сохранены; доступность mode в CLI/API
+не означает его готовность к эксплуатации на C.
+
+По сообщению пользователя, C-runtime использует reference counting без сборщика
+циклов; обнаружена утечка циклических ссылок. Compiler может создавать сильный
+цикл `environment.function → descriptor.env → environment`; методы добавляют
+риск `object.method → descriptor.obj → object`. Даже недостижимый цикл не
+освобождается одним подсчётом ссылок. Это структурное свойство generated graph,
+а не только явных циклов в TS-программе.
+
+Сообщение о C memory model не сопровождается здесь версией/замерами памяти;
+новый native memory test не выполнялся. JS execution подтверждает результаты
+вычислений, но не доказывает C lifetime или отсутствие утечек. Данные о GC
+хостового JavaScript нельзя переносить на C-платформу.
+
+Bare не создаёт общую env/descriptor infrastructure; собственные циклы объектов
+и platform handles всё равно могут удерживать память. Общая JS closure/module
+семантика этим режимом не обещается. Условия возобновления script/module:
+принятый lifetime contract и ABI plan, сохранение escaping values и доказанная
+обработка циклов с ограниченными memory/teardown tests на реальной C-платформе.
+См. [ADR](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-11-05-script-module-memory-freeze.md).
 
 ## Compile modes
 
@@ -370,6 +401,22 @@ JS wall time не является C benchmark.
 11. **Недостаточный rejection.** Async/generator modifiers, отдельные class members,
     `$` identifiers и другие формы могут терять семантику без Error. Таблица
     diagnostics ниже не является полным source validator.
+12. **Dynamic switch cases.** Supplied JS BS parser требует literal в `case`:
+    `case key:` даёт `Literal value expected in 'case' statement`. Lowering
+    пока оставляет expression cases нативными; успешная TS/BT компиляция не
+    гарантирует execution. Данные C отсутствуют. До semantic switch lowering
+    использовать literal cases либо явно спроектированный if chain, учитывая
+    once-only discriminant, lazy case expressions и fall-through.
+13. **Extracted default до тела.** В script/module default с extracted optional
+    expression может читать temp до его declaration/assignment; execution
+    ошибочно помещён в body и выполняется даже при переданном argument.
+    Это отдельный дефект относительно explicit undefined, не исправление которого
+    достаточно для полной parameter initialization semantics.
+
+Expression order/frequency также имеют подтверждённые script/module failures:
+late optional argument может обогнать early argument/callee, а extracted loop
+condition выполниться один раз до loop. Permanent strict-valid probes и границы
+evidence: [research report](https://github.com/BorisType/BorisType/blob/main/plans/ts-bs-semantics/research/01-expression-evaluation-results.md).
 
 ## Диагностики и integration API
 

@@ -6,6 +6,14 @@
 Поддерживаемый subset и известные расхождения:
 [ограничения BorisType и совместимость JS/C runtime](docs/reference/borisscript-constraints.md).
 
+С 2026-11-05 поддерживаемое направление разработки — **bare mode**.
+Развитие `script` и `module` приостановлено до принятия стратегии памяти:
+их env/descriptor graph может создавать сильные циклы, которые не освобождает
+reference counting C-runtime без сборщика циклов. Реализации и регрессионные
+тесты сохранены; CLI по-прежнему выбирает `module` по умолчанию.
+Выбирайте bare явно с учётом [приоритета выбора режима](docs/reference/compile-modes.md).
+[Решение и условия возобновления](ref/decisions/2026-11-05-script-module-memory-freeze.md).
+
 ## Установка
 
 ```sh

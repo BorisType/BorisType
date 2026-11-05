@@ -7,6 +7,8 @@
   "scripts": {
     "test": "node ./packages/botest/build/index.js tests/build",
     "test:semantic": "pnpm --filter @boristype/bt-ir test:semantic",
+    "test:expressions": "pnpm --filter @boristype/bt-ir test:expressions",
+    "test:expressions:baseline": "pnpm --filter @boristype/bt-ir test:expressions:baseline",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format:check": "prettier --check .",

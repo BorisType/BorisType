@@ -1,9 +1,13 @@
 # L3. Спецификации
 
-В этой папке пока **нет accepted feature specs**. Создавать их после research,
+В этой папке пока **нет accepted feature specs**. Есть
+[draft expression evaluation](./01-expression-evaluation.md). Создавать specs после research,
 с именами `NN-<feature>.md`; rules имеют стабильные IDs, например `EXPR-ORDER-01`.
 Ссылки на ECMAScript брать на конкретные algorithms/sections; наблюдаемый BS actual
 не использовать как нормативную семантику TS.
+
+С 2026-11-05 script/module specs остаются on hold до принятия стратегии памяти;
+draft сохраняется как исследовательский результат, а не разрешение на migration.
 
 ## Шаблон
 
