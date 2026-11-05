@@ -1,6 +1,7 @@
 ---
 "@boristype/mcp-server": patch
 "@boristype/ws-client": patch
+"@boristype/bt-cli": patch
 ---
 
 Migrate to the stable MCP TypeScript SDK v2 split packages and Zod 4 object schemas.
@@ -13,3 +14,6 @@ non-string read/list results instead of reporting empty content.
 Preserve SOAP string whitespace and numeric-looking text while retaining explicit
 VALUE-TYPE conversion for integers, reals and booleans. Add local protocol,
 serialization and tarball regression checks; native HCM acceptance remains pending.
+
+Update fast-xml-parser to ^5.11.2 in ws-client and bt-cli, and align workspace
+development types with @types/node ^24.19.2 for the Node 24 toolchain.

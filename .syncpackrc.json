@@ -41,12 +41,12 @@
     {
       "label": "@types/node aligned",
       "dependencies": ["@types/node"],
-      "pinVersion": "^24.13.6"
+      "pinVersion": "^24.19.2"
     },
     {
       "label": "fast-xml-parser aligned",
       "dependencies": ["fast-xml-parser"],
-      "pinVersion": "^5.11.1"
+      "pinVersion": "^5.11.2"
     }
   ]
 }

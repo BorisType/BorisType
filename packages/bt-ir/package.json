@@ -41,7 +41,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/node": "^24.13.6",
+    "@types/node": "^24.19.2",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {

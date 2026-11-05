@@ -12,6 +12,7 @@
 
 - [x] Node.js 24.22.2: последние исправления ветки 24 LTS, включая TLS/certificate security fixes 24.22.1
 - [x] pnpm 12.16.1; единые pins для разработки и обоих GitHub workflows
+- [x] MCP dependency follow-up: fast-xml-parser 5.11.2 и @types/node 24.19.2, единые ranges и syncpack pins
 
 Node закреплён в `.node-version`, pnpm — в `package.json#packageManager`.
 
