@@ -4,6 +4,9 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Использует [@boristype/ws-client](../ws-client/) для соединения с WSHCM сервером.
 
+Статус: прототип. Требуется Node.js >=24.22.2. Сборка, упаковка и MCP protocol
+проверяются локально; работа на конкретной версии HCM этим шагом не подтверждена.
+
 ## Установка
 
 ```bash
@@ -19,7 +22,12 @@ npm install -g @boristype/mcp-server
 | `wshcm_list_directory` | Листинг директории             | `readOnlyHint: true`                |
 | `wshcm_delete_file`    | Удаление файла                 | `destructiveHint: true`             |
 
-Деструктивные операции (`write_file`, `delete_file`) помечены `destructiveHint: true` — клиент (VS Code, Claude Desktop) запросит подтверждение у пользователя перед выполнением.
+Деструктивные операции (`write_file`, `delete_file`) помечены `destructiveHint: true`.
+Это подсказка MCP-клиенту; необходимость и способ пользовательского подтверждения
+определяет клиент. Сервер не реализует отдельный механизм подтверждения.
+
+Семь заготовок (move/edit/multiple-read/create-directory/search/tree/get-info)
+сохранены в исходниках для дальнейшей работы, но не регистрируются как tools.
 
 ### URL-модель
 
@@ -39,10 +47,10 @@ x-local://wt/myapp/src/index.bs   — файл проекта
 
 | CLI аргумент | Env переменная   | Описание           | По умолчанию |
 | ------------ | ---------------- | ------------------ | ------------ |
-| `--host`     | `WSHCM_HOST`     | Хост сервера       | —            |
+| `--host`     | `WSHCM_HOST`     | Хост сервера       | `localhost`  |
 | `--port`     | `WSHCM_PORT`     | Порт сервера       | `80`         |
-| `--username` | `WSHCM_USERNAME` | Имя пользователя   | —            |
-| `--password` | `WSHCM_PASSWORD` | Пароль             | —            |
+| `--username` | `WSHCM_USERNAME` | Имя пользователя   | `user1`      |
+| `--password` | `WSHCM_PASSWORD` | Пароль             | `user1`      |
 | `--https`    | `WSHCM_HTTPS`    | Использовать HTTPS | `false`      |
 
 ### VS Code
@@ -102,9 +110,31 @@ x-local://wt/myapp/src/index.bs   — файл проекта
 ## Разработка
 
 ```bash
-# Сборка
-pnpm build
+# Из корня monorepo: сборка MCP и ws-client
+pnpm --filter @boristype/mcp-server... build
 
-# Тестирование через MCP Inspector
-npx @modelcontextprotocol/inspector node packages/mcp-server/build/cli.js -- --host localhost --port 80 --username admin --password secret
+# Локальные tests, без подключения к HCM
+pnpm --filter @boristype/mcp-server --filter @boristype/ws-client test
+
+# Реальный tarball: ресурсы, import, CLI help/version
+# Использует workspace dependencies и системный tar; это не fresh install из registry.
+pnpm --filter @boristype/mcp-server test:pack
+
+# Inspector из lockfile (эта команда подключается к указанному HCM)
+pnpm --filter @boristype/mcp-server inspector --host localhost --port 80 --username admin --password secret
 ```
+
+`createServer(connection)` создаёт MCP server без открытия транспорта и HCM
+connection; вызывающий код управляет их lifecycle. `startServer(options)`
+инициализирует соединение с HCM и запускает stdio transport.
+
+### Что остаётся проверить
+
+- Создание evaluator записывает временный `.bs` на сервер даже для чтения.
+- Cleanup пока привязан к SIGINT/SIGTERM; завершение по EOF и ошибки
+  инициализации требуют отдельной доработки.
+- Native поведение путей, кодировок, прав, удаления и записи ещё не аттестовано.
+  Локальные JS-проверки экранирования не доказывают обработку всех control escapes
+  в C-runtime.
+- Read/list требуют string result; неожиданный тип возвращается как tool error.
+  Общий SOAP parser пока допускает отсутствие ResultData как `undefined`.

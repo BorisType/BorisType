@@ -23,7 +23,10 @@ export function registerReadFileTool(server: McpServer, connection: WshcmConnect
       try {
         const script = buildScript(scriptTemplate, { path });
         const content = await connection.evaluator.eval(script);
-        return { content: [{ type: "text" as const, text: String(content ?? "") }] };
+        if (typeof content !== "string") {
+          throw new Error("Expected a string file result from WSHCM");
+        }
+        return { content: [{ type: "text" as const, text: content }] };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return { content: [{ type: "text" as const, text: message }], isError: true };

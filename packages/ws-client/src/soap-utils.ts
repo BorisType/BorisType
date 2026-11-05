@@ -9,13 +9,15 @@ import { WshcmException } from "./exceptions.js";
  * XMLParser для SOAP-ответов.
  * `removeNSPrefix: true` убирает namespace-префиксы (soap:Envelope → Envelope),
  * что позволяет обращаться к элементам напрямую без привязки к префиксам сервера.
+ * Текст сохраняется без trim/coercion; тип задаётся атрибутом VALUE-TYPE.
  */
 const soapParser = new XMLParser({
   htmlEntities: true,
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
   removeNSPrefix: true,
-  trimValues: true,
+  trimValues: false,
+  parseTagValue: false,
 });
 
 /**

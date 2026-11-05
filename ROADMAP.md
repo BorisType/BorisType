@@ -219,6 +219,8 @@ Node закреплён в `.node-version`, pnpm — в `package.json#packageMan
 #### MCP Server (`@boristype/mcp-server`)
 
 - [x] Пакет mcp-server: файловые операции (read/write/list/delete) через x-local:// URL
+- [x] MCP maintenance baseline: зависимости актуального main, runtime resources в tarball, только реализованные tools, локальные protocol/SOAP regression tests
+- [ ] MCP native acceptance: проверить read/write/list/delete на тестовом HCM; lifecycle/EOF и path/encoding contracts
 - [ ] Tool: выполнение произвольного BorisScript кода (`execute_bs`)
 - [ ] Tool: XQuery запросы к каталогам БД
 - [ ] Tool: чтение/обновление XML объектов в БД

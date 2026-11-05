@@ -7,5 +7,6 @@
  * @module mcp-server
  */
 
-export { startServer } from "./server.js";
+export { createServer, startServer } from "./server.js";
 export type { McpServerOptions } from "./types.js";
+export type { WshcmConnection } from "./connection.js";

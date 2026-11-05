@@ -23,7 +23,10 @@ export function registerListDirectoryTool(server: McpServer, connection: WshcmCo
       try {
         const script = buildScript(scriptTemplate, { path });
         const result = await connection.evaluator.eval(script);
-        return { content: [{ type: "text" as const, text: String(result ?? "[]") }] };
+        if (typeof result !== "string") {
+          throw new Error("Expected a string directory result from WSHCM");
+        }
+        return { content: [{ type: "text" as const, text: result }] };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return { content: [{ type: "text" as const, text: message }], isError: true };

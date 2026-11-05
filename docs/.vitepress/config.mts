@@ -43,6 +43,7 @@ export default defineConfig({
             { text: "Dev Mode", link: "/guides/dev-mode" },
             { text: "Push & Deploy", link: "/guides/push-deploy" },
             { text: "Тестирование", link: "/guides/testing" },
+            { text: "MCP server (прототип)", link: "/guides/mcp-server" },
           ],
         },
       ],

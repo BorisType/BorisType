@@ -3,33 +3,35 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { McpServerOptions } from "./types.js";
 import { createConnection, closeConnection } from "./connection.js";
 import type { WshcmConnection } from "./connection.js";
-import {
-  registerReadFileTool,
-  registerWriteFileTool,
-  registerListDirectoryTool,
-  registerDeleteFileTool,
-  registerMoveFileTool,
-  registerEditFileTool,
-  registerReadMultipleFilesTool,
-  registerCreateDirectoryTool,
-  registerSearchFilesTool,
-  registerDirectoryTreeTool,
-  registerGetFileInfoTool,
-} from "./tools/index.js";
+import { registerReadFileTool, registerWriteFileTool, registerListDirectoryTool, registerDeleteFileTool } from "./tools/index.js";
 
 /**
- * Создаёт и запускает MCP сервер для WebSoft HCM.
+ * Создаёт MCP сервер с реализованными tools и предоставленным соединением.
  *
- * Подключается к WSHCM серверу, регистрирует tools и слушает stdin/stdout.
- *
+ * Соединение и транспорт принадлежат вызывающему коду. Эта функция не открывает
+ * сетевые соединения и позволяет проверять MCP protocol без HCM.
+ * @param connection - инициализированное соединение или test double
+ * @returns сервер без подключённого транспорта
+ */
+export function createServer(connection: WshcmConnection): McpServer {
+  const server = new McpServer({
+    name: "boristype-wshcm",
+    version: "0.1.0-alpha.1",
+  });
+
+  registerReadFileTool(server, connection);
+  registerWriteFileTool(server, connection);
+  registerListDirectoryTool(server, connection);
+  registerDeleteFileTool(server, connection);
+
+  return server;
+}
+
+/**
+ * Подключается к HCM и запускает MCP сервер через stdin/stdout.
  * @param options - параметры подключения к WSHCM
  */
 export async function startServer(options: McpServerOptions): Promise<void> {
-  const server = new McpServer({
-    name: "boristype-wshcm",
-    version: "0.1.0",
-  });
-
   let connection: WshcmConnection;
   try {
     connection = await createConnection(options);
@@ -39,18 +41,7 @@ export async function startServer(options: McpServerOptions): Promise<void> {
     process.exit(1);
   }
 
-  // Регистрация tools
-  registerReadFileTool(server, connection);
-  registerWriteFileTool(server, connection);
-  registerListDirectoryTool(server, connection);
-  registerDeleteFileTool(server, connection);
-  registerMoveFileTool(server, connection);
-  registerEditFileTool(server, connection);
-  registerReadMultipleFilesTool(server, connection);
-  registerCreateDirectoryTool(server, connection);
-  registerSearchFilesTool(server, connection);
-  registerDirectoryTreeTool(server, connection);
-  registerGetFileInfoTool(server, connection);
+  const server = createServer(connection);
 
   // Graceful shutdown
   const shutdown = async () => {

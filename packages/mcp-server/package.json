@@ -15,6 +15,8 @@
   ],
   "scripts": {
     "build": "tsc",
+    "test": "node --test test/*.test.mjs",
+    "test:pack": "node test/pack-smoke.mjs",
     "prepublishOnly": "pnpm build",
     "inspector": "mcp-inspector node build/cli.js"
   },
