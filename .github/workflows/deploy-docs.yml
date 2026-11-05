@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docs/**"
+      - ".node-version"
       - "package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/deploy-docs.yml"
