@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 import { buildScript } from "../load.js";
 
@@ -16,7 +16,7 @@ export function registerReadFileTool(server: McpServer, connection: WshcmConnect
     "wshcm_read_file",
     {
       description: "Read a file from the WebSoft HCM server by its x-local:// URL path",
-      inputSchema: { path: z.string().describe("Server file URL (e.g. x-local://wt/web/app.bs)") },
+      inputSchema: z.object({ path: z.string().describe("Server file URL (e.g. x-local://wt/web/app.bs)") }),
       annotations: { readOnlyHint: true, destructiveHint: false },
     },
     async ({ path }) => {

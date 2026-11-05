@@ -7,6 +7,11 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 Статус: прототип. Требуется Node.js >=24.22.2. Сборка, упаковка и MCP protocol
 проверяются локально; работа на конкретной версии HCM этим шагом не подтверждена.
 
+Используется стабильная линия MCP TypeScript SDK 2.x: runtime-пакет
+`@modelcontextprotocol/server`; `@modelcontextprotocol/client` нужен только тестам.
+Схемы инструментов передаются как Zod 4 `z.object(...)` (Standard Schema).
+Версии SDK зафиксированы lockfile с учётом 14-дневного `minimumReleaseAge`.
+
 ## Установка
 
 ```bash

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 
 /**
@@ -13,10 +13,10 @@ export function registerWriteFileTool(server: McpServer, connection: WshcmConnec
     {
       description:
         "Write content to a file on the WebSoft HCM server by its x-local:// URL path. Creates the file if it does not exist, overwrites if it does.",
-      inputSchema: {
+      inputSchema: z.object({
         path: z.string().describe("Server file URL (e.g. x-local://wt/web/app.bs)"),
         content: z.string().describe("File content to write"),
-      },
+      }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
     async ({ path, content }) => {

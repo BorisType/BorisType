@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 import { buildScript } from "../load.js";
 
@@ -53,14 +53,14 @@ export function registerSearchFilesTool(server: McpServer, connection: WshcmConn
     {
       description:
         "Recursively search for files matching a glob pattern within a directory on the WebSoft HCM server. Returns an array of matching x-local:// paths. Supports * (any chars), ** (recursive), ? (single char) patterns.",
-      inputSchema: {
+      inputSchema: z.object({
         path: z.string().describe("Root directory URL to search in (e.g. x-local://wt/web/)"),
         pattern: z.string().describe("Glob pattern to match file names (e.g. '*.bs', '**/*.xml', 'config?.json')"),
         excludePatterns: z
           .array(z.string())
           .optional()
           .describe("Glob patterns to exclude from results (e.g. ['node_modules/**', '*.tmp'])"),
-      },
+      }),
       annotations: { readOnlyHint: true, destructiveHint: false },
     },
     async ({ path, pattern, excludePatterns }) => {

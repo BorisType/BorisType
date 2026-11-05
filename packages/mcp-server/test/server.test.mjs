@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport, ProtocolErrorCode } from "@modelcontextprotocol/client";
 import { createServer } from "../build/index.js";
 
 async function connect(t, connection) {
@@ -36,8 +35,16 @@ test("MCP initializes and advertises only the four implemented tools", { timeout
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, "object");
     assert.equal(tool.inputSchema.properties.path.type, "string");
+    assert.match(tool.inputSchema.properties.path.description, /Server .*URL/);
     assert.ok(tool.inputSchema.required.includes("path"));
   }
+});
+
+test("unknown tools reject with a protocol error", { timeout: 10_000 }, async (t) => {
+  const client = await connect(t, unusedConnection);
+  await assert.rejects(client.callTool({ name: "wshcm_move_file", arguments: {} }), {
+    code: ProtocolErrorCode.InvalidParams,
+  });
 });
 
 test("read preserves exact string content and passes a literal path to the script", { timeout: 10_000 }, async (t) => {

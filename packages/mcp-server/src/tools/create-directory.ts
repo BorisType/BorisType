@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 import { buildScript } from "../load.js";
 
@@ -33,9 +33,9 @@ export function registerCreateDirectoryTool(server: McpServer, connection: Wshcm
     {
       description:
         "Create a directory on the WebSoft HCM server at the given x-local:// URL path. Idempotent — succeeds if the directory already exists. Creates intermediate directories as needed.",
-      inputSchema: {
+      inputSchema: z.object({
         path: z.string().describe("Server directory URL to create (e.g. x-local://wt/web/new-folder/)"),
-      },
+      }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     async ({ path }) => {

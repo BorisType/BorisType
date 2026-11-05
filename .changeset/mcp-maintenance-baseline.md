@@ -3,7 +3,9 @@
 "@boristype/ws-client": patch
 ---
 
-Refresh MCP dependencies for the Node 24 toolchain, package the required BS
+Migrate to the stable MCP TypeScript SDK v2 split packages and Zod 4 object schemas.
+Keep the server package in runtime dependencies and the client package in test-only
+dependencies. Refresh MCP dependencies for the Node 24 toolchain, package the required BS
 resources, and advertise only implemented tools. Expose createServer(connection)
 for transport-independent setup. Preserve literal template parameters and reject
 non-string read/list results instead of reporting empty content.

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 import { buildScript } from "../load.js";
 
@@ -16,9 +16,9 @@ export function registerDeleteFileTool(server: McpServer, connection: WshcmConne
     "wshcm_delete_file",
     {
       description: "Delete a file from the WebSoft HCM server by its x-local:// URL path",
-      inputSchema: {
+      inputSchema: z.object({
         path: z.string().describe("Server file URL to delete (e.g. x-local://wt/web/old.bs)"),
-      },
+      }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     async ({ path }) => {

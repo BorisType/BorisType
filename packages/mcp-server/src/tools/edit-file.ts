@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 import { buildScript } from "../load.js";
 
@@ -44,7 +44,7 @@ export function registerEditFileTool(server: McpServer, connection: WshcmConnect
     {
       description:
         "Apply targeted edits to a file on the WebSoft HCM server. Each edit replaces the first occurrence of oldText with newText. Supports dry-run mode to preview changes without writing.",
-      inputSchema: {
+      inputSchema: z.object({
         path: z.string().describe("Server file URL (e.g. x-local://wt/web/app.bs)"),
         edits: z
           .array(
@@ -55,7 +55,7 @@ export function registerEditFileTool(server: McpServer, connection: WshcmConnect
           )
           .describe("List of edits to apply in order"),
         dryRun: z.boolean().optional().default(false).describe("If true, return the result without writing to the file"),
-      },
+      }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
     async ({ path, edits, dryRun }) => {

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 import { buildScript } from "../load.js";
 
@@ -16,7 +16,7 @@ export function registerListDirectoryTool(server: McpServer, connection: WshcmCo
     "wshcm_list_directory",
     {
       description: "List files and directories at the given x-local:// URL path on the WebSoft HCM server",
-      inputSchema: { path: z.string().describe("Server directory URL (e.g. x-local://wt/web/)") },
+      inputSchema: z.object({ path: z.string().describe("Server directory URL (e.g. x-local://wt/web/)") }),
       annotations: { readOnlyHint: true, destructiveHint: false },
     },
     async ({ path }) => {

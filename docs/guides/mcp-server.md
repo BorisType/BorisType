@@ -2,6 +2,8 @@
 
 `@boristype/mcp-server` — отдельный Node.js пакет с stdio transport. Его сборка
 не использует TS → BorisScript compiler. Требуется Node.js >=24.22.2.
+Сервер использует MCP TypeScript SDK 2.x (`@modelcontextprotocol/server`);
+клиентский пакет подключён только для локальных тестов. Схемы — Zod 4 objects.
 
 В прототипе объявлены четыре tools: `wshcm_read_file`, `wshcm_write_file`,
 `wshcm_list_directory`, `wshcm_delete_file`. Остальные заготовки не публикуются

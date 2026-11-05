@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 import { buildScript } from "../load.js";
 
@@ -52,10 +52,10 @@ export function registerDirectoryTreeTool(server: McpServer, connection: WshcmCo
     {
       description:
         "Display a tree view of files and directories on the WebSoft HCM server starting from the given x-local:// path. Returns a text tree structure similar to the `tree` command.",
-      inputSchema: {
+      inputSchema: z.object({
         path: z.string().describe("Root directory URL (e.g. x-local://wt/web/)"),
         maxDepth: z.number().int().min(1).max(10).optional().default(5).describe("Maximum depth of the tree (default: 5, max: 10)"),
-      },
+      }),
       annotations: { readOnlyHint: true, destructiveHint: false },
     },
     async ({ path, maxDepth }) => {

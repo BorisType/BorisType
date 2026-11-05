@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 import { buildScript } from "../load.js";
 
@@ -35,10 +35,10 @@ export function registerMoveFileTool(server: McpServer, connection: WshcmConnect
     {
       description:
         "Move or rename a file on the WebSoft HCM server from one x-local:// URL path to another. Fails if the destination already exists.",
-      inputSchema: {
+      inputSchema: z.object({
         source: z.string().describe("Source file URL (e.g. x-local://wt/web/old-name.bs)"),
         destination: z.string().describe("Destination file URL (e.g. x-local://wt/web/new-name.bs)"),
-      },
+      }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     async ({ source, destination }) => {

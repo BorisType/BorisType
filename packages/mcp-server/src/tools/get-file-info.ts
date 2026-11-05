@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 import { buildScript } from "../load.js";
 
@@ -49,9 +49,9 @@ export function registerGetFileInfoTool(server: McpServer, connection: WshcmConn
     {
       description:
         "Get metadata about a file or directory on the WebSoft HCM server. Returns name, path, size, type, extension, and modification date.",
-      inputSchema: {
+      inputSchema: z.object({
         path: z.string().describe("Server file or directory URL (e.g. x-local://wt/web/app.bs)"),
-      },
+      }),
       annotations: { readOnlyHint: true, destructiveHint: false },
     },
     async ({ path }) => {

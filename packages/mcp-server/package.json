@@ -38,11 +38,12 @@
   },
   "dependencies": {
     "@boristype/ws-client": "workspace:^",
-    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "commander": "^15.0.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.3.1",
     "@types/node": "^24.13.6",
     "typescript": "^6.0.3",
     "@modelcontextprotocol/inspector": "^2.12.0"

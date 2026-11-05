@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
 import { buildScript } from "../load.js";
 
@@ -53,9 +53,9 @@ export function registerReadMultipleFilesTool(server: McpServer, connection: Wsh
     {
       description:
         "Read multiple files from the WebSoft HCM server in a single request. Each file is read independently — a failure for one file does not affect others. Returns content blocks prefixed with file paths.",
-      inputSchema: {
+      inputSchema: z.object({
         paths: z.array(z.string()).describe("Array of server file URLs (e.g. ['x-local://wt/web/a.bs', 'x-local://wt/web/b.bs'])"),
-      },
+      }),
       annotations: { readOnlyHint: true, destructiveHint: false },
     },
     async ({ paths }) => {
