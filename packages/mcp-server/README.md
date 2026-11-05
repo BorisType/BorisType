@@ -12,6 +12,11 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 Схемы инструментов передаются как Zod 4 `z.object(...)` (Standard Schema).
 Версии SDK зафиксированы lockfile с учётом 14-дневного `minimumReleaseAge`.
 
+TypeScript 6.0.3 следует общему Compiler API baseline workspace. Это не latest
+TypeScript CLI: версия 7 использует новый native compiler и другой API.
+Обоснование и отставшие зависимости перечислены в
+[dependency review](../../plans/mcp-server/03-dependency-review.md).
+
 ## Установка
 
 ```bash

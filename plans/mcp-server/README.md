@@ -4,6 +4,7 @@
 
 Следующий шаг: [dependency refresh и локальные исправления](01-dependency-refresh.md).
 Продолжение: [переход на стабильный SDK v2](02-sdk-v2-migration.md).
+Проверка остальных зависимостей: [release lines и пропущенные обновления](03-dependency-review.md).
 Ниже сохранено исходное состояние до исправлений.
 
 Изучен `@boristype/mcp-server` из `origin/feat/mcp-server`, commit
