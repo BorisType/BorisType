@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "TypeScript compilation tool for SPXML-Javascript (aka BorisScript) language",
   "private": true,
-  "packageManager": "pnpm@12.5.1",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=24.22.2"
+  },
   "scripts": {
     "test": "node ./packages/botest/build/index.js tests/build",
     "test:semantic": "pnpm --filter @boristype/bt-ir test:semantic",

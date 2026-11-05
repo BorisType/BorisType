@@ -8,6 +8,13 @@
 
 ## Текущий спринт (В процессе)
 
+### Обновление toolchain (2026-11-05)
+
+- [x] Node.js 24.22.2: последние исправления ветки 24 LTS, включая TLS/certificate security fixes 24.22.1
+- [x] pnpm 12.16.1; единые pins для разработки и обоих GitHub workflows
+
+Node закреплён в `.node-version`, pnpm — в `package.json#packageManager`.
+
 ### Граница поддержки и память (2026-11-05)
 
 - [x] Сохранить F-02a/E-01 research/test checkpoint: cases, baseline, prototypes, draft spec

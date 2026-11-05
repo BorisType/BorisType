@@ -144,7 +144,9 @@ npx btc dev --no-push    # Без автоматического push
 
 ## Сборка из исходников
 
-> Требуется Node.js 22+ и pnpm 10+
+> Для разработки: Node.js 24.22.2 (ветка 24 LTS) и pnpm 12.16.1.
+> Версия Node закреплена в `.node-version`, pnpm — в `package.json#packageManager`;
+> эти же значения используют CI workflows.
 
 ```sh
 git clone https://github.com/BorisType/BorisType.git

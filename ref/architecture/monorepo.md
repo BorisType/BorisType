@@ -7,7 +7,8 @@ BorisType использует **pnpm workspaces** с Turborepo для упра�
 
 **Инструменты:**
 
-- **pnpm 10** — workspace manager, единый lockfile
+- **Node.js 24 LTS** — toolchain version из `.node-version`, общий для разработки и CI
+- **pnpm 12** — workspace manager, версия из `package.json#packageManager`, единый lockfile
 - **Turborepo** — параллельная сборка, кэширование, граф `^build`
 - **syncpack** — выравнивание версий зависимостей
 - **Changesets** — версионирование и changelog
