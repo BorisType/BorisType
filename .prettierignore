@@ -1,12 +1,15 @@
 # Build outputs
 **/build/
 **/dist/
+**/bin/
+**/obj/
 
 # Dependencies
 **/node_modules/
 
 # Lock files
 pnpm-lock.yaml
+**/packages.lock.json
 
 # Generated
 docs/.vitepress/cache/

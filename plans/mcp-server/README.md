@@ -6,6 +6,9 @@
 Продолжение: [переход на стабильный SDK v2](02-sdk-v2-migration.md).
 Проверка остальных зависимостей: [release lines и пропущенные обновления](03-dependency-review.md).
 Native этап: [e2e на локальном C-стенде и исправления передачи текста](04-local-e2e.md).
+Исследование поиска: [.NET DLL, debug-флаги и логи установленного HCM](05-dotnet-search-research.md).
+Native .NET: [собственные DLL, bridge smoke и сбой Datex callback](06-dotnet-probe.md).
+Дополнительный референс: [wshcmx/net — исходники, релиз и схема подключения](07-wshcmx-net-reference.md).
 Ниже сохранено исходное состояние до исправлений.
 
 Изучен `@boristype/mcp-server` из `origin/feat/mcp-server`, commit

@@ -1,0 +1,8 @@
+<Project DefaultTargets="Create">
+  <Target Name="Create">
+    <ZipDirectory SourceDirectory="$(SourceDirectory)" DestinationFile="$(ArchiveFile)" Overwrite="true" />
+  </Target>
+  <Target Name="Extract">
+    <Unzip SourceFiles="$(ArchiveFile)" DestinationFolder="$(ExtractDirectory)" />
+  </Target>
+</Project>

@@ -24,6 +24,18 @@ Node закреплён в `.node-version`, pnpm — в `package.json#packageMan
 
 Evidence и границы: [MCP local e2e](plans/mcp-server/04-local-e2e.md).
 
+### .NET workspace (2026-11-06)
+
+- [x] Общая solution в packages/dotnet, отдельные C# проекты, SDK pin и locked NuGet restore
+- [x] Первая BorisType.FileSystem DLL с metadata JSON API, без Datex dependency
+- [x] Unit и installation ZIP checks, manifest hashes, отдельный Windows/Linux CI workflow
+- [x] Перенести native probes из MCP, сохранить известное callback-падение и vendor reference boundary
+- [ ] Спроектировать ограниченный файловый поиск: пути/VFS, кодировки, лимиты и native acceptance
+
+Структура: [workspace README](packages/dotnet/README.md),
+[дизайн и критерии первого шага](plans/dotnet/01-workspace-design.md).
+CI workflow настроен для двух ОС; это не свидетельство запусков HCM на Windows.
+
 ### Граница поддержки и память (2026-11-05)
 
 - [x] Сохранить F-02a/E-01 research/test checkpoint: cases, baseline, prototypes, draft spec

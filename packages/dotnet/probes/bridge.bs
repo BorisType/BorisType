@@ -1,0 +1,35 @@
+// Input is sent unchanged through the temporary SOAP evaluator.
+// No filesystem access, unbounded loops, or global component registration.
+var plain = tools.dotnet_host.Object.GetAssembly("BorisType.PlainProbe.dll");
+var datex = tools.dotnet_host.Object.GetAssembly("BorisType.DatexProbe.dll");
+var plainClass = "BorisType.Probes.PlainBridge";
+var datexClass = "BorisType.Probes.DatexBridge";
+var payload = "  Привет 👋 中文 é\r\nA\rB\n\t<&>\"'\\  ";
+var report = {};
+report.ping = plain.CallClassStaticMethod(plainClass, "Ping", []);
+report.empty = plain.CallClassStaticMethod(plainClass, "Echo", [""]);
+report.whitespace = plain.CallClassStaticMethod(plainClass, "Echo", [" \t\r\n  "]);
+report.text = plain.CallClassStaticMethod(plainClass, "Echo", [payload]);
+report.numericText = plain.CallClassStaticMethod(plainClass, "Echo", ["000123"]);
+report.entityText = plain.CallClassStaticMethod(plainClass, "Echo", ["&#13; ${x} ` $()"]);
+report.encoded = plain.CallClassStaticMethod(plainClass, "Encode", [payload]);
+report.encodedNull = plain.CallClassStaticMethod(plainClass, "Encode", [null]);
+report.sum = plain.CallClassStaticMethod(plainClass, "Add", [19, 23]);
+report.largeSum = plain.CallClassStaticMethod(plainClass, "Add", [2147483647, 1]);
+report.negatedTrue = plain.CallClassStaticMethod(plainClass, "Negate", [true]);
+report.negatedFalse = plain.CallClassStaticMethod(plainClass, "Negate", [false]);
+report.nullArgument = plain.CallClassStaticMethod(plainClass, "IsNull", [null]);
+report.emptyIsNull = plain.CallClassStaticMethod(plainClass, "IsNull", [""]);
+report.runtime = plain.CallClassStaticMethod(plainClass, "Describe", []);
+report.reference = datex.CallClassStaticMethod(datexClass, "DescribeReference", []);
+report.context = datex.CallClassStaticMethod(datexClass, "HasContext", []);
+report.exceptionCaught = false;
+report.exceptionText = "";
+try {
+  plain.CallClassStaticMethod(plainClass, "Fail", []);
+} catch (e) {
+  report.exceptionCaught = true;
+  report.exceptionText = String(e);
+}
+report.afterException = plain.CallClassStaticMethod(plainClass, "Ping", []);
+return EncodeJson(report);

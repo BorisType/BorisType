@@ -9,5 +9,8 @@
   [собственные DLL и native smoke](../mcp-server/06-dotnet-probe.md),
   [референс wshcmx/net](../mcp-server/07-wshcmx-net-reference.md).
 
+Первый шаг реализован: metadata DLL, build/test/pack, проверка ZIP и CI matrix.
+Подробные результаты и границы проверок — в [плане](02-workspace-plan.md#результаты-реализации-и-проверки-2026-11-06).
+
 Следующий самостоятельный этап после workspace — контракт ограниченного
 файлового поиска. Функции поиска этим шагом не реализуются.

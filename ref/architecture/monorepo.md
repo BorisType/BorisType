@@ -73,6 +73,24 @@ Turbo видит только production-зависимости → граф а�
 
 ## Workspace протокол
 
+### .NET проекты
+
+`packages/dotnet` — общий .NET workspace: независимые C# библиотеки в `src/`,
+unit tests в `tests/`, ручные native probes в `probes/`. MSBuild solution и
+ProjectReference задают граф C#; Directory.Packages.props централизует NuGet versions,
+packages.lock.json фиксируют разрешённые зависимости. SDK закреплён в root global.json.
+
+Private npm wrapper `@boristype/dotnet-workspace` даёт отдельные `build:dotnet`,
+`test:dotnet`, `pack:dotnet`, `test:dotnet:pack`; default Turbo build их не вызывает.
+Это не общий npm release всех DLL: версия задаётся каждым C# project. Wrapper
+исключён из Changesets. Windows/Linux .NET workflow проверяет locked build/tests
+и production ZIP с manifest; vendor references для default build не нужны.
+
+[README](../../packages/dotnet/README.md),
+[ADR](../decisions/2026-11-06-dotnet-workspace.md).
+
+### npm зависимости
+
 Все межпакетные зависимости используют `workspace:*`:
 
 ```json

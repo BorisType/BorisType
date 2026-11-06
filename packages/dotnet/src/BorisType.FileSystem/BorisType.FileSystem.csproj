@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>BorisType.FileSystem</AssemblyName>
+    <Version>0.1.0-alpha.1</Version>
+    <BorisTypeApiVersion>1</BorisTypeApiVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="BorisType.ApiVersion" Value="$(BorisTypeApiVersion)" />
+  </ItemGroup>
+</Project>

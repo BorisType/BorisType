@@ -44,6 +44,7 @@ export default defineConfig({
             { text: "Push & Deploy", link: "/guides/push-deploy" },
             { text: "Тестирование", link: "/guides/testing" },
             { text: "MCP server (прототип)", link: "/guides/mcp-server" },
+            { text: ".NET библиотеки", link: "/guides/dotnet" },
           ],
         },
       ],

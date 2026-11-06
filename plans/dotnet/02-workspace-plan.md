@@ -39,7 +39,7 @@
 - Produces: `BorisType.FileSystem.LibraryInfo.GetMetadataJson() -> string`,
   root commands `build:dotnet` / `test:dotnet` и locked solution restore.
 
-- [ ] Создать project/config scaffold без production methods. Common props:
+- [x] Создать project/config scaffold без production methods. Common props:
 
 ```xml
 <Project>
@@ -63,7 +63,7 @@ Tests project имеет IsTestProject=true/IsPackable=false, три PackageRefe
 Wrapper scripts вызывают dotnet из cwd `packages/dotnet`; root forwards через pnpm filter.
 В git/prettier ignores добавить `**/bin/`, `**/obj/`.
 
-- [ ] Добавить тест реального строкового ABI, не требующий production C# symbol:
+- [x] Добавить тест реального строкового ABI, не требующий production C# symbol:
 
 ```csharp
 using System.Reflection;
@@ -95,10 +95,10 @@ public class LibraryInfoTests
 }
 ```
 
-- [ ] Запустить `dotnet test packages/dotnet/BorisType.DotNet.slnx -c Release`;
+- [x] Запустить `dotnet test packages/dotnet/BorisType.DotNet.slnx -c Release`;
       увидеть assertion failure отсутствующего public типа, исправить только scaffold,
       если вместо этого есть инфраструктурная ошибка.
-- [ ] Реализовать production entry point:
+- [x] Реализовать production entry point:
 
 ```csharp
 using System.Globalization;
@@ -128,7 +128,7 @@ public static class LibraryInfo
 }
 ```
 
-- [ ] Восстановить packages.lock.json, повторить unit test до PASS и проверить
+- [x] Восстановить packages.lock.json, повторить unit test до PASS и проверить
       `dotnet restore ... --locked-mode`; `pnpm install --lockfile-only --ignore-scripts`.
 
 ## Task 2: Проверенный deployment archive
@@ -143,7 +143,7 @@ public static class LibraryInfo
 - Consumes: core csproj из Task 1 и properties AssemblyName/Version/TargetFramework/BorisTypeApiVersion.
 - Produces: `pack.mjs [--out directory]`, ZIP и manifest schemaVersion 1.
 
-- [ ] Добавить Node integration test, запускающий настоящий пока отсутствующий CLI:
+- [x] Добавить Node integration test, запускающий настоящий пока отсутствующий CLI:
 
 ```js
 const result = spawnSync(process.execPath, [packScript, "--out", outputDirectory], {
@@ -152,7 +152,7 @@ const result = spawnSync(process.execPath, [packScript, "--out", outputDirectory
 });
 assert.equal(result.status, 0, result.stderr + result.stdout);
 const { archive } = JSON.parse(result.stdout);
-assert.equal(path.basename(archive), "BorisType.FileSystem-0.1.0-alpha.1.zip");
+assert.match(path.basename(archive), /^BorisType\.FileSystem-\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\.zip$/);
 ```
 
 Test создаёт output/extract directories через mkdtemp и чистит их в finally.
@@ -161,9 +161,9 @@ ArchiveFile/ExtractDirectory. Проверяет identity/apiVersion/targetFrame
 entryAssembly, отсутствие Test/Probe/Datex DLL и совпадение extracted file set
 с manifest.files. Для каждого файла проверяет bytes и независимый SHA256.
 
-- [ ] Запустить `node --test packages/dotnet/test/pack.test.mjs` и увидеть
+- [x] Запустить `node --test packages/dotnet/test/pack.test.mjs` и увидеть
       FAIL при отсутствующем CLI (реальный process exit, не mock).
-- [ ] Создать штатный архиватор:
+- [x] Создать штатный архиватор:
 
 ```xml
 <Project DefaultTargets="Create">
@@ -176,7 +176,7 @@ entryAssembly, отсутствие Test/Probe/Datex DLL и совпадение
 </Project>
 ```
 
-- [ ] Реализовать pack CLI с Node builtins fs/path/os/crypto/child_process:
+- [x] Реализовать pack CLI с Node builtins fs/path/os/crypto/child_process:
       проверить только ноль args или `--out directory`; root вычислить из import.meta.url;
       query/publish/zip вызывать execFileSync без shell с timeout 120000 ms.
       Query: `dotnet msbuild <core.csproj> -getProperty:AssemblyName,Version,TargetFramework,BorisTypeApiVersion -nologo`.
@@ -201,7 +201,7 @@ ZIP через Archive.proj и напечатать одну JSON строку `
 Успешный вывод dotnet остаётся в capture; при ошибке печатать диагностику в stderr
 и завершаться ненулевым кодом. Staging удаляется в finally.
 
-- [ ] Повторить integration test до PASS, затем root `pnpm pack:dotnet` и
+- [x] Повторить integration test до PASS, затем root `pnpm pack:dotnet` и
       `pnpm test:dotnet:pack`; не публиковать NuGet/npm package.
 
 ## Task 3: Перенос probes, CI, документация и итоговая проверка
@@ -221,26 +221,59 @@ ZIP через Archive.proj и напечатать одну JSON строку `
 - Consumes: build/test/pack commands из Tasks 1–2.
 - Produces: Windows/Linux CI, ручные probes по новому пути, документированный workspace.
 
-- [ ] Перенести свои untracked probe files, сохранив C#/BS contents; убрать из
+- [x] Перенести свои untracked probe files, сохранив C#/BS contents; убрать из
       проектов дубли общих props. DatexProbe не добавлять в slnx. Обновить ссылки
       старых runtime reports, сохранив historical hashes и 19/19 как исторический результат.
-- [ ] CI matrix ubuntu-latest/windows-latest, setup-dotnet по root global.json;
+- [x] CI matrix ubuntu-latest/windows-latest, setup-dotnet по root global.json;
       pinned actions совпадают с доступными commit SHA. Выполнять locked restore,
       build --no-restore, test --no-build, Node pack integration test и pack archive.
       Setup Node по .node-version; pnpm для .NET job не обязателен, wrapper не вызывается.
       Upload ZIP через actions/upload-artifact; добавить NuGet Dependabot entry
       `/packages/dotnet`, weekly/cooldown 14 дней.
-- [ ] Документировать root commands, metadata ABI, доставку ZIP, vendor refs,
+- [x] Документировать root commands, metadata ABI, доставку ZIP, vendor refs,
       различие SDK/CLR, будущие независимые проекты и отсутствие search API.
       ADR фиксирует согласованную структуру; roadmap отмечает workspace и отдельный search этап.
-- [ ] Проверить fresh locked restore, build, unit tests, pack test и ZIP.
+- [x] Проверить fresh locked restore, build, unit tests, pack test и ZIP.
       Отдельно собрать DatexProbe с уже существующим внешним reference dir; не запускать.
-- [ ] Запустить существующие Node build/unit tests, format, lint, docs build и
+- [x] Запустить существующие Node build/unit tests, format, lint, docs build и
       локальные ссылки; проверить отсутствие vendor/generated files в git и diff --check.
-- [ ] Сверить каждый критерий spec, обновить progress/verification в плане и
+- [x] Сверить каждый критерий spec, обновить progress/verification в плане и
       сохранить работу в текущей feature branch. Remote publishing отдельной командой не выполнять.
 
 ## Проверка плана
 
 Все требования design покрыты Tasks 1–3; первый core остаётся metadata-only.
 Source proof и runtime evidence разделены, новых native executions не требуется.
+
+## Результаты реализации и проверки (2026-11-06)
+
+- Tasks 1–3 выполнены в `feat/mcp-server`; remote publishing не выполнялся.
+- TDD: metadata test сначала упал на отсутствии public типа, pack integration
+  test — на отсутствии настоящего CLI. После реализации оба прошли.
+- SDK 9.0.320 установлен вне репозитория. Локальные managed tests выполнялись
+  на CLR 9.0.22; исторические native результаты относятся к HCM CLR 9.0.11.
+- Принудительный locked restore solution (`--locked-mode --force`) прошёл.
+  Root `build:dotnet`, `test:dotnet` (1/1), `test:dotnet:pack` (1/1) и
+  `pack:dotnet` завершились успешно. Сборка: 0 warnings/errors.
+- ZIP `BorisType.FileSystem-0.1.0-alpha.1.zip` распакован integration test:
+  DLL, deps.json, PDB, XML documentation, manifest; размеры и SHA256 совпали.
+- При review найдено разделение MSBuild property values по запятой/`;`.
+  Regression test с output `output space,semi;literal%20` сначала подтвердил
+  MSB1006; после MSBuild escaping прошёл. Готовый ZIP проверяется по запрошенному
+  пути, затем копируется для независимой распаковки. Повторный review без замечаний.
+- DatexProbe отдельно собран с внешней reference directory, 0 warnings/errors.
+  Vendor DLL не включена в output. Native runtime повторно не запускался.
+- Перенесённый runner прошёл syntax check; без explicit environment завершается
+  до обращения к Docker/HCM. Стенд остаётся остановленным.
+- Node: Turbo build 15/15 (cache), bt-ir 61/61, ws-client 19/19,
+  mcp-server 38/38, eslint-plugin 5/5; MCP tarball smoke и syncpack прошли.
+- ESLint: 0 errors, 45 прежних warnings. Docs build и полный format check прошли.
+  Генерируемые NuGet lock files исключены из Prettier, как pnpm lockfile.
+- Проверка новых локальных Markdown links успешна; в изменённых документах есть
+  четыре прежние битые ссылки, не относящиеся к .NET workspace.
+- Windows/Linux matrix добавлена в CI. Локально проверен Linux; результат
+  Windows CI до запуска workflow не заявляется.
+
+Особенность pnpm: после добавления workspace `install --lockfile-only` не
+обновил локальный workspace state. `pnpm install --frozen-lockfile --ignore-scripts`
+восстановил его без изменения dependency policy. pnpm lockfile не потребовал diff.
