@@ -4,9 +4,9 @@
 `packages/dotnet` — общий workspace, а каждый проект в `src/` имеет собственные
 DLL, версию и зависимости. Первая библиотека — `BorisType.FileSystem`.
 
-Текущий этап предоставляет metadata API, сборку, unit tests и installation ZIP.
-Файловых операций и поиска пока нет. Существующие MCP tools используют прежний
-BS/SOAP путь; установка DLL не добавляет новый MCP tool автоматически.
+Текущий этап предоставляет metadata API, поиск имён и UTF-8 содержимого, unit tests
+и installation ZIP. Новый MCP tool `wshcm_search_files` использует эту DLL через
+BS adapter; четыре прежних инструмента сохраняют свои реализации.
 
 ## Требования и команды
 
@@ -73,14 +73,14 @@ packages/dotnet/
 ```json
 {
   "id": "BorisType.FileSystem",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "apiVersion": 1,
-  "capabilities": []
+  "capabilities": ["search"]
 }
 ```
 
 Version берётся из assembly metadata, API version задаётся свойством
-`BorisTypeApiVersion`. Пустые capabilities отражают отсутствие файлового API.
+`BorisTypeApiVersion`. Capability `search` отражает наличие поискового API.
 Метод позволяет потребителю идентифицировать DLL перед использованием её функций.
 
 После отдельной установки DLL в каталог, доступный `DOTNETLIBS-PATH`, форма BS вызова:
@@ -97,7 +97,7 @@ Core не ссылается на Datex и не вызывает обратно 
 ## Installation ZIP
 
 `pnpm pack:dotnet` создаёт
-`dist/BorisType.FileSystem-0.1.0-alpha.1.zip` относительно этого workspace.
+`dist/BorisType.FileSystem-0.1.0-alpha.2.zip` относительно этого workspace.
 Для другого output: `node packages/dotnet/tools/pack.mjs --out /absolute/path`.
 На Windows можно передать обычный Windows path как отдельный аргумент.
 
@@ -130,3 +130,57 @@ BS. PlainProbe входит в default build. DatexProbe требует отде
 Происхождение и evidence: [дизайн](../../plans/dotnet/01-workspace-design.md),
 [native DLL experiment](../../plans/mcp-server/06-dotnet-probe.md),
 [референс wshcmx/net](../../plans/mcp-server/07-wshcmx-net-reference.md).
+
+## Файловый поиск
+
+Статический string ABI: `BorisType.FileSystem.Search.FindJson(rootPath, requestJson)`.
+`rootPath` — абсолютный физический путь существующего каталога; относительный путь
+отвергается. BS adapter преобразует `x-local://` через `UrlToFilePath` перед DLL.
+Core не знает платформенные URL и не выполняет callbacks в Datex.
+
+```csharp
+string json = BorisType.FileSystem.Search.FindJson(
+    physicalRoot,
+    "{\"pattern\":\"**/*.bs\",\"query\":\"needle\",\"excludePatterns\":[\"vendor/**\"]}");
+```
+
+Без query API возвращает совпавшие имена без чтения содержимого. Query по умолчанию
+literal; `regex=true` включает .NET regex по отдельным строкам с timeout 50 ms.
+`ignoreCase` относится к содержимому, globs остаются ordinal case-sensitive.
+Поддержаны `*`, `?`, полный segment `**`; patterns без `/` проверяют basename на
+любой глубине. `vendor/**` исключает и обход каталога. Нет brace/class globs.
+
+Ответ: apiVersion, matches, limitReason, stats, skipped. Для содержимого hit
+содержит relative path, line/column (1-based, UTF-16) и text строки без newline;
+для имён — только path. Разделитель segments всегда `/`; backslash и colon в
+Linux-имени сохраняются как данные. Это не путь для разрешения на ОС клиента.
+
+Default budgets: 200 results, 10000 entries, depth 10, 1 MiB/file, 16 MiB/read,
+2000 ms, 2000 UTF-16 units/line. Hard maxima и все options — в
+[контракте поиска](../../plans/dotnet/04-search-design.md). JSON DLL и финальный
+MCP JSON ограничены 256 KiB. При нехватке budget limitReason явно указывает
+results/entries/bytes/time/regex/output. Пустой matches при limitReason != null
+не означает отсутствие совпадений. Счётчики skipped показывают пропуски links,
+depth, tooLarge, binary, invalidEncoding, longLines и ioErrors.
+
+UTF-8 декодируется строго, начальный BOM убирается; NUL означает binary. Другие
+кодировки не угадываются. Symlink/junction не обходятся, root и ancestors не
+могут быть reparse points. Это не защита от конкурентной подмены filesystem paths.
+Deadline cooperative: блокирующий syscall/сетевая FS может задержать возврат.
+Специальные файлы и VFS аттестацию не проходили.
+
+Управляемый потребитель может вызвать `FindJsonWithCancellation` с
+CancellationToken. Отдельное имя сохраняет однозначность bridge entry FindJson.
+
+### Установка для MCP
+
+Распаковать ZIP в каталог из `DOTNETLIBS-PATH` целевого HCM, например
+`dotnetcore/shared` в исследованном Linux стенде. SDK/CLR на сервер не копировать.
+MCP package не устанавливает DLL автоматически. При обновлении уже загруженной
+DLL пока планировать перезапуск HCM: первая загрузка без рестарта проверена,
+hot replacement — нет.
+
+Managed tests и MCP adapter/VM tests проходят вне HCM. Реальное выполнение нового
+поиска и resolver на C-runtime пока не подтверждено: локальный стенд остановлен.
+Для отдельной проверки после установки DLL есть команда MCP `test:e2e:search`;
+она не запускает стенд, не устанавливает DLL и сканирует только свой temp fixture.

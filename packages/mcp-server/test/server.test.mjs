@@ -22,7 +22,7 @@ const unusedConnection = {
   evaluator: { eval: () => assert.fail("Unexpected evaluation") },
 };
 
-test("MCP initializes and advertises only the four implemented tools", { timeout: 10_000 }, async (t) => {
+test("MCP initializes and advertises the five implemented tools", { timeout: 10_000 }, async (t) => {
   const client = await connect(t, unusedConnection);
   assert.deepEqual(client.getServerVersion(), { name: "boristype-wshcm", version: "0.1.0-alpha.1" });
   const { tools } = await client.listTools();
@@ -30,6 +30,7 @@ test("MCP initializes and advertises only the four implemented tools", { timeout
     "wshcm_delete_file",
     "wshcm_list_directory",
     "wshcm_read_file",
+    "wshcm_search_files",
     "wshcm_write_file",
   ]);
   for (const tool of tools) {

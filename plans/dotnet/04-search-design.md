@@ -1,8 +1,8 @@
 # Первый файловый поиск: BS resolver и независимое C# ядро
 
 Дата: 2026-11-06. Пользователь разрешил начать реализацию с преобразованием
-платформенного URL в BS перед вызовом DLL. По контексту обсуждения grep первый
-этап включает поиск содержимого; без query тот же API ищет имена.
+платформенного URL в BS перед вызовом DLL и явно подтвердил поиск «по содержимому
+и именам». Без query тот же API ищет имена.
 
 ## Граница компонентов
 
@@ -11,7 +11,7 @@
 DLL принимает только абсолютный физический путь каталога и JSON options;
 возвращает JSON string. Нет Datex reference, callback, процесса grep или shell.
 MCP оборачивает response исходным `root` URL. Пути matches относительно root,
-с `/`, без предположений о преобразовании имён в URL. Root URL и relative path
+с `/` как единственным разделителем (backslash/colon могут быть данными Linux-имени), без предположений о преобразовании имён в URL. Root URL и relative path
 возвращаются раздельно; физические серверные пути в успешном ответе не раскрываются.
 
 Продолжаем в текущей `feat/mcp-server`, сохраняем `.agents/` пользователя и
@@ -64,8 +64,9 @@ bytes и рост после открытия. CRLF, CR и LF разделяют
 1-based, column измеряется в UTF-16 units. Возвращается текст строки без newline.
 Query не пересекает строки. Ошибки дочерних IO учитываются, ошибка root фатальна.
 
-Ограничение JSON ответа — 262144 UTF-8 bytes; на сериализованные matches
-выделяется 256000, остальное зарезервировано для фиксированного envelope.
+Ограничение JSON ответа DLL и итогового MCP JSON — 262144 UTF-8 bytes; на сериализованные matches
+выделяется 256000, остальное зарезервировано для фиксированного envelope. MCP отдельно учитывает root URL;
+если он превышает общий бюджет, обрезает matches и возвращает limitReason=output.
 Результат с пустым matches и причиной прерывания не считается полным ответом.
 Deadline не обещает прервать блокирующий syscall/сетевую FS; специальные файлы
 и произвольная VFS не аттестуются. Hard cancellation требует отдельной архитектуры.
@@ -99,9 +100,11 @@ Deadline не обещает прервать блокирующий syscall/с�
 Тесты используют реальные temporary files: Unicode/BOM/newlines, nested globs,
 pruning, links, invalid input/encoding, binary и каждый детерминированный budget.
 Для cooperative deadline тестировать cancellation через уже отменённый token;
-не полагаться на скорость диска. Managed overload принимает CancellationToken,
-bridge overload остаётся ровно `(string, string)`.
+не полагаться на скорость диска. Managed entry FindJsonWithCancellation принимает CancellationToken;
+bridge entry FindJson остаётся ровно `(string, string)` и единственным методом с этим
+именем, чтобы не полагаться на разрешение overloads платформенным bridge.
 MCP protocol tests выполняют настоящий BS template в Node VM, подменяя внешние
 platform/CLR вызовы; это adapter evidence, не C-runtime acceptance.
 Отдельная bounded native проверка при доступном стенде: path resolver, actual
-DLL, Unicode/newlines, результат и evaluator cleanup. Windows подтверждается CI.
+DLL, Unicode/newlines, результат и evaluator cleanup. Managed проверки Windows
+должны выполняться отдельным CI job; текущий локальный запуск относится к Linux.

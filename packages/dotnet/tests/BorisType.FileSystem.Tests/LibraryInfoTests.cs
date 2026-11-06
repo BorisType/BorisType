@@ -22,6 +22,6 @@ public class LibraryInfoTests
         Assert.Equal("BorisType.FileSystem", root.GetProperty("id").GetString());
         Assert.Equal(1, root.GetProperty("apiVersion").GetInt32());
         Assert.Matches(@"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$", root.GetProperty("version").GetString()!);
-        Assert.Empty(root.GetProperty("capabilities").EnumerateArray());
+        Assert.Contains(root.GetProperty("capabilities").EnumerateArray(), item => item.GetString() == "search");
     }
 }

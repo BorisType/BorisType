@@ -26,22 +26,22 @@ MCP проверяет JSON contract и возвращает root URL плюс r
 `TemporaryTree.cs`; modify LibraryInfo.cs, csproj и LibraryInfoTests.cs.
 
 **Interfaces:** `Search.FindJson(string rootPath, string requestJson) -> string`;
-managed overload с третьим CancellationToken. Contract serializes camelCase,
+managed FindJsonWithCancellation с третьим CancellationToken. Contract serializes camelCase,
 strict options parsing, null fields matches не сериализуются.
 
-- [ ] ABI regression через reflection: Assert.NotNull для public Search type и
+- [x] ABI regression через reflection: Assert.NotNull для public Search type и
       FindJson(string,string), затем вызвать на настоящем temp tree. Увидеть RED.
-- [ ] Cases с ручными expected: basename `*.bs` на разных глубинах, `**/*.bs`
+- [x] Cases с ручными expected: basename `*.bs` на разных глубинах, `**/*.bs`
       с zero directory, scoped patterns, exclusions pruning; name-only readBytes=0.
-- [ ] Text fixtures `\uFEFFПривет\r\nabc needle\rNEEDLE\n` → line2/column5;
+- [x] Text fixtures `\uFEFFПривет\r\nabc needle\rNEEDLE\n` → line2/column5;
       literal/regex/case, метасимволы в literal, UTF-16 column, один hit на строку.
-- [ ] Negative/limit fixtures: unknown option/null/ranges/invalid pattern/root,
+- [x] Negative/limit fixtures: unknown option/null/ranges/invalid pattern/root,
       absent root, binary, invalid UTF-8, size, maxEntries/results/totalBytes/depth,
       response bytes, overlong lines, root/child links, already cancelled token и
       catastrophic regex. Увидеть RED до соответствующей implementation.
-- [ ] Реализовать strict contract, glob compiler и traversal. Сверить каждый
+- [x] Реализовать strict contract, glob compiler и traversal. Сверить каждый
       counter/limit с реальными файлами, ограничить чтение и сериализацию matches.
-- [ ] Поднять capability/version и проверить metadata ABI, build, unit, ZIP test.
+- [x] Поднять capability/version и проверить metadata ABI, build, unit, ZIP test.
 
 ## Task 2: MCP/BS adapter
 
@@ -52,26 +52,28 @@ strict options parsing, null fields matches не сериализуются.
 из spec. BS вызывает UrlToFilePath, GetAssembly и FindJson; EncodeJson защищает
 строковый carrier. Node декодирует обе JSON ступени и валидирует полный response.
 
-- [ ] Добавить падающие protocol tests tools/list и call через InMemoryTransport.
+- [x] Добавить падающие protocol tests tools/list и call через InMemoryTransport.
       VM запускает реальный template; CLR boundary возвращает фиксированный JSON
       contract, resolver проверяет исходный URL. Проверить literal parameter transport
       с quotes/backslash/Unicode/template-like text по реальному handler.
-- [ ] Cases malformed wire/response, unsupported apiVersion, absent DLL, invalid
+- [x] Cases malformed wire/response, unsupported apiVersion, absent DLL, invalid
       input без evaluator call. Реализовать adapter до GREEN. Existing four tools
       и unknown-tool behavior остаются рабочими.
-- [ ] Build MCP, unit/stdio tests, tarball smoke; DLL assets не включать в npm.
+- [x] Build MCP, unit/stdio tests, tarball smoke; DLL assets не включать в npm.
 
 ## Task 3: Acceptance, docs и локальная фиксация
 
 **Files:** Add bounded search native fixture/test under mcp-server/test/e2e;
 update .NET/MCP README, docs guides, ROADMAP, plans index/verification report.
 
-- [ ] Native test использует explicit running local stand и отдельно установленную
+- [x] Native test использует explicit running local stand и отдельно установленную
       DLL. Seed только unique temporary directory, проверить результаты/cleanup.
       Не запускать unsafe callback, не сканировать весь сервер.
-- [ ] Если стенд остановлен — сообщить факт и подготовить runnable test; этот
+- [x] Если стенд остановлен — сообщить факт и подготовить runnable test; этот
       факт сам по себе не блокирует независимые managed/protocol проверки.
-- [ ] Документировать install/API/filters/limits/UTF-8/link policy и границы
+- [x] Документировать install/API/filters/limits/UTF-8/link policy и границы
       cooperative deadline; отделить managed, mock/VM и native evidence.
-- [ ] Review кода, исправить существенные замечания, выполнить build/unit/pack,
+- [x] Review кода, исправить существенные замечания, выполнить build/unit/pack,
       Node regression tests, format/lint/docs/diff checks; сохранить локальные commits.
+
+Результаты реализации и native acceptance gap: [06-search-results.md](06-search-results.md).

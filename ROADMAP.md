@@ -30,11 +30,15 @@ Evidence и границы: [MCP local e2e](plans/mcp-server/04-local-e2e.md).
 - [x] Первая BorisType.FileSystem DLL с metadata JSON API, без Datex dependency
 - [x] Unit и installation ZIP checks, manifest hashes, отдельный Windows/Linux CI workflow
 - [x] Перенести native probes из MCP, сохранить известное callback-падение и vendor reference boundary
-- [ ] Спроектировать ограниченный файловый поиск: пути/VFS, кодировки, лимиты и native acceptance
+- [x] Контракт ограниченного поиска: BS URL resolver, физические paths, UTF-8, glob/literal/regex и budgets
+- [x] Поиск имён/содержимого в DLL и MCP adapter; managed/VM tests и отдельный bounded native runner
+- [ ] Native acceptance поиска через HCM: resolver, bridge ABI и filesystem results после установки DLL
 
 Структура: [workspace README](packages/dotnet/README.md),
 [дизайн и критерии первого шага](plans/dotnet/01-workspace-design.md).
 CI workflow настроен для двух ОС; это не свидетельство запусков HCM на Windows.
+Поиск реализован без Datex callbacks; локальный HCM остановлен, native acceptance
+остаётся открытым. [Контракт](plans/dotnet/04-search-design.md).
 
 ### Граница поддержки и память (2026-11-05)
 

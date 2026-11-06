@@ -19,7 +19,7 @@ public static class LibraryInfo
             id = assembly.GetName().Name,
             version,
             apiVersion = int.Parse(apiVersion, CultureInfo.InvariantCulture),
-            capabilities = Array.Empty<string>(),
+            capabilities = new[] { "search" },
         });
     }
 }

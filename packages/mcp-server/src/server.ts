@@ -3,7 +3,13 @@ import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import type { McpServerOptions } from "./types.js";
 import { createConnection, closeConnection } from "./connection.js";
 import type { WshcmConnection } from "./connection.js";
-import { registerReadFileTool, registerWriteFileTool, registerListDirectoryTool, registerDeleteFileTool } from "./tools/index.js";
+import {
+  registerReadFileTool,
+  registerWriteFileTool,
+  registerListDirectoryTool,
+  registerDeleteFileTool,
+  registerSearchFilesTool,
+} from "./tools/index.js";
 
 /**
  * Создаёт MCP сервер с реализованными tools и предоставленным соединением.
@@ -23,6 +29,7 @@ export function createServer(connection: WshcmConnection): McpServer {
   registerWriteFileTool(server, connection);
   registerListDirectoryTool(server, connection);
   registerDeleteFileTool(server, connection);
+  registerSearchFilesTool(server, connection);
 
   return server;
 }

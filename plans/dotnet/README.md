@@ -8,6 +8,7 @@
 - [Исследование преобразования x-local URL](03-path-resolution-research.md).
 - [Контракт первого поиска](04-search-design.md).
 - [План реализации поиска](05-search-plan.md).
+- [Результаты поиска и границы проверок](06-search-results.md).
 - Предыстория: [инвентаризация HCM](../mcp-server/05-dotnet-search-research.md),
   [собственные DLL и native smoke](../mcp-server/06-dotnet-probe.md),
   [референс wshcmx/net](../mcp-server/07-wshcmx-net-reference.md).
@@ -15,5 +16,6 @@
 Первый шаг реализован: metadata DLL, build/test/pack, проверка ZIP и CI matrix.
 Подробные результаты и границы проверок — в [плане](02-workspace-plan.md#результаты-реализации-и-проверки-2026-11-06).
 
-Следующий самостоятельный этап после workspace — контракт ограниченного
-файлового поиска. Функции поиска этим шагом не реализуются.
+Следующий этап реализует ограниченный поиск имён и UTF-8 содержимого в DLL,
+BS URL resolver и MCP tool. Managed и protocol проверки выполняются вне HCM;
+native acceptance подготовлен отдельной командой и пока не выполнен.

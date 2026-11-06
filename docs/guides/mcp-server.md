@@ -5,8 +5,9 @@
 Сервер использует MCP TypeScript SDK 2.x (`@modelcontextprotocol/server`);
 клиентский пакет подключён только для локальных тестов. Схемы — Zod 4 objects.
 
-В прототипе объявлены четыре tools: `wshcm_read_file`, `wshcm_write_file`,
-`wshcm_list_directory`, `wshcm_delete_file`. Остальные заготовки не публикуются
+В прототипе объявлены пять tools: `wshcm_read_file`, `wshcm_write_file`,
+`wshcm_list_directory`, `wshcm_delete_file`, `wshcm_search_files`. Последний требует
+отдельно установленной BorisType.FileSystem DLL. Остальные заготовки не публикуются
 в `tools/list`. Подключение, CLI/env и конфигурация клиента описаны в
 [package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
 
@@ -31,3 +32,10 @@ exit code. Частичная инициализация и shutdown во вре
 CRLF, перезапись, удаление и cleanup. Байты файлов проверяются независимо через
 Docker. Это evidence одной C-сборки; оно не переносится на JS runtime или другие
 версии HCM. Команда, требования и границы описаны в package README.
+
+`wshcm_search_files` ищет имена по glob, а при query — UTF-8 содержимое построчно.
+URL разрешается в BS, обход и сопоставление выполняет C#. Ответ содержит root URL,
+relative paths, line/column/text для содержимого, stats, skipped и limitReason.
+Полный проход требует нулевых skipped и null limitReason; остальные ответы
+явно описывают ограниченный охват.
+Финальный JSON ограничен 256 KiB. Managed/adapter проверки не заменяют запуск на HCM.

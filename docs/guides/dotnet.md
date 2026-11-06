@@ -2,8 +2,9 @@
 
 `packages/dotnet` объединяет самостоятельные C# библиотеки BorisType. Каждая
 имеет собственный `.csproj`, DLL и версию. Первая — `BorisType.FileSystem`,
-с metadata API для идентификации установленной библиотеки. Поиска и файловых
-операций в ней пока нет; четыре существующих MCP tools работают прежним способом.
+с metadata API и ограниченным поиском имён/UTF-8 содержимого. MCP tool
+`wshcm_search_files` использует DLL через BS resolver; четыре прежних tools
+работают своими существующими реализациями.
 
 Для сборки нужен SDK, указанный в корневом global.json: 9.0.320 с допустимыми
 новыми patch той же feature band. Target framework первой DLL — net9.0.
@@ -25,10 +26,17 @@ manifest версии/API с SHA256 файлов. SDK, CLR, tests, probes и ven
 в архив не включаются.
 
 Вызов `BorisType.FileSystem.LibraryInfo.GetMetadataJson()` возвращает JSON string
-с `id`, `version`, `apiVersion` и `capabilities`. Сейчас capabilities пусты.
+с `id`, `version`, `apiVersion` и `capabilities`. Capability `search` обозначает поисковый API.
 Сборка не требует Datex.Global и не выполняет обратные вызовы в ядро BS.
 Установка архива на HCM и проверка совместимости его runtime — отдельные действия;
 успешные unit/pack tests выполняются вне HCM.
 
 Команды ручной установки, native probes и правила vendor references приведены
 в [README workspace](https://github.com/BorisType/BorisType/blob/main/packages/dotnet/README.md).
+
+Поиск доступен через `BorisType.FileSystem.Search.FindJson(physicalRoot, requestJson)`.
+BS вызывает `UrlToFilePath`, затем передаёт физический путь в DLL без Datex callbacks.
+Поддержаны glob filters, literal или line regex, исключение поддеревьев и явные
+лимиты работы/ответа. Partial results обозначаются limitReason и skipped counters.
+Подробный контракт и установка — в README workspace. Новый поиск пока проверен
+managed и MCP/VM тестами; native acceptance на HCM остаётся отдельным действием.
