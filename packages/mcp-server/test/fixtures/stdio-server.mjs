@@ -8,7 +8,7 @@ const server = createServer({
       throw new Error("Unexpected SOAP call in stdio fixture");
     },
   },
-  evaluator: { eval: async () => "  000123\r\nПривет 👋\n" },
+  evaluator: { eval: async () => JSON.stringify("  000123\r\nПривет 👋\n") },
 });
 
 await server.connect(new StdioServerTransport());

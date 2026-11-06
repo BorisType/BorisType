@@ -22,11 +22,18 @@ export function registerReadFileTool(server: McpServer, connection: WshcmConnect
     async ({ path }) => {
       try {
         const script = buildScript(scriptTemplate, { path });
-        const content = await connection.evaluator.eval(script);
+        const result = await connection.evaluator.eval(script);
+        if (typeof result !== "string") {
+          throw new Error("Expected a string file result from WSHCM");
+        }
+        // JSON protects CRLF from native SOAP string serialization. Do not coerce
+        // missing or malformed results into a successful empty file.
+        const content: unknown = JSON.parse(result);
         if (typeof content !== "string") {
           throw new Error("Expected a string file result from WSHCM");
         }
-        return { content: [{ type: "text" as const, text: content }] };
+        // A leading UTF-8 signature is file metadata, matching native LoadUrlText.
+        return { content: [{ type: "text" as const, text: content.replace(/^\uFEFF/, "") }] };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return { content: [{ type: "text" as const, text: message }], isError: true };

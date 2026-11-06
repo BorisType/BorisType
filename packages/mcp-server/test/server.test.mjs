@@ -55,11 +55,14 @@ test("read preserves exact string content and passes a literal path to the scrip
     evaluator: {
       eval: async (script) =>
         runInNewContext(`(function () { ${script} })()`, {
-          tools: {
-            load_url_text_server: (receivedPath) => {
-              assert.equal(receivedPath, path);
-              return content;
-            },
+          EncodeJson: JSON.stringify,
+          LoadUrlData: (receivedPath) => {
+            assert.equal(receivedPath, path);
+            return content;
+          },
+          DecodeCharset: (data, charset) => {
+            assert.equal(charset, "utf-8");
+            return data;
           },
         }),
     },
@@ -69,14 +72,29 @@ test("read preserves exact string content and passes a literal path to the scrip
   assert.deepEqual(result.content, [{ type: "text", text: content }]);
 });
 
-for (const content of ["", "\n\t"]) {
+for (const content of ["", "\n\t", "  a\r\nb\rc\n  "]) {
   test(`read accepts a valid empty or whitespace-only file: ${JSON.stringify(content)}`, { timeout: 10_000 }, async (t) => {
-    const client = await connect(t, { ...unusedConnection, evaluator: { eval: async () => content } });
+    const client = await connect(t, { ...unusedConnection, evaluator: { eval: async () => JSON.stringify(content) } });
     const result = await client.callTool({ name: "wshcm_read_file", arguments: { path: "x-local://wt/file.bs" } });
     assert.notEqual(result.isError, true);
     assert.equal(result.content[0].text, content);
   });
 }
+
+for (const wire of ["not json", "null", "123", "[]", "{}"]) {
+  test(`read rejects a malformed or non-string JSON payload: ${wire}`, { timeout: 10_000 }, async (t) => {
+    const client = await connect(t, { ...unusedConnection, evaluator: { eval: async () => wire } });
+    const result = await client.callTool({ name: "wshcm_read_file", arguments: { path: "x-local://wt/file.bs" } });
+    assert.equal(result.isError, true);
+  });
+}
+
+test("read strips one UTF-8 signature from the decoded file", { timeout: 10_000 }, async (t) => {
+  const client = await connect(t, { ...unusedConnection, evaluator: { eval: async () => JSON.stringify("\uFEFFПривет\r\n") } });
+  const result = await client.callTool({ name: "wshcm_read_file", arguments: { path: "x-local://wt/file.bs" } });
+  assert.notEqual(result.isError, true);
+  assert.equal(result.content[0].text, "Привет\r\n");
+});
 
 for (const name of ["wshcm_read_file", "wshcm_list_directory"]) {
   for (const value of [undefined, null, 123, {}]) {

@@ -30,7 +30,10 @@ export async function createConnection(options: McpServerOptions): Promise<Wshcm
 
 /**
  * Закрывает соединение, удаляя evaluator с сервера.
+ * @throws {Error} если удаление временной библиотеки не подтверждено
  */
 export async function closeConnection(connection: WshcmConnection): Promise<void> {
-  await connection.evaluator.close();
+  if (!(await connection.evaluator.close())) {
+    throw new Error("Temporary WSHCM evaluator cleanup was not confirmed");
+  }
 }

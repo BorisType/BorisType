@@ -61,8 +61,14 @@ test("unknown typed values and missing Result remain errors", () => {
 });
 
 test("request strings survive XML serialization without trimming or coercion", () => {
-  const content = '  000123\nПривет & <tag> "quote"\t';
-  const parser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: false, parseTagValue: false });
+  const content = '  000123\r\nПривет & <tag> "quote"\t\rend &#13;';
+  const parser = new XMLParser({
+    htmlEntities: true,
+    ignoreAttributes: false,
+    removeNSPrefix: true,
+    trimValues: false,
+    parseTagValue: false,
+  });
   const parsed = parser.parse(renderRequest("tools", "put_url_text_server", ["x-local://wt/file.bs", content, 42, 1.5, true, false]));
   const args = parsed.Envelope.Body.CallMethod.ArgData;
   assert.equal(args["arg-1"]["#text"], content);

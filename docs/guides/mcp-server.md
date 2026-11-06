@@ -11,13 +11,23 @@
 [package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
 
 Read/list возвращают tool error при неожиданном типе ответа вместо пустого
-файла или каталога. SOAP string values сохраняют whitespace и строки, похожие
-на числа; integer/real/bool разбираются по `VALUE-TYPE`.
+файла или каталога. Чтение явно декодирует UTF-8 и убирает один начальный BOM.
+На проверенной C-сборке запись создаёт UTF-8 BOM даже у пустого файла.
+Это API текстовых файлов; бинарные данные и legacy encodings не аттестованы.
+
+SOAP requests экранируют пробелы/табуляцию/CR/LF numeric references, чтобы C parser
+не удалял завершающие пробелы. Чтение использует JSON carrier для защиты CRLF
+от native SOAP serializer. Общий SOAP parser различает строки и числа по
+`VALUE-TYPE`, но не восстанавливает информацию, уже потерянную серверным serializer.
 
 `destructiveHint` — аннотация для клиента, не гарантия запроса подтверждения.
 Инициализация соединения создаёт временный evaluator на HCM-сервере, в том числе
-перед чтением. Проверки допустимых путей и полный lifecycle ещё требуют работы.
+перед чтением. EOF/SIGINT/SIGTERM выполняют общий cleanup, его ошибка даёт ненулевой
+exit code. Частичная инициализация и shutdown во время активного SOAP требуют работы.
 
-Текущий maintenance checkpoint подтверждает сборку, упаковку и локальный MCP
-protocol с test doubles. Он не подтверждает native работу с файловой системой,
-кодировки или права на конкретной версии HCM.
+Помимо unit/protocol/pack проверок есть отдельная команда `test:e2e` для уже
+установленного локального Linux Docker-стенда. Проверены четыре tools через
+настоящий CLI/stdio/SOAP на `websoft/hcm:2025.2.1333`, включая Unicode, пробелы,
+CRLF, перезапись, удаление и cleanup. Байты файлов проверяются независимо через
+Docker. Это evidence одной C-сборки; оно не переносится на JS runtime или другие
+версии HCM. Команда, требования и границы описаны в package README.

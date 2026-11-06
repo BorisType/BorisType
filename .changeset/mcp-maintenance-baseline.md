@@ -13,7 +13,7 @@ non-string read/list results instead of reporting empty content.
 
 Preserve SOAP string whitespace and numeric-looking text while retaining explicit
 VALUE-TYPE conversion for integers, reals and booleans. Add local protocol,
-serialization and tarball regression checks; native HCM acceptance remains pending.
+serialization and tarball regression checks.
 
 Update fast-xml-parser to ^5.11.2 in ws-client and bt-cli, and align workspace
 development types with @types/node ^24.19.2 for the Node 24 toolchain.

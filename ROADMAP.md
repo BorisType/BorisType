@@ -16,6 +16,14 @@
 
 Node закреплён в `.node-version`, pnpm — в `package.json#packageManager`.
 
+### MCP: native e2e (2026-11-06)
+
+- [x] Отдельная последовательная e2e-команда для четырёх tools через CLI/stdio/SOAP на локальном HCM 2025.2.1333; независимая проверка байтов и очистки
+- [x] Исправить подтверждённые e2e ошибки: trailing SOAP whitespace, CRLF ответа, UTF-8 без BOM и утечку evaluator по EOF
+- [ ] Полный path/encoding/limits contract, permissions, partial initialization и shutdown при активном SOAP
+
+Evidence и границы: [MCP local e2e](plans/mcp-server/04-local-e2e.md).
+
 ### Граница поддержки и память (2026-11-05)
 
 - [x] Сохранить F-02a/E-01 research/test checkpoint: cases, baseline, prototypes, draft spec

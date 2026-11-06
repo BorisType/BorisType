@@ -41,17 +41,47 @@ export async function startServer(options: McpServerOptions): Promise<void> {
     process.exit(1);
   }
 
-  const server = createServer(connection);
+  let server: McpServer | undefined;
+  let shutdownPromise: Promise<void> | undefined;
+  let exitCode = 0;
 
-  // Graceful shutdown
-  const shutdown = async () => {
-    await closeConnection(connection);
-    process.exit(0);
+  // EOF and signals can arrive together. Defer work until the shared promise is set:
+  // server.close() itself invokes onclose and must not start another cleanup.
+  const shutdown = (code = 0): Promise<void> => {
+    exitCode = Math.max(exitCode, code);
+    shutdownPromise ??= Promise.resolve().then(async () => {
+      try {
+        await server?.close();
+      } catch (error) {
+        exitCode = 1;
+        process.stderr.write(`Failed to close MCP transport: ${String(error)}\n`);
+      }
+      try {
+        await closeConnection(connection);
+      } catch (error) {
+        exitCode = 1;
+        process.stderr.write(`Failed to clean up WSHCM connection: ${String(error)}\n`);
+      }
+      process.off("SIGINT", onSignal);
+      process.off("SIGTERM", onSignal);
+      process.exit(exitCode);
+    });
+    return shutdownPromise;
   };
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  const onSignal = () => {
+    void shutdown();
+  };
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
 
-  // Запуск транспорта
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  try {
+    server = createServer(connection);
+    server.server.onclose = () => {
+      void shutdown();
+    };
+    await server.connect(new StdioServerTransport());
+  } catch (error) {
+    process.stderr.write(`Failed to start MCP transport: ${String(error)}\n`);
+    await shutdown(1);
+  }
 }

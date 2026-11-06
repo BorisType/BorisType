@@ -4,9 +4,12 @@
 //   ${path} — x-local:// URL файла
 //
 // Возвращает:
-//   string — содержимое файла (UTF-8 текст)
+//   string — JSON-encoded содержимое файла (UTF-8 текст).
+//   JSON carrier сохраняет CRLF: SOAP serializer HCM может превратить их в LF.
 //
 // Ошибки:
 //   Выбрасывает исключение, если файл не найден или недоступен.
 
-return tools.load_url_text_server('${path}');
+// LoadUrlText/DetectContentCharset на C может трактовать UTF-8 без BOM как CP1251.
+// Кодировка этого tool — UTF-8; декодируем байты явно.
+return EncodeJson(DecodeCharset(LoadUrlData('${path}'), 'utf-8'));
