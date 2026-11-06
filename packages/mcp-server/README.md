@@ -8,7 +8,8 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 настоящий CLI/stdio/SOAP на локальном C-runtime `websoft/hcm:2025.2.1333`.
 Это ограниченная проверка одной сборки; полный encoding/permissions/path contract
 и совместимость с другими runtime требуют отдельной работы.
-Новый поиск проверен managed и MCP/VM тестами; его запуск на HCM ещё предстоит.
+Поиск дополнительно прошёл native e2e через CLI/stdio/SOAP/BS/DLL на том же стенде;
+подробности и hashes — в [отчёте](../../plans/dotnet/06-search-results.md).
 
 Используется стабильная линия MCP TypeScript SDK 2.x: runtime-пакет
 `@modelcontextprotocol/server`; `@modelcontextprotocol/client` нужен только тестам.
@@ -231,9 +232,10 @@ pnpm --filter @boristype/mcp-server test:e2e:search
 ```
 
 Она создаёт своё ограниченное дерево, проверяет имена/содержимое/Unicode/newlines,
-exclusions, links, binary и result limit через настоящий CLI/stdio/SOAP/DLL,
-затем проверяет cleanup. Не запускает стенд и не устанавливает DLL. На текущем
-шаге этот native test подготовлен, но не выполнен: локальный стенд остановлен.
+exclusions, links, binary, result limit, regex и quoted path/query через настоящий
+CLI/stdio/SOAP/DLL, затем проверяет cleanup. Не запускает стенд и не устанавливает
+DLL. Native test прошёл 2026-11-06 на Linux HCM 2025.2.1333 / CLR 9.0.11;
+Windows, другие версии и полный path/permissions contract требуют своих проверок.
 
 ### Что остаётся проверить
 

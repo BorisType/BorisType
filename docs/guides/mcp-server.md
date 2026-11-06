@@ -38,4 +38,7 @@ URL разрешается в BS, обход и сопоставление вы�
 relative paths, line/column/text для содержимого, stats, skipped и limitReason.
 Полный проход требует нулевых skipped и null limitReason; остальные ответы
 явно описывают ограниченный охват.
-Финальный JSON ограничен 256 KiB. Managed/adapter проверки не заменяют запуск на HCM.
+Финальный JSON ограничен 256 KiB. Отдельный `test:e2e:search` прошёл на Linux
+HCM 2025.2.1333 / CLR 9.0.11 через CLI/stdio/SOAP/BS/DLL, включая regex,
+quoted path/query и cleanup. Совместимость с другими ОС/версиями остаётся
+отдельной проверкой; managed/adapter tests её не доказывают.

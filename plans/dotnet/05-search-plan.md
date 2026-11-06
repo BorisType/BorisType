@@ -76,4 +76,4 @@ update .NET/MCP README, docs guides, ROADMAP, plans index/verification report.
 - [x] Review кода, исправить существенные замечания, выполнить build/unit/pack,
       Node regression tests, format/lint/docs/diff checks; сохранить локальные commits.
 
-Результаты реализации и native acceptance gap: [06-search-results.md](06-search-results.md).
+Результаты реализации и native acceptance: [06-search-results.md](06-search-results.md).

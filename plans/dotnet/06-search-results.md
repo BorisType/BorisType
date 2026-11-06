@@ -59,22 +59,57 @@ Review выявил и regression tests воспроизвели до испра
 нашёл оставшихся существенных замечаний. Локальная фиксация не публикует ветку
 и не добавляет пользовательскую `.agents/`, bin/obj/dist или vendor DLL.
 
-## Native acceptance: ещё не выполнен
+## Native acceptance: Linux HCM, PASS
 
-`docker ps` не показывает работающих контейнеров. Стенд не запускался,
-DLL не устанавливалась; новых native search calls в этом шаге не было.
-Совместимость resolver/bridge на HCM пока не подтверждена. Тесты Linux managed
-также не доказывают Windows execution; для managed Windows предусмотрен CI job.
+После первоначальной managed реализации пользователь явно разрешил живую проверку.
+Существующие контейнеры были остановлены. Installation ZIP проверен по manifest
+hashes и установлен до запуска HCM; прежних файлов BorisType.FileSystem в shared
+не было. В 16:47 UTC существующий compose project запущен без пересоздания и
+перенастройки. HTTP 200, authentication и SOAP arithmetic smoke прошли.
 
-Подготовлен отдельный `packages/mcp-server/test/e2e/search.mjs`, команда
-`pnpm --filter @boristype/mcp-server test:e2e:search`. Она требует explicit running
-local stand env и уже установленную DLL; команда и prerequisites приведены в
+Runtime: Linux amd64, Ubuntu 24.04.3, `websoft/hcm:2025.2.1333`, image id
+`sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab`.
+Лог текущего старта подтверждает CLR `.NET 9.0.11`, assembly
+`2.25.12.4 [202512041524]`. Carrier: CLI → stdio MCP → SOAP evaluator temporary
+library → C BorisScript → DotNetCoreHost → установленная managed DLL.
+
+Metadata probe вернул строго ожидаемый JSON: id BorisType.FileSystem,
+version 0.1.0-alpha.2, apiVersion 1, capabilities `["search"]`.
+SHA256 original/evaluated probe (без адаптации):
+`3d13ef7f8ac6f3ce23970326d1276387c1d87da0d0e36433600c6190c2f5cb7a`.
+Cleanup probe evaluator подтверждён.
+
+`pnpm --filter @boristype/mcp-server test:e2e:search` — **1/1 PASS, 0 skipped**.
+Финальный runner выполнил шесть последовательных search calls на своём unique
+временном дереве; каждое сравнение использует фиксированные expected values:
+
+| Case                             | Проверенный результат                                                          |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| `**/*.bs`, exclude `vendor/**`   | `main.bs`, `sub/deep.bs`; readBytes 0, links 1                                 |
+| Literal needle, ignoreCase       | 4 hits; line 2/3/4 и UTF-16 columns 5/1/4 для main.bs, плюс nested hit         |
+| maxResults 1                     | Один hit, limitReason results                                                  |
+| Binary NUL fixture               | skipped.binary 1                                                               |
+| Regex `[a-z]{2}-\d+`, ignoreCase | AB-42 и ab-07, lines 1/2, column 4                                             |
+| Quoted root/query                | Кавычка, backslash, Unicode, `${path}`, `${request}`, `$&` сохранены буквально |
+
+Штатный cleanup проверяется внешним filesystem inspection. Дополнительный `find`
+после теста не обнаружил `unsafe_eval_*.bs` или `mcp-e2e-*` в корне wt.
+HCM после теста оставался running, OOMKilled=false; падений и timeout не было.
+После проверки оба контейнера штатно остановлены, как до начала теста; установленная
+DLL оставлена для следующих запусков. Hot replacement этим не проверяется.
+
+BS template SHA256:
+`2ed634fb0b958262f3c169929e7d033273f4a859578b5719eca7615971e36275`.
+Установленная DLL SHA256:
+`3e06197333f2afa37f549048ca63b23abfc271f020297a97916878c38c774145`.
+Raw logs, deployment manifest и probe code сохранены вне git:
+`/home/agent/workspace/wshcm-stand-net9/research/search-native-ckxh77m6/`.
+
+Runner: `packages/mcp-server/test/e2e/search.mjs`; explicit running stand env и
+отдельная установка DLL обязательны. Команда и prerequisites — в
 [MCP README](../../packages/mcp-server/README.md#e2e-на-установленном-локальном-docker-стенде).
-
-Runner создаёт unique fixture, проверяет names/content/Unicode/BOM/newlines,
-exclusions/links/binary/result limit через CLI/stdio/SOAP/DLL и независимый cleanup.
-Серия прекращается при первой ошибке, native timeout не повторяется. Документирует
-hash BS template и установленной DLL. Весь сервер не сканируется.
+Серия прекращается при первой ошибке; native timeout не повторяется. Весь сервер
+не сканируется. Это evidence одной Linux C-сборки, не Windows или JS runtime.
 
 Известный callback `DatexGlobal.EncodeJson` с exit 139 не запускается.
 Новый search core не зависит от Datex и не выполняет platform callbacks.

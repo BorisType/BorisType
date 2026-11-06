@@ -180,7 +180,10 @@ MCP package не устанавливает DLL автоматически. Пр
 DLL пока планировать перезапуск HCM: первая загрузка без рестарта проверена,
 hot replacement — нет.
 
-Managed tests и MCP adapter/VM tests проходят вне HCM. Реальное выполнение нового
-поиска и resolver на C-runtime пока не подтверждено: локальный стенд остановлен.
-Для отдельной проверки после установки DLL есть команда MCP `test:e2e:search`;
-она не запускает стенд, не устанавливает DLL и сканирует только свой temp fixture.
+Managed tests и MCP adapter/VM tests проходят вне HCM. Отдельный native e2e
+подтвердил resolver и поиск через CLI/stdio/SOAP/BS/DLL на Linux HCM 2025.2.1333 /
+CLR 9.0.11: имена, содержимое, Unicode/BOM/newlines, exclusions/links, binary,
+result limit, regex и quoted path/query. [Evidence и hashes](../../plans/dotnet/06-search-results.md).
+Windows и другие версии HCM этим запуском не проверены.
+Команда MCP `test:e2e:search` не запускает стенд, не устанавливает DLL и сканирует
+только свой temp fixture.

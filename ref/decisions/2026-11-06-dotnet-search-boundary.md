@@ -33,8 +33,9 @@ commands. Installation requires a separate compatible DLL and CLR. Cooperative
 deadlines cannot interrupt blocked filesystem syscalls. Ordinary stable trees
 are supported; path races are not a security sandbox.
 
-Managed filesystem tests and MCP/VM tests validate independent layers. Native
-acceptance of resolver and bridge remains required and is currently pending.
+Managed filesystem tests and MCP/VM tests validate independent layers. Bounded
+native acceptance of resolver and bridge passed on Linux HCM 2025.2.1333 / CLR
+9.0.11. Windows and other HCM versions still require their own acceptance.
 See the [contract](../../plans/dotnet/04-search-design.md) and
 [evidence](../../plans/dotnet/06-search-results.md).
 

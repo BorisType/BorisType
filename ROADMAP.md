@@ -32,13 +32,14 @@ Evidence и границы: [MCP local e2e](plans/mcp-server/04-local-e2e.md).
 - [x] Перенести native probes из MCP, сохранить известное callback-падение и vendor reference boundary
 - [x] Контракт ограниченного поиска: BS URL resolver, физические paths, UTF-8, glob/literal/regex и budgets
 - [x] Поиск имён/содержимого в DLL и MCP adapter; managed/VM tests и отдельный bounded native runner
-- [ ] Native acceptance поиска через HCM: resolver, bridge ABI и filesystem results после установки DLL
+- [x] Ограниченная native acceptance поиска на Linux HCM 2025.2.1333 / CLR 9.0.11: resolver, bridge ABI, names/content/regex и cleanup
+- [ ] Acceptance поиска на Windows/других версиях HCM, permissions и полный path/encoding/limits contract
 
 Структура: [workspace README](packages/dotnet/README.md),
 [дизайн и критерии первого шага](plans/dotnet/01-workspace-design.md).
 CI workflow настроен для двух ОС; это не свидетельство запусков HCM на Windows.
-Поиск реализован без Datex callbacks; локальный HCM остановлен, native acceptance
-остаётся открытым. [Контракт](plans/dotnet/04-search-design.md).
+Поиск реализован без Datex callbacks и прошёл native e2e на одной Linux C-сборке.
+[Контракт](plans/dotnet/04-search-design.md), [evidence](plans/dotnet/06-search-results.md).
 
 ### Граница поддержки и память (2026-11-05)
 

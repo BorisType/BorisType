@@ -38,5 +38,7 @@ manifest версии/API с SHA256 файлов. SDK, CLR, tests, probes и ven
 BS вызывает `UrlToFilePath`, затем передаёт физический путь в DLL без Datex callbacks.
 Поддержаны glob filters, literal или line regex, исключение поддеревьев и явные
 лимиты работы/ответа. Partial results обозначаются limitReason и skipped counters.
-Подробный контракт и установка — в README workspace. Новый поиск пока проверен
-managed и MCP/VM тестами; native acceptance на HCM остаётся отдельным действием.
+Подробный контракт и установка — в README workspace. Помимо managed и MCP/VM
+проверок поиск прошёл native e2e на Linux HCM 2025.2.1333 / CLR 9.0.11 через
+CLI/stdio/SOAP/BS/DLL с проверкой cleanup. Windows и другие версии HCM требуют
+отдельной acceptance.

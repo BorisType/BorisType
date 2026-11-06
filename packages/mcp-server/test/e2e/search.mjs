@@ -35,6 +35,11 @@ test("MCP search → BS path resolver → installed .NET DLL", { timeout: 120_00
   stand.seed("sub/deep.bs", "needle nested");
   stand.seed("vendor/ignored.bs", "needle excluded");
   stand.seed("binary.bin", "a\0b");
+  stand.seed("codes.log", "id=AB-42\r\nid=ab-07");
+  const quotedDirectory = "quote'-$&-${path}-Привет";
+  const quotedQuery = "quote ' \\ ${request} $&";
+  stand.exec("mkdir", "--", `${stand.directory}/${quotedDirectory}`);
+  stand.seed(`${quotedDirectory}/escaped.txt`, quotedQuery);
   stand.exec("ln", "-s", "--", stand.directory, `${stand.directory}/cycle`);
   t.diagnostic(
     JSON.stringify({
@@ -77,5 +82,16 @@ test("MCP search → BS path resolver → installed .NET DLL", { timeout: 120_00
   assert.equal(limited.limitReason, "results");
   const binary = await search({ query: "needle" });
   assert.equal(binary.skipped.binary, 1);
-  t.diagnostic("PASS: name/content/Unicode/newline/link/result-limit/binary checks; cleanup checked separately");
+  const regex = await search({ pattern: "*.log", query: "[a-z]{2}-\\d+", regex: true, ignoreCase: true });
+  assert.deepEqual(regex.matches, [
+    { path: "codes.log", line: 1, column: 4, text: "id=AB-42" },
+    { path: "codes.log", line: 2, column: 4, text: "id=ab-07" },
+  ]);
+  const quotedRoot = stand.url + quotedDirectory + "/";
+  const quoted = await search({ path: quotedRoot, query: quotedQuery });
+  assert.equal(quoted.root, quotedRoot);
+  assert.deepEqual(quoted.matches, [{ path: "escaped.txt", line: 1, column: 1, text: quotedQuery }]);
+  t.diagnostic(
+    "PASS: name/content/Unicode/newline/link/result-limit/binary/regex/quoted-path-and-query checks; cleanup checked separately",
+  );
 });
