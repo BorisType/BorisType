@@ -138,6 +138,11 @@ BS. PlainProbe входит в default build. DatexProbe требует отде
 отвергается. BS adapter преобразует `x-local://` через `UrlToFilePath` перед DLL.
 Core не знает платформенные URL и не выполняет callbacks в Datex.
 
+System.IO не воспроизводит платформенный storage hook: существующий физический
+путь и логический `x-local` URL могут обозначать разные данные на диске и в
+`spxml_blobs`. DLL оперирует физическими байтами; изменение диска не обновляет
+SQL blob. [Native сравнение](../../plans/dotnet/15-url-storage-routing-research.md).
+
 ```csharp
 string json = BorisType.FileSystem.Search.FindJson(
     physicalRoot,

@@ -186,13 +186,21 @@ Default limits: 200 hits, 10000 entries, depth 10, 1 MiB/file, 16 MiB/read,
 
 ### URL-модель
 
-Все пути используют серверную URL-схему `x-local://`. Это относительные URL серверной файловой системы:
+Tools принимают серверные `x-local://` адреса для преобразования в физический путь:
 
 ```
 x-local://wt/web/app.bs          — файл в директории wt/web/
 x-local://wt/web/                 — директория
 x-local://wt/myapp/src/index.bs   — файл проекта
 ```
+
+Результат `UrlToFilePath` используется для прямого System.IO. Это **операции
+с диском**, которые не воспроизводят storage routing `LoadUrlData`/`PutUrlData`.
+Например, на Linux HCM 2025.2.1333 `x-local://wt_data/...` с SQL hook читал
+`spxml_blobs`, пока физический файл того же адреса содержал другие байты.
+Изменение/удаление дискового файла не изменяет blob; readToken/hash покрывают
+только диск. Для логических URL/blob ресурсов нужны отдельные операции.
+[Проверка и границы](../../plans/dotnet/15-url-storage-routing-research.md).
 
 ## Конфигурация
 

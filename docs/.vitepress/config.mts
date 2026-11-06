@@ -45,6 +45,7 @@ export default defineConfig({
             { text: "Тестирование", link: "/guides/testing" },
             { text: "MCP server (прототип)", link: "/guides/mcp-server" },
             { text: ".NET библиотеки", link: "/guides/dotnet" },
+            { text: "Agent skills", link: "/guides/agent-skills" },
           ],
         },
       ],

@@ -8,6 +8,17 @@
 
 ## Текущий спринт (В процессе)
 
+### Agent skills (2026-11-06)
+
+- [x] Каталог `skills/` в текущем репозитории, независимый выбор через `npx skills add`
+- [x] Первый `websoft-hcm`: переносимые правила evidence и справочник URL/ini без зависимости от компилятора/MCP
+- [ ] Развивать тематические справочники по подтверждённым наблюдениям и документации
+- [x] Исследовать SQL storage routing на Linux C-runtime: x-local читает blob, x-app/file — диск; импорт локального файла при URL-чтении и границы физических tools
+- [ ] Установить полный механизм регистрации корней: добавление DESIGN-DB/DATA-DB не разрешило новые hosts в Linux evaluator; Windows и другие runtime требуют своих проверок
+
+[Каталог](skills/README.md), [установка](docs/guides/agent-skills.md),
+[первый измеримый шаг и проверки](plans/skills/01-websoft-hcm.md).
+
 ### Обновление toolchain (2026-11-05)
 
 - [x] Node.js 24.22.2: последние исправления ветки 24 LTS, включая TLS/certificate security fixes 24.22.1

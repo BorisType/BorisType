@@ -1,0 +1,4 @@
+interface:
+  display_name: "WebSoft HCM"
+  short_description: "Пути и конфигурация WebSoft HCM с проверенными источниками"
+  default_prompt: "Используй $websoft-hcm, чтобы проверить применимость URL и настроек путей к моей установке WebSoft HCM."

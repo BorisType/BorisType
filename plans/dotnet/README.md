@@ -16,6 +16,8 @@
 - [Контракт учёта чтений и девяти tools](11-read-aware-files-design.md).
 - [План реализации учёта чтений](12-read-aware-files-plan.md).
 - [Результаты учёта чтений и девяти tools](13-read-aware-files-results.md).
+- [Схемы путей: x-app, x-local, file и ресурсы интерфейса](14-path-schemes-research.md).
+- [URL storage: SQL blobs, физическая ФС и импорт при чтении](15-url-storage-routing-research.md).
 - Предыстория: [инвентаризация HCM](../mcp-server/05-dotnet-search-research.md),
   [собственные DLL и native smoke](../mcp-server/06-dotnet-probe.md),
   [референс wshcmx/net](../mcp-server/07-wshcmx-net-reference.md).

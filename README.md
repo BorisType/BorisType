@@ -21,6 +21,10 @@ npm install -D @boristype/bt-cli @boristype/types
 npx btc init
 ```
 
+Для агентов есть независимо устанавливаемый [каталог skills](skills/README.md):
+первый `websoft-hcm` содержит знания о платформе, путях и конфигурации.
+[Установка через npx skills add](docs/guides/agent-skills.md).
+
 ---
 
 ## Команды

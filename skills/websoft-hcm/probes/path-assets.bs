@@ -1,0 +1,12 @@
+var paths = ["x-sys-image://std-icon/info.ico", "x-sys-image://std-icon/error.ico", "x-app://app_ui/theme/pict/drop.svg"];
+var rows = [];
+var i;
+var row;
+var value;
+for (i = 0; i < ArrayCount(paths); i++) {
+ row = {input: paths[i]};
+ try { value = UrlToFilePath(paths[i]); row.UrlToFilePath = {kind: DataType(value), value: value}; } catch (e) { row.UrlToFilePath = {error: String(e)}; }
+ try { value = UrlToOptFilePath(paths[i]); row.UrlToOptFilePath = {kind: DataType(value), value: value}; } catch (e) { row.UrlToOptFilePath = {error: String(e)}; }
+ rows.push(row);
+}
+return EncodeJson(rows);

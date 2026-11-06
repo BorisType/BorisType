@@ -48,6 +48,14 @@ List возвращает immediate entries ordinal, отмечает links бе
 переполнение 10000 entries — ошибка. IO paths и ancestors с links/junctions
 отвергаются. VFS и special files не аттестованы.
 
+Tools работают с **физической ФС**, а не со всем содержимым платформенного URL.
+На проверенном Linux HCM `LoadUrlData(x-local://wt_data/...)` с SQL hook читал
+blob из `spxml_blobs`, тогда как чтение физического пути видело другие байты
+на диске. Изменение или удаление дисковой копии не обновляет этот blob.
+ReadToken/hash относятся к дисковому файлу. Операции с логическими URL и SQL
+resources требуют отдельного контракта; добавление поддержки схем его не заменяет.
+[Native исследование](https://github.com/BorisType/BorisType/blob/main/plans/dotnet/15-url-storage-routing-research.md).
+
 Create-directory создаёт missing parents и допускает existing directory;
 создание цепочки не транзакционно. Get-info читает metadata, включая binary/large
 files, без содержимого. Move использует native no-replace rename на Linux/Windows:
