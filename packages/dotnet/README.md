@@ -4,9 +4,9 @@
 `packages/dotnet` — общий workspace, а каждый проект в `src/` имеет собственные
 DLL, версию и зависимости. Первая библиотека — `BorisType.FileSystem`.
 
-Текущий этап предоставляет metadata API, поиск имён и UTF-8 содержимого, unit tests
-и installation ZIP. Новый MCP tool `wshcm_search_files` использует эту DLL через
-BS adapter; четыре прежних инструмента сохраняют свои реализации.
+Библиотека предоставляет metadata API, поиск имён и UTF-8 содержимого,
+read/write/list/delete и точечный edit. Все шесть MCP tools используют DLL через
+BS URL resolver. Есть managed tests и installation ZIP.
 
 ## Требования и команды
 
@@ -73,14 +73,14 @@ packages/dotnet/
 ```json
 {
   "id": "BorisType.FileSystem",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "apiVersion": 1,
-  "capabilities": ["search"]
+  "capabilities": ["search", "files", "edit"]
 }
 ```
 
 Version берётся из assembly metadata, API version задаётся свойством
-`BorisTypeApiVersion`. Capability `search` отражает наличие поискового API.
+`BorisTypeApiVersion`. Capabilities `search`, `files` и `edit` отражают доступные API.
 Метод позволяет потребителю идентифицировать DLL перед использованием её функций.
 
 После отдельной установки DLL в каталог, доступный `DOTNETLIBS-PATH`, форма BS вызова:
@@ -97,7 +97,7 @@ Core не ссылается на Datex и не вызывает обратно 
 ## Installation ZIP
 
 `pnpm pack:dotnet` создаёт
-`dist/BorisType.FileSystem-0.1.0-alpha.2.zip` относительно этого workspace.
+`dist/BorisType.FileSystem-0.1.0-alpha.3.zip` относительно этого workspace.
 Для другого output: `node packages/dotnet/tools/pack.mjs --out /absolute/path`.
 На Windows можно передать обычный Windows path как отдельный аргумент.
 
@@ -187,3 +187,42 @@ result limit, regex и quoted path/query. [Evidence и hashes](../../plans/dotne
 Windows и другие версии HCM этим запуском не проверены.
 Команда MCP `test:e2e:search` не запускает стенд, не устанавливает DLL и сканирует
 только свой temp fixture.
+
+## Read/write/list/delete и targeted edit
+
+`BorisType.FileSystem.Files` предоставляет пять unique string ABI методов:
+`ReadJson`, `WriteJson`, `ListJson`, `DeleteJson`, `EditJson`. Каждый принимает
+`(string physicalPath, string requestJson)` и возвращает JSON string с API 1.
+Подробный [контракт](../../plans/dotnet/07-file-tools-design.md) и
+[native evidence](../../plans/dotnet/09-file-tools-results.md).
+
+Все пути абсолютные, parent должен существовать. Leaf/ancestors с symlink или
+junction отвергаются. List перечисляет immediate entries ordinal и отмечает
+links через `isSymbolicLink: true`, не обходит их. File root для List — ошибка,
+Delete никогда не удаляет каталог и возвращает ошибку для отсутствующего файла.
+
+Text IO — strict UTF-8, NUL и invalid encoding отвергаются. Read удаляет один BOM
+и возвращает content, sha256 исходных bytes (включая BOM) и bom. Write создаёт или
+перезаписывает с BOM, сохраняя установленный MCP write contract. Edit сохраняет
+исходный BOM и все не затронутые замещением newlines/whitespace. Text file/result
+ограничен 1 MiB, JSON request/response — 8 MiB, listing — 10000 entries, edits — 100.
+Превышение даёт ошибку, без частичного успешного read/list.
+
+Edit принимает edits oldText/newText, optional dryRun и expectedSha256. Каждое
+непустое oldText должно встретиться ровно один раз в промежуточном тексте;
+перекрывающиеся matches тоже считаются неоднозначностью. Все edits проверяются
+до записи. Empty edits/no-op не переписывает файл. dryRun возвращает content и
+previousSha256 без записи. expectedSha256 — optional проверка исходных bytes.
+Ошибки содержат code/message и 1-based editIndex, если применимо.
+
+Write/edit подготавливают unique temp рядом с target, flush и заменяют файл
+rename. Собственные mutations сериализуются; перед edit commit bytes проверяются
+повторно. Внешние writers могут попасть между проверкой и rename: строгого CAS
+нет. Новые Unix файлы создаются с mode 0600 (с учётом umask).
+Existing Unix rwx сохраняются, owner/ACL и inode/hardlink relationship — нет
+гарантии. Readonly targets отвергаются. VFS, special files, race-proof sandbox
+и hard filesystem cancellation этим API не обещаются.
+
+DLL alpha.3 прошла native e2e через MCP/stdio/SOAP/BS/DotNetCoreHost на Linux HCM
+2025.2.1333 / CLR 9.0.11: прежние file cases, metadata/hash/dryRun/edit/rollback,
+encoding/link checks и search regression. Другие ОС/сборки требуют acceptance.

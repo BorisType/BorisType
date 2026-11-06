@@ -20,7 +20,8 @@
     "test:e2e:search": "node --test --test-concurrency=1 test/e2e/search.mjs",
     "test:pack": "node test/pack-smoke.mjs",
     "prepublishOnly": "pnpm build",
-    "inspector": "mcp-inspector node build/cli.js"
+    "inspector": "mcp-inspector node build/cli.js",
+    "test:e2e:edit": "node --test --test-concurrency=1 test/e2e/edit.mjs"
   },
   "author": "punkhomov",
   "license": "MIT",

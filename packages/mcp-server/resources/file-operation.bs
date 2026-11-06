@@ -1,0 +1,6 @@
+// ${method} comes from the adapter's fixed method union, never from client arguments.
+// ${path} and ${request} are escaped strings. Resolve WebSoft URL semantics in BS.
+var _filePath = UrlToFilePath('${path}');
+var _fileAssembly = tools.dotnet_host.Object.GetAssembly('BorisType.FileSystem.dll');
+var _fileJson = _fileAssembly.CallClassStaticMethod('BorisType.FileSystem.Files', '${method}', [_filePath, '${request}']);
+return EncodeJson(_fileJson);

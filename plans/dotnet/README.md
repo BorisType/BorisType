@@ -9,6 +9,9 @@
 - [Контракт первого поиска](04-search-design.md).
 - [План реализации поиска](05-search-plan.md).
 - [Результаты поиска и границы проверок](06-search-results.md).
+- [Контракт managed file tools и edit](07-file-tools-design.md).
+- [План миграции файловых инструментов](08-file-tools-plan.md).
+- [Результаты миграции и native edit acceptance](09-file-tools-results.md).
 - Предыстория: [инвентаризация HCM](../mcp-server/05-dotnet-search-research.md),
   [собственные DLL и native smoke](../mcp-server/06-dotnet-probe.md),
   [референс wshcmx/net](../mcp-server/07-wshcmx-net-reference.md).
@@ -20,3 +23,7 @@
 BS URL resolver и MCP tool. Managed и protocol проверки выполняются вне HCM;
 отдельный native e2e также прошёл на Linux HCM 2025.2.1333 / CLR 9.0.11.
 Windows и другие версии HCM требуют собственных проверок.
+
+Read/write/list/delete также переведены на DLL alpha.3; добавлен точечный edit
+с preview, unique replacements и optional hash precondition. Все шесть tools
+прошли native acceptance на том же Linux HCM.

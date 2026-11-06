@@ -24,7 +24,8 @@ C# implements restricted globs, strict UTF-8 line matching and explicit work,
 regex and output budgets. MCP validates the versioned JSON response, adds the
 original root URL and enforces the final output byte limit. Symlinks/junctions
 are skipped; partial coverage is represented by limits and skipped counters.
-The four existing tools keep their implementations.
+The initial search step kept the four existing implementations. The subsequent
+[file tools decision](2026-11-06-managed-file-tools.md) migrates them to the same boundary.
 
 ## Consequences
 

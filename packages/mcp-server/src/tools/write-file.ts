@@ -1,35 +1,23 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
+import { fileText, fileUrl, writeResponse } from "./file-contract.js";
+import { callManagedFile, fileTool } from "./managed-files.js";
 
-/**
- * Регистрирует tool `wshcm_write_file` — запись файла на WSHCM сервере.
- *
- * Создаёт или перезаписывает файл по указанному серверному URL (x-local://).
- */
+/** Register bounded create/overwrite with UTF-8 BOM and same-directory replacement. */
 export function registerWriteFileTool(server: McpServer, connection: WshcmConnection): void {
   server.registerTool(
     "wshcm_write_file",
     {
       description:
-        "Write content to a file on the WebSoft HCM server by its x-local:// URL path. Creates the file if it does not exist, overwrites if it does.",
-      inputSchema: z.object({
-        path: z.string().describe("Server file URL (e.g. x-local://wt/web/app.bs)"),
-        content: z.string().describe("File content to write"),
-      }),
+        "Create or overwrite a file via BorisType.FileSystem.dll 0.1.0-alpha.3/API 1. Writes UTF-8 with BOM, up to 1 MiB including BOM. Parent must exist; directories, readonly files and links are rejected. Replaces the file through a temporary sibling.",
+      inputSchema: z.strictObject({ path: fileUrl, content: fileText.describe("Exact text to write; UTF-8 BOM is added") }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
-    async ({ path, content }) => {
-      try {
-        // Передаём контент как аргумент через callMethod, чтобы избежать проблем с экранированием
-        await connection.client.callMethod("tools", "put_url_text_server", [path, content]);
-        return {
-          content: [{ type: "text" as const, text: `File written: ${path}` }],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { content: [{ type: "text" as const, text: message }], isError: true };
-      }
-    },
+    async ({ path, content }) =>
+      fileTool(async () => {
+        await callManagedFile(connection, "WriteJson", path, { content }, writeResponse);
+        return `File written: ${path}`;
+      }),
   );
 }

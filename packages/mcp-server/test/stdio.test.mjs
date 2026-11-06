@@ -16,7 +16,7 @@ test("SDK v2 stdio exchanges legacy initialize/list/call messages with a local f
   await client.connect(transport, { timeout: 5_000 });
   assert.equal(client.getServerVersion().name, "boristype-wshcm");
   const { tools } = await client.listTools();
-  assert.equal(tools.length, 5);
+  assert.equal(tools.length, 6);
   const result = await client.callTool({ name: "wshcm_read_file", arguments: { path: "x-local://wt/fixture.bs" } });
   assert.notEqual(result.isError, true);
   assert.deepEqual(result.content, [{ type: "text", text: "  000123\r\nПривет 👋\n" }]);

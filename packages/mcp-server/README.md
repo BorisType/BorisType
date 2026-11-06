@@ -4,12 +4,13 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Использует [@boristype/ws-client](../ws-client/) для соединения с WSHCM сервером.
 
-Статус: прототип. Требуется Node.js >=24.22.2. Четыре исходных tools проверены через
-настоящий CLI/stdio/SOAP на локальном C-runtime `websoft/hcm:2025.2.1333`.
-Это ограниченная проверка одной сборки; полный encoding/permissions/path contract
-и совместимость с другими runtime требуют отдельной работы.
-Поиск дополнительно прошёл native e2e через CLI/stdio/SOAP/BS/DLL на том же стенде;
-подробности и hashes — в [отчёте](../../plans/dotnet/06-search-results.md).
+Статус: прототип. Требуется Node.js >=24.22.2 и отдельно установленная
+`BorisType.FileSystem.dll` **0.1.0-alpha.3 / API 1** на HCM для всех шести tools.
+Все операции используют BS URL resolver и managed filesystem API, без Datex
+callbacks. Read/write/list/delete, targeted edit и search прошли native e2e на
+Linux C-runtime `websoft/hcm:2025.2.1333` / CLR 9.0.11.
+Это evidence одной сборки; другие ОС/версии и полный permissions/VFS contract
+требуют отдельных проверок. [Отчёт](../../plans/dotnet/09-file-tools-results.md).
 
 Используется стабильная линия MCP TypeScript SDK 2.x: runtime-пакет
 `@modelcontextprotocol/server`; `@modelcontextprotocol/client` нужен только тестам.
@@ -29,31 +30,68 @@ npm install -g @boristype/mcp-server
 
 ## Tools
 
-| Tool                   | Описание                                      | Annotations                         |
-| ---------------------- | --------------------------------------------- | ----------------------------------- |
-| `wshcm_read_file`      | Чтение файла по x-local:// URL                | `readOnlyHint: true`                |
-| `wshcm_write_file`     | Запись файла по x-local:// URL                | `destructiveHint: true, idempotent` |
-| `wshcm_list_directory` | Листинг директории                            | `readOnlyHint: true`                |
-| `wshcm_delete_file`    | Удаление файла                                | `destructiveHint: true`             |
-| `wshcm_search_files`   | Поиск имён и UTF-8 содержимого через .NET DLL | `readOnlyHint: true`                |
+| Tool                   | Описание                                             | Annotations                         |
+| ---------------------- | ---------------------------------------------------- | ----------------------------------- |
+| `wshcm_read_file`      | Чтение файла по x-local:// URL                       | `readOnlyHint: true`                |
+| `wshcm_write_file`     | Запись файла по x-local:// URL                       | `destructiveHint: true, idempotent` |
+| `wshcm_list_directory` | Листинг директории                                   | `readOnlyHint: true`                |
+| `wshcm_delete_file`    | Удаление файла                                       | `destructiveHint: true`             |
+| `wshcm_edit_file`      | Точные последовательные замены, preview и hash guard | `destructiveHint: true`             |
+| `wshcm_search_files`   | Поиск имён и UTF-8 содержимого через .NET DLL        | `readOnlyHint: true`                |
 
-Деструктивные операции (`write_file`, `delete_file`) помечены `destructiveHint: true`.
+Деструктивные операции (`write_file`, `delete_file`, `edit_file`) помечены `destructiveHint: true`.
 Это подсказка MCP-клиенту; необходимость и способ пользовательского подтверждения
 определяет клиент. Сервер не реализует отдельный механизм подтверждения.
 
-Шесть заготовок (move/edit/multiple-read/create-directory/tree/get-info)
+Пять заготовок (move/multiple-read/create-directory/tree/get-info)
 сохранены в исходниках для дальнейшей работы, но не регистрируются как tools.
 
-Текстовые файлы читаются как UTF-8 с BOM или без него; один начальный BOM
-не включается в результат. Запись через `tools.put_url_text_server` на проверенной
-C-сборке создаёт UTF-8 BOM, включая запись пустой строки. Это текстовые операции,
-а не API копирования произвольных байтов. Пробелы, табуляция, CR/LF/CRLF и Unicode
-проверены с независимым сравнением файлов внутри контейнера.
+Текстовые файлы читаются как strict UTF-8, с удалением одного начального BOM.
+NUL, invalid UTF-8 и файлы больше 1 MiB дают ошибку. Write создаёт UTF-8 с BOM,
+включая пустой файл; edit сохраняет исходный BOM. CR/LF/CRLF и whitespace
+сохраняются буквально. Parent должен существовать, symlink/junction paths
+отвергаются. List возвращает immediate entries ordinal, links отмечаются
+`isSymbolicLink: true`; больше 10000 entries — ошибка. Это tightened contract
+после миграции с платформенных BS функций, без fallback на них.
+
+Установка DLL — в [.NET README](../dotnet/README.md#установка-для-mcp). CLI/npm
+не устанавливают её автоматически. JSON request/response ограничены 8 MiB.
+
+### Точечное редактирование
+
+`wshcm_edit_file` принимает до 100 последовательных exact replacements:
+
+```json
+{
+  "path": "x-local://wt/web/app.bs",
+  "edits": [{ "oldText": "var count = 1;", "newText": "var count = 2;" }],
+  "dryRun": true
+}
+```
+
+Каждый oldText непустой и должен встретиться ровно один раз в промежуточном
+тексте. Нет fuzzy/regex matching; overlapping occurrences тоже неоднозначны.
+Если любой edit не проходит, файл не изменяется. Пустые edits/no-op не пишут файл.
+Ответ JSON: apiVersion, status applied/dry_run/unchanged, editsCount,
+previousSha256, sha256 и content только для dryRun.
+
+Для защиты от устаревшего содержимого прочитать `wshcm_read_file` с
+`includeMetadata: true`: ответ JSON содержит content, sha256 исходных bytes
+(включая BOM) и bom. Передать sha256 как expectedSha256 в edit. Альтернатива —
+previousSha256 из dryRun. Несовпадение даёт Conflict. Без includeMetadata read
+по-прежнему возвращает raw text. Edit не является идемпотентным запросом.
+
+Write/edit используют temp в том же каталоге и rename после валидации; edit
+повторно проверяет bytes перед commit. Внешняя запись между проверкой и rename
+остаётся возможной — это не строгий CAS. Новые Unix файлы получают mode 0600 (с учётом umask).
+Existing Unix rwx сохраняются; owner/ACL и
+inode/hardlinks могут измениться. Readonly targets отвергаются. Ошибка доставки
+ответа после commit не откатывает запись. Подробный [контракт](../../plans/dotnet/07-file-tools-design.md).
 
 ### Поиск
 
-`wshcm_search_files` требует отдельно установленной `BorisType.FileSystem.dll`
-версии `0.1.0-alpha.2` или совместимой с API 1. Installation ZIP собирается
+`wshcm_search_files` использует ту же отдельно установленную `BorisType.FileSystem.dll`
+версии `0.1.0-alpha.3` / API 1. Installation ZIP собирается
 командой `pnpm pack:dotnet`; установка и версия CLR описаны в
 [.NET README](../dotnet/README.md#установка-для-mcp). npm package не содержит DLL.
 BS разрешает `x-local://` через `UrlToFilePath`, C# получает абсолютный физический
@@ -207,7 +245,8 @@ pnpm --filter @boristype/mcp-server test:e2e
 Для другого локального стенда передать его credentials через environment.
 E2E использует отдельные `WSHCM_E2E_*` переменные, определяет текущий IP контейнера,
 подключается к порту 80 и отключает Node environment proxy только в дочернем CLI.
-Пути установки ожидаются под `/WebsoftServer/wt`. На Docker Desktop прямой IP
+Для всех file e2e требуется установленная alpha.3 DLL в
+`/WebsoftServer/dotnetcore/shared/`. Пути fixtures ожидаются под `/WebsoftServer/wt`. На Docker Desktop прямой IP
 контейнера может быть недоступен; такой маршрут этим запуском не проверялся.
 
 Тесты создают отдельный `x-local://wt/mcp-e2e-<UUID>/`, сравнивают реальные байты
@@ -236,6 +275,18 @@ exclusions, links, binary, result limit, regex и quoted path/query через �
 CLI/stdio/SOAP/DLL, затем проверяет cleanup. Не запускает стенд и не устанавливает
 DLL. Native test прошёл 2026-11-06 на Linux HCM 2025.2.1333 / CLR 9.0.11;
 Windows, другие версии и полный path/permissions contract требуют своих проверок.
+
+Targeted edit проверяется отдельно на том же запущенном стенде:
+
+```bash
+WSHCM_E2E_CONTAINER=boristype-c-runtime-net9-wt-1 \
+WSHCM_E2E_USERNAME=user1 WSHCM_E2E_PASSWORD=user1 \
+pnpm --filter @boristype/mcp-server test:e2e:edit
+```
+
+Проверены BOM/no-BOM, metadata SHA256, preview/apply, stale hash, ambiguous и
+missing second edit без частичной записи, invalid UTF-8/NUL, link policy и cleanup.
+Ни одна из трёх native команд не запускает стенд и не устанавливает DLL.
 
 ### Что остаётся проверить
 

@@ -9,6 +9,7 @@ import {
   registerListDirectoryTool,
   registerDeleteFileTool,
   registerSearchFilesTool,
+  registerEditFileTool,
 } from "./tools/index.js";
 
 /**
@@ -30,6 +31,7 @@ export function createServer(connection: WshcmConnection): McpServer {
   registerListDirectoryTool(server, connection);
   registerDeleteFileTool(server, connection);
   registerSearchFilesTool(server, connection);
+  registerEditFileTool(server, connection);
 
   return server;
 }

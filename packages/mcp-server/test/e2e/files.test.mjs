@@ -6,6 +6,7 @@ import { localStand } from "./stand.mjs";
 
 test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }, async (t) => {
   const stand = localStand();
+  stand.exec("test", "-f", "/WebsoftServer/dotnetcore/shared/BorisType.FileSystem.dll");
   const baseline = new Set(stand.evaluators());
   const { client, transport } = stand.createClient();
   let ownedEvaluator;
@@ -42,14 +43,25 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
   });
 
   const hashes = Object.fromEntries(
-    ["read-file.bs", "list-directory.bs", "delete-file.bs"].map((name) => [
+    ["file-operation.bs"].map((name) => [
       name,
       createHash("sha256")
         .update(readFileSync(new URL(`../../resources/${name}`, import.meta.url)))
         .digest("hex"),
     ]),
   );
-  t.diagnostic(JSON.stringify({ image: stand.image, imageId: stand.imageId, carrier: "CLI/stdio/SOAP/C-runtime", hashes }));
+  t.diagnostic(
+    JSON.stringify({
+      image: stand.image,
+      imageId: stand.imageId,
+      carrier: "CLI/stdio/SOAP/C-runtime/DotNetCoreHost",
+      hashes,
+      installedDllSha256: stand
+        .exec("sha256sum", "/WebsoftServer/dotnetcore/shared/BorisType.FileSystem.dll")
+        .toString("utf8")
+        .split(/\s/)[0],
+    }),
+  );
   try {
     await client.connect(transport, { timeout: 35_000 });
   } finally {
@@ -85,6 +97,7 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
     const { tools } = await client.listTools({}, { timeout: 5_000 });
     assert.deepEqual(tools.map(({ name }) => name).sort(), [
       "wshcm_delete_file",
+      "wshcm_edit_file",
       "wshcm_list_directory",
       "wshcm_read_file",
       "wshcm_search_files",
@@ -116,7 +129,7 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
       const path = stand.url + `written-${name}`;
       await text("wshcm_write_file", { path, content: "stale longer content to be truncated" });
       await text("wshcm_write_file", { path, content });
-      // Native PutUrlText writes UTF-8 BOM; assert the exact bytes, including the BOM.
+      // The managed replacement preserves the established write tool UTF-8 BOM contract.
       assert.deepEqual(stand.readBytes(`written-${name}`), Buffer.from(`\uFEFF${content}`, "utf8"));
       assert.equal(await text("wshcm_read_file", { path }), content);
     });

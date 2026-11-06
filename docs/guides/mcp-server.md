@@ -5,16 +5,17 @@
 Сервер использует MCP TypeScript SDK 2.x (`@modelcontextprotocol/server`);
 клиентский пакет подключён только для локальных тестов. Схемы — Zod 4 objects.
 
-В прототипе объявлены пять tools: `wshcm_read_file`, `wshcm_write_file`,
-`wshcm_list_directory`, `wshcm_delete_file`, `wshcm_search_files`. Последний требует
-отдельно установленной BorisType.FileSystem DLL. Остальные заготовки не публикуются
+В прототипе объявлены шесть tools: `wshcm_read_file`, `wshcm_write_file`,
+`wshcm_list_directory`, `wshcm_delete_file`, `wshcm_search_files`, `wshcm_edit_file`.
+Все требуют отдельно установленной BorisType.FileSystem DLL 0.1.0-alpha.3 / API 1. Остальные заготовки не публикуются
 в `tools/list`. Подключение, CLI/env и конфигурация клиента описаны в
 [package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
 
 Read/list возвращают tool error при неожиданном типе ответа вместо пустого
-файла или каталога. Чтение явно декодирует UTF-8 и убирает один начальный BOM.
-На проверенной C-сборке запись создаёт UTF-8 BOM даже у пустого файла.
-Это API текстовых файлов; бинарные данные и legacy encodings не аттестованы.
+файла или каталога. Чтение в DLL строго декодирует UTF-8 и убирает один начальный BOM.
+Запись создаёт UTF-8 BOM даже у пустого файла; edit сохраняет исходный BOM.
+Это API текстовых файлов: NUL, invalid UTF-8 и файлы больше 1 MiB отвергаются;
+legacy encodings не угадываются.
 
 SOAP requests экранируют пробелы/табуляцию/CR/LF numeric references, чтобы C parser
 не удалял завершающие пробелы. Чтение использует JSON carrier для защиты CRLF
@@ -42,3 +43,12 @@ relative paths, line/column/text для содержимого, stats, skipped �
 HCM 2025.2.1333 / CLR 9.0.11 через CLI/stdio/SOAP/BS/DLL, включая regex,
 quoted path/query и cleanup. Совместимость с другими ОС/версиями остаётся
 отдельной проверкой; managed/adapter tests её не доказывают.
+
+После миграции read/write/list/delete на .NET их прежние native e2e также проходят:
+28/28 checks, с независимым сравнением байтов и evaluator cleanup. Edit проверен
+отдельной командой `test:e2e:edit`. Он применяет до 100 exact oldText/newText пар
+в памяти, требуя одно совпадение на каждый edit, затем заменяет файл. dryRun
+возвращает preview без записи. Read includeMetadata=true возвращает исходный
+SHA256 (BOM included); edit expectedSha256 отвергает устаревший hash.
+Ошибка любого patch оставляет файл без частичных изменений. External write race
+после последней проверки и ограничения owner/ACL/hardlinks описаны в package README.

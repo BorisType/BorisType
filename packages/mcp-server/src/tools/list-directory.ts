@@ -1,36 +1,23 @@
-import { readFileSync } from "node:fs";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
-import { buildScript } from "../load.js";
+import { fileUrl, listResponse } from "./file-contract.js";
+import { callManagedFile, fileTool } from "./managed-files.js";
 
-const scriptTemplate = readFileSync(new URL("../../resources/list-directory.bs", import.meta.url), "utf-8");
-
-/**
- * Регистрирует tool `wshcm_list_directory` — листинг директории на WSHCM сервере.
- *
- * Возвращает список файлов и папок по указанному серверному URL (x-local://).
- */
+/** Register immediate directory listing; links are marked as data and never traversed. */
 export function registerListDirectoryTool(server: McpServer, connection: WshcmConnection): void {
   server.registerTool(
     "wshcm_list_directory",
     {
-      description: "List files and directories at the given x-local:// URL path on the WebSoft HCM server",
-      inputSchema: z.object({ path: z.string().describe("Server directory URL (e.g. x-local://wt/web/)") }),
+      description:
+        "List immediate entries in ordinal order via BorisType.FileSystem.dll 0.1.0-alpha.3/API 1. Returns a JSON array of name/isDirectory and isSymbolicLink=true for links. At most 10000 entries; overflow is an error. Root links and file roots are rejected.",
+      inputSchema: z.strictObject({ path: fileUrl }),
       annotations: { readOnlyHint: true, destructiveHint: false },
     },
-    async ({ path }) => {
-      try {
-        const script = buildScript(scriptTemplate, { path });
-        const result = await connection.evaluator.eval(script);
-        if (typeof result !== "string") {
-          throw new Error("Expected a string directory result from WSHCM");
-        }
-        return { content: [{ type: "text" as const, text: result }] };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { content: [{ type: "text" as const, text: message }], isError: true };
-      }
-    },
+    async ({ path }) =>
+      fileTool(async () => {
+        const data = await callManagedFile(connection, "ListJson", path, {}, listResponse);
+        return JSON.stringify(data.entries);
+      }),
   );
 }
