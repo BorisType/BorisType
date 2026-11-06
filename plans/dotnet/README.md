@@ -6,6 +6,8 @@
 - [Дизайн первого шага](01-workspace-design.md).
 - [План реализации](02-workspace-plan.md).
 - [Исследование преобразования x-local URL](03-path-resolution-research.md).
+- [Контракт первого поиска](04-search-design.md).
+- [План реализации поиска](05-search-plan.md).
 - Предыстория: [инвентаризация HCM](../mcp-server/05-dotnet-search-research.md),
   [собственные DLL и native smoke](../mcp-server/06-dotnet-probe.md),
   [референс wshcmx/net](../mcp-server/07-wshcmx-net-reference.md).
