@@ -13,7 +13,7 @@ internal static class FileIo
     internal static readonly object MutationLock = new();
     private static readonly UTF8Encoding Utf8 = new(false, true);
 
-    internal static string PathFor(string path, bool directory = false, bool allowMissing = false)
+    internal static string PathFor(string path, bool? directory = false, bool allowMissing = false)
     {
         if (string.IsNullOrEmpty(path) || !Path.IsPathFullyQualified(path))
             throw new FileProblem("InvalidPath", "Expected a fully qualified physical path.");
@@ -30,8 +30,8 @@ internal static class FileIo
         catch (FileNotFoundException) when (allowMissing) { return full; }
         RejectLink(attributes);
         bool isDirectory = (attributes & FileAttributes.Directory) != 0;
-        if (directory != isDirectory)
-            throw new FileProblem(directory ? "NotADirectory" : "NotAFile", directory ? "Expected a directory." : "Expected a file.");
+        if (directory.HasValue && directory.Value != isDirectory)
+            throw new FileProblem(directory.Value ? "NotADirectory" : "NotAFile", directory.Value ? "Expected a directory." : "Expected a file.");
         return full;
     }
 
@@ -79,7 +79,7 @@ internal static class FileIo
             throw new FileProblem("AccessDenied", "Readonly file cannot be modified.");
     }
 
-    internal static void Replace(string path, byte[] bytes, Action? beforeCommit = null)
+    internal static void Replace(string path, byte[] bytes, Action? beforeCommit = null, bool overwrite = true)
     {
         Writable(path);
         UnixFileMode? mode = !OperatingSystem.IsWindows() && File.Exists(path) ? File.GetUnixFileMode(path) & (UnixFileMode)0x1ff : null;
@@ -98,7 +98,9 @@ internal static class FileIo
             PathFor(path, allowMissing: true);
             Writable(path);
             beforeCommit?.Invoke();
-            File.Move(temporary, path, overwrite: true);
+            try { File.Move(temporary, path, overwrite); }
+            catch (IOException) when (!overwrite && (File.Exists(path) || Directory.Exists(path)))
+            { throw new FileProblem("AlreadyExists", "Create does not overwrite an existing destination."); }
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }

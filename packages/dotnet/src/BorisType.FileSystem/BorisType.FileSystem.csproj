@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>BorisType.FileSystem</AssemblyName>
-    <Version>0.1.0-alpha.3</Version>
-    <BorisTypeApiVersion>1</BorisTypeApiVersion>
+    <Version>0.1.0-alpha.4</Version>
+    <BorisTypeApiVersion>2</BorisTypeApiVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>

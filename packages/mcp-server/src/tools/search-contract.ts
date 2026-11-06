@@ -61,7 +61,7 @@ const hit = z
 
 /** Reject incomplete or incompatible DLL payloads instead of reporting successful empty searches. */
 export const searchResponse = z.strictObject({
-  apiVersion: z.literal(1),
+  apiVersion: z.literal(2),
   matches: z.array(hit).max(1000),
   limitReason: z.enum(["results", "entries", "bytes", "time", "regex", "output"]).nullable(),
   stats: z.strictObject({ visitedEntries: count.max(100000), filesRead: count.max(100000), readBytes: count.max(67108864) }),

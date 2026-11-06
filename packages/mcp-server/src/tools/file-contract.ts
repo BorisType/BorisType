@@ -19,16 +19,48 @@ export const fileText = z
 /** Lowercase original-byte hash returned by the managed implementation. */
 export const fileHash = z.string().regex(/^[0-9a-f]{64}$/);
 /** Successful ReadJson response; the content has already had one BOM removed. */
-export const readResponse = z.strictObject({ apiVersion: z.literal(1), content: fileText, sha256: fileHash, bom: z.boolean() });
+export const readResponse = z
+  .strictObject({
+    apiVersion: z.literal(2),
+    content: fileText,
+    sha256: fileHash,
+    bom: z.boolean(),
+    startLine: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_FILE_BYTES + 1),
+    endLine: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_FILE_BYTES + 1),
+    totalLines: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_FILE_BYTES + 1),
+    startOffset: z.number().int().min(0).max(MAX_FILE_BYTES),
+    endOffset: z.number().int().min(0).max(MAX_FILE_BYTES),
+    totalLength: z.number().int().min(0).max(MAX_FILE_BYTES),
+  })
+  .refine(
+    (data) =>
+      data.startLine <= data.endLine &&
+      data.endLine <= data.totalLines &&
+      data.startOffset <= data.endOffset &&
+      data.endOffset <= data.totalLength &&
+      data.content.length === data.endOffset - data.startOffset,
+  );
 /** Successful WriteJson response. */
 export const writeResponse = z.strictObject({
-  apiVersion: z.literal(1),
+  apiVersion: z.literal(2),
   bytesWritten: z.number().int().min(3).max(MAX_FILE_BYTES),
   sha256: fileHash,
 });
 /** Immediate directory entries; links are data and are never traversed. */
 export const listResponse = z.strictObject({
-  apiVersion: z.literal(1),
+  apiVersion: z.literal(2),
   entries: z
     .array(
       z.strictObject({
@@ -43,11 +75,11 @@ export const listResponse = z.strictObject({
     .max(10000),
 });
 /** Successful DeleteJson response. */
-export const deleteResponse = z.strictObject({ apiVersion: z.literal(1), deleted: z.literal(true) });
+export const deleteResponse = z.strictObject({ apiVersion: z.literal(2), deleted: z.literal(true) });
 /** Targeted edits return hashes for preview/commit workflows. */
 export const editResponse = z
   .strictObject({
-    apiVersion: z.literal(1),
+    apiVersion: z.literal(2),
     status: z.enum(["applied", "dry_run", "unchanged"]),
     editsCount: z.number().int().min(0).max(100),
     previousSha256: fileHash,
@@ -57,7 +89,7 @@ export const editResponse = z
   .refine((data) => (data.status === "dry_run") === (data.content !== undefined), { message: "Only dry_run responses contain content" });
 /** Operational errors must be explicit, versioned and structurally complete. */
 export const fileError = z.strictObject({
-  apiVersion: z.literal(1),
+  apiVersion: z.literal(2),
   error: z.strictObject({
     code: z.string().min(1).max(64),
     message: z.string().max(2000),

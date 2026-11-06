@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace BorisType.FileSystem.Tests;
@@ -15,9 +16,21 @@ public class FilesTests
         MethodInfo? entry = type.GetMethod(method, BindingFlags.Public | BindingFlags.Static);
         Assert.NotNull(entry);
         Assert.Equal(typeof(string), entry.ReturnType);
-        string json = Assert.IsType<string>(entry.Invoke(null, [path, JsonSerializer.Serialize(options)]));
+        // These legacy IO cases use a full read snapshot; missing preconditions
+        // and partial coverage are exercised independently by ReadAwareTests.
+        var request = JsonSerializer.SerializeToNode(options)!.AsObject();
+        if (method is "EditJson" or "WriteJson")
+        {
+            byte[] bytes = File.Exists(path) ? File.ReadAllBytes(path) : [];
+            if (method == "WriteJson") request["mode"] = File.Exists(path) ? "overwrite" : "create";
+            if ((method == "EditJson" || File.Exists(path)) && !request.ContainsKey("expectedSha256"))
+                request["expectedSha256"] = Convert.ToHexStringLower(SHA256.HashData(bytes));
+            if (method == "EditJson" && !request.ContainsKey("allowedRanges"))
+                request["allowedRanges"] = JsonSerializer.SerializeToNode(new[] { new { start = 0, end = File.Exists(path) ? File.ReadAllText(path).Length : 0 } });
+        }
+        string json = Assert.IsType<string>(entry.Invoke(null, [path, request.ToJsonString()]));
         var result = JsonDocument.Parse(json);
-        Assert.Equal(1, result.RootElement.GetProperty("apiVersion").GetInt32());
+        Assert.Equal(2, result.RootElement.GetProperty("apiVersion").GetInt32());
         return result;
     }
 

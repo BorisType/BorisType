@@ -1,54 +1,73 @@
 # MCP server для WebSoft HCM
 
-`@boristype/mcp-server` — отдельный Node.js пакет с stdio transport. Его сборка
-не использует TS → BorisScript compiler. Требуется Node.js >=24.22.2.
-Сервер использует MCP TypeScript SDK 2.x (`@modelcontextprotocol/server`);
-клиентский пакет подключён только для локальных тестов. Схемы — Zod 4 objects.
+`@boristype/mcp-server` — Node.js >=24.22.2, stdio transport, MCP SDK 2.x.
+Его сборка не использует TS → BorisScript compiler. Все девять tools требуют
+отдельно установленной BorisType.FileSystem **0.1.0-alpha.4 / API 2**.
+MCP и DLL обновляются вместе: read/edit/write изменили контракт относительно API 1.
 
-В прототипе объявлены шесть tools: `wshcm_read_file`, `wshcm_write_file`,
-`wshcm_list_directory`, `wshcm_delete_file`, `wshcm_search_files`, `wshcm_edit_file`.
-Все требуют отдельно установленной BorisType.FileSystem DLL 0.1.0-alpha.3 / API 1. Остальные заготовки не публикуются
-в `tools/list`. Подключение, CLI/env и конфигурация клиента описаны в
+Доступны read_file, write_file, edit_file, list_directory, search_files,
+delete_file, create_directory, move_file и get_file_info с префиксом `wshcm_`.
+Конфигурация CLI/env и клиента, installation и точные options — в
 [package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
 
-Read/list возвращают tool error при неожиданном типе ответа вместо пустого
-файла или каталога. Чтение в DLL строго декодирует UTF-8 и убирает один начальный BOM.
-Запись создаёт UTF-8 BOM даже у пустого файла; edit сохраняет исходный BOM.
-Это API текстовых файлов: NUL, invalid UTF-8 и файлы больше 1 MiB отвергаются;
-legacy encodings не угадываются.
+## Чтение перед изменением
 
-SOAP requests экранируют пробелы/табуляцию/CR/LF numeric references, чтобы C parser
-не удалял завершающие пробелы. Чтение использует JSON carrier для защиты CRLF
-от native SOAP serializer. Общий SOAP parser различает строки и числа по
-`VALUE-TYPE`, но не восстанавливает информацию, уже потерянную серверным serializer.
+Read всегда возвращает JSON: content, original-byte sha256, bom, координаты
+строк/UTF-16 и readToken. Optional startLine/endLine — 1-based inclusive,
+с сохранением CRLF/CR/LF. Даже частичное чтение требует UTF-8 файл <=1 MiB.
+Каждое чтение отменяет предыдущий token этого URL; для накопления диапазонов
+одной версии передать предыдущий readToken в следующий read request.
+Без него подтверждается только новый диапазон.
 
-`destructiveHint` — аннотация для клиента, не гарантия запроса подтверждения.
-Инициализация соединения создаёт временный evaluator на HCM-сервере, в том числе
-перед чтением. EOF/SIGINT/SIGTERM выполняют общий cleanup, его ошибка даёт ненулевой
-exit code. Частичная инициализация и shutdown во время активного SOAP требуют работы.
+Edit требует token из этого экземпляра MCP и допускает oldText только целиком
+в прочитанном покрытии. Каждая exact replacement должна быть unique, включая
+overlapping matches. Последовательные замены проверяются в памяти; ошибка
+любого patch не сохраняет предыдущие patches. При stale hash — Conflict,
+при отсутствующем token/покрытии — ReadRequired. После попытки изменения token
+расходуется; для следующего edit требуется новое чтение. DryRun не пишет и не
+расходует token, но preview не предоставляет дополнительных разрешений.
 
-Помимо unit/protocol/pack проверок есть отдельная команда `test:e2e` для уже
-установленного локального Linux Docker-стенда. Проверены четыре tools через
-настоящий CLI/stdio/SOAP на `websoft/hcm:2025.2.1333`, включая Unicode, пробелы,
-CRLF, перезапись, удаление и cleanup. Байты файлов проверяются независимо через
-Docker. Это evidence одной C-сборки; оно не переносится на JS runtime или другие
-версии HCM. Команда, требования и границы описаны в package README.
+Write по умолчанию create-only и отказывает для existing path. Overwrite требует
+mode=overwrite и token с полным покрытием. Get-info/search не заменяют чтение.
+Delete/move — отдельные явные операции без требования читать весь binary file.
 
-`wshcm_search_files` ищет имена по glob, а при query — UTF-8 содержимое построчно.
-URL разрешается в BS, обход и сопоставление выполняет C#. Ответ содержит root URL,
-relative paths, line/column/text для содержимого, stats, skipped и limitReason.
-Полный проход требует нулевых skipped и null limitReason; остальные ответы
-явно описывают ограниченный охват.
-Финальный JSON ограничен 256 KiB. Отдельный `test:e2e:search` прошёл на Linux
-HCM 2025.2.1333 / CLR 9.0.11 через CLI/stdio/SOAP/BS/DLL, включая regex,
-quoted path/query и cleanup. Совместимость с другими ОС/версиями остаётся
-отдельной проверкой; managed/adapter tests её не доказывают.
+Состояние ограничено 128 файлами, 256 объединёнными диапазонами на файл и TTL
+30 минут после последнего чтения. URL aliases требуют отдельного token.
+**Разделение чатов не гарантируется**, если клиент переиспользует MCP server.
+Сервер фиксирует выдачу текста клиенту, а не его получение/осмысление моделью.
+Проверка версии и rename не являются атомарным compare-and-replace относительно
+внешних writers: строгое закрытие этого окна отложено в исследование.
 
-После миграции read/write/list/delete на .NET их прежние native e2e также проходят:
-28/28 checks, с независимым сравнением байтов и evaluator cleanup. Edit проверен
-отдельной командой `test:e2e:edit`. Он применяет до 100 exact oldText/newText пар
-в памяти, требуя одно совпадение на каждый edit, затем заменяет файл. dryRun
-возвращает preview без записи. Read includeMetadata=true возвращает исходный
-SHA256 (BOM included); edit expectedSha256 отвергает устаревший hash.
-Ошибка любого patch оставляет файл без частичных изменений. External write race
-после последней проверки и ограничения owner/ACL/hardlinks описаны в package README.
+## Файловые операции и ограничения
+
+BS разрешает x-local URLs через UrlToFilePath, standalone DLL выполняет IO без
+Datex callbacks. Text — strict UTF-8, один начальный BOM убирается при чтении;
+write добавляет BOM, edit сохраняет исходный BOM и unaffected whitespace.
+NUL/invalid encoding/oversized files отвергаются; legacy encodings не угадываются.
+List возвращает immediate entries ordinal, отмечает links без traversal;
+переполнение 10000 entries — ошибка. IO paths и ancestors с links/junctions
+отвергаются. VFS и special files не аттестованы.
+
+Create-directory создаёт missing parents и допускает existing directory;
+создание цепочки не транзакционно. Get-info читает metadata, включая binary/large
+files, без содержимого. Move использует native no-replace rename на Linux/Windows:
+нет overwrite или скрытого copy/delete между файловыми системами.
+
+Search ищет имена по glob, содержимое — построчно literal/.NET regex. Ответ root,
+relative paths, line/column/text, stats/skipped/limitReason описывает охват явно.
+Полный проход требует skipped=0 и limitReason=null; ответ ограничен 256 KiB.
+
+`destructiveHint` — подсказка клиенту, не гарантия запроса подтверждения.
+EOF/SIGINT/SIGTERM выполняют общий evaluator cleanup. Частичная инициализация
+и shutdown во время активного SOAP требуют дальнейшей работы.
+
+## Проверки
+
+Есть managed, MCP protocol/VM, stdio и pack проверки, а также отдельные native
+команды test:e2e, test:e2e:edit, test:e2e:read-aware, test:e2e:search. Native suites
+требуют уже установленного локального stand/DLL и ограничиваются своими fixtures.
+Все четыре серии прошли на Linux HCM 2025.2.1333 / CLR 9.0.11 с alpha.4/API 2:
+28/28 + 1/1 + 1/1 + 1/1, без skips. Байты и cleanup проверены независимо.
+Это evidence одной C-сборки; JS runtime и Windows HCM этим не проверены.
+[Контракт и границы](https://github.com/BorisType/BorisType/blob/main/plans/dotnet/11-read-aware-files-design.md),
+[результаты](https://github.com/BorisType/BorisType/blob/main/plans/dotnet/13-read-aware-files-results.md).

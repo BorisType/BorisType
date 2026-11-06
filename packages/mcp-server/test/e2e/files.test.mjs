@@ -89,16 +89,19 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
     assert.notEqual(result.isError, true, `${name}: ${JSON.stringify(result.content)}`);
     assert.equal(result.content.length, 1);
     assert.equal(result.content[0].type, "text");
-    return result.content[0].text;
+    return name === "wshcm_read_file" ? JSON.parse(result.content[0].text).content : result.content[0].text;
   }
 
   await check("real CLI initializes and lists only implemented tools", async () => {
     assert.equal(client.getServerVersion().name, "boristype-wshcm");
     const { tools } = await client.listTools({}, { timeout: 5_000 });
     assert.deepEqual(tools.map(({ name }) => name).sort(), [
+      "wshcm_create_directory",
       "wshcm_delete_file",
       "wshcm_edit_file",
+      "wshcm_get_file_info",
       "wshcm_list_directory",
+      "wshcm_move_file",
       "wshcm_read_file",
       "wshcm_search_files",
       "wshcm_write_file",
@@ -128,7 +131,8 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
     await check(`write and overwrite match independent UTF-8 bytes: ${name}`, async () => {
       const path = stand.url + `written-${name}`;
       await text("wshcm_write_file", { path, content: "stale longer content to be truncated" });
-      await text("wshcm_write_file", { path, content });
+      const snapshot = JSON.parse((await call("wshcm_read_file", { path })).content[0].text);
+      await text("wshcm_write_file", { path, content, mode: "overwrite", readToken: snapshot.readToken });
       // The managed replacement preserves the established write tool UTF-8 BOM contract.
       assert.deepEqual(stand.readBytes(`written-${name}`), Buffer.from(`\uFEFF${content}`, "utf8"));
       assert.equal(await text("wshcm_read_file", { path }), content);

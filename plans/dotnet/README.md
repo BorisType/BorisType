@@ -12,6 +12,10 @@
 - [Контракт managed file tools и edit](07-file-tools-design.md).
 - [План миграции файловых инструментов](08-file-tools-plan.md).
 - [Результаты миграции и native edit acceptance](09-file-tools-results.md).
+- [Следующие tools, учёт чтений и границы гарантий](10-file-tools-next-steps.md).
+- [Контракт учёта чтений и девяти tools](11-read-aware-files-design.md).
+- [План реализации учёта чтений](12-read-aware-files-plan.md).
+- [Результаты учёта чтений и девяти tools](13-read-aware-files-results.md).
 - Предыстория: [инвентаризация HCM](../mcp-server/05-dotnet-search-research.md),
   [собственные DLL и native smoke](../mcp-server/06-dotnet-probe.md),
   [референс wshcmx/net](../mcp-server/07-wshcmx-net-reference.md).
@@ -27,3 +31,7 @@ Windows и другие версии HCM требуют собственных �
 Read/write/list/delete также переведены на DLL alpha.3; добавлен точечный edit
 с preview, unique replacements и optional hash precondition. Все шесть tools
 прошли native acceptance на том же Linux HCM.
+
+Alpha.4/API 2: девять tools, обязательный read-token для edit/overwrite, line ranges
+и bounded per-server grants. Native Linux acceptance прошла; раздельные чаты и
+строгий cross-process compare-and-replace не гарантируются.

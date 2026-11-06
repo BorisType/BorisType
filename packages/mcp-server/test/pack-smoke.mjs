@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,6 +22,14 @@ try {
   });
   execFileSync("tar", ["-xzf", tarball, "-C", temporary], { timeout: 10_000 });
   const extracted = join(temporary, "package");
+  for (const name of ["create-directory", "move-file", "get-file-info", "read-multiple-files", "directory-tree"]) {
+    assert.equal(existsSync(join(extracted, "resources", name + ".bs")), false, `Unused BS stub shipped: ${name}`);
+  }
+  for (const name of ["read-multiple-files", "directory-tree"]) {
+    for (const suffix of [".js", ".js.map", ".d.ts", ".d.ts.map"]) {
+      assert.equal(existsSync(join(extracted, "build/tools", name + suffix)), false, `Stale emitted stub shipped: ${name}${suffix}`);
+    }
+  }
   for (const filename of readdirSync(join(packageRoot, "resources"))) {
     assert.equal(
       readFileSync(join(extracted, "resources", filename), "utf8"),

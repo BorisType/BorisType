@@ -5,12 +5,12 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 Использует [@boristype/ws-client](../ws-client/) для соединения с WSHCM сервером.
 
 Статус: прототип. Требуется Node.js >=24.22.2 и отдельно установленная
-`BorisType.FileSystem.dll` **0.1.0-alpha.3 / API 1** на HCM для всех шести tools.
+`BorisType.FileSystem.dll` **0.1.0-alpha.4 / API 2** на HCM для всех девяти tools.
 Все операции используют BS URL resolver и managed filesystem API, без Datex
-callbacks. Read/write/list/delete, targeted edit и search прошли native e2e на
-Linux C-runtime `websoft/hcm:2025.2.1333` / CLR 9.0.11.
-Это evidence одной сборки; другие ОС/версии и полный permissions/VFS contract
-требуют отдельных проверок. [Отчёт](../../plans/dotnet/09-file-tools-results.md).
+callbacks. Все девять tools и защита чтений прошли native e2e на Linux
+C-runtime `websoft/hcm:2025.2.1333` / CLR 9.0.11. Это evidence одной сборки;
+другие ОС/версии и полный permissions/VFS contract требуют отдельных проверок.
+[Отчёт](../../plans/dotnet/13-read-aware-files-results.md).
 
 Используется стабильная линия MCP TypeScript SDK 2.x: runtime-пакет
 `@modelcontextprotocol/server`; `@modelcontextprotocol/client` нужен только тестам.
@@ -30,68 +30,121 @@ npm install -g @boristype/mcp-server
 
 ## Tools
 
-| Tool                   | Описание                                             | Annotations                         |
-| ---------------------- | ---------------------------------------------------- | ----------------------------------- |
-| `wshcm_read_file`      | Чтение файла по x-local:// URL                       | `readOnlyHint: true`                |
-| `wshcm_write_file`     | Запись файла по x-local:// URL                       | `destructiveHint: true, idempotent` |
-| `wshcm_list_directory` | Листинг директории                                   | `readOnlyHint: true`                |
-| `wshcm_delete_file`    | Удаление файла                                       | `destructiveHint: true`             |
-| `wshcm_edit_file`      | Точные последовательные замены, preview и hash guard | `destructiveHint: true`             |
-| `wshcm_search_files`   | Поиск имён и UTF-8 содержимого через .NET DLL        | `readOnlyHint: true`                |
+| Tool                     | Назначение                                       |
+| ------------------------ | ------------------------------------------------ |
+| `wshcm_read_file`        | UTF-8 текст или диапазон строк, hash и readToken |
+| `wshcm_write_file`       | Create-only либо перезапись после полного чтения |
+| `wshcm_edit_file`        | Точные замены внутри прочитанных диапазонов      |
+| `wshcm_list_directory`   | Immediate entries, без recursion                 |
+| `wshcm_search_files`     | Поиск по именам и UTF-8 содержимому              |
+| `wshcm_delete_file`      | Удаление отдельного файла                        |
+| `wshcm_create_directory` | Создание каталога и missing parents              |
+| `wshcm_move_file`        | Rename без overwrite и copy/delete fallback      |
+| `wshcm_get_file_info`    | Metadata файла/каталога без чтения содержимого   |
 
-Деструктивные операции (`write_file`, `delete_file`, `edit_file`) помечены `destructiveHint: true`.
-Это подсказка MCP-клиенту; необходимость и способ пользовательского подтверждения
-определяет клиент. Сервер не реализует отдельный механизм подтверждения.
+Read/list/search/info помечены readOnlyHint. Write/edit/delete/move имеют
+`destructiveHint: true`, `idempotentHint: false`; create_directory —
+`destructiveHint: false`, `idempotentHint: true`. Это подсказки MCP-клиенту;
+сервер не реализует отдельное пользовательское подтверждение.
 
-Пять заготовок (move/multiple-read/create-directory/tree/get-info)
-сохранены в исходниках для дальнейшей работы, но не регистрируются как tools.
+Отложенные read-multiple/tree не зарегистрированы; их TS stubs и пять старых BS
+stubs удалены. Два действующих BS resources — URL bridges к DLL — необходимы.
 
-Текстовые файлы читаются как strict UTF-8, с удалением одного начального BOM.
-NUL, invalid UTF-8 и файлы больше 1 MiB дают ошибку. Write создаёт UTF-8 с BOM,
-включая пустой файл; edit сохраняет исходный BOM. CR/LF/CRLF и whitespace
-сохраняются буквально. Parent должен существовать, symlink/junction paths
-отвергаются. List возвращает immediate entries ordinal, links отмечаются
-`isSymbolicLink: true`; больше 10000 entries — ошибка. Это tightened contract
-после миграции с платформенных BS функций, без fallback на них.
+Это несовместимое обновление прототипа: read всегда возвращает JSON,
+includeMetadata удалён; edit требует readToken, write по умолчанию create-only.
+Установить DLL alpha.4/API 2 и обновить MCP вместе. Старые ответы API 1 отвергаются.
+Установка — в [.NET README](../dotnet/README.md#установка-для-mcp); npm не содержит DLL.
 
-Установка DLL — в [.NET README](../dotnet/README.md#установка-для-mcp). CLI/npm
-не устанавливают её автоматически. JSON request/response ограничены 8 MiB.
+### Чтение и разрешённые изменения
+
+`wshcm_read_file` принимает path и optional startLine/endLine, 1-based inclusive:
+
+```json
+{ "path": "x-local://wt/web/app.bs", "startLine": 10, "endLine": 30 }
+```
+
+Ответ JSON содержит apiVersion=2, content, sha256 исходных bytes, bom, readToken,
+startLine/endLine/totalLines, startOffset/endOffset/totalLength. Offsets — UTF-16,
+half-open после удаления одного BOM. CRLF, CR и LF сохраняются; newline входит
+в строку. Пустой файл и завершающая пустая строка считаются строками. End ограничен
+концом файла; start за концом — ошибка. Даже диапазон требует файл <=1 MiB.
+
+Каждое чтение возвращает **новый readToken**, отменяя предыдущий для этого URL.
+Чтобы накопить несколько диапазонов одной версии, передать предыдущий readToken
+в следующий read_file; без него подтверждается только новый диапазон. Если hash
+изменился, старое покрытие не переносится. URL aliases требуют отдельного чтения.
+
+Edit и overwrite разрешаются только по token из этого экземпляра MCP. Состояние
+ограничено 128 файлами, 256 объединёнными диапазонами на файл и 30 минутами после
+последнего чтения. Eviction/expiry требуют нового чтения; edit не продлевает TTL.
+Search, get-info и preview не предоставляют дополнительных разрешений.
+
+**Изоляция чатов агента не гарантируется**, если клиент переиспользует один MCP
+server между разговорами. Выдача текста клиенту не доказывает, что модель его
+получила или осмыслила. Это политика этих tools, не sandbox против прямого SOAP
+или намеренного delete/create.
 
 ### Точечное редактирование
 
-`wshcm_edit_file` принимает до 100 последовательных exact replacements:
+В `wshcm_edit_file` передать readToken из последнего чтения и до 100 замен:
 
 ```json
 {
   "path": "x-local://wt/web/app.bs",
+  "readToken": "token-from-read-file",
   "edits": [{ "oldText": "var count = 1;", "newText": "var count = 2;" }],
   "dryRun": true
 }
 ```
 
-Каждый oldText непустой и должен встретиться ровно один раз в промежуточном
-тексте. Нет fuzzy/regex matching; overlapping occurrences тоже неоднозначны.
-Если любой edit не проходит, файл не изменяется. Пустые edits/no-op не пишут файл.
-Ответ JSON: apiVersion, status applied/dry_run/unchanged, editsCount,
-previousSha256, sha256 и content только для dryRun.
+Каждый непустой oldText должен встретиться ровно один раз в промежуточном тексте,
+полностью внутри прочитанного покрытия. Overlapping matches неоднозначны.
+После каждой замены известные диапазоны сдвигаются, newText считается известным.
+Ошибка любого patch оставляет файл без частичных изменений. Missing/чужой token
+или непрочитанный участок — ReadRequired; устаревшие bytes — Conflict.
 
-Для защиты от устаревшего содержимого прочитать `wshcm_read_file` с
-`includeMetadata: true`: ответ JSON содержит content, sha256 исходных bytes
-(включая BOM) и bom. Передать sha256 как expectedSha256 в edit. Альтернатива —
-previousSha256 из dryRun. Несовпадение даёт Conflict. Без includeMetadata read
-по-прежнему возвращает raw text. Edit не является идемпотентным запросом.
+MCP сам передаёт DLL сохранённый hash и диапазоны. Optional expectedSha256 —
+дополнительное ограничение клиента, не замена token. Ответ JSON: apiVersion,
+status applied/dry_run/unchanged, editsCount, previousSha256, sha256 и content
+только для dryRun. Preview не пишет и не расходует token; полное preview-содержимое
+не расширяет подтверждённое покрытие. Любая допущенная попытка edit без dryRun,
+включая no-op и ошибку, расходует token: для следующей правки перечитать файл.
 
-Write/edit используют temp в том же каталоге и rename после валидации; edit
-повторно проверяет bytes перед commit. Внешняя запись между проверкой и rename
-остаётся возможной — это не строгий CAS. Новые Unix файлы получают mode 0600 (с учётом umask).
-Existing Unix rwx сохраняются; owner/ACL и
-inode/hardlinks могут измениться. Readonly targets отвергаются. Ошибка доставки
-ответа после commit не откатывает запись. Подробный [контракт](../../plans/dotnet/07-file-tools-design.md).
+### Запись, каталоги, перемещение и metadata
+
+Write по умолчанию `mode: "create"`: существующее назначение даёт AlreadyExists.
+`mode: "overwrite"` требует readToken с полным покрытием файла. При этой попытке
+и при delete token URL инвалидируется даже при неизвестном исходе transport.
+Create-only не принимает readToken. Parent должен существовать.
+
+Create-directory создаёт missing parents; existing directory — created=false.
+Файл по этому пути — ошибка. Создание цепочки не транзакционно.
+Get-info возвращает name/isDirectory/modifiedUtc и sizeBytes только для файла;
+поддерживает binary/large files без text read и read-token.
+Move принимает source/destination URLs, требует существующий parent и никогда
+не заменяет назначение. Native Linux renameat2/Windows MoveFileExW не используют
+copy/delete fallback; cross-filesystem move даёт CrossDevice. Другие ОС и
+неподдерживаемые filesystem operations явно отвергаются. Source/destination
+токены инвалидируются. Delete удаляет только файл, никогда каталог; предварительное
+чтение текста для delete/move не требуется.
+
+Текст — strict UTF-8, NUL/invalid encoding отвергаются. Write создаёт UTF-8 с BOM,
+edit сохраняет исходный BOM и unaffected whitespace/newlines. Файл/result <=1 MiB,
+JSON request/response <=8 MiB, listing <=10000 entries. List ordinal и отмечает
+links, не обходит их; file root — ошибка. IO paths/ancestors с symlink/junction
+отвергаются, VFS и special files не аттестованы.
+
+Write/edit используют temp рядом с target, flush и rename; edit/overwrite повторно
+сравнивают исходные bytes перед commit. **Атомарный compare-and-replace относительно
+внешних процессов не гарантируется:** между проверкой и rename остаётся окно.
+Новые Unix файлы имеют mode 0600 с учётом umask; existing rwx сохраняются,
+owner/ACL/inode/hardlinks — без гарантии. Ошибка доставки ответа не откатывает commit.
+Подробный [контракт](../../plans/dotnet/11-read-aware-files-design.md).
 
 ### Поиск
 
 `wshcm_search_files` использует ту же отдельно установленную `BorisType.FileSystem.dll`
-версии `0.1.0-alpha.3` / API 1. Installation ZIP собирается
+версии `0.1.0-alpha.4` / API 2. Installation ZIP собирается
 командой `pnpm pack:dotnet`; установка и версия CLR описаны в
 [.NET README](../dotnet/README.md#установка-для-mcp). npm package не содержит DLL.
 BS разрешает `x-local://` через `UrlToFilePath`, C# получает абсолютный физический
@@ -245,7 +298,7 @@ pnpm --filter @boristype/mcp-server test:e2e
 Для другого локального стенда передать его credentials через environment.
 E2E использует отдельные `WSHCM_E2E_*` переменные, определяет текущий IP контейнера,
 подключается к порту 80 и отключает Node environment proxy только в дочернем CLI.
-Для всех file e2e требуется установленная alpha.3 DLL в
+Для всех file e2e требуется установленная alpha.4/API 2 DLL в
 `/WebsoftServer/dotnetcore/shared/`. Пути fixtures ожидаются под `/WebsoftServer/wt`. На Docker Desktop прямой IP
 контейнера может быть недоступен; такой маршрут этим запуском не проверялся.
 
@@ -260,6 +313,11 @@ E2E использует отдельные `WSHCM_E2E_*` переменные, 
 Обычный `test` и CI не подключаются к HCM. E2E не скачивает, не разворачивает
 и не перенастраивает стенд. Evidence и platform workarounds:
 [local e2e report](../../plans/mcp-server/04-local-e2e.md).
+
+С теми же environment variables отдельно выполнить `test:e2e:edit` и
+`test:e2e:read-aware`: второй проверяет диапазоны/чужой token/stale bytes,
+guarded overwrite и mkdir/info/binary rename. Текущие результаты всех серий —
+в [отчёте alpha.4](../../plans/dotnet/13-read-aware-files-results.md).
 
 Поиск имеет отдельную acceptance-команду, которая дополнительно требует уже
 установленную DLL в `/WebsoftServer/dotnetcore/shared/`:

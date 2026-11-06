@@ -19,7 +19,7 @@ async function connect(t, evaluate) {
 
 function response(overrides = {}) {
   return {
-    apiVersion: 1,
+    apiVersion: 2,
     matches: [{ path: "lib/код.bs", line: 2, column: 1, text: "needle 中文 👋" }],
     limitReason: null,
     stats: { visitedEntries: 2, filesRead: 1, readBytes: 42 },
@@ -113,7 +113,7 @@ for (const wire of [
   "{}",
   JSON.stringify("not json"),
   JSON.stringify("null"),
-  JSON.stringify(JSON.stringify(response({ apiVersion: 2 }))),
+  JSON.stringify(JSON.stringify(response({ apiVersion: 99 }))),
   JSON.stringify(JSON.stringify(response({ matches: [{ path: "../escape" }] }))),
   JSON.stringify(JSON.stringify(response({ matches: [{ path: "a", line: 1 }] }))),
   JSON.stringify(JSON.stringify(response({ stats: {} }))),

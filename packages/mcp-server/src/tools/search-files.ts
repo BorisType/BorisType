@@ -13,7 +13,7 @@ export function registerSearchFilesTool(server: McpServer, connection: WshcmConn
     {
       description:
         "Search file names by glob, or UTF-8 file contents by literal/line regex, below a WebSoft HCM x-local:// directory. " +
-        "Requires BorisType.FileSystem.dll 0.1.0-alpha.2 or newer (API 1). Returns root URL, relative paths, optional line/column/text, " +
+        "Requires BorisType.FileSystem.dll 0.1.0-alpha.4 (API 2). Returns root URL, relative paths, optional line/column/text, " +
         "work/skip counters and limitReason. Inspect skipped and limitReason for incomplete coverage. Does not follow links.",
       inputSchema: searchInput,
       annotations: { readOnlyHint: true, destructiveHint: false },

@@ -10,7 +10,20 @@ const server = createServer({
   },
   evaluator: {
     eval: async () =>
-      JSON.stringify(JSON.stringify({ apiVersion: 1, content: "  000123\r\nПривет 👋\n", sha256: "a".repeat(64), bom: false })),
+      JSON.stringify(
+        JSON.stringify({
+          apiVersion: 2,
+          content: "  000123\r\nПривет 👋\n",
+          sha256: "a".repeat(64),
+          bom: false,
+          startLine: 1,
+          endLine: 3,
+          totalLines: 3,
+          startOffset: 0,
+          endOffset: 20,
+          totalLength: 20,
+        }),
+      ),
   },
 });
 

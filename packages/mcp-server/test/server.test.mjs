@@ -22,15 +22,38 @@ async function connect(t, evaluate = () => assert.fail("Unexpected evaluation"))
 
 const hash = "a".repeat(64);
 const wire = (body) => JSON.stringify(JSON.stringify(body));
-const readBody = (content) => ({ apiVersion: 1, content, sha256: hash, bom: false });
+const readBody = (content) => ({
+  apiVersion: 2,
+  content,
+  sha256: hash,
+  bom: false,
+  startLine: 1,
+  endLine: content.split(/\r\n|\r|\n/).length,
+  totalLines: content.split(/\r\n|\r|\n/).length,
+  startOffset: 0,
+  endOffset: content.length,
+  totalLength: content.length,
+});
 
-test("MCP advertises six tools and edit is not marked idempotent", async (t) => {
+async function primed(t, evaluate, content = "abc") {
+  let reading = true;
+  const client = await connect(t, (script) => (reading ? wire(readBody(content)) : evaluate(script)));
+  const result = await client.callTool({ name: "wshcm_read_file", arguments: { path } });
+  assert.notEqual(result.isError, true, JSON.stringify(result));
+  reading = false;
+  return { client, readToken: JSON.parse(result.content[0].text).readToken };
+}
+
+test("MCP advertises nine tools and edit is not marked idempotent", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
+    "wshcm_create_directory",
     "wshcm_delete_file",
     "wshcm_edit_file",
+    "wshcm_get_file_info",
     "wshcm_list_directory",
+    "wshcm_move_file",
     "wshcm_read_file",
     "wshcm_search_files",
     "wshcm_write_file",
@@ -38,33 +61,25 @@ test("MCP advertises six tools and edit is not marked idempotent", async (t) => 
   assert.equal(tools.find(({ name }) => name === "wshcm_edit_file").annotations.idempotentHint, false);
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, "object");
-    assert.ok(tool.inputSchema.required.includes("path"));
+    assert.ok(tool.inputSchema.required.includes(tool.name === "wshcm_move_file" ? "source" : "path"));
   }
 });
 
 test("unknown tools reject with a protocol error", async (t) => {
   const client = await connect(t);
-  await assert.rejects(client.callTool({ name: "wshcm_move_file", arguments: {} }), { code: ProtocolErrorCode.InvalidParams });
+  await assert.rejects(client.callTool({ name: "wshcm_unknown", arguments: {} }), { code: ProtocolErrorCode.InvalidParams });
 });
 
 const path = "x-local://wt/a$&'\\${other}.bs";
 const content = "  001\r\n'quoted'\\\n${path}\nПривет";
 for (const fixture of [
-  { tool: "read_file", method: "ReadJson", input: {}, request: {}, body: readBody(content), text: content },
-  {
-    tool: "read_file",
-    method: "ReadJson",
-    input: { includeMetadata: true },
-    request: {},
-    body: readBody(content),
-    json: readBody(content),
-  },
+  { tool: "read_file", method: "ReadJson", input: {}, request: {}, body: readBody(content), json: readBody(content) },
   {
     tool: "write_file",
     method: "WriteJson",
     input: { content },
-    request: { content },
-    body: { apiVersion: 1, bytesWritten: 44, sha256: hash },
+    request: { content, mode: "create" },
+    body: { apiVersion: 2, bytesWritten: 44, sha256: hash },
     text: `File written: ${path}`,
   },
   {
@@ -72,7 +87,7 @@ for (const fixture of [
     method: "ListJson",
     input: {},
     request: {},
-    body: { apiVersion: 1, entries: [{ name: "folder", isDirectory: true }] },
+    body: { apiVersion: 2, entries: [{ name: "folder", isDirectory: true }] },
     json: [{ name: "folder", isDirectory: true }],
   },
   {
@@ -80,21 +95,26 @@ for (const fixture of [
     method: "DeleteJson",
     input: {},
     request: {},
-    body: { apiVersion: 1, deleted: true },
+    body: { apiVersion: 2, deleted: true },
     text: `File deleted: ${path}`,
   },
   {
     tool: "edit_file",
     method: "EditJson",
     input: { edits: [{ oldText: "a'\\${x}", newText: content }], dryRun: true, expectedSha256: hash },
-    request: { edits: [{ oldText: "a'\\${x}", newText: content }], dryRun: true, expectedSha256: hash },
-    body: { apiVersion: 1, status: "dry_run", editsCount: 1, previousSha256: hash, sha256: hash, content },
-    json: { apiVersion: 1, status: "dry_run", editsCount: 1, previousSha256: hash, sha256: hash, content },
+    request: {
+      edits: [{ oldText: "a'\\${x}", newText: content }],
+      dryRun: true,
+      expectedSha256: hash,
+      allowedRanges: [{ start: 0, end: content.length }],
+    },
+    body: { apiVersion: 2, status: "dry_run", editsCount: 1, previousSha256: hash, sha256: hash, content },
+    json: { apiVersion: 2, status: "dry_run", editsCount: 1, previousSha256: hash, sha256: hash, content },
   },
 ]) {
   test(`${fixture.tool} preserves the public result and executes the physical-path DLL ABI (${fixture.method})`, async (t) => {
     let calls = 0;
-    const client = await connect(t, async (script) =>
+    const evaluate = async (script) =>
       runInNewContext(`(function () { ${script} })()`, {
         UrlToFilePath(url) {
           assert.equal(url, path);
@@ -120,12 +140,22 @@ for (const fixture of [
             },
           },
         },
-      }),
-    );
-    const result = await client.callTool({ name: `wshcm_${fixture.tool}`, arguments: { path, ...fixture.input } });
+      });
+    const { client, readToken } =
+      fixture.tool === "edit_file" ? await primed(t, evaluate, content) : { client: await connect(t, evaluate) };
+    const result = await client.callTool({
+      name: `wshcm_${fixture.tool}`,
+      arguments: { path, ...fixture.input, ...(readToken ? { readToken } : {}) },
+    });
     assert.notEqual(result.isError, true, JSON.stringify(result));
-    if (fixture.json) assert.deepEqual(JSON.parse(result.content[0].text), fixture.json);
-    else assert.equal(result.content[0].text, fixture.text);
+    if (fixture.json) {
+      const actual = JSON.parse(result.content[0].text);
+      if (fixture.tool === "read_file") {
+        assert.equal(typeof actual.readToken, "string");
+        delete actual.readToken;
+      }
+      assert.deepEqual(actual, fixture.json);
+    } else assert.equal(result.content[0].text, fixture.text);
     assert.equal(calls, 1);
   });
 }
@@ -135,7 +165,7 @@ for (const content of ["", "\n\t", "  a\r\nb\rc\n  ", "\uFEFFabc"]) {
     const client = await connect(t, async () => wire(readBody(content)));
     const result = await client.callTool({ name: "wshcm_read_file", arguments: { path } });
     assert.notEqual(result.isError, true);
-    assert.equal(result.content[0].text, content);
+    assert.equal(JSON.parse(result.content[0].text).content, content);
   });
 }
 
@@ -147,16 +177,18 @@ const operations = [
   ["edit_file", { edits: [] }],
 ];
 for (const [name, extra] of operations) {
-  for (const value of [undefined, 123, "not json", "null", JSON.stringify("{}"), wire({ apiVersion: 2 }), wire({ apiVersion: 1 })]) {
+  for (const value of [undefined, 123, "not json", "null", JSON.stringify("{}"), wire({ apiVersion: 99 }), wire({ apiVersion: 2 })]) {
     test(`${name} rejects malformed or incompatible DLL payload ${String(value)}`, async (t) => {
-      const client = await connect(t, async () => value);
-      const result = await client.callTool({ name: `wshcm_${name}`, arguments: { path, ...extra } });
+      const { client, readToken } =
+        name === "edit_file" ? await primed(t, async () => value) : { client: await connect(t, async () => value) };
+      const result = await client.callTool({ name: `wshcm_${name}`, arguments: { path, ...extra, ...(readToken ? { readToken } : {}) } });
       assert.equal(result.isError, true);
     });
   }
   test(`${name} exposes structured DLL errors as tool errors`, async (t) => {
-    const client = await connect(t, async () => wire({ apiVersion: 1, error: { code: "AccessDenied", message: "Access denied" } }));
-    const result = await client.callTool({ name: `wshcm_${name}`, arguments: { path, ...extra } });
+    const evaluate = async () => wire({ apiVersion: 2, error: { code: "AccessDenied", message: "Access denied" } });
+    const { client, readToken } = name === "edit_file" ? await primed(t, evaluate) : { client: await connect(t, evaluate) };
+    const result = await client.callTool({ name: `wshcm_${name}`, arguments: { path, ...extra, ...(readToken ? { readToken } : {}) } });
     assert.equal(result.isError, true);
     assert.match(result.content[0].text, /AccessDenied.*Access denied/);
   });
@@ -183,10 +215,10 @@ for (const [name, extra] of [
 }
 
 test("edit error includes the failing patch number", async (t) => {
-  const client = await connect(t, async () =>
-    wire({ apiVersion: 1, error: { code: "EditAmbiguous", message: "More than one match", editIndex: 2 } }),
+  const { client, readToken } = await primed(t, async () =>
+    wire({ apiVersion: 2, error: { code: "EditAmbiguous", message: "More than one match", editIndex: 2 } }),
   );
-  const result = await client.callTool({ name: "wshcm_edit_file", arguments: { path, edits: [] } });
+  const result = await client.callTool({ name: "wshcm_edit_file", arguments: { path, edits: [], readToken } });
   assert.equal(result.isError, true);
   assert.match(result.content[0].text, /Edit #2.*EditAmbiguous/);
 });
@@ -202,12 +234,12 @@ test("missing DLL is reported clearly", async (t) => {
 
 test("aggregate edit JSON budget is enforced before any evaluator call", async (t) => {
   let calls = 0;
-  const client = await connect(t, async () => {
+  const { client, readToken } = await primed(t, async () => {
     calls++;
     return wire(readBody(""));
   });
   const edits = Array.from({ length: 100 }, () => ({ oldText: "a".repeat(90000), newText: "b" }));
-  const result = await client.callTool({ name: "wshcm_edit_file", arguments: { path, edits } });
+  const result = await client.callTool({ name: "wshcm_edit_file", arguments: { path, edits, readToken } });
   assert.equal(result.isError, true);
   assert.match(result.content[0].text, /Request JSON exceeds/);
   assert.equal(calls, 0);

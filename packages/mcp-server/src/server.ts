@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import type { McpServerOptions } from "./types.js";
 import { createConnection, closeConnection } from "./connection.js";
 import type { WshcmConnection } from "./connection.js";
+import { ReadState } from "./tools/read-state.js";
 import {
   registerReadFileTool,
   registerWriteFileTool,
@@ -10,6 +11,9 @@ import {
   registerDeleteFileTool,
   registerSearchFilesTool,
   registerEditFileTool,
+  registerCreateDirectoryTool,
+  registerMoveFileTool,
+  registerGetFileInfoTool,
 } from "./tools/index.js";
 
 /**
@@ -26,12 +30,16 @@ export function createServer(connection: WshcmConnection): McpServer {
     version: "0.1.0-alpha.1",
   });
 
-  registerReadFileTool(server, connection);
-  registerWriteFileTool(server, connection);
+  const reads = new ReadState();
+  registerReadFileTool(server, connection, reads);
+  registerWriteFileTool(server, connection, reads);
   registerListDirectoryTool(server, connection);
-  registerDeleteFileTool(server, connection);
+  registerDeleteFileTool(server, connection, reads);
   registerSearchFilesTool(server, connection);
-  registerEditFileTool(server, connection);
+  registerEditFileTool(server, connection, reads);
+  registerCreateDirectoryTool(server, connection, reads);
+  registerMoveFileTool(server, connection, reads);
+  registerGetFileInfoTool(server, connection);
 
   return server;
 }

@@ -5,7 +5,7 @@ import { buildScript } from "../load.js";
 import { fileError, MAX_FILE_JSON_BYTES } from "./file-contract.js";
 
 const template = readFileSync(new URL("../../resources/file-operation.bs", import.meta.url), "utf8");
-type FileMethod = "ReadJson" | "WriteJson" | "ListJson" | "DeleteJson" | "EditJson";
+type FileMethod = "ReadJson" | "WriteJson" | "ListJson" | "DeleteJson" | "EditJson" | "CreateDirectoryJson" | "InfoJson" | "MoveJson";
 
 /** Call the unique managed ABI method after BS resolves the URL; validate both carrier stages and result. */
 export async function callManagedFile<T>(
@@ -17,7 +17,9 @@ export async function callManagedFile<T>(
 ): Promise<T> {
   const request = JSON.stringify(options);
   if (Buffer.byteLength(request, "utf8") > MAX_FILE_JSON_BYTES) throw new Error("Request JSON exceeds 8 MiB");
-  const wire = await connection.evaluator.eval(buildScript(template, { path, request, method }));
+  const destination =
+    method === "MoveJson" && "destination" in options && typeof options.destination === "string" ? options.destination : "";
+  const wire = await connection.evaluator.eval(buildScript(template, { path, request, method, destination }));
   if (typeof wire !== "string") throw new Error("Expected a string file operation carrier from WSHCM");
   if (wire.length > 2 * MAX_FILE_JSON_BYTES + 2) throw new Error("File operation carrier exceeds its limit");
   const json: unknown = JSON.parse(wire);

@@ -52,13 +52,27 @@ internal static class FileJson
     }
 
     private static string Failure(string code, string message, int? editIndex = null)
-        => Serialize(new { apiVersion = 1, error = new { code, message, editIndex } });
+        => Serialize(new { apiVersion = 2, error = new { code, message, editIndex } });
 }
 
 internal sealed record EmptyFileRequest;
+internal sealed record ReadFileRequest
+{
+    public int StartLine { get; init; } = 1;
+    public int? EndLine { get; init; }
+}
 internal sealed record WriteFileRequest
 {
     public string? Content { get; init; }
+    public string Mode { get; init; } = "create";
+    public string? ExpectedSha256 { get; init; }
+
+    internal void Validate()
+    {
+        if (Mode is not ("create" or "overwrite") || (Mode == "create" && ExpectedSha256 is not null))
+            throw new FileProblem("InvalidRequest", "Expected mode create or overwrite; create does not accept a hash.");
+        if (Mode == "overwrite") TextCoverage.ValidateHash(ExpectedSha256);
+    }
 }
 internal sealed record EditItem
 {
@@ -70,13 +84,15 @@ internal sealed record EditFileRequest
     public EditItem[]? Edits { get; init; }
     public bool DryRun { get; init; }
     public string? ExpectedSha256 { get; init; }
+    public TextRange[]? AllowedRanges { get; init; }
 
     internal void Validate()
     {
         if (Edits is null || Edits.Length > 100 || Edits.Any(edit => edit is null || string.IsNullOrEmpty(edit.OldText) || edit.NewText is null
             || edit.OldText.Contains('\0') || edit.NewText.Contains('\0')))
             throw new FileProblem("InvalidRequest", "Expected at most 100 edits with nonempty oldText and string newText, without NUL.");
-        if (ExpectedSha256 is not null && (ExpectedSha256.Length != 64 || !ExpectedSha256.All(char.IsAsciiHexDigit)))
-            throw new FileProblem("InvalidRequest", "expectedSha256 must contain 64 hexadecimal characters.");
+        TextCoverage.ValidateHash(ExpectedSha256);
+        if (AllowedRanges is null || AllowedRanges.Length is < 1 or > 256 || AllowedRanges.Any(range => range is null))
+            throw new FileProblem("InvalidRequest", "Expected 1 to 256 allowedRanges from a prior read.");
     }
 }

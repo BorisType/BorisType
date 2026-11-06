@@ -4,3 +4,6 @@ export { registerListDirectoryTool } from "./list-directory.js";
 export { registerDeleteFileTool } from "./delete-file.js";
 export { registerSearchFilesTool } from "./search-files.js";
 export { registerEditFileTool } from "./edit-file.js";
+export { registerCreateDirectoryTool } from "./create-directory.js";
+export { registerMoveFileTool } from "./move-file.js";
+export { registerGetFileInfoTool } from "./get-file-info.js";

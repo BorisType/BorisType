@@ -65,7 +65,7 @@ internal sealed record SearchMatch(
 
 internal sealed class SearchResponse
 {
-    public int ApiVersion => 1;
+    public int ApiVersion => 2;
     public List<SearchMatch> Matches { get; } = [];
     public string? LimitReason { get; set; }
     public SearchStats Stats { get; } = new();

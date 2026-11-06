@@ -1,55 +1,38 @@
-import { readFileSync } from "node:fs";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/server";
 import type { WshcmConnection } from "../connection.js";
-import { buildScript } from "../load.js";
+import { fileUrl } from "./file-contract.js";
+import { callManagedFile, fileTool } from "./managed-files.js";
+import type { ReadState } from "./read-state.js";
 
-const scriptTemplate = readFileSync(new URL("../../resources/move-file.bs", import.meta.url), "utf-8");
-
-/**
- * Регистрирует tool `wshcm_move_file` — перемещение/переименование файла на WSHCM сервере.
- *
- * Перемещает или переименовывает файл из одного x-local:// пути в другой.
- * Если целевой файл уже существует — операция завершится ошибкой.
- *
- * ### Платформенный подход
- *
- * WSHCM не имеет встроенной функции `MoveFile`.
- * Реализация через цепочку: читаем содержимое → записываем в новый путь → удаляем оригинал.
- * Это НЕ атомарная операция — при ошибке на этапе удаления файл может остаться в обоих местах.
- *
- * ### Обработка ошибок
- *
- * | Случай                        | Поведение                                              | Формат ответа                                                                 |
- * |-------------------------------|--------------------------------------------------------|-------------------------------------------------------------------------------|
- * | Исходный файл не найден       | Возвращает ошибку, операция не выполняется              | `{ isError: true, text: "Source file not found: <path>" }`                    |
- * | Целевой файл уже существует   | Возвращает ошибку, операция не выполняется              | `{ isError: true, text: "Destination already exists: <path>" }`              |
- * | Ошибка записи в целевой путь  | Возвращает ошибку, исходный файл остаётся на месте      | `{ isError: true, text: "Failed to write destination: <message>" }`          |
- * | Ошибка удаления исходного     | Возвращает предупреждение, файл существует в обоих местах| `{ text: "File copied but source not deleted: <path>. Manual cleanup needed." }` |
- * | Некорректный формат пути      | Возвращает ошибку                                       | `{ isError: true, text: "Invalid path format. Expected x-local:// URL" }`    |
- * | Успех                         | Файл перемещён                                          | `{ text: "File moved: <source> → <destination>" }`                           |
- */
-export function registerMoveFileTool(server: McpServer, connection: WshcmConnection): void {
+/** Register native no-replace rename; URL resolution for both paths remains in BS. */
+export function registerMoveFileTool(server: McpServer, connection: WshcmConnection, reads: ReadState): void {
   server.registerTool(
     "wshcm_move_file",
     {
       description:
-        "Move or rename a file on the WebSoft HCM server from one x-local:// URL path to another. Fails if the destination already exists.",
-      inputSchema: z.object({
-        source: z.string().describe("Source file URL (e.g. x-local://wt/web/old-name.bs)"),
-        destination: z.string().describe("Destination file URL (e.g. x-local://wt/web/new-name.bs)"),
-      }),
+        "Move/rename one file via DLL alpha.4/API 2 without overwriting or copy/delete fallback. Source and destination are x-local:// URLs. Parent must exist; directories/links/readonly source are rejected. Linux/Windows only; cross-filesystem rename is an explicit error. Invalidates source/destination read tokens.",
+      inputSchema: z.strictObject({ source: fileUrl, destination: fileUrl }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
-    async ({ source, destination }) => {
-      // TODO: реализовать
-      // 1. Проверить существование source (попробовать прочитать)
-      // 2. Проверить отсутствие destination
-      // 3. Прочитать содержимое source
-      // 4. Записать содержимое в destination
-      // 5. Удалить source
-      // 6. При ошибке на шаге 5 — вернуть предупреждение, а не ошибку
-      throw new Error("Not implemented");
-    },
+    async ({ source, destination }) =>
+      fileTool(() =>
+        reads.run(async () => {
+          try {
+            return JSON.stringify(
+              await callManagedFile(
+                connection,
+                "MoveJson",
+                source,
+                { destination },
+                z.strictObject({ apiVersion: z.literal(2), moved: z.literal(true) }),
+              ),
+            );
+          } finally {
+            reads.invalidate(source);
+            reads.invalidate(destination);
+          }
+        }),
+      ),
   );
 }

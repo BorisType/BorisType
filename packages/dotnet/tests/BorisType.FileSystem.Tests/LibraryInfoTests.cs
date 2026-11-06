@@ -20,7 +20,7 @@ public class LibraryInfoTests
         using JsonDocument document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
         Assert.Equal("BorisType.FileSystem", root.GetProperty("id").GetString());
-        Assert.Equal(1, root.GetProperty("apiVersion").GetInt32());
+        Assert.Equal(2, root.GetProperty("apiVersion").GetInt32());
         Assert.Matches(@"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$", root.GetProperty("version").GetString()!);
         Assert.Contains(root.GetProperty("capabilities").EnumerateArray(), item => item.GetString() == "search");
     }

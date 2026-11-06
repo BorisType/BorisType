@@ -35,6 +35,9 @@ Evidence и границы: [MCP local e2e](plans/mcp-server/04-local-e2e.md).
 - [x] Ограниченная native acceptance поиска на Linux HCM 2025.2.1333 / CLR 9.0.11: resolver, bridge ABI, names/content/regex и cleanup
 - [x] Read/write/list/delete через standalone DLL alpha.3, общий JSON bridge и explicit UTF-8/link/limits contract
 - [x] Targeted edit: unique sequential replacements, preview/hash guard, BOM preservation; managed/protocol/native acceptance
+- [x] Учёт выданных диапазонов и версий для edit/overwrite; границы MCP-сессии без гарантии разделения чатов агента
+- [x] Довести файловое ядро до девяти tools: create_directory, move_file без overwrite, get_file_info
+- [ ] Отложенное исследование атомарного compare-and-replace с внешними writers на Linux/Windows; текущая повторная проверка этой гарантии не даёт
 - [ ] Acceptance поиска на Windows/других версиях HCM, permissions и полный path/encoding/limits contract
 
 Структура: [workspace README](packages/dotnet/README.md),
@@ -44,6 +47,8 @@ CI workflow настроен для двух ОС; это не свидетел�
 [Контракт](plans/dotnet/04-search-design.md), [evidence](plans/dotnet/06-search-results.md).
 Миграция file tools и edit: [contract](plans/dotnet/07-file-tools-design.md),
 [native evidence](plans/dotnet/09-file-tools-results.md).
+Учёт чтений и девять tools: [контракт](plans/dotnet/11-read-aware-files-design.md),
+[результаты](plans/dotnet/13-read-aware-files-results.md).
 
 ### Граница поддержки и память (2026-11-05)
 
@@ -250,7 +255,8 @@ CI workflow настроен для двух ОС; это не свидетел�
 
 - [x] Пакет mcp-server: файловые операции (read/write/list/delete) через x-local:// URL
 - [x] MCP maintenance baseline: зависимости актуального main, runtime resources в tarball, только реализованные tools, локальные protocol/SOAP regression tests
-- [ ] MCP native acceptance: проверить read/write/list/delete на тестовом HCM; lifecycle/EOF и path/encoding contracts
+- [x] MCP native acceptance: девять tools и read guards на Linux HCM 2025.2.1333 / CLR 9.0.11; byte/hash и lifecycle/EOF checks
+- [ ] Acceptance на Windows HCM и полный permissions/VFS/shutdown-during-SOAP contract
 - [ ] Tool: выполнение произвольного BorisScript кода (`execute_bs`)
 - [ ] Tool: XQuery запросы к каталогам БД
 - [ ] Tool: чтение/обновление XML объектов в БД

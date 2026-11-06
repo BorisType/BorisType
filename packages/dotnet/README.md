@@ -5,7 +5,7 @@
 DLL, версию и зависимости. Первая библиотека — `BorisType.FileSystem`.
 
 Библиотека предоставляет metadata API, поиск имён и UTF-8 содержимого,
-read/write/list/delete и точечный edit. Все шесть MCP tools используют DLL через
+read/write/list/delete/edit, mkdir, metadata и rename. Все девять MCP tools используют DLL через
 BS URL resolver. Есть managed tests и installation ZIP.
 
 ## Требования и команды
@@ -73,9 +73,9 @@ packages/dotnet/
 ```json
 {
   "id": "BorisType.FileSystem",
-  "version": "0.1.0-alpha.3",
-  "apiVersion": 1,
-  "capabilities": ["search", "files", "edit"]
+  "version": "0.1.0-alpha.4",
+  "apiVersion": 2,
+  "capabilities": ["search", "files", "edit", "read-ranges", "read-preconditions", "mkdir", "info", "move"]
 }
 ```
 
@@ -97,7 +97,7 @@ Core не ссылается на Datex и не вызывает обратно 
 ## Installation ZIP
 
 `pnpm pack:dotnet` создаёт
-`dist/BorisType.FileSystem-0.1.0-alpha.3.zip` относительно этого workspace.
+`dist/BorisType.FileSystem-0.1.0-alpha.4.zip` относительно этого workspace.
 Для другого output: `node packages/dotnet/tools/pack.mjs --out /absolute/path`.
 На Windows можно передать обычный Windows path как отдельный аргумент.
 
@@ -188,41 +188,52 @@ Windows и другие версии HCM этим запуском не пров
 Команда MCP `test:e2e:search` не запускает стенд, не устанавливает DLL и сканирует
 только свой temp fixture.
 
-## Read/write/list/delete и targeted edit
+## Файловое API 2 и учёт чтений в MCP
 
-`BorisType.FileSystem.Files` предоставляет пять unique string ABI методов:
-`ReadJson`, `WriteJson`, `ListJson`, `DeleteJson`, `EditJson`. Каждый принимает
-`(string physicalPath, string requestJson)` и возвращает JSON string с API 1.
-Подробный [контракт](../../plans/dotnet/07-file-tools-design.md) и
-[native evidence](../../plans/dotnet/09-file-tools-results.md).
+`BorisType.FileSystem.Files` предоставляет восемь unique string ABI методов:
+ReadJson, WriteJson, ListJson, DeleteJson, EditJson, CreateDirectoryJson, InfoJson,
+MoveJson. Каждый принимает `(string physicalPath, string requestJson)` и возвращает
+JSON string API 2. Пути абсолютные; links/junctions и их ancestors отвергаются.
+Для MoveJson request.destination — тоже physical path, преобразуемый BS bridge.
 
-Все пути абсолютные, parent должен существовать. Leaf/ancestors с symlink или
-junction отвергаются. List перечисляет immediate entries ordinal и отмечает
-links через `isSymbolicLink: true`, не обходит их. File root для List — ошибка,
-Delete никогда не удаляет каталог и возвращает ошибку для отсутствующего файла.
+ReadJson принимает optional startLine/endLine и возвращает exact content, sha256
+исходных bytes с BOM, bom, line/UTF-16 coordinates. Text file/result <=1 MiB;
+диапазон не позволяет читать oversized file. WriteJson mode=create по умолчанию
+запрещает overwrite. Mode overwrite требует expectedSha256 и повторной проверки
+bytes перед commit. Write добавляет BOM; edit сохраняет BOM и остальные newlines.
 
-Text IO — strict UTF-8, NUL и invalid encoding отвергаются. Read удаляет один BOM
-и возвращает content, sha256 исходных bytes (включая BOM) и bom. Write создаёт или
-перезаписывает с BOM, сохраняя установленный MCP write contract. Edit сохраняет
-исходный BOM и все не затронутые замещением newlines/whitespace. Text file/result
-ограничен 1 MiB, JSON request/response — 8 MiB, listing — 10000 entries, edits — 100.
-Превышение даёт ошибку, без частичного успешного read/list.
+EditJson требует expectedSha256 и allowedRanges `{start,end}` исходного UTF-16
+текста. Непустые oldText должны быть unique (включая overlapping matches) и целиком
+лежать в покрытии. Последовательные edits сдвигают покрытие и учитывают введённый
+newText. Все patches проверяются до записи; dryRun возвращает полный preview без
+записи. JSON <=8 MiB, listing <=10000 entries, edits <=100. Errors versioned,
+с code/message и 1-based editIndex, если применимо.
 
-Edit принимает edits oldText/newText, optional dryRun и expectedSha256. Каждое
-непустое oldText должно встретиться ровно один раз в промежуточном тексте;
-перекрывающиеся matches тоже считаются неоднозначностью. Все edits проверяются
-до записи. Empty edits/no-op не переписывает файл. dryRun возвращает content и
-previousSha256 без записи. expectedSha256 — optional проверка исходных bytes.
-Ошибки содержат code/message и 1-based editIndex, если применимо.
+MCP хранит read-token/ranges отдельно для createServer; DLL не хранит сессий и не
+доказывает предшествующее чтение сама. Клиент использует только token/ranges,
+предоставленные MCP. Подробности накопления диапазонов, TTL, invalidation и
+отсутствующей гарантии границ чата — в [MCP README](../mcp-server/README.md).
 
-Write/edit подготавливают unique temp рядом с target, flush и заменяют файл
-rename. Собственные mutations сериализуются; перед edit commit bytes проверяются
-повторно. Внешние writers могут попасть между проверкой и rename: строгого CAS
-нет. Новые Unix файлы создаются с mode 0600 (с учётом umask).
-Existing Unix rwx сохраняются, owner/ACL и inode/hardlink relationship — нет
-гарантии. Readonly targets отвергаются. VFS, special files, race-proof sandbox
-и hard filesystem cancellation этим API не обещаются.
+CreateDirectoryJson создаёт missing parents, existing directory — created=false;
+цепочка не транзакционна. InfoJson не читает содержимое: name/isDirectory,
+modifiedUtc и sizeBytes для файла, включая binary/large files. ListJson ordinal,
+nonrecursive, отмечает links без traversal. DeleteJson только для existing file.
 
-DLL alpha.3 прошла native e2e через MCP/stdio/SOAP/BS/DotNetCoreHost на Linux HCM
-2025.2.1333 / CLR 9.0.11: прежние file cases, metadata/hash/dryRun/edit/rollback,
-encoding/link checks и search regression. Другие ОС/сборки требуют acceptance.
+MoveJson использует Linux renameat2(RENAME_NOREPLACE) или Windows MoveFileExW без
+COPY_ALLOWED/REPLACE_EXISTING. Нет скрытого copy/delete: CrossDevice либо explicit
+unsupported error. Другие ОС не поддержаны этим методом. Binary bytes не
+декодируются и не переписываются. Windows native branch предназначена для managed CI;
+локальный запуск на Linux не подтверждает загрузку DLL в Windows HCM.
+
+Write/edit готовят temp рядом с target, flush и rename. Mutation lock защищает
+собственные вызовы одного экземпляра DLL. Последняя проверка bytes и rename не
+составляют атомарный cross-process CAS; строгая защита окна отложена. Existing
+Unix rwx сохраняются, новые файлы имеют 0600 с учётом umask; owner/ACL/inode/hardlinks
+без гарантии. VFS, special files и hard syscall cancellation не обещаются.
+
+API 2 несовместим с alpha.3/API 1: обновить MCP и установленную DLL вместе.
+[Контракт](../../plans/dotnet/11-read-aware-files-design.md),
+[план проверки](../../plans/dotnet/12-read-aware-files-plan.md).
+
+DLL alpha.4/API 2 прошла native acceptance всех девяти MCP tools и read guards на
+Linux HCM 2025.2.1333 / CLR 9.0.11. [Результаты](../../plans/dotnet/13-read-aware-files-results.md).

@@ -41,7 +41,7 @@ test("installation ZIP contains the standalone library and verifiable manifest",
     const manifest = JSON.parse(readFileSync(join(extracted, "manifest.json"), "utf8"));
     assert.equal(manifest.schemaVersion, 1);
     assert.equal(manifest.id, "BorisType.FileSystem");
-    assert.equal(manifest.apiVersion, 1);
+    assert.equal(manifest.apiVersion, 2);
     assert.equal(manifest.targetFramework, "net9.0");
     assert.equal(manifest.entryAssembly, "BorisType.FileSystem.dll");
     assert.equal(basename(archive), `BorisType.FileSystem-${manifest.version}.zip`);

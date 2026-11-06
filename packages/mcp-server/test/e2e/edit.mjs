@@ -62,7 +62,7 @@ test("managed edit preserves bytes and refuses stale or ambiguous patches throug
     const text = "Привет\r\nalpha\rTAIL\n";
     const original = Buffer.from((bom ? "\uFEFF" : "") + text);
     stand.seed(name, original);
-    const metadata = await success("read_file", name, { includeMetadata: true });
+    const metadata = await success("read_file", name, {});
     assert.equal(metadata.content, text);
     assert.equal(metadata.bom, bom);
     assert.equal(metadata.sha256, createHash("sha256").update(original).digest("hex"));
@@ -70,25 +70,37 @@ test("managed edit preserves bytes and refuses stale or ambiguous patches throug
       { oldText: "alpha", newText: "beta" },
       { oldText: "beta\rTAIL", newText: "gamma\rTAIL" },
     ];
-    const preview = await success("edit_file", name, { edits, dryRun: true, expectedSha256: metadata.sha256 });
+    const preview = await success("edit_file", name, {
+      edits,
+      dryRun: true,
+      expectedSha256: metadata.sha256,
+      readToken: metadata.readToken,
+    });
     assert.equal(preview.status, "dry_run");
     assert.equal(preview.content, "Привет\r\ngamma\rTAIL\n");
     assert.deepEqual(stand.readBytes(name), original);
-    const applied = await success("edit_file", name, { edits, expectedSha256: preview.previousSha256 });
+    const applied = await success("edit_file", name, { edits, expectedSha256: preview.previousSha256, readToken: metadata.readToken });
     assert.equal(applied.status, "applied");
     assert.equal(applied.editsCount, 2);
     assert.deepEqual(stand.readBytes(name), Buffer.from((bom ? "\uFEFF" : "") + preview.content));
-    const stale = await call("edit_file", name, { edits: [{ oldText: "gamma", newText: "lost" }], expectedSha256: metadata.sha256 });
+    const consumed = await call("edit_file", name, { edits: [], readToken: metadata.readToken });
+    assert.equal(consumed.isError, true);
+    assert.match(consumed.content[0].text, /ReadRequired/);
+    const fresh = await success("read_file", name);
+    stand.seed(name, (bom ? "\uFEFF" : "") + "changed externally");
+    const stale = await call("edit_file", name, { edits: [{ oldText: "gamma", newText: "lost" }], readToken: fresh.readToken });
     assert.equal(stale.isError, true);
     assert.match(stale.content[0].text, /Conflict/);
-    assert.deepEqual(stand.readBytes(name), Buffer.from((bom ? "\uFEFF" : "") + preview.content));
+    assert.deepEqual(stand.readBytes(name), Buffer.from((bom ? "\uFEFF" : "") + "changed externally"));
   }
   stand.seed("overlap", "start aaa end");
   for (const [oldText, code] of [
     ["aa", "EditAmbiguous"],
     ["missing", "EditNotFound"],
   ]) {
+    const snapshot = await success("read_file", "overlap");
     const failed = await call("edit_file", "overlap", {
+      readToken: snapshot.readToken,
       edits: [
         { oldText: "start", newText: "changed" },
         { oldText, newText: "x" },
@@ -99,7 +111,7 @@ test("managed edit preserves bytes and refuses stale or ambiguous patches throug
     assert.deepEqual(stand.readBytes("overlap"), Buffer.from("start aaa end"));
   }
   stand.seed("binary", Buffer.from([65, 0, 66]));
-  const binary = await call("edit_file", "binary", { edits: [] });
+  const binary = await call("read_file", "binary");
   assert.equal(binary.isError, true);
   assert.match(binary.content[0].text, /BinaryFile/);
   stand.seed("invalid", Buffer.from([0xff, 0xfe]));
