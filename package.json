@@ -32,14 +32,14 @@
   "devDependencies": {
     "@boristype/eslint-plugin": "workspace:^",
     "@changesets/cli": "^3.0.3",
-    "eslint": "^10.11.0",
+    "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
-    "lefthook": "^2.1.14",
-    "prettier": "^3.9.8",
+    "lefthook": "2.2.1",
+    "prettier": "^3.9.10",
     "syncpack": "^15.3.3",
-    "turbo": "^2.11.2",
-    "typescript-eslint": "^8.70.1",
+    "turbo": "^2.11.10",
+    "typescript-eslint": "^8.72.0",
     "vitepress": "^1.6.4",
-    "vue": "^3.5.43"
+    "vue": "^3.5.44"
   }
 }
