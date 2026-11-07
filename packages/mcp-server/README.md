@@ -4,13 +4,17 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Использует [@boristype/ws-client](../ws-client/) для соединения с WSHCM сервером.
 
-Статус: прототип. Требуется Node.js >=24.22.2 и отдельно установленная
+Статус: экспериментальный checkpoint девяти файловых tools. Требуется Node.js >=24.22.2 и отдельно установленная
 `BorisType.FileSystem.dll` **0.1.0-alpha.4 / API 2** на HCM для всех девяти tools.
 Все операции используют BS URL resolver и managed filesystem API, без Datex
 callbacks. Все девять tools и защита чтений прошли native e2e на Linux
 C-runtime `websoft/hcm:2025.2.1333` / CLR 9.0.11. Это evidence одной сборки;
 другие ОС/версии и полный permissions/VFS contract требуют отдельных проверок.
 [Отчёт](../../plans/dotnet/13-read-aware-files-results.md).
+
+Tools работают с физическими файлами. Логические URL-ресурсы в `spxml_blobs`
+ими не читаются и не обновляются; успешная правка диска может не изменить
+результат `LoadUrlData` того же URL. [Граница checkpoint](../../plans/mcp-server/08-filesystem-checkpoint.md).
 
 Используется стабильная линия MCP TypeScript SDK 2.x: runtime-пакет
 `@modelcontextprotocol/server`; `@modelcontextprotocol/client` нужен только тестам.
@@ -352,7 +356,7 @@ pnpm --filter @boristype/mcp-server test:e2e:edit
 
 Проверены BOM/no-BOM, metadata SHA256, preview/apply, stale hash, ambiguous и
 missing second edit без частичной записи, invalid UTF-8/NUL, link policy и cleanup.
-Ни одна из трёх native команд не запускает стенд и не устанавливает DLL.
+Ни одна из четырёх native команд не запускает стенд и не устанавливает DLL.
 
 ### Что остаётся проверить
 
@@ -360,7 +364,9 @@ missing second edit без частичной записи, invalid UTF-8/NUL, l
 - EOF/SIGINT/SIGTERM используют общий cleanup; неподтверждённое удаление evaluator
   даёт ненулевой exit code. Частичная ошибка создания evaluator и завершение
   во время активного SOAP вызова требуют отдельного исследования.
-- Не аттестованы права, произвольные URL/пути, legacy encodings, бинарные данные,
-  большие файлы и все control escapes на C-runtime.
+- Полный permissions/VFS contract, произвольные URL/пути и все control escapes
+  на C-runtime требуют дальнейших проверок. Text read/edit поддерживают только
+  strict UTF-8 в пределах 1 MiB; legacy encodings и binary text IO вне контракта.
+  Для binary/large files доступны metadata и move с отдельными проверками.
 - Read/list требуют string result; неожиданный тип возвращается как tool error.
   Общий SOAP parser пока допускает отсутствие ResultData как `undefined`.

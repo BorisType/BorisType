@@ -8,6 +8,14 @@
 
 ## Текущий спринт (В процессе)
 
+### MCP: файловый checkpoint (2026-11-07)
+
+- [x] Девять реализованных tools на standalone DLL alpha.4/API 2, без зарегистрированных заглушек
+- [x] Native Linux acceptance, локальные regression suites и проверки npm/ZIP артефактов
+- [x] Свести release notes к итоговому контракту; отделить известные ограничения от готового файлового шага
+
+[Граница checkpoint, проверка PR и дальнейшие работы](plans/mcp-server/08-filesystem-checkpoint.md).
+
 ### Agent skills (2026-11-06)
 
 - [x] Каталог `skills/` в текущем репозитории, независимый выбор через `npx skills add`

@@ -3,7 +3,7 @@ import { z } from "zod";
 const count = z.number().int().nonnegative();
 const glob = z.string().min(1).max(256);
 
-/** Search options for the version-1 DLL JSON ABI; absent options retain the DLL defaults. */
+/** Search options for the version-2 DLL JSON ABI; absent options retain the DLL defaults. */
 export const searchInput = z
   .strictObject({
     path: z

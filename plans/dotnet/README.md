@@ -30,10 +30,7 @@ BS URL resolver и MCP tool. Managed и protocol проверки выполня
 отдельный native e2e также прошёл на Linux HCM 2025.2.1333 / CLR 9.0.11.
 Windows и другие версии HCM требуют собственных проверок.
 
-Read/write/list/delete также переведены на DLL alpha.3; добавлен точечный edit
-с preview, unique replacements и optional hash precondition. Все шесть tools
-прошли native acceptance на том же Linux HCM.
-
-Alpha.4/API 2: девять tools, обязательный read-token для edit/overwrite, line ranges
+Текущий checkpoint — alpha.4/API 2: девять tools, обязательный read-token для edit/overwrite, line ranges
 и bounded per-server grants. Native Linux acceptance прошла; раздельные чаты и
 строгий cross-process compare-and-replace не гарантируются.
+[Итоговый состав и merge-проверка](../mcp-server/08-filesystem-checkpoint.md).
