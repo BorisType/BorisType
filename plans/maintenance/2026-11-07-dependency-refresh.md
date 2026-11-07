@@ -84,8 +84,11 @@ upload-pages-artifact 5.0.0, deploy-pages 5.0.1. Для Pages явно сохр�
   вложенной директории, исключения TS/TSX/node_modules/configured exclude/outDir,
   callbacks и естественный выход дочернего процесса после close. IO и watcher
   не замоканы; процесс и ожидания событий ограничены deadlines.
-- CI отдельно проверяет watcher и .NET build/test/ZIP на Ubuntu и Windows.
-  Результат Windows фиксируется после выполнения CI.
+- Hosted CI для code commit `cd2ab76` в [PR #56](https://github.com/BorisType/BorisType/pull/56):
+  [watcher Ubuntu/Windows](https://github.com/BorisType/BorisType/actions/runs/42360207870),
+  [.NET build/test/ZIP Ubuntu/Windows](https://github.com/BorisType/BorisType/actions/runs/42360207750)
+  и [lint/format/unit/pack](https://github.com/BorisType/BorisType/actions/runs/42360207772)
+  — **5/5 jobs PASS**. Это проверки managed/Node кода, не Windows HCM acceptance.
 - Для локальной нестандартной установки SDK apphost xUnit v3 требует
   `DOTNET_ROOT`, указывающий на SDK directory, и SDK в `PATH`.
   `actions/setup-dotnet` задаёт переменную автоматически.

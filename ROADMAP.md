@@ -13,7 +13,7 @@
 - [x] Убрать Dependabot config и закрыть 14 накопившихся dependency PR
 - [x] Обновить npm/NuGet и SHA pins Actions, включая Chokidar 6 и xUnit v3
 - [x] Сохранить TypeScript 6 Compiler API, 14-дневный cooldown и provenance policy
-- [ ] Подтвердить Windows/Linux CI для watch events и нового test runner
+- [x] Подтвердить Windows/Linux CI для watch events и нового test runner
 - [ ] Вернуться к minimatch GHSA-g3hv-75wg-m249 после cooldown исправления
 
 [Выбор версий, ограничения и проверки](plans/maintenance/2026-11-07-dependency-refresh.md).
