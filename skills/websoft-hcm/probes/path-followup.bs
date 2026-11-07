@@ -1,0 +1,12 @@
+var paths = ["x-local://wt", "x-app://wt", "x-local://__bt_missing__/a.txt", "x-app://__bt_missing__/a.txt", "x-local://data/static/__bt_probe__.xml", "x-app://data/static/__bt_probe__.xml", "x-local://wt_data/__bt_probe__.xml", "x-app://wt_data/__bt_probe__.xml", "x-local://storage/__bt_probe__.txt", "x-app://storage/__bt_probe__.txt", "x-app://lngs/russian/const.xml", "x-local://lngs/russian/const.xml", "server://wt/web/", "x-local://wt/web/./default.html", "x-local://wt//web/default.html", "x-local://wt/web/%2e%2e/app/a.txt", "x-local://wt/web\\default.html", "file:/WebsoftServer/wt/web/default.html", "file:///WebsoftServer/wt/web/a%23b.txt", "x-app://wt/web/a%23b.txt", "file:///C:/WebsoftServer/wt/web/", "x-local://Logs/__bt_probe__.txt", "x-app://Logs/__bt_probe__.txt"];
+var rows = [];
+var i;
+var row;
+var value;
+for (i = 0; i < ArrayCount(paths); i++) {
+ row = {input: paths[i], host: UrlHost(paths[i]), path: UrlPath(paths[i])};
+ try { value = UrlToFilePath(paths[i]); row.UrlToFilePath = {kind: DataType(value), value: value}; } catch (e) { row.UrlToFilePath = {error: String(e)}; }
+ try { value = UrlToOptFilePath(paths[i]); row.UrlToOptFilePath = {kind: DataType(value), value: value}; } catch (e) { row.UrlToOptFilePath = {error: String(e)}; }
+ rows.push(row);
+}
+return EncodeJson(rows);

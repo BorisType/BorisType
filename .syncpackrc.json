@@ -34,19 +34,19 @@
       "pinVersion": "^8.70.1"
     },
     {
-      "label": "TypeScript aligned to latest",
+      "label": "TypeScript 6 Compiler API compatibility baseline",
       "dependencies": ["typescript"],
       "pinVersion": "^6.0.3"
     },
     {
       "label": "@types/node aligned",
       "dependencies": ["@types/node"],
-      "pinVersion": "^24.13.6"
+      "pinVersion": "^24.19.2"
     },
     {
       "label": "fast-xml-parser aligned",
       "dependencies": ["fast-xml-parser"],
-      "pinVersion": "^5.11.1"
+      "pinVersion": "^5.11.2"
     }
   ]
 }

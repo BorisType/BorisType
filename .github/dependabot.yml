@@ -1,5 +1,12 @@
 version: 2
 updates:
+  - package-ecosystem: nuget
+    directory: /packages/dotnet
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 5
   - package-ecosystem: npm
     directory: /
     schedule:

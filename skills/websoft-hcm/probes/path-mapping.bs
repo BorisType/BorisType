@@ -1,0 +1,14 @@
+var paths = ["x-local://", "x-local://wt/web/", "x-local:///wt/web/", "x-local://app/sx_app_config.xmd", "x-app://", "x-app://app/sx_app_config.xmd", "x-app://wt/web/", "x-app://wtv/wtv_translate_result.xmd", "x-app:///wt/web/", "file:///WebsoftServer/wt/web/", "file://localhost/WebsoftServer/wt/web/", "file://remote/WebsoftServer/wt/web/", "/WebsoftServer/wt/web/", "wt/web/", "x-local://wt/../app/sx_app_config.xmd", "x-app://app/../wt/web/", "x-db://wtv/", "x-data://wtv/", "x-temp://probe.txt", "http://example.invalid/probe", "ftp://example.invalid/probe", "x-local://wt/web/space%20name.txt", "x-app://wt/web/space%20name.txt", "file:///WebsoftServer/wt/web/space%20name.txt", "x-local://wt/web/a?query=1", "x-local://wt/web/a#fragment", "X-LOCAL://wt/web/"];
+var rows = [];
+var i;
+var row;
+var value;
+for (i = 0; i < ArrayCount(paths); i++) {
+ row = {input: paths[i]};
+ try { value = UrlSchema(paths[i]); row.UrlSchema = {kind: DataType(value), value: value}; } catch (e) { row.UrlSchema = {error: String(e)}; }
+ try { value = UrlToFilePath(paths[i]); row.UrlToFilePath = {kind: DataType(value), value: value}; } catch (e) { row.UrlToFilePath = {error: String(e)}; }
+ try { value = UrlToOptFilePath(paths[i]); row.UrlToOptFilePath = {kind: DataType(value), value: value}; } catch (e) { row.UrlToOptFilePath = {error: String(e)}; }
+ try { value = UrlOrFilePathToFilePath(paths[i]); row.UrlOrFilePathToFilePath = {kind: DataType(value), value: value}; } catch (e) { row.UrlOrFilePathToFilePath = {error: String(e)}; }
+ rows.push(row);
+}
+return EncodeJson(rows);

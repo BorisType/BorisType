@@ -1,0 +1,55 @@
+{
+  "name": "@boristype/mcp-server",
+  "version": "0.1.0-alpha.1",
+  "description": "MCP server for WebSoft HCM — provides AI agents with access to server files and resources",
+  "type": "module",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
+  "bin": {
+    "boristype-mcp": "./build/cli.js"
+  },
+  "files": [
+    "build",
+    "resources",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node tools/clean-build.mjs && tsc",
+    "test": "node --test test/*.test.mjs",
+    "test:e2e": "node --test --test-concurrency=1 test/e2e/*.test.mjs",
+    "test:e2e:search": "node --test --test-concurrency=1 test/e2e/search.mjs",
+    "test:pack": "node test/pack-smoke.mjs",
+    "prepublishOnly": "pnpm build",
+    "inspector": "mcp-inspector node build/cli.js",
+    "test:e2e:edit": "node --test --test-concurrency=1 test/e2e/edit.mjs",
+    "test:e2e:read-aware": "node --test --test-concurrency=1 test/e2e/read-aware.mjs"
+  },
+  "author": "punkhomov",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.22.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BorisType/BorisType.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BorisType/BorisType/issues"
+  },
+  "homepage": "https://github.com/BorisType/BorisType#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@boristype/ws-client": "workspace:^",
+    "@modelcontextprotocol/server": "^2.3.1",
+    "commander": "^15.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "^2.3.1",
+    "@types/node": "^24.19.2",
+    "typescript": "^6.0.3",
+    "@modelcontextprotocol/inspector": "^2.12.0"
+  }
+}

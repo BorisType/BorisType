@@ -1,0 +1,12 @@
+{
+  "name": "@boristype/dotnet-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:dotnet": "dotnet build BorisType.DotNet.slnx --configuration Release -p:RestoreLockedMode=true",
+    "test:dotnet": "dotnet test BorisType.DotNet.slnx --configuration Release -p:RestoreLockedMode=true",
+    "pack:dotnet": "node tools/pack.mjs",
+    "test:dotnet:pack": "node --test test/pack.test.mjs"
+  }
+}

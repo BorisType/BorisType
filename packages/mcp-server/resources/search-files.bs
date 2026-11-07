@@ -1,0 +1,7 @@
+// Resolve WebSoft URL semantics in BS; keep the managed search core independent of Datex.
+// ${path}: directory URL, ${request}: JSON search options; both are escaped string values.
+// The C# API requires an absolute physical path and never guesses the host working directory.
+var _searchRoot = UrlToFilePath('${path}');
+var _searchAssembly = tools.dotnet_host.Object.GetAssembly('BorisType.FileSystem.dll');
+var _searchJson = _searchAssembly.CallClassStaticMethod('BorisType.FileSystem.Search', 'FindJson', [_searchRoot, '${request}']);
+return EncodeJson(_searchJson);

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/probes/">
+    <Project Path="probes/PlainProbe/PlainProbe.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/BorisType.FileSystem/BorisType.FileSystem.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BorisType.FileSystem.Tests/BorisType.FileSystem.Tests.csproj" />
+  </Folder>
+</Solution>

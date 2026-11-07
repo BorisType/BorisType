@@ -9,26 +9,47 @@ import { WshcmException } from "./exceptions.js";
  * XMLParser для SOAP-ответов.
  * `removeNSPrefix: true` убирает namespace-префиксы (soap:Envelope → Envelope),
  * что позволяет обращаться к элементам напрямую без привязки к префиксам сервера.
+ * Текст сохраняется без trim/coercion; тип задаётся атрибутом VALUE-TYPE.
  */
 const soapParser = new XMLParser({
-  ignoreAttributes: false,
   htmlEntities: true,
+  ignoreAttributes: false,
   attributeNamePrefix: "@_",
   removeNSPrefix: true,
-  trimValues: true,
+  trimValues: false,
+  parseTagValue: false,
 });
 
 /**
- * XMLBuilder для формирования SOAP-запросов.
- * Автоматически экранирует XML-сущности в значениях и атрибутах.
+ * Экранирует XML values за один проход, включая пробельные символы.
+ * HCM SOAP parser удаляет trailing literal whitespace. Numeric references
+ * сохраняют его, а также CR, который XML 1.0 иначе нормализует в LF.
  */
+function encodeSoapXmlValue(_name: string, value: unknown): string {
+  const entities: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&apos;",
+    " ": "&#32;",
+    "\t": "&#9;",
+    "\r": "&#13;",
+    "\n": "&#10;",
+  };
+  return String(value).replace(/[&<>"' \t\r\n]/g, (character) => entities[character]!);
+}
+
+/** XMLBuilder с явным escaping значений для HCM SOAP parser. */
 const soapBuilder = new XMLBuilder({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
   format: true,
   indentBy: "    ",
   suppressEmptyNode: false,
-  processEntities: true,
+  processEntities: false,
+  tagValueProcessor: encodeSoapXmlValue,
+  attributeValueProcessor: encodeSoapXmlValue,
 });
 
 // ============================================================================
@@ -229,6 +250,7 @@ function parseResultArray(element: Record<string, any>): any[] {
  * @returns результат выполнения метода
  */
 export function parseResponse(responseText: string): any {
+  // console.log("Raw SOAP response:", responseText);
   const parsed = soapParser.parse(responseText);
 
   // Проверяем на ошибку SOAP Fault

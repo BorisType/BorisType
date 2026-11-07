@@ -1,0 +1,10 @@
+var paths = ["x-local://app/sx_app_config.xmd", "x-app://app/sx_app_config.xmd", "file:///WebsoftServer/app/sx_app_config.xmd"];
+var rows = [];
+var i;
+var path;
+var assembly = tools.dotnet_host.Object.GetAssembly("BorisType.FileSystem.dll");
+for (i = 0; i < ArrayCount(paths); i++) {
+ path = UrlToFilePath(paths[i]);
+ rows.push({input: paths[i], physicalPath: path, readJson: assembly.CallClassStaticMethod("BorisType.FileSystem.Files", "ReadJson", [path, "{}"]), infoJson: assembly.CallClassStaticMethod("BorisType.FileSystem.Files", "InfoJson", [path, "{}"])});
+}
+return EncodeJson(rows);

@@ -21,6 +21,10 @@ npm install -D @boristype/bt-cli @boristype/types
 npx btc init
 ```
 
+Для агентов есть независимо устанавливаемый [каталог skills](skills/README.md):
+первый `websoft-hcm` содержит знания о платформе, путях и конфигурации.
+[Установка через npx skills add](docs/guides/agent-skills.md).
+
 ---
 
 ## Команды
@@ -165,14 +169,19 @@ node ./packages/botest/build/index.js tests/build
 
 ### Структура monorepo
 
-| Пакет                   | Директория                 | Назначение                 |
-| ----------------------- | -------------------------- | -------------------------- |
-| `@boristype/bt-cli`     | `packages/bt-cli`          | CLI компилятор             |
-| `@boristype/bt-ir`      | `packages/bt-ir`           | IR pipeline (транспиляция) |
-| `@boristype/ws-client`  | `packages/ws-client`       | WebSoft HCM клиент         |
-| `@boristype/ws-version` | `packages/ws-version`      | Конверсия версий           |
-| `@boristype/runtime`    | `packages/builtin-runtime` | BorisScript polyfills      |
-| `botest`                | `packages/botest`          | Тест-раннер                |
+Для C# библиотек есть отдельный [.NET workspace](packages/dotnet/README.md).
+Команды `pnpm build:dotnet`, `pnpm test:dotnet`, `pnpm pack:dotnet` и
+`pnpm test:dotnet:pack` требуют SDK из global.json; обычная Node-сборка — нет.
+
+| Пакет                                   | Директория                 | Назначение                      |
+| --------------------------------------- | -------------------------- | ------------------------------- |
+| `@boristype/bt-cli`                     | `packages/bt-cli`          | CLI компилятор                  |
+| `@boristype/bt-ir`                      | `packages/bt-ir`           | IR pipeline (транспиляция)      |
+| `@boristype/ws-client`                  | `packages/ws-client`       | WebSoft HCM клиент              |
+| `@boristype/ws-version`                 | `packages/ws-version`      | Конверсия версий                |
+| `@boristype/runtime`                    | `packages/builtin-runtime` | BorisScript polyfills           |
+| `botest`                                | `packages/botest`          | Тест-раннер                     |
+| `@boristype/dotnet-workspace` (private) | `packages/dotnet`          | C# библиотеки, тесты и упаковка |
 
 Подробнее об архитектуре: [ref/architecture/monorepo.md](ref/architecture/monorepo.md)
 

@@ -1,0 +1,8 @@
+// MANUAL ISOLATION CANDIDATE: this method terminated the entire HCM process
+// with exit 139 twice on Linux HCM 2025.2.1333 / .NET 9.0.11 through SOAP eval.
+// Excluded from run.mjs. Do not execute as a routine smoke check.
+// The standalone file has not been executed. See the research report for the
+// original call sequences. Root cause and other carriers/versions are unknown.
+var assembly = tools.dotnet_host.Object.GetAssembly("BorisType.DatexProbe.dll");
+var payload = "  Привет 👋 中文 é\r\nA\rB\n\t<&>\"'\\  ";
+return assembly.CallClassStaticMethod("BorisType.Probes.DatexBridge", "EncodeViaPlatform", [payload]);

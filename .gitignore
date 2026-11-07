@@ -8,6 +8,8 @@ packages/botest/src/borisscript/main.js
 .btc
 .turbo
 .npmrc
+**/bin/
+**/obj/
 
 # VitePress
 docs/.vitepress/dist

@@ -1,0 +1,20 @@
+var hosts = ["wt", "share", "wt_data"];
+var schemes = ["x-local", "x-app", "file"];
+var rows = [];
+var i;
+var j;
+var url;
+var path;
+var row;
+for (i = 0; i < ArrayCount(hosts); i++) {
+ for (j = 0; j < ArrayCount(schemes); j++) {
+  if (schemes[j] == "file") { url = "file:///WebsoftServer/" + hosts[i] + "/__bt_storage_0yggwahs.txt"; }
+  else { url = schemes[j] + "://" + hosts[i] + "/__bt_storage_0yggwahs.txt"; }
+  row = {url: url};
+  try { path = UrlToFilePath(url); row.path = path; } catch (e) { row.pathError = String(e); }
+  try { row.urlData = LoadUrlData(url); } catch (e) { row.urlError = String(e); }
+  try { row.fileData = LoadFileData(path); } catch (e) { row.fileError = String(e); }
+  rows.push(row);
+ }
+}
+return EncodeJson(rows);

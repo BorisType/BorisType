@@ -8,12 +8,66 @@
 
 ## Текущий спринт (В процессе)
 
+### MCP: файловый checkpoint (2026-11-07)
+
+- [x] Девять реализованных tools на standalone DLL alpha.4/API 2, без зарегистрированных заглушек
+- [x] Native Linux acceptance, локальные regression suites и проверки npm/ZIP артефактов
+- [x] Свести release notes к итоговому контракту; отделить известные ограничения от готового файлового шага
+
+[Граница checkpoint, проверка PR и дальнейшие работы](plans/mcp-server/08-filesystem-checkpoint.md).
+
+### Agent skills (2026-11-06)
+
+- [x] Каталог `skills/` в текущем репозитории, независимый выбор через `npx skills add`
+- [x] Первый `websoft-hcm`: переносимые правила evidence и справочник URL/ini без зависимости от компилятора/MCP
+- [ ] Развивать тематические справочники по подтверждённым наблюдениям и документации
+- [x] Исследовать SQL storage routing на Linux C-runtime: x-local читает blob, x-app/file — диск; импорт локального файла при URL-чтении и границы физических tools
+- [ ] Установить полный механизм регистрации корней: добавление DESIGN-DB/DATA-DB не разрешило новые hosts в Linux evaluator; Windows и другие runtime требуют своих проверок
+
+[Каталог](skills/README.md), [установка](docs/guides/agent-skills.md),
+[первый измеримый шаг и проверки](plans/skills/01-websoft-hcm.md).
+
 ### Обновление toolchain (2026-11-05)
 
 - [x] Node.js 24.22.2: последние исправления ветки 24 LTS, включая TLS/certificate security fixes 24.22.1
 - [x] pnpm 12.16.1; единые pins для разработки и обоих GitHub workflows
+- [x] MCP dependency follow-up: fast-xml-parser 5.11.2 и @types/node 24.19.2, единые ranges и syncpack pins
 
 Node закреплён в `.node-version`, pnpm — в `package.json#packageManager`.
+
+### MCP: native e2e (2026-11-06)
+
+- [x] Отдельная последовательная e2e-команда для четырёх tools через CLI/stdio/SOAP на локальном HCM 2025.2.1333; независимая проверка байтов и очистки
+- [x] Исправить подтверждённые e2e ошибки: trailing SOAP whitespace, CRLF ответа, UTF-8 без BOM и утечку evaluator по EOF
+- [ ] Полный path/encoding/limits contract, permissions, partial initialization и shutdown при активном SOAP
+
+Evidence и границы: [MCP local e2e](plans/mcp-server/04-local-e2e.md).
+
+### .NET workspace (2026-11-06)
+
+- [x] Общая solution в packages/dotnet, отдельные C# проекты, SDK pin и locked NuGet restore
+- [x] Первая BorisType.FileSystem DLL с metadata JSON API, без Datex dependency
+- [x] Unit и installation ZIP checks, manifest hashes, отдельный Windows/Linux CI workflow
+- [x] Перенести native probes из MCP, сохранить известное callback-падение и vendor reference boundary
+- [x] Контракт ограниченного поиска: BS URL resolver, физические paths, UTF-8, glob/literal/regex и budgets
+- [x] Поиск имён/содержимого в DLL и MCP adapter; managed/VM tests и отдельный bounded native runner
+- [x] Ограниченная native acceptance поиска на Linux HCM 2025.2.1333 / CLR 9.0.11: resolver, bridge ABI, names/content/regex и cleanup
+- [x] Read/write/list/delete через standalone DLL alpha.3, общий JSON bridge и explicit UTF-8/link/limits contract
+- [x] Targeted edit: unique sequential replacements, preview/hash guard, BOM preservation; managed/protocol/native acceptance
+- [x] Учёт выданных диапазонов и версий для edit/overwrite; границы MCP-сессии без гарантии разделения чатов агента
+- [x] Довести файловое ядро до девяти tools: create_directory, move_file без overwrite, get_file_info
+- [ ] Отложенное исследование атомарного compare-and-replace с внешними writers на Linux/Windows; текущая повторная проверка этой гарантии не даёт
+- [ ] Acceptance поиска на Windows/других версиях HCM, permissions и полный path/encoding/limits contract
+
+Структура: [workspace README](packages/dotnet/README.md),
+[дизайн и критерии первого шага](plans/dotnet/01-workspace-design.md).
+CI workflow настроен для двух ОС; это не свидетельство запусков HCM на Windows.
+Поиск реализован без Datex callbacks и прошёл native e2e на одной Linux C-сборке.
+[Контракт](plans/dotnet/04-search-design.md), [evidence](plans/dotnet/06-search-results.md).
+Миграция file tools и edit: [contract](plans/dotnet/07-file-tools-design.md),
+[native evidence](plans/dotnet/09-file-tools-results.md).
+Учёт чтений и девять tools: [контракт](plans/dotnet/11-read-aware-files-design.md),
+[результаты](plans/dotnet/13-read-aware-files-results.md).
 
 ### Граница поддержки и память (2026-11-05)
 
@@ -215,6 +269,16 @@ Node закреплён в `.node-version`, pnpm — в `package.json#packageMan
 - [ ] Улучшения ESLint plugin
 - [ ] Prettier plugin
 - [ ] Шаблоны CI/CD
+
+#### MCP Server (`@boristype/mcp-server`)
+
+- [x] Пакет mcp-server: файловые операции (read/write/list/delete) через x-local:// URL
+- [x] MCP maintenance baseline: зависимости актуального main, runtime resources в tarball, только реализованные tools, локальные protocol/SOAP regression tests
+- [x] MCP native acceptance: девять tools и read guards на Linux HCM 2025.2.1333 / CLR 9.0.11; byte/hash и lifecycle/EOF checks
+- [ ] Acceptance на Windows HCM и полный permissions/VFS/shutdown-during-SOAP contract
+- [ ] Tool: выполнение произвольного BorisScript кода (`execute_bs`)
+- [ ] Tool: XQuery запросы к каталогам БД
+- [ ] Tool: чтение/обновление XML объектов в БД
 
 ---
 

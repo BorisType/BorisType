@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>BorisType.DatexProbe</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Datex.Global">
+      <HintPath>$(WebsoftReferenceDir)/Datex.Global.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <Target Name="RequireWebsoftReference" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(WebsoftReferenceDir)/Datex.Global.dll')"
+           Text="Set WebsoftReferenceDir to an external directory with Datex.Global.dll from the target HCM installation." />
+  </Target>
+</Project>
