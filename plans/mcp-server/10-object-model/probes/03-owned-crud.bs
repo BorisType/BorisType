@@ -1,0 +1,72 @@
+// MUTATES only one newly allocated cost_center owned by this probe. No blobs.
+// Do not run on production. Returns its ID for independent cleanup verification.
+var marker = "boristype-object-probe-" + StrHexInt(UniqueID());
+var result = {marker: marker};
+var doc;
+var a;
+var b;
+var fresh;
+var url = "";
+var ownedId = "";
+var trashUrl = "";
+var row;
+function ObjectResearchAttempt(code) {
+    try { return eval(code); }
+    catch (err) { return {error: String(err)}; }
+}
+function ObjectResearchCount(id) {
+    return ArrayCount(XQuery("for $c in cost_centers where $c/id = " + id + " return $c"));
+}
+try {
+    doc = OpenNewDoc("x-local://wtv/wtv_cost_center.xmd");
+    result.beforeBind = {url: doc.Url, idHasValue: doc.TopElem.id.HasValue};
+    doc.BindToDb(DefaultDb);
+    url = doc.Url;
+    ownedId = StrInt(doc.DocID);
+    result.bound = {url: url, id: ownedId, elemId: StrInt(doc.TopElem.id), neverSaved: doc.NeverSaved,
+        rows: ObjectResearchCount(ownedId)};
+    doc.TopElem.code = marker;
+    doc.TopElem.name = "BorisType owned object probe";
+    doc.TopElem.comment = "document-only-sentinel";
+    doc.TopElem.parent_id = Int("9007199254740993");
+    result.saveInvalidForeign = ObjectResearchAttempt("doc.Save(); return 'saved';");
+    result.rowsAfterSave = ObjectResearchCount(ownedId);
+    fresh = OpenDoc(url);
+    row = ArrayOptFirstElem(XQuery("for $c in cost_centers where $c/id = " + ownedId + " return $c"));
+    result.saved = {id: StrInt(fresh.TopElem.id), name: fresh.TopElem.name.Value,
+        comment: fresh.TopElem.comment.Value, parent: StrInt(fresh.TopElem.parent_id),
+        foreign: ObjectResearchAttempt("fresh.TopElem.parent_id.OptForeignElem == undefined"),
+        catalogHasComment: row.ChildExists("comment"), catalogName: row.name.Value,
+        created: String(fresh.TopElem.doc_info.creation.date),
+        modified: String(fresh.TopElem.doc_info.modification.date),
+        userLogin: fresh.TopElem.doc_info.modification.user_login.Value};
+    a = OpenDoc(url);
+    b = OpenDoc(url);
+    a.TopElem.name = "writer-A";
+    a.Save();
+    b.TopElem.comment = "writer-B";
+    result.staleSave = ObjectResearchAttempt("b.Save(); return 'saved';");
+    fresh = OpenDoc(url);
+    result.afterStaleSave = {name: fresh.TopElem.name.Value, comment: fresh.TopElem.comment.Value};
+    trashUrl = UrlFromDocID(Int(ownedId), "trash");
+    DeleteDoc(url, false);
+    result.trashed = {rows: ObjectResearchCount(ownedId),
+        trashRows: ArrayCount(XQuery("for $t in trash_docs where $t/id = " + ownedId + " return $t")),
+        trashName: OpenDoc(trashUrl).TopElem.code.Value,
+        openOriginal: ObjectResearchAttempt("OpenDoc(url).TopElem.code.Value")};
+    tools.restore_doc(Int(ownedId));
+    result.restored = {rows: ObjectResearchCount(ownedId),
+        trashRows: ArrayCount(XQuery("for $t in trash_docs where $t/id = " + ownedId + " return $t")),
+        id: StrInt(OpenDoc(url).TopElem.id)};
+    DeleteDoc(url, true);
+    result.deleted = {rows: ObjectResearchCount(ownedId), open: ObjectResearchAttempt("OpenDoc(url).TopElem.code.Value")};
+}
+catch (err) { result.fatal = String(err); }
+// Explicit sequential cleanup: only this run's freshly allocated object.
+if (ownedId != "") {
+    result.cleanupDelete = ObjectResearchAttempt("DeleteDoc(url, true); return 'deleted';");
+    if (trashUrl != "") result.cleanupTrash = ObjectResearchAttempt("DeleteDoc(trashUrl, true); return 'deleted';");
+    result.remainingRows = ObjectResearchCount(ownedId);
+    result.remainingTrashRows = ArrayCount(XQuery("for $t in trash_docs where $t/id = " + ownedId + " return $t"));
+}
+return EncodeJson(result);
