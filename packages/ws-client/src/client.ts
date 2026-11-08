@@ -144,6 +144,8 @@ export class WshcmClient {
           this.cookies.push(...setCookie.map((cookie) => cookie.split(";")[0]));
         }
 
+        // Keep incomplete UTF-8 sequences between HTTP chunks instead of decoding each Buffer separately.
+        res.setEncoding("utf8");
         let data = "";
         res.on("data", (chunk) => {
           data += chunk;

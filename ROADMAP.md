@@ -8,6 +8,18 @@
 
 ## Текущий спринт (В процессе)
 
+### MCP: серверный XQuery (2026-11-07)
+
+- [x] Один `wshcm_xquery` поверх существующего evaluator, включая `sql:`, без новой DLL
+- [x] Ограниченный ответ, метаданные усечения, protocol/JS проверки и отсутствие автоматических повторов
+- [x] Описать отсутствие read-only/rollback/cancellation гарантий и границы платформенной сериализации
+- [x] `test:e2e:xquery` 10/10 на Linux C-runtime; повторить четыре файловые native серии после UTF-8 transport fix
+- [x] Исправить разрезанные UTF-8 символы HTTP chunks; задокументировать negative integer formatting/SQL mapping и NULL/empty
+- [ ] Полный контракт SQL типов, Windows/MSSQL и другие версии проверить отдельно
+
+[Контракт и команда native acceptance](packages/mcp-server/README.md#серверный-xquery-и-sql).
+[Результаты и platform quirks](plans/mcp-server/09-xquery-native.md).
+
 ### Ручное сопровождение зависимостей (2026-11-07)
 
 - [x] Убрать Dependabot config и закрыть 14 накопившихся dependency PR
@@ -30,12 +42,15 @@
 
 - [x] Каталог `skills/` в текущем репозитории, независимый выбор через `npx skills add`
 - [x] Первый `websoft-hcm`: переносимые правила evidence и справочник URL/ini без зависимости от компилятора/MCP
+- [x] `boristype-mcp`: самостоятельная установка, файловые workflow/readToken и XQuery/SQL; общие instructions через MCP initialization
+- [x] Добавить в `websoft-hcm` числовой справочник и исходники native probes; проверить применение установленного skill отдельно
 - [ ] Развивать тематические справочники по подтверждённым наблюдениям и документации
 - [x] Исследовать SQL storage routing на Linux C-runtime: x-local читает blob, x-app/file — диск; импорт локального файла при URL-чтении и границы физических tools
 - [ ] Установить полный механизм регистрации корней: добавление DESIGN-DB/DATA-DB не разрешило новые hosts в Linux evaluator; Windows и другие runtime требуют своих проверок
 
 [Каталог](skills/README.md), [установка](docs/guides/agent-skills.md),
 [первый измеримый шаг и проверки](plans/skills/01-websoft-hcm.md).
+[MCP usage и числовое дополнение](plans/skills/02-mcp-and-numbers.md).
 
 ### Обновление toolchain (2026-11-05)
 

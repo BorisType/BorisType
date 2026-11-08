@@ -1,0 +1,30 @@
+// Query is an escaped string value, never executable BS source. sql: is intentionally allowed.
+// Materialize only a bounded range; never ArrayCount the original lazy query result.
+var _xqMaxRows = ${maxRows};
+var _xqItems = ArraySelectAll(ArrayRange(XQuery('${query}'), 0, _xqMaxRows + 1));
+var _xqRows = '';
+var _xqCount = 0;
+var _xqReason = null;
+var _xqIndex;
+var _xqRow;
+var _xqSeparator;
+for (_xqIndex = 0; _xqIndex < ArrayCount(_xqItems); _xqIndex++) {
+    if (_xqCount >= _xqMaxRows) {
+        _xqReason = 'rows';
+        break;
+    }
+    _xqRow = tools.object_to_text(_xqItems[_xqIndex], 'json', 5);
+    _xqSeparator = (_xqCount == 0 ? '' : ',');
+    // At most four UTF-8 bytes per counted character, plus room for the JSON envelope.
+    // A single row is serialized before its size is known; this is not a server memory limit.
+    if (StrCharCount(_xqRows) + StrCharCount(_xqRow) + StrCharCount(_xqSeparator) > 65000) {
+        _xqReason = 'output';
+        break;
+    }
+    _xqRows = _xqRows + _xqSeparator + _xqRow;
+    _xqCount++;
+}
+// Preserve platform numeric tokens by composing the envelope around serialized rows.
+var _xqJson = '{"rows":[' + _xqRows + '],"returnedRows":' + _xqCount +
+    ',"truncated":' + (_xqReason == null ? 'false' : 'true') + ',"limitReason":' + EncodeJson(_xqReason) + '}';
+return EncodeJson(_xqJson);

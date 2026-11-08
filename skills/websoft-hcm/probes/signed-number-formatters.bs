@@ -1,0 +1,14 @@
+var _n = -1;
+var _large = -9007199254740993;
+var _out = {};
+_out.strInt = StrInt(_n);
+_out.strSignedInt = StrSignedInt(_n);
+_out.strReal = StrReal(_n);
+_out.strRealZeroPrecision = StrReal(_n, 0);
+_out.signedNegative = StrSignedInt(-11500);
+_out.signedZero = StrSignedInt(0);
+_out.signedPositive = StrSignedInt(11500);
+_out.signedLarge = StrSignedInt(_large);
+_out.realLarge = StrReal(_large, 0);
+_out.jsonLarge = EncodeJson(_large);
+return EncodeJson(_out);

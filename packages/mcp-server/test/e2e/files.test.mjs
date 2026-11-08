@@ -105,6 +105,7 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
       "wshcm_read_file",
       "wshcm_search_files",
       "wshcm_write_file",
+      "wshcm_xquery",
     ]);
   });
 

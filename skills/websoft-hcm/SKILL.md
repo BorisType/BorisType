@@ -1,12 +1,13 @@
 ---
 name: websoft-hcm
-description: Use when developing or troubleshooting WebSoft HCM and BorisScript integrations, especially x-local/x-app/file URLs, filesystem paths, SQL blobs, LoadUrlData, storage hooks, platform configuration, or behavior that differs between server, administrator, operating systems, and runtimes.
+description: Use when developing or troubleshooting WebSoft HCM and BorisScript integrations involving x-local/x-app/file URLs, filesystem paths, SQL blobs, LoadUrlData, storage hooks, numeric formatting, StrSignedInt, large IDs, XQuery SQL-to-XML conversion, or behavior that differs between server, administrator, operating systems and runtimes.
 ---
 
 # WebSoft HCM
 
 Применяй сведения о платформе с учётом версии, ОС и места выполнения.
-Справочники покрывают пути, конфигурацию и маршрутизацию URL в хранилища.
+Справочники покрывают пути, конфигурацию, маршрутизацию URL в хранилища,
+числовое форматирование и SQL→XML.
 
 ## Выбор сведений
 
@@ -16,6 +17,11 @@ description: Use when developing or troubleshooting WebSoft HCM and BorisScript 
 Для операций с файлами, `LoadUrlData`, `PutUrlData`, `DeleteUrl`, `DB-STORE-HOOK`
 и `spxml_blobs` прочитай [URL storage и blobs](references/url-storage-and-blobs.md).
 Другие темы исследуй по доступным источникам; справочник постепенно пополняется.
+
+Для отрицательных чисел, `StrInt`/`StrSignedInt`/`StrReal`, точных больших ID
+и потерь SQL→XML прочитай [числа и SQL mapping](references/numbers-and-sql.md).
+Там различаются формат вывода, арифметика, JSON и значение XML-поля до SOAP;
+есть проверенные результаты и самостоятельные ограниченные probes.
 
 ## Операции с файлами
 
