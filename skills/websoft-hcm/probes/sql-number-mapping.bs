@@ -1,0 +1,9 @@
+var _diagRow = ArrayFirstElem(XQuery("sql: SELECT 42 AS pos, -7 AS neg, 0 AS zero, -2147483648 AS n32, -2147483649 AS n33, 9007199254740993 AS big, -9007199254740993 AS negative, CAST(-9007199254740993 AS text) AS negtext, NULL AS missing, '' AS empty"));
+var _diagFields = [];
+var _diagIndex;
+var _diagField;
+for (_diagIndex = 0; _diagIndex < ArrayCount(_diagRow) && _diagIndex < 20; _diagIndex++) {
+    _diagField = _diagRow.Child(_diagIndex);
+    _diagFields.push({ name: _diagField.Name, type: _diagField.Type, hasValue: _diagField.HasValue, valueType: DataType(_diagField.Value), value: String(_diagField.Value), xmlValue: _diagField.XmlValue });
+}
+return EncodeJson({ xml: _diagRow.GetXml({ tabs: false }), json: tools.object_to_text(_diagRow, "json", 5), fields: _diagFields });

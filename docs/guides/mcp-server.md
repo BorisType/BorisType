@@ -1,14 +1,55 @@
 # MCP server для WebSoft HCM
 
 `@boristype/mcp-server` — Node.js >=24.22.2, stdio transport, MCP SDK 2.x.
-Его сборка не использует TS → BorisScript compiler. Все девять tools требуют
+Его сборка не использует TS → BorisScript compiler. Девять файловых tools требуют
 отдельно установленной BorisType.FileSystem **0.1.0-alpha.4 / API 2**.
 MCP и DLL обновляются вместе: read/edit/write изменили контракт относительно API 1.
 
 Доступны read_file, write_file, edit_file, list_directory, search_files,
 delete_file, create_directory, move_file и get_file_info с префиксом `wshcm_`.
+Также доступен `wshcm_xquery`, которому BorisType DLL не нужна.
 Конфигурация CLI/env и клиента, installation и точные options — в
 [package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
+
+## Руководство для агента
+
+Сервер передаёт короткие общие `instructions` при MCP initialization, а каждый
+tool публикует свои schema и description. Для подробных workflow можно установить
+skill `boristype-mcp`: чтение/правка с readToken, хранилища, XQuery/SQL,
+потери типов и обработка неизвестного исхода. Установка и границы доставки
+инструкций клиентом — в [руководстве по skills](./agent-skills.md).
+Skill не устанавливает сервер или DLL и не добавляет новых гарантий.
+
+## Серверные запросы
+
+`wshcm_xquery` принимает `query` и optional `maxRows` (default 100, 1–1000):
+
+```json
+{ "query": "sql: SELECT 1 AS n", "maxRows": 10 }
+```
+
+Обычный XQuery и префикс `sql:` передаются в платформенный `XQuery` на сервере
+без фильтрации. Дополнительных клиентских SQL-флагов tool не включает.
+**Гарантий чтения, идемпотентности и отката нет**; tool помечен как потенциально
+изменяющий данные. Политика readToken файловых tools эти запросы не ограничивает.
+
+Ответ: `rows`, `returnedRows`, `truncated`, `limitReason` (`null`/`rows`/`output`).
+Ограниченный диапазон содержит до maxRows + 1 строк для lookahead; размер
+сериализованных строк ограничен 65000 символами, весь ответ — 256 KiB UTF-8.
+Типы/вложенность следуют `tools.object_to_text(row, "json", 5)`; каноническое
+сохранение SQL NULL, decimal, дат и дубликатов колонок не гарантируется.
+Числовые JSON tokens возвращаются без повторной сериализации в Node.
+На проверенной Linux C/PG сборке отрицательные SQL integer становятся пустыми
+XML-полями и выдаются как `null`, даже `-7`. Приведение integer к тексту в SQL
+сохраняет знак; SQL `NULL` без явного типа и `''` оба получены как `""`.
+
+Эти лимиты не ограничивают работу БД и память сервера. Transport timeout не
+гарантирует отмену запроса; автоматических повторов нет. Запрос может изменить
+данные до ошибки или потери ответа. `test:e2e:xquery` прошёл 10/10 на Linux HCM
+2025.2.1333 / CLR 9.0.11 / PostgreSQL 16 без BorisType DLL в query path. Проверены
+каталог, SQL, quotes/control escapes, row/output limit и большие Unicode-ответы.
+Команда требует запущенный локальный стенд; output fixtures используют PostgreSQL.
+[Evidence и ограничения типов](https://github.com/BorisType/BorisType/blob/main/plans/mcp-server/09-xquery-native.md).
 
 ## Чтение перед изменением
 

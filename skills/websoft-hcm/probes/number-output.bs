@@ -1,0 +1,13 @@
+var _numberProbe = -1;
+var _emojiProbe = "👋";
+var _numberResult = {};
+alert(_numberProbe);
+_numberResult.lessThanZero = (_numberProbe < 0);
+_numberResult.addOneIsZero = (_numberProbe + 1 == 0);
+_numberResult.asString = String(_numberProbe);
+_numberResult.concatenated = "" + _numberProbe;
+_numberResult.strInt = StrInt(_numberProbe);
+_numberResult.asJson = EncodeJson(_numberProbe);
+_numberResult.charCount = StrCharCount(_emojiProbe);
+_numberResult.stringLength = _emojiProbe.length;
+return EncodeJson(_numberResult);

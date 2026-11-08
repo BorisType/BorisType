@@ -1,13 +1,14 @@
 # @boristype/mcp-server
 
-MCP сервер для WebSoft HCM — предоставляет AI-агентам доступ к файловой системе сервера через [Model Context Protocol](https://modelcontextprotocol.io/) (stdio transport).
+MCP сервер для WebSoft HCM — предоставляет AI-агентам доступ к файловой системе и серверному XQuery через [Model Context Protocol](https://modelcontextprotocol.io/) (stdio transport).
 
 Использует [@boristype/ws-client](../ws-client/) для соединения с WSHCM сервером.
 
-Статус: экспериментальный checkpoint девяти файловых tools. Требуется Node.js >=24.22.2 и отдельно установленная
-`BorisType.FileSystem.dll` **0.1.0-alpha.4 / API 2** на HCM для всех девяти tools.
-Все операции используют BS URL resolver и managed filesystem API, без Datex
-callbacks. Все девять tools и защита чтений прошли native e2e на Linux
+Статус: экспериментальный checkpoint девяти файловых tools и новый `wshcm_xquery`.
+Требуется Node.js >=24.22.2. Девять файловых tools требуют отдельно установленную
+`BorisType.FileSystem.dll` **0.1.0-alpha.4 / API 2** на HCM; XQuery её не использует.
+Файловые операции используют BS URL resolver и managed filesystem API, без Datex
+callbacks. Девять файловых tools и защита чтений прошли native e2e на Linux
 C-runtime `websoft/hcm:2025.2.1333` / CLR 9.0.11. Это evidence одной сборки;
 другие ОС/версии и полный permissions/VFS contract требуют отдельных проверок.
 [Отчёт](../../plans/dotnet/13-read-aware-files-results.md).
@@ -32,32 +33,113 @@ TypeScript CLI: версия 7 использует новый native compiler �
 npm install -g @boristype/mcp-server
 ```
 
+## Руководство для агента
+
+Сервер передаёт короткие общие `instructions` при MCP initialization: связи
+между tools, чтение перед правкой, различие физических файлов и blobs,
+неполные query results и неизвестный исход выполнения. Клиент решает, включать
+ли этот текст в контекст модели; отправка инструкций не доказывает их применение.
+Descriptions и schemas tools остаются источником текущих параметров.
+
+Подробные workflow доступны в отдельно устанавливаемом skill `boristype-mcp`:
+
+```sh
+npx skills add BorisType/BorisType --skill boristype-mcp
+```
+
+Для изменений до публикации используй локальный checkout:
+`npx skills add . --skill boristype-mcp`.
+Skill не устанавливает MCP/DLL и не требует skill `websoft-hcm`.
+[Каталог и установка skills](../../docs/guides/agent-skills.md).
+MCP resources и prompts на этом шаге не зарегистрированы. Описания tools,
+instructions и skill не добавляют гарантий чтения, изоляции или отката сверх кода.
+
 ## Tools
 
-| Tool                     | Назначение                                       |
-| ------------------------ | ------------------------------------------------ |
-| `wshcm_read_file`        | UTF-8 текст или диапазон строк, hash и readToken |
-| `wshcm_write_file`       | Create-only либо перезапись после полного чтения |
-| `wshcm_edit_file`        | Точные замены внутри прочитанных диапазонов      |
-| `wshcm_list_directory`   | Immediate entries, без recursion                 |
-| `wshcm_search_files`     | Поиск по именам и UTF-8 содержимому              |
-| `wshcm_delete_file`      | Удаление отдельного файла                        |
-| `wshcm_create_directory` | Создание каталога и missing parents              |
-| `wshcm_move_file`        | Rename без overwrite и copy/delete fallback      |
-| `wshcm_get_file_info`    | Metadata файла/каталога без чтения содержимого   |
+| Tool                     | Назначение                                        |
+| ------------------------ | ------------------------------------------------- |
+| `wshcm_read_file`        | UTF-8 текст или диапазон строк, hash и readToken  |
+| `wshcm_write_file`       | Create-only либо перезапись после полного чтения  |
+| `wshcm_edit_file`        | Точные замены внутри прочитанных диапазонов       |
+| `wshcm_list_directory`   | Immediate entries, без recursion                  |
+| `wshcm_search_files`     | Поиск по именам и UTF-8 содержимому               |
+| `wshcm_delete_file`      | Удаление отдельного файла                         |
+| `wshcm_create_directory` | Создание каталога и missing parents               |
+| `wshcm_move_file`        | Rename без overwrite и copy/delete fallback       |
+| `wshcm_get_file_info`    | Metadata файла/каталога без чтения содержимого    |
+| `wshcm_xquery`           | Серверный XQuery, включая прямой SQL через `sql:` |
 
 Read/list/search/info помечены readOnlyHint. Write/edit/delete/move имеют
 `destructiveHint: true`, `idempotentHint: false`; create_directory —
 `destructiveHint: false`, `idempotentHint: true`. Это подсказки MCP-клиенту;
 сервер не реализует отдельное пользовательское подтверждение.
+XQuery имеет `readOnlyHint: false`, `destructiveHint: true`, `idempotentHint: false`:
+запрос передаётся платформе без проверки на чтение.
 
 Отложенные read-multiple/tree не зарегистрированы; их TS stubs и пять старых BS
-stubs удалены. Два действующих BS resources — URL bridges к DLL — необходимы.
+stubs удалены. Два файловых BS resources — URL bridges к DLL — и отдельный
+`xquery.bs` используются зарегистрированными tools.
 
 Это несовместимое обновление прототипа: read всегда возвращает JSON,
 includeMetadata удалён; edit требует readToken, write по умолчанию create-only.
 Установить DLL alpha.4/API 2 и обновить MCP вместе. Старые ответы API 1 отвергаются.
 Установка — в [.NET README](../dotnet/README.md#установка-для-mcp); npm не содержит DLL.
+
+### Серверный XQuery и SQL
+
+`wshcm_xquery` принимает `query` и optional `maxRows` (по умолчанию 100, от 1 до 1000):
+
+```json
+{ "query": "for $elem in collaborators where $elem/id = 123 return $elem", "maxRows": 10 }
+```
+
+```json
+{ "query": "sql: SELECT 1 AS n", "maxRows": 10 }
+```
+
+Текст запроса передаётся без изменений в `XQuery` существующим серверным evaluator.
+`sql:` разрешён; отдельной SQL tool и фильтрации DML/DDL сейчас нет. Инструмент
+**не гарантирует чтение, идемпотентность или откат**. Запросы с побочными эффектами
+могут изменить данные даже при ошибке либо потере ответа. Автоматических повторов
+нет; после неизвестного исхода не следует слепо повторять запрос.
+
+Ответ — JSON с `rows`, `returnedRows`, `truncated` и `limitReason` (`null`, `rows`
+или `output`). Число строк относится к выданному ответу, не ко всему результату.
+Читается диапазон до `maxRows + 1`, без подсчёта исходного результата. Для ограничения
+вывода сериализованные строки суммарно ограничены 65000 символами; выдаются только
+целые строки. Весь текст ответа ограничен 256 KiB UTF-8. Первая слишком большая
+строка даёт пустой `rows`, `truncated: true`, `limitReason: "output"`.
+
+Строки сериализуются платформенным `tools.object_to_text(row, "json", 5)`.
+Типы, даты, SQL NULL, XML-вложенность и повторяющиеся имена полей следуют этому
+сериализатору; канонический или полностью lossless SQL/JSON контракт не обещается.
+На проверенном Linux C/PG runtime отрицательные SQL integer, включая `-7`, уже
+пусты в XML-результате и выдаются как `null`; приведение к тексту в самом SQL
+сохраняет знак, например `CAST(-9007199254740993 AS VARCHAR(32))`.
+SQL `NULL` без явного типа и `''` оба получены как `""`. Эти потери происходят
+до MCP и не устраняются выбором JSON encoder.
+MCP проверяет envelope, но возвращает исходный JSON без повторной сериализации
+чисел в Node. Потребитель, разбирающий JSON в JS, всё ещё может округлить большие
+числа. Запрос ограничен 64 KiB UTF-8, должен быть непустым, без NUL и lone surrogates;
+произвольные platform options вроде `lds-server` не принимаются.
+
+Лимиты строк/вывода **не ограничивают стоимость запроса или память сервера**:
+материализуется ограниченный диапазон, а отдельная строка сериализуется до проверки
+размера. HTTP timeout только прекращает ожидание; отмена работы в БД не гарантируется.
+SQL использует диалект и права текущей БД платформы. Серверный вызов не требует
+включать клиентский `ALLOW-SQL-REMOTE-QUERIES`; инструмент не меняет конфигурацию
+WebSoft. Ограничения клиентского LDS-вызова не переносятся на наш серверный evaluator.
+
+Источники API: [XQuery](https://wshcm-docs.boristype.dev/news/platform/7143925311248265325.html),
+[object_to_text](https://wshcm-docs.boristype.dev/news/platform/7163334555835046783.html),
+[клиентское ограничение SQL](https://wshcm-docs.boristype.dev/news/monolith/7203696059885836448.html).
+Декларации сверены с `wshcmx/types` revision `a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b`:
+[core/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/core/index.d.ts#L2613),
+[tools/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/tools/index.d.ts#L5104).
+Поддержка серверного `sql:` без дополнительных клиентских флагов — уточнение
+пользователя. Native acceptance прошёл 2026-11-07 на Linux HCM 2025.2.1333 /
+CLR 9.0.11 / PostgreSQL 16 без изменения настроек SQL. Это проверка текущего
+стенда, не всех версий/конфигураций. [Результаты и ограничения](../../plans/mcp-server/09-xquery-native.md).
 
 ### Чтение и разрешённые изменения
 
@@ -357,6 +439,22 @@ pnpm --filter @boristype/mcp-server test:e2e:edit
 Проверены BOM/no-BOM, metadata SHA256, preview/apply, stale hash, ambiguous и
 missing second edit без частичной записи, invalid UTF-8/NUL, link policy и cleanup.
 Ни одна из четырёх native команд не запускает стенд и не устанавливает DLL.
+
+XQuery имеет отдельную команду с теми же `WSHCM_E2E_*` переменными:
+
+```bash
+pnpm --filter @boristype/mcp-server test:e2e:xquery
+```
+
+Она не требует BorisType DLL, не меняет данные БД и проверяет catalog XQuery,
+`sql: SELECT`, Unicode/кавычки/control escapes, большие целые и SQL text cast,
+row/output limit, большие CJK/emoji ответы, ошибки и cleanup evaluator.
+Output acceptance использует PostgreSQL `repeat`/`generate_series`. Команда требует
+уже запущенный эксклюзивный локальный стенд. На Linux HCM 2025.2.1333 / CLR 9.0.11
+прошли 10/10 Node tests (9 сценариев и parent), без skips. Большие ответы выявили
+и помогли исправить UTF-8 decoding на границах HTTP chunks в ws-client.
+Windows HCM, MSSQL, другие версии и полный контракт типов требуют отдельных проверок.
+[Native отчёт](../../plans/mcp-server/09-xquery-native.md).
 
 ### Что остаётся проверить
 

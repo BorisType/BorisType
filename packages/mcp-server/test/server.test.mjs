@@ -44,7 +44,7 @@ async function primed(t, evaluate, content = "abc") {
   return { client, readToken: JSON.parse(result.content[0].text).readToken };
 }
 
-test("MCP advertises nine tools and edit is not marked idempotent", async (t) => {
+test("MCP advertises nine file tools and xquery; edit is not marked idempotent", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
@@ -57,11 +57,14 @@ test("MCP advertises nine tools and edit is not marked idempotent", async (t) =>
     "wshcm_read_file",
     "wshcm_search_files",
     "wshcm_write_file",
+    "wshcm_xquery",
   ]);
   assert.equal(tools.find(({ name }) => name === "wshcm_edit_file").annotations.idempotentHint, false);
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, "object");
-    assert.ok(tool.inputSchema.required.includes(tool.name === "wshcm_move_file" ? "source" : "path"));
+    assert.ok(
+      tool.inputSchema.required.includes(tool.name === "wshcm_xquery" ? "query" : tool.name === "wshcm_move_file" ? "source" : "path"),
+    );
   }
 });
 
