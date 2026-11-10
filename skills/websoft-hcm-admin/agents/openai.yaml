@@ -1,0 +1,4 @@
+interface:
+  display_name: "WebSoft HCM: администратор"
+  short_description: "Карточки сотрудников, фильтры и навигация в админке"
+  default_prompt: "Используй $websoft-hcm-admin, чтобы найти сотрудника в веб-администраторе и проверить поля его карточки."

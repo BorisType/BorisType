@@ -4,6 +4,8 @@
 [`skills/`](https://github.com/BorisType/BorisType/tree/main/skills). Первый — `websoft-hcm`: знания о платформе,
 URL, конфигурации путей, SQL storage и числах, с указанием источников и границ проверок.
 `boristype-mcp` — отдельный skill для файловых tools и серверного XQuery/SQL.
+`websoft-hcm-admin` — работа в веб-администраторе через браузер: поиск сотрудника
+и проверка его карточки.
 
 ## Установка
 
@@ -20,6 +22,7 @@ npx skills add BorisType/BorisType
 npx skills add BorisType/BorisType --list
 npx skills add BorisType/BorisType --skill websoft-hcm
 npx skills add BorisType/BorisType --skill boristype-mcp
+npx skills add BorisType/BorisType --skill websoft-hcm-admin
 ```
 
 Для ветки, ещё не включённой в `main`, можно использовать локальный checkout. Из его корня:
@@ -28,6 +31,7 @@ npx skills add BorisType/BorisType --skill boristype-mcp
 npx skills add . --list
 npx skills add . --skill websoft-hcm
 npx skills add . --skill boristype-mcp
+npx skills add . --skill websoft-hcm-admin
 ```
 
 По умолчанию установка относится к текущему проекту. Для использования в другом
@@ -59,6 +63,14 @@ XQuery/SQL, усечение ответа и неизвестный исход �
 потери отрицательных SQL integer до SOAP и text cast для сохранения цифр.
 Skill требует доступный MCP-сервер для выполнения операций, но устанавливается
 независимо от `websoft-hcm`; сам MCP и DLL он не устанавливает.
+
+`websoft-hcm-admin` содержит `references/employees.md`: вход через `/admin`,
+**Персонал → Сотрудники**, открытие карточки двойным щелчком, общие и контактные
+поля. Полнотекстовый поиск может не видеть новую запись до переиндексации
+по расписанию; для немедленного поиска подходят обычные фильтры или каталог.
+Период индексации зависит от установки. Источники и границы проверки указаны
+в справочнике; создание и сохранение через UI пока не проверены.
+Skill не требует нашего MCP, компилятора или определённого browser tool.
 
 ## Skills и инструкции MCP
 

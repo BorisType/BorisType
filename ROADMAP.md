@@ -55,6 +55,7 @@
 - [x] Первый `websoft-hcm`: переносимые правила evidence и справочник URL/ini без зависимости от компилятора/MCP
 - [x] `boristype-mcp`: самостоятельная установка, файловые workflow/readToken и XQuery/SQL; общие instructions через MCP initialization
 - [x] Добавить в `websoft-hcm` числовой справочник и исходники native probes; проверить применение установленного skill отдельно
+- [x] `websoft-hcm-admin`: поиск и проверка карточки сотрудника в браузере, задержка полнотекстового индекса и границы UI-проверки
 - [ ] Развивать тематические справочники по подтверждённым наблюдениям и документации
 - [x] Исследовать SQL storage routing на Linux C-runtime: x-local читает blob, x-app/file — диск; импорт локального файла при URL-чтении и границы физических tools
 - [ ] Установить полный механизм регистрации корней: добавление DESIGN-DB/DATA-DB не разрешило новые hosts в Linux evaluator; Windows и другие runtime требуют своих проверок
@@ -62,6 +63,7 @@
 [Каталог](skills/README.md), [установка](docs/guides/agent-skills.md),
 [первый измеримый шаг и проверки](plans/skills/01-websoft-hcm.md).
 [MCP usage и числовое дополнение](plans/skills/02-mcp-and-numbers.md).
+[Веб-администратор: первый сценарий и проверки](plans/skills/03-websoft-hcm-admin.md).
 
 ### Обновление toolchain (2026-11-05)
 
