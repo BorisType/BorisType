@@ -7,7 +7,8 @@ MCP и DLL обновляются вместе: read/edit/write изменили
 
 Доступны read_file, write_file, edit_file, list_directory, search_files,
 delete_file, create_directory, move_file и get_file_info с префиксом `wshcm_`.
-Также доступен `wshcm_xquery`, которому BorisType DLL не нужна.
+Также доступны `wshcm_xquery` и XML object tools `wshcm_get_form`,
+`wshcm_get_object`, `wshcm_save_object`, которым BorisType DLL не нужна.
 Конфигурация CLI/env и клиента, installation и точные options — в
 [package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
 
@@ -19,6 +20,50 @@ skill `boristype-mcp`: чтение/правка с readToken, хранилищ�
 потери типов и обработка неизвестного исхода. Установка и границы доставки
 инструкций клиентом — в [руководстве по skills](./agent-skills.md).
 Skill не устанавливает сервер или DLL и не добавляет новых гарантий.
+
+## XML объектов
+
+`wshcm_get_form({formUrl})` возвращает раскрытую структуру через нативный
+`XmlForm.TopElem.Xml`: агенту не нужно вручную собирать SAMPLE/INHERIT из файлов.
+Это текущая загруженная форма, не автономный export всех зависимостей XMD.
+
+`wshcm_get_object({id})` возвращает полный экспорт `TopElem.Xml`, actual form URL
+и `readToken`. ID передаётся точной decimal string; hex integer внутри XML
+поддерживается без JS Number. Полный XML не включает гарантированный binary
+backup, TEMP и computed data.
+
+`wshcm_save_object` принимает XML строкой, без XML→JS→XML mapping:
+
+```json
+{
+  "mode": "create",
+  "formUrl": "x-local://wtv/wtv_cost_center.xmd",
+  "xml": "<cost_center><code>example-unique-code</code><name>Example</name></cost_center>"
+}
+```
+
+Create выделяет новый ID. Для replace нужны `mode:"replace"`, `id`, `readToken`
+и `xml`; форма берётся из прочитанного существующего объекта. **Пропущенные поля
+удаляются либо получают defaults.** Нужен token полного чтения в текущем MCP
+instance, TTL 30 минут, до 32 snapshots. Новое чтение меняет token, попытка
+replace расходует его; после попытки требуется перечитать объект.
+
+Проверяются строгий XML 1.0, root/identity, известность полей, cardinality и
+integer lexical/range. Остальные scalar conversions и бизнес-проверки не
+гарантируются. XML/schema ограничены 256 KiB каждый, input depth 64, 8192
+элемента; большой ответ отклоняется целиком. Поддерживаются локальные XMD URLs
+`x-local://` и `x-app://` без произвольных open options.
+
+Перед Save повторно проверяются XML объекта и его форма, но это не atomic CAS
+относительно внешних writers. Token относится к MCP instance, изоляция чатов
+при переиспользовании сервера не гарантируется. Form/load/hooks могут выполнять
+код; сохранение не повторяет XMS business workflow или UI authorization.
+
+Ответ содержит `writeStatus`: `not_attempted` — Save ещё не вызывался,
+`unknown` — исход не установлен, `saved` — Save завершился, даже если последующий
+readback не удался. Известный ID сохраняется в ошибке. Нет гарантии rollback или
+отмены по timeout; автоматически повторять create/replace нельзя.
+[Полный контракт и примеры](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#xml-объектов-форма-чтение-сохранение).
 
 ## Серверные запросы
 
@@ -111,6 +156,13 @@ EOF/SIGINT/SIGTERM выполняют общий evaluator cleanup. Частич
 и shutdown во время активного SOAP требуют дальнейшей работы.
 
 ## Проверки
+
+XML object suite `test:e2e:objects` не требует BorisType DLL и проверяет
+form/create/read/whole replace, XML negatives и stale/consumed token на одном
+собственном `cost_center`, с независимым удалением/cleanup. На Linux HCM
+2025.2.1333 / CLR 9.0.11 / PostgreSQL 16 прошло 8/8 tests без skips.
+Общий локальный MCP suite — 218/218; он не заменяет native acceptance.
+[Отчёт и границы](https://github.com/BorisType/BorisType/blob/main/plans/mcp-server/10-object-model/first-implementation.md).
 
 Есть managed, MCP protocol/VM, stdio и pack проверки, а также отдельные native
 команды test:e2e, test:e2e:edit, test:e2e:read-aware, test:e2e:search. Native suites

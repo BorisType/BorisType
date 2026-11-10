@@ -1,0 +1,117 @@
+{
+  "date": "2026-11-08",
+  "image": "websoft/hcm:2025.2.1333",
+  "imageId": "sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab",
+  "runtime": {
+    "assembly": "2.25.12.4 [202512041524]",
+    "clr": "9.0.11",
+    "os": "Linux x64",
+    "database": "PostgreSQL 16",
+    "model": "legacy (UseObjectTypes=false)"
+  },
+  "carrier": "C-runtime/eval/temporary-library",
+  "observationsPassed": 59,
+  "rawEvidenceLocation": "/home/agent/workspace/wshcm-stand-net9/research/object-model-20261108",
+  "runs": [
+    {
+      "probe": "probes/01-reflection.bs",
+      "sha256": "01b334b867ae3069562f259710c1db85d448c42dae1be993e5f18c72d910b0c3",
+      "evaluatedSha256": "01b334b867ae3069562f259710c1db85d448c42dae1be993e5f18c72d910b0c3",
+      "adaptation": "none",
+      "resultTranscriptSha256": "a43a3313494ab70486033ca756678eea77fe0a6aee65853df0127560475b9c8b",
+      "observedTranscript": "observed/01-reflection.result.jsonl",
+      "observedTranscriptSha256": "034de9b4b5a96738223575cd793542192e00d63c2b60101a9c7c23b41b6e59cc"
+    },
+    {
+      "probe": "probes/02-values-and-hooks.bs",
+      "sha256": "eca6dda6ecebe83adf3f174cbf18cf5b8717a33d0b12364f8ec57f08255f0ee3",
+      "evaluatedSha256": "eca6dda6ecebe83adf3f174cbf18cf5b8717a33d0b12364f8ec57f08255f0ee3",
+      "adaptation": "none",
+      "resultTranscriptSha256": "22f97c2c635a05c6faf8b3c58406baa29cc43c94b1234e14b468749f537cc412",
+      "observedTranscript": "observed/02-values-and-hooks.result.jsonl",
+      "observedTranscriptSha256": "d6d2c6dd3975247623cd1f86f35177e7f11eede9cc6777a3dace889b98310edc"
+    },
+    {
+      "probe": "probes/03-owned-crud.bs",
+      "sha256": "4b56ce22a76808aa37e00f13fc2e4336e9c0f93d010a12684f88673d0ef3f13b",
+      "evaluatedSha256": "4b56ce22a76808aa37e00f13fc2e4336e9c0f93d010a12684f88673d0ef3f13b",
+      "adaptation": "none",
+      "resultTranscriptSha256": "70a22dbc72b1f03cc1ee8daf75bc25018aac5fcc9740aaadd2299d5d5b762e9a",
+      "observedTranscript": "observed/03-owned-crud.result.jsonl",
+      "observedTranscriptSha256": "a394414de0d094ab7807f4c28c5d9f4c61f385885636012c45f1c52fe9b0c0a1"
+    }
+  ],
+  "vendorSources": [
+    {
+      "path": "/WebsoftServer/wtv/wtv_cost_center.xmd",
+      "sha256": "7b37c8b407171805eca637d67c9397d49fb68848e072d96155fb2c2387a77ab0"
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_cost_centers.xmd",
+      "sha256": "f8b3ce523166117aca926aa347cbbc9ea388c5ad271b95a3ebf2ea7c2fdc81a6"
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_general.xmd",
+      "sha256": "f4cd5b32f094ae5f212591bf08afdf2ec0a6fe072b9e77a898f160d99986969d"
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_group_collaborators.xmd",
+      "sha256": "fb243572d7aaa978b46baf75bedb17fd96e9844d542155656765c64f18523128"
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_collaborator.xmd",
+      "sha256": "583b5f216e63680c8095e2164a8de995770fdc1df00e4055ae21f72c7be6a99f"
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_event.xmd",
+      "sha256": "31ac4cae38b5f713b5c26072a3a660fc35acff06f0c0bf17ac4dcb6b1c70d528"
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_events.xmd",
+      "sha256": "acf5bbdfb54ebb8861de6df3e156b96a0303c2258d0678a2522a9e3c9fd99c00"
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_tools.xml",
+      "sha256": "1addfe3642811ad749210580b251c62a318ccca2cab8b396470c4bc13348fc5b"
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_view_main.xml",
+      "sha256": "ff768c0c0e3ce8069f3fdbd9fbad01dfb6590d4ca86873da634949255c58b8d3"
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_view_trash.xms",
+      "sha256": "b9cda763d6325e29319f6367aeed8cd1e467dead7593a0194d9886f49c7b93b3"
+    },
+    {
+      "path": "/WebsoftServer/app/sx_trash_docs.xmd",
+      "sha256": "cb8e3491abd00264912a335231c56e1d9786d985ea78b5d183c64ed5d45beec1"
+    }
+  ],
+  "inventory": {
+    "scope": "/WebsoftServer/wtv/*.xmd and *.xms (top-level only)",
+    "xmdFiles": 919,
+    "xmsFiles": 609,
+    "strictXmlParsed": 848,
+    "strictXmlRejected": 71,
+    "catalogsAmongStrictlyParsed": 434,
+    "note": "Strict XML rejection does not imply a platform parsing error."
+  },
+  "cleanup": {
+    "ownedDbObjectsAndTrashRowsAbsent": true,
+    "physicalFixtureAndEvaluatorsAbsent": true,
+    "dynamicFormCacheEvictionVerified": false,
+    "dynamicFormsReleasedByStandShutdown": true,
+    "containersRestoredToStopped": true,
+    "oomKilled": false
+  },
+  "observedTranscripts": "Sanitized derivatives of external raw transcripts; source hashes/carrier/results retained; vendor catalogXml/meta[].xml omitted; error stacks reduced to first line; file paths normalized and elapsedMs omitted.",
+  "cleanupEvidence": {
+    "source": "observed/postcheck.bs",
+    "sourceSha256": "eb9f666d909ce221ec6507bdea02d6975c536248c617b94046022fb819e6d5f8",
+    "observedTranscript": "observed/postcheck.result.jsonl",
+    "observedTranscriptSha256": "8f1fca8b781f30cb3843c1d93df32f8ca51abb34194ab11588cd917a144c5cc9",
+    "rawTranscriptSha256": "9c958ee6a55d12fe2aa5c625904cf5774a52857d09a0e2da1d51c0c54aa12670",
+    "ownedObjectIds": ["7348878536800680991", "7348879056500055424"],
+    "note": "Recorded read-only verification of these two receipts, not a dynamic cleanup tool."
+  }
+}

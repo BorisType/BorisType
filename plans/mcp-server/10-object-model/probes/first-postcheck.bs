@@ -1,0 +1,14 @@
+// Read-only independent check of known owned IDs and own code prefix.
+var ids = ["7349585223810462098", "7349585580943734205", "7349586110038372401", "7349586349801536169", "7349589053615876377", "7349590554884596918"];
+var r = [];
+var id;
+var item;
+for (id in ids) {
+    item = {id:id,rows:ArrayCount(XQuery('for $c in cost_centers where $c/id = ' + id + ' return $c')),trash:ArrayCount(XQuery('for $t in trash_docs where $t/id = ' + id + ' return $t'))};
+    try { OpenDoc(UrlFromDocID(Int(id))); item.opened = true; } catch(e) { item.opened = false; }
+    if (item.rows != 0 || item.trash != 0 || item.opened) throw 'Owned object remains: ' + id;
+    r.push(item);
+}
+var prefixRows = ArrayCount(XQuery("for $c in cost_centers where contains($c/code, 'bt-xml-e2e-') return $c"));
+if (prefixRows != 0) throw 'Own-code-prefix rows remain';
+return EncodeJson({objects:r,prefixRows:prefixRows});

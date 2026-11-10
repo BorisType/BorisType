@@ -1,0 +1,44 @@
+// Own allocated cost_center only; intentionally demonstrates bad-root replacement.
+var formUrl = 'x-local://wtv/wtv_cost_center.xmd';
+var marker = 'boristype-xml-mvp-' + StrHexInt(UniqueID());
+var r = {marker:marker};
+var d;
+var replacement;
+var fresh;
+var id = '';
+var url = '';
+var goodXml = '';
+try {
+ d = OpenDocFromStr('<cost_center><code>' + marker + '</code><name>xml-created</name><comment>keep</comment></cost_center>', 'form=' + formUrl);
+ r.parsedNew = {neverSaved:d.NeverSaved,formUrl:d.FormUrl};
+ d.BindToDb(DefaultDb);
+ id = StrInt(d.DocID); url = d.Url;
+ r.bound = {id:id,elemId:StrInt(d.TopElem.id),neverSaved:d.NeverSaved};
+ d.Save();
+ fresh = OpenDoc(url);
+ r.created = {id:StrInt(fresh.TopElem.id),code:fresh.TopElem.code.Value,name:fresh.TopElem.name.Value,active:fresh.TopElem.is_active.Value,creationDate:String(fresh.TopElem.doc_info.creation.date),creationLogin:fresh.TopElem.doc_info.creation.user_login.Value};
+ replacement = OpenDocFromStr('<cost_center><code>' + marker + '</code><name>xml-replaced</name></cost_center>', 'form=' + formUrl);
+ replacement.BindToDb(DefaultDb, Int(id));
+ r.replaceBound = {url:replacement.Url,id:StrInt(replacement.DocID),elemId:StrInt(replacement.TopElem.id),neverSaved:replacement.NeverSaved};
+ replacement.Save();
+ fresh = OpenDoc(url);
+ r.replaced = {id:StrInt(fresh.TopElem.id),name:fresh.TopElem.name.Value,comment:fresh.TopElem.comment.Value};
+ goodXml = fresh.TopElem.Xml;
+ replacement = OpenDocFromStr('<not_cost_center><name>silently-lost</name></not_cost_center>', 'form=' + formUrl);
+ r.badParsed = {root:replacement.TopElem.Name,xml:replacement.TopElem.Xml};
+ replacement.BindToDb(DefaultDb, Int(id));
+ replacement.Save();
+ fresh = OpenDoc(url);
+ r.badSaved = {id:StrInt(fresh.TopElem.id),code:fresh.TopElem.code.Value,name:fresh.TopElem.name.Value,active:fresh.TopElem.is_active.Value};
+ replacement = OpenDocFromStr(goodXml, 'form=' + formUrl);
+ replacement.BindToDb(DefaultDb, Int(id));
+ replacement.Save();
+ r.restored = {name:OpenDoc(url).TopElem.name.Value};
+}
+catch (err) {r.fatal = String(err);}
+if (id != '') {
+ try {DeleteDoc(url, true); r.deleted = true;} catch (cleanupError) {r.cleanupError = String(cleanupError);}
+ r.remaining = ArrayCount(XQuery('for $c in cost_centers where $c/id = ' + id + ' return $c'));
+ r.trashRemaining = ArrayCount(XQuery('for $t in trash_docs where $t/id = ' + id + ' return $t'));
+}
+return EncodeJson(r);

@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-10",
+  "image": "websoft/hcm:2025.2.1333",
+  "imageId": "sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab",
+  "runtime": {
+    "assembly": "2.25.12.4 [202512041524]",
+    "clr": "9.0.11",
+    "os": "Linux x64",
+    "database": "PostgreSQL 16",
+    "model": "legacy (UseObjectTypes=false)"
+  },
+  "carrier": "C-runtime/eval/temporary-library",
+  "rawEvidenceLocation": "/home/agent/workspace/wshcm-stand-net9/research/xml-mvp-20261110",
+  "runs": [
+    {
+      "source": "probes/xml-core.bs",
+      "sourceSha256": "bc4fbf6db295ebb327ea336a7e9cb4df92dd9a9be7e08a47b0307381c5ced22e",
+      "rawTranscriptSha256": "3ad0ed0b81e907ee0889ceb40d89b8476d933cd9dce2fbd52bfb7f6f6354cf3b",
+      "observedTranscript": "observed/xml-core.result.jsonl",
+      "observedTranscriptSha256": "5b9ea407ae780f9f9e315084c5741ac75378465de0d5dd7a39f717f5ec2f200d"
+    },
+    {
+      "source": "probes/xml-crud.bs",
+      "sourceSha256": "3804a6afd721686aa931bfb02bb829ce1d24270bec1cb6326feb609c0f0970a7",
+      "rawTranscriptSha256": "6c436be237cbd567a18fc8931d12aba444a1628cc1c79ce693bf489793eb937b",
+      "observedTranscript": "observed/xml-crud.result.jsonl",
+      "observedTranscriptSha256": "012bd5692576430654abce3c4b09116ab106bf893484867723252d6f66c44a45"
+    }
+  ],
+  "cleanupEvidence": {
+    "source": "observed/xml-postcheck.bs",
+    "sourceSha256": "c7bcf0392e9154dc4675c2429c68e8f5a03065a63939fb4660d7aade14d0a847",
+    "rawTranscriptSha256": "272005e12894a829b93f7a96f0194eb03b828d27cc94eb203de6871616207f9f",
+    "observedTranscript": "observed/xml-postcheck.result.jsonl",
+    "observedTranscriptSha256": "5920bfbc84ce61b30f8a582350f413abf89209e84b0ec38d2e0ce29299f0621f",
+    "ownedObjectIds": ["7349577609794908305", "7349577710243911718"]
+  },
+  "diagnosticAttempt": {
+    "rawTranscript": "xml-crud-url-only.result.jsonl",
+    "rawTranscriptSha256": "24dab6e84e9b38ffb366e6d3629b15a5ef5d15a5ec567723ee878b16c79faea4",
+    "outcome": "URL-only candidate without identity failed provider commit; final BindToDb candidate reproduced destructive replacement; both owned IDs independently absent."
+  },
+  "cleanup": {
+    "ownedDbObjectsAndTrashRowsAbsent": true,
+    "physicalFixturesAndEvaluatorsAbsent": true,
+    "dynamicFormCacheEvictionVerified": false,
+    "dynamicFormsReleasedByStandShutdown": true,
+    "containersRestoredToStopped": true,
+    "oomKilled": false,
+    "wtExitCode": 143,
+    "postgresExitCode": 0
+  },
+  "observedTranscripts": "Sanitized derivatives: probe paths normalized, elapsedMs omitted, errors limited to first line. All XML in these transcripts belongs to own schemas/objects, not vendor schema source."
+}

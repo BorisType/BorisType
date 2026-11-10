@@ -1,8 +1,14 @@
-# MCP server: исследования и файловый checkpoint
+# MCP server: исследования и завершённые этапы
 
 Текущий результат (2026-11-07): девять tools для физической файловой системы,
 read-aware edit/overwrite и ограниченный поиск через .NET API 2.
 [Граница завершённого шага, проверки и оставшиеся ограничения](08-filesystem-checkpoint.md).
+
+Добавлен [XQuery tool, его native-проверки и ограничения](09-xquery-native.md).
+Исследованы [объекты БД — XMD, каталоги, XMS и варианты MCP API](10-object-model/README.md).
+Реализованы [три XML tools: раскрытая форма, полный объект, create/replace](10-object-model/first-implementation.md).
+Checkpoint от 2026-11-10: 218 локальных tests и 8 native tests, ограниченная
+вертикаль на `cost_center`; полная бизнес-валидация и все типы не аттестованы.
 
 Ниже сохранён первичный аудит от 2026-11-05, до изменения реализации.
 

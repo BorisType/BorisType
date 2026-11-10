@@ -44,7 +44,7 @@ async function primed(t, evaluate, content = "abc") {
   return { client, readToken: JSON.parse(result.content[0].text).readToken };
 }
 
-test("MCP advertises nine file tools and xquery; edit is not marked idempotent", async (t) => {
+test("MCP advertises nine file tools, xquery and three XML object tools", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
@@ -52,9 +52,12 @@ test("MCP advertises nine file tools and xquery; edit is not marked idempotent",
     "wshcm_delete_file",
     "wshcm_edit_file",
     "wshcm_get_file_info",
+    "wshcm_get_form",
+    "wshcm_get_object",
     "wshcm_list_directory",
     "wshcm_move_file",
     "wshcm_read_file",
+    "wshcm_save_object",
     "wshcm_search_files",
     "wshcm_write_file",
     "wshcm_xquery",
@@ -63,7 +66,11 @@ test("MCP advertises nine file tools and xquery; edit is not marked idempotent",
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, "object");
     assert.ok(
-      tool.inputSchema.required.includes(tool.name === "wshcm_xquery" ? "query" : tool.name === "wshcm_move_file" ? "source" : "path"),
+      tool.inputSchema.required.includes(
+        { wshcm_get_form: "formUrl", wshcm_get_object: "id", wshcm_save_object: "xml", wshcm_xquery: "query", wshcm_move_file: "source" }[
+          tool.name
+        ] ?? "path",
+      ),
     );
   }
 });

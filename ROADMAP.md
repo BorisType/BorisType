@@ -8,6 +8,17 @@
 
 ## Текущий спринт (В процессе)
 
+### MCP: XML object MVP (2026-11-10)
+
+- [x] Раскрытая XMD через `wshcm_get_form`, полный XML объекта через `wshcm_get_object`
+- [x] `wshcm_save_object`: create либо whole replace из исходного XML, без typed JSON mapping/DLL
+- [x] Full-read tokens, bounded XML и строгий XML parser, native form/root/identity/cardinality/integer guards
+- [x] Protocol/state/XML negatives и CLI/stdio/SOAP native acceptance на собственном `cost_center`
+- [ ] Расширить native matrix на custom lifecycle/types, Windows/MSSQL, новую модель, external data и CAS/authorization
+
+[Контракт](packages/mcp-server/README.md#xml-объектов-форма-чтение-сохранение),
+[первая реализация и acceptance](plans/mcp-server/10-object-model/first-implementation.md).
+
 ### MCP: серверный XQuery (2026-11-07)
 
 - [x] Один `wshcm_xquery` поверх существующего evaluator, включая `sql:`, без новой DLL
@@ -44,6 +55,7 @@
 - [x] Первый `websoft-hcm`: переносимые правила evidence и справочник URL/ini без зависимости от компилятора/MCP
 - [x] `boristype-mcp`: самостоятельная установка, файловые workflow/readToken и XQuery/SQL; общие instructions через MCP initialization
 - [x] Добавить в `websoft-hcm` числовой справочник и исходники native probes; проверить применение установленного skill отдельно
+- [x] `websoft-hcm-admin`: поиск и проверка карточки сотрудника в браузере, задержка полнотекстового индекса и границы UI-проверки
 - [ ] Развивать тематические справочники по подтверждённым наблюдениям и документации
 - [x] Исследовать SQL storage routing на Linux C-runtime: x-local читает blob, x-app/file — диск; импорт локального файла при URL-чтении и границы физических tools
 - [ ] Установить полный механизм регистрации корней: добавление DESIGN-DB/DATA-DB не разрешило новые hosts в Linux evaluator; Windows и другие runtime требуют своих проверок
@@ -51,6 +63,7 @@
 [Каталог](skills/README.md), [установка](docs/guides/agent-skills.md),
 [первый измеримый шаг и проверки](plans/skills/01-websoft-hcm.md).
 [MCP usage и числовое дополнение](plans/skills/02-mcp-and-numbers.md).
+[Веб-администратор: первый сценарий и проверки](plans/skills/03-websoft-hcm-admin.md).
 
 ### Обновление toolchain (2026-11-05)
 

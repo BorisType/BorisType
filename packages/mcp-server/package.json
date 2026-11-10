@@ -19,6 +19,7 @@
     "test:e2e": "node --test --test-concurrency=1 test/e2e/*.test.mjs",
     "test:e2e:search": "node --test --test-concurrency=1 test/e2e/search.mjs",
     "test:e2e:xquery": "node --test --test-concurrency=1 test/e2e/xquery.mjs",
+    "test:e2e:objects": "node --test --test-concurrency=1 test/e2e/objects.mjs",
     "test:pack": "node test/pack-smoke.mjs",
     "prepublishOnly": "pnpm build",
     "inspector": "mcp-inspector node build/cli.js",
@@ -45,12 +46,13 @@
     "@boristype/ws-client": "workspace:^",
     "@modelcontextprotocol/server": "^2.4.0",
     "commander": "^15.0.0",
+    "saxes": "^6.0.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.4.0",
+    "@modelcontextprotocol/inspector": "^2.12.0",
     "@types/node": "^24.19.2",
-    "typescript": "^6.0.3",
-    "@modelcontextprotocol/inspector": "^2.12.0"
+    "typescript": "^6.0.3"
   }
 }

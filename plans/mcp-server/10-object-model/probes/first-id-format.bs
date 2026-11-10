@@ -1,0 +1,4 @@
+// Memory only: inspect native integer XML without allocating or saving an object.
+var d = OpenNewDoc('x-local://wtv/wtv_cost_center.xmd');
+d.TopElem.id = Int('7349585223810462098');
+return EncodeJson({id:StrInt(d.TopElem.id),xml:d.TopElem.id.Xml,type:d.TopElem.id.FormElem.Type});

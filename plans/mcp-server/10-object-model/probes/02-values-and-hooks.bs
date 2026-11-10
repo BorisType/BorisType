@@ -1,0 +1,92 @@
+// Owned in-memory schema and one temporary XML file; never binds to the DB.
+var schemaUrl = "x-local://wt/boristype_object_probe_" + StrHexInt(UniqueID()) + ".xmd";
+var fileUrl = "x-local://wt/boristype_object_probe_20261108.xml";
+var schema = '<SPXML-FORM USE-LAST-SAVED-DATA="1"><probe>' +
+    '<required TYPE="string" NOT-NULL="1"/>' +
+    '<n TYPE="integer"/><defaulted TYPE="integer" DEFAULT="7"/>' +
+    '<flag TYPE="bool" NULL-FALSE="1" DEFAULT="false"/>' +
+    '<scratch TYPE="string" TEMP="1"/>' +
+    '<derived PROPERTY="1" EXPR="n + 1"/>' +
+    '<rows><row MULTIPLE="1" PRIMARY-KEY="key"><key TYPE="string"/><value TYPE="integer"/></row></rows>' +
+    '<trace TYPE="string"/></probe>' +
+    '<OnCreate PROPERTY="1" EXPR="TopElem.trace = TopElem.trace + &quot;C&quot;;"/>' +
+    '<OnBeforeSave PROPERTY="1" EXPR="if (TopElem.n == -77) throw &quot;owned-before-save-rejection&quot;; TopElem.trace = TopElem.trace + &quot;B&quot;;"/>' +
+    '<OnSave PROPERTY="1" EXPR="TopElem.trace = TopElem.trace + &quot;S&quot;; if (TopElem.n == -78) throw &quot;owned-after-save-error&quot;;"/>' +
+    '</SPXML-FORM>';
+var result = {};
+var doc;
+var te;
+var row;
+var reopened;
+var abbreviated;
+var shortSchemaUrl = "x-local://wt/boristype_object_short_probe_" + StrHexInt(UniqueID()) + ".xmd";
+var ownsFile = false;
+function ObjectResearchCapture(code) {
+    try { return eval(code); }
+    catch (err) { return { error: String(err) }; }
+}
+try {
+    if (FilePathExists(UrlToFilePath(fileUrl))) throw "Owned file already exists; refusing overwrite";
+    ownsFile = true;
+    RegisterFormFromStr(schemaUrl, schema);
+    doc = OpenNewDoc(schemaUrl);
+    te = doc.TopElem;
+    result.initial = {xml: te.Xml, requiredHasValue: te.required.HasValue,
+        requiredValue: te.required.Value, defaultHasValue: te.defaulted.HasValue,
+        flagHasValue: te.flag.HasValue, flagValue: te.flag.Value};
+    te.n = "42";
+    result.converted = {type: te.n.Type, value: te.n.Value, derived: te.derived};
+    result.invalidInteger = ObjectResearchCapture("te.n = 'not-an-integer'; te.n.Value");
+    te.n = 1;
+    te.scratch = "not-persistent";
+    row = te.rows.AddChild(); row.key = "a"; row.value = 10;
+    row = te.rows.AddChild(); row.key = "a"; row.value = 20;
+    result.duplicates = {count: ArrayCount(te.rows), xml: te.rows.Xml};
+    result.flags = {before: doc.RunActionOnBeforeSave, after: doc.RunActionOnSave,
+        writeDocInfo: doc.WriteDocInfo, writeFt: ObjectResearchCapture("doc.WriteFt"),
+        separated: ObjectResearchCapture("doc.IsSeparated")};
+    result.save = ObjectResearchCapture("doc.Save(fileUrl); return 'saved';");
+    result.afterSave = {memoryTrace: te.trace.Value, fileXml: LoadUrlData(fileUrl),
+        neverSaved: doc.NeverSaved,
+        previous: ObjectResearchCapture("doc.LastSavedData.Xml")};
+    reopened = OpenDoc(fileUrl);
+    result.reopened = {trace: reopened.TopElem.trace.Value, scratch: reopened.TopElem.scratch.Value,
+        requiredHasValue: reopened.TopElem.required.HasValue};
+    te.n = -77;
+    result.reject = ObjectResearchCapture("doc.Save(); return 'saved';");
+    result.afterReject = LoadUrlData(fileUrl);
+    te.n = -78;
+    result.afterSaveError = ObjectResearchCapture("doc.Save(); return 'saved';");
+    result.diskAfterSaveError = LoadUrlData(fileUrl);
+    result.reopenAfterSaveError = OpenDoc(fileUrl).TopElem.n.Value;
+    te.n = 2;
+    doc.RunActionOnBeforeSave = false;
+    doc.RunActionOnSave = false;
+    doc.Save();
+    result.disabled = {trace: te.trace.Value, fileXml: LoadUrlData(fileUrl)};
+    te.n.Clear();
+    te.defaulted.Clear();
+    result.cleared = {nHasValue: te.n.HasValue, nValue: te.n.Value,
+        defaultHasValue: te.defaulted.HasValue, defaultValue: te.defaulted.Value, xml: te.Xml};
+    doc.Save();
+    result.reloadedDefault = {hasValue: OpenDoc(fileUrl).TopElem.defaulted.HasValue,
+        value: OpenDoc(fileUrl).TopElem.defaulted.Value};
+    result.unknownXml = ObjectResearchCapture("OpenDocFromStr('<probe><n>5</n><unknown>lost</unknown></probe>', 'form=' + schemaUrl).TopElem.Xml");
+    result.loadMerge = ObjectResearchCapture("te.required = 'keep'; te.LoadData('<probe><n>9</n></probe>'); return te.Xml;");
+    result.setReplace = ObjectResearchCapture("te.SetXml('<probe><n>8</n></probe>'); return te.Xml;");
+    RegisterFormFromStr(shortSchemaUrl, '<SPXML-FORM><probe><n TYPE="integer"/></probe></SPXML-FORM>');
+    abbreviated = OpenDoc(fileUrl, "form=" + shortSchemaUrl);
+    result.abbreviatedBefore = {xml: abbreviated.TopElem.Xml, hasRows: abbreviated.TopElem.ChildExists("rows")};
+    abbreviated.TopElem.n = 6;
+    abbreviated.Save();
+    reopened = OpenDoc(fileUrl, "form=" + schemaUrl);
+    result.abbreviatedAfterSave = {fileXml: LoadUrlData(fileUrl),
+        fullRows: ArrayCount(reopened.TopElem.rows), fullTrace: reopened.TopElem.trace.Value};
+}
+catch (err) { result.fatal = String(err); }
+// Sequential cleanup also runs on this C-runtime when a caught operation fails.
+if (ownsFile && FilePathExists(UrlToFilePath(fileUrl))) DeleteUrl(fileUrl);
+// DropFormsCache is obsolete on the observed runtime. Stop/restart the owned
+// stand after this series to release this dynamically registered form.
+result.cleanup = {fileAbsent: !FilePathExists(UrlToFilePath(fileUrl)), formCacheEvictionVerified: false};
+return EncodeJson(result);

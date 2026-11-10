@@ -1,0 +1,10 @@
+var ids = ["7348878536800680991", "7348879056500055424"];
+var r = [];
+var id;
+var item;
+for (id in ids) {
+ item = {id:id, rows:ArrayCount(XQuery("for $c in cost_centers where $c/id = " + id + " return $c")), trash:ArrayCount(XQuery("for $t in trash_docs where $t/id = " + id + " return $t"))};
+ try { OpenDoc(UrlFromDocID(Int(id))); item.opened = true; } catch(e) { item.opened = false; }
+ r.push(item);
+}
+return EncodeJson({objects:r,fileAbsent:!FilePathExists(UrlToFilePath("x-local://wt/boristype_object_probe_20261108.xml"))});

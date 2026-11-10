@@ -1,0 +1,64 @@
+// Read-only: native schema reflection and unsaved cost_center document.
+function ObjectResearchTry(obj, expr) {
+    try { return eval(expr); }
+    catch (err) { return { error: String(err) }; }
+}
+
+function ObjectResearchField(elem) {
+    return {
+        name: elem.Name,
+        type: elem.Type,
+        hasValue: elem.HasValue,
+        value: ObjectResearchTry(elem, "obj.Value"),
+        xml: elem.Xml
+    };
+}
+
+var form = FetchForm("x-local://wtv/wtv_cost_center.xmd");
+var catalog = FetchForm("x-local://wtv/wtv_cost_centers.xmd");
+var doc = OpenNewDoc("x-local://wtv/wtv_cost_center.xmd");
+var te = doc.TopElem;
+var fields = [];
+var meta = [];
+var names = ["id", "code", "name", "is_active", "parent_id", "subdivisions", "custom_elems", "doc_info"];
+var count = 0;
+var fe;
+for (name in names) {
+    fields.push(ObjectResearchField(te.Child(name)));
+    fe = form.TopElem.Child(name);
+    meta.push({name: fe.Name, type: fe.Type, multiple: fe.IsMultiple,
+        notNull: fe.IsNotNull, temp: fe.IsTemp, method: fe.IsMethod,
+        defaultValue: ObjectResearchTry(fe, "obj.DefaultValue"),
+        foreign: ObjectResearchTry(fe, "obj.ForeignArrayExpr"),
+        xml: fe.Xml});
+    count++;
+    if (count >= 8) break;
+}
+var result = {
+    schemaUrl: form.Url,
+    root: form.TopElem.Name,
+    catalogRoot: catalog.TopElem.Name,
+    catalogHierarchical: catalog.IsHier,
+    catalogObjectName: catalog.TopElem.GetOptAttr("OBJECT-NAME", "absent-on-root"),
+    catalogXml: catalog.Xml,
+    docFormUrl: doc.FormUrl,
+    docUrl: doc.Url,
+    neverSaved: doc.NeverSaved,
+    hasWriteAccess: doc.HasWriteAccess,
+    docXml: te.Xml,
+    fields: fields,
+    meta: meta,
+    registry: {
+        useObjectTypes: ObjectResearchTry(DefaultDb, "obj.UseObjectTypes"),
+        objectFormCount: ObjectResearchTry(DefaultDb, "ArrayCount(obj.ObjectForms)"),
+        formUrl: ObjectResearchTry(DefaultDb, "obj.GetObjectFormUrl('cost_center')"),
+        unknownForm: ObjectResearchTry(DefaultDb, "obj.GetOptObjectForm('boristype_nonexistent_20261108') == undefined"),
+        catalog: ObjectResearchTry(DefaultDb, "FindOptCatalog('cost_centers') != undefined"),
+        catalogFormUrl: ObjectResearchTry(DefaultDb, "FindOptCatalog('cost_centers').FormUrl"),
+        catalogForm: ObjectResearchTry(DefaultDb, "FindOptCatalog('cost_centers').Form.Url"),
+        exchangeTypes: ObjectResearchTry(DefaultDb, "ArrayCount(common.exchange_object_types)"),
+        legacyFormUrl: ObjectResearchTry(DefaultDb, "tools.get_object_form_url('cost_center', false)"),
+        legacyCatalogUrl: ObjectResearchTry(DefaultDb, "tools.get_object_form_url('cost_center', true)")
+    }
+};
+return EncodeJson(result);

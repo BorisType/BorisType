@@ -1,0 +1,37 @@
+// In-memory only. Own schema; no Save, URL writes, catalog registration or BindToDb.
+var u = 'x-local://wt/boristype_xml_mvp_' + StrHexInt(UniqueID()) + '.xmd';
+var s = '<SPXML-FORM><base SAMPLE="1"><base_value TYPE="string"/><nested><n TYPE="integer"/></nested></base>' +
+ '<probe><INHERIT TYPE="base"/><typed TYPE="base"/><required TYPE="integer" NOT-NULL="1" DEFAULT="7"/>' +
+ '<items><item MULTIPLE="1" PRIMARY-KEY="key"><key TYPE="string"/><INHERIT TYPE="base"/></item></items>' +
+ '</probe></SPXML-FORM>';
+var f = RegisterFormFromStr(u, s);
+var r = {formXml:f.Xml,topXml:f.TopElem.Xml,root:f.TopElem.Name,cases:[]};
+var cases = [
+ {name:'valid',xml:'<probe><base_value>ok</base_value><typed><base_value>nested</base_value></typed></probe>'},
+ {name:'empty-root',xml:'<probe/>'},
+ {name:'empty-input',xml:''},
+ {name:'plain-text',xml:'this is not XML'},
+ {name:'unclosed-root',xml:'<probe><base_value>lost'},
+ {name:'mismatched',xml:'<probe><base_value>lost</n></probe>'},
+ {name:'wrong-root',xml:'<wrong><base_value>lost</base_value></wrong>'},
+ {name:'unknown-field',xml:'<probe><unknown>lost</unknown></probe>'},
+ {name:'multiple-roots',xml:'<probe><base_value>first</base_value></probe><probe><base_value>second</base_value></probe>'},
+ {name:'duplicate-scalar',xml:'<probe><base_value>first</base_value><base_value>second</base_value></probe>'},
+ {name:'invalid-integer',xml:'<probe><required>NaN</required></probe>'},
+ {name:'invalid-entity',xml:'<probe><base_value>&does_not_exist;</base_value></probe>'}
+];
+var c;
+var d;
+var e;
+for (c in cases) {
+ e = {name:c.name,input:c.xml};
+ try {
+  d = OpenDocFromStr(c.xml, 'form=' + u);
+  e.accepted = true; e.root = d.TopElem.Name; e.xml = d.TopElem.Xml;
+  e.value = d.TopElem.base_value.Value; e.defaulted = d.TopElem.required.Value;
+  e.hasValue = d.TopElem.base_value.HasValue;
+ }
+ catch(err) { e.accepted = false; e.error = String(err); }
+ r.cases.push(e);
+}
+return EncodeJson(r);

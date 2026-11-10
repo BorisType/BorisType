@@ -19,7 +19,7 @@ test("SDK v2 stdio exchanges legacy initialize/list/call messages with a local f
   assert.equal(typeof client.getInstructions(), "string");
   assert.ok(client.getInstructions().trim().length > 0);
   const { tools } = await client.listTools();
-  assert.equal(tools.length, 10);
+  assert.equal(tools.length, 13);
   const result = await client.callTool({ name: "wshcm_read_file", arguments: { path: "x-local://wt/fixture.bs" } });
   assert.notEqual(result.isError, true);
   assert.equal(JSON.parse(result.content[0].text).content, "  000123\r\nПривет 👋\n");

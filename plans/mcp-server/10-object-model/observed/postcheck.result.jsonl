@@ -1,0 +1,2 @@
+{"file":"observed/postcheck.bs","carrier":"C-runtime/eval/temporary-library","sha256":"eb9f666d909ce221ec6507bdea02d6975c536248c617b94046022fb819e6d5f8","evaluatedSha256":"eb9f666d909ce221ec6507bdea02d6975c536248c617b94046022fb819e6d5f8","adaptation":"none","actual":"{\"objects\":[{\"id\":\"7348878536800680991\",\"rows\":0,\"trash\":0,\"opened\":false},{\"id\":\"7348879056500055424\",\"rows\":0,\"trash\":0,\"opened\":false}],\"fileAbsent\":true}","evidenceTransformation":"file path normalized; elapsed time omitted"}
+{"cleanup":"confirmed"}

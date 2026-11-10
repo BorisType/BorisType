@@ -1,0 +1,2 @@
+{"file":"probes/first-diagnostic-range.bs","carrier":"C-runtime/eval/temporary-library","sha256":"7a8bea161f402daedceff0629bd955f02e8c2e143940dea37844d919f16f4399","evaluatedSha256":"7a8bea161f402daedceff0629bd955f02e8c2e143940dea37844d919f16f4399","adaptation":"none","actual":"OK: diagnostic 2000","expected":"OK: diagnostic 2000","matches":true}
+{"cleanup":"confirmed"}

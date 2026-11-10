@@ -1,0 +1,11 @@
+// In-memory lifecycle probe only: no BindToDb or Save.
+var u = 'x-local://wt/bt_create_load_' + StrHexInt(UniqueID()) + '.xmd';
+RegisterFormFromStr(u, '<SPXML-FORM><probe><trace TYPE="string"/><n TYPE="integer" DEFAULT="7"/><rows><row MULTIPLE="1"><s TYPE="string"/></row></rows></probe><OnCreate PROPERTY="1" EXPR="TopElem.trace = &quot;C&quot;;"/></SPXML-FORM>');
+var d = OpenNewDoc(u);
+var r = {before:d.TopElem.Xml,neverSaved:d.NeverSaved,scalarChildren:ArrayCount(d.TopElem.FormElem.Child('n')),structureChildren:ArrayCount(d.TopElem.FormElem.Child('rows')),scalarType:d.TopElem.FormElem.Child('n').Type};
+d.TopElem.LoadData('<probe><n>42</n></probe>');
+r.after = d.TopElem.Xml;
+r.trace = d.TopElem.trace.Value;
+r.n = d.TopElem.n.Value;
+r.optMissing = d.TopElem.FormElem.OptChild('not_a_field') == undefined;
+return EncodeJson(r);
