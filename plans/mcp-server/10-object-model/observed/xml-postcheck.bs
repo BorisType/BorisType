@@ -1,0 +1,11 @@
+// Independent read-only check of both IDs allocated by this research session.
+var ids = ["7349577609794908305", "7349577710243911718"];
+var r = [];
+var id;
+var item;
+for (id in ids) {
+ item = {id:id,rows:ArrayCount(XQuery("for $c in cost_centers where $c/id = " + id + " return $c")),trash:ArrayCount(XQuery("for $t in trash_docs where $t/id = " + id + " return $t"))};
+ try { OpenDoc(UrlFromDocID(Int(id))); item.opened = true; } catch(e) { item.opened = false; }
+ r.push(item);
+}
+return EncodeJson({objects:r});

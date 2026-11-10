@@ -6,6 +6,7 @@ read-aware edit/overwrite и ограниченный поиск через .NET
 
 Добавлен [XQuery tool, его native-проверки и ограничения](09-xquery-native.md).
 Следующее направление: [объекты БД — XMD, каталоги, XMS и варианты MCP API](10-object-model/README.md).
+Текущее уточнение: [XML-first MVP — чтение раскрытой формы, XML объекта, create/replace](10-object-model/xml-mvp.md).
 Исследование включает сверку документации/types/JS/vendor source, три C-runtime
 пробы и 59 assertions; object CRUD tools пока не реализованы.
 

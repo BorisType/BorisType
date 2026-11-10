@@ -1,5 +1,9 @@
 # Native evidence: XMD, XML values и CRUD
 
+Эта заметка фиксирует серию 2026-11-08. Дополнительные проверки 2026-11-10
+(раскрытая форма в XML, импорт, полная замена и тихая потеря входных данных)
+описаны отдельно в [xml-mvp.md](xml-mvp.md), с отдельными probes и manifest.
+
 Дата: 2026-11-08. Среда: Linux x64, `websoft/hcm:2025.2.1333`, assembly
 `2.25.12.4 [202512041524]`, .NET 9.0.11, PostgreSQL 16. Carrier:
 authenticated SOAP → временная библиотека evaluator → серверный C-runtime.

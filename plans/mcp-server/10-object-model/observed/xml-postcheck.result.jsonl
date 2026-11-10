@@ -1,0 +1,2 @@
+{"file":"observed/xml-postcheck.bs","carrier":"C-runtime/eval/temporary-library","sha256":"c7bcf0392e9154dc4675c2429c68e8f5a03065a63939fb4660d7aade14d0a847","evaluatedSha256":"c7bcf0392e9154dc4675c2429c68e8f5a03065a63939fb4660d7aade14d0a847","adaptation":"none","actual":"{\"objects\":[{\"id\":\"7349577609794908305\",\"rows\":0,\"trash\":0,\"opened\":false},{\"id\":\"7349577710243911718\",\"rows\":0,\"trash\":0,\"opened\":false}]}"}
+{"cleanup":"confirmed"}

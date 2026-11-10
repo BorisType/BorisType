@@ -1,0 +1,89 @@
+{
+  "kind": "local-node-xml-validator",
+  "package": "fast-xml-parser",
+  "version": "5.11.2",
+  "cases": [
+    {
+      "name": "valid",
+      "result": true
+    },
+    {
+      "name": "empty-root",
+      "result": true
+    },
+    {
+      "name": "empty-input",
+      "result": {
+        "err": {
+          "code": "InvalidXml",
+          "msg": "Start tag expected.",
+          "line": 1
+        }
+      }
+    },
+    {
+      "name": "plain-text",
+      "result": {
+        "err": {
+          "code": "InvalidChar",
+          "msg": "char 't' is not expected.",
+          "line": 1,
+          "col": 1
+        }
+      }
+    },
+    {
+      "name": "unclosed-root",
+      "result": {
+        "err": {
+          "code": "InvalidXml",
+          "msg": "Invalid '[    \"probe\",    \"base_value\"]' found.",
+          "line": 1,
+          "col": 1
+        }
+      }
+    },
+    {
+      "name": "mismatched",
+      "result": {
+        "err": {
+          "code": "InvalidTag",
+          "msg": "Expected closing tag 'base_value' (opened in line 1, col 8) instead of closing tag 'n'.",
+          "line": 1,
+          "col": 24
+        }
+      }
+    },
+    {
+      "name": "wrong-root",
+      "result": true
+    },
+    {
+      "name": "unknown-field",
+      "result": true
+    },
+    {
+      "name": "multiple-roots",
+      "result": {
+        "err": {
+          "code": "InvalidXml",
+          "msg": "Multiple possible root nodes found.",
+          "line": 1,
+          "col": 52
+        }
+      }
+    },
+    {
+      "name": "duplicate-scalar",
+      "result": true
+    },
+    {
+      "name": "invalid-integer",
+      "result": true
+    },
+    {
+      "name": "invalid-entity",
+      "result": true
+    }
+  ]
+}
