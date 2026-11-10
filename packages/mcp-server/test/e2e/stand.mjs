@@ -39,6 +39,7 @@ export function localStand() {
 
   return {
     container,
+    host: addresses[0],
     image: inspect.image,
     imageId: inspect.imageId,
     directory,

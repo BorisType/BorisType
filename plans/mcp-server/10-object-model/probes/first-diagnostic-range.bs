@@ -1,0 +1,11 @@
+// Bounded in-memory diagnostic truncation; no document IO.
+var message = '';
+var i;
+for (i = 0; i < 2100; i++) { message = message + 'Я'; }
+try { throw message; }
+catch (e) {
+    message = String(e);
+    if (StrCharCount(message) > 2000) message = StrLeftCharRange(message, 2000);
+    if (StrCharCount(message) != 2000) throw 'Unexpected diagnostic length';
+    return 'OK: diagnostic 2000';
+}

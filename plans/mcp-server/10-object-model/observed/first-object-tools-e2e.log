@@ -1,0 +1,20 @@
+$ node --test --test-concurrency=1 test/e2e/objects.mjs
+▶ XML object MVP through CLI/stdio/SOAP on an exclusive local stand
+  ✔ expanded native form without inherited file traversal (12.1767ms)
+  ✔ create and full read preserve quotes, Unicode and exact identity (24.031ms)
+  ✔ bad root, field, integer, singleton, identity and XML never change existing object (110.5599ms)
+  ✔ full replacement clears omitted comment and consumes the read token (10.5735ms)
+  ✔ unchanged read XML can be submitted as a full replacement (9.4059ms)
+  ✔ external stale change is detected before Save (14.8293ms)
+  ✔ missing object does not turn replace into create (3.9017ms)
+✔ XML object MVP through CLI/stdio/SOAP on an exclusive local stand (592.1888ms)
+ℹ {"image":"websoft/hcm:2025.2.1333","imageId":"sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab","carrier":"CLI/stdio/SOAP/native XML API; no BorisType DLL","marker":"bt-xml-e2e-0fd487a1-327c-442c-a131-3f0eb1032be4"}
+ℹ Independent object cleanup: 7349590554884596918, rows=0, trash=0, opened=false
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 749.1415

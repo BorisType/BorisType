@@ -15,6 +15,7 @@ import {
   registerMoveFileTool,
   registerGetFileInfoTool,
   registerXQueryTool,
+  registerObjectTools,
 } from "./tools/index.js";
 
 /**
@@ -38,6 +39,7 @@ export function createServer(connection: WshcmConnection): McpServer {
         "After a file mutation attempt, reread before another edit. On Conflict/ReadRequired, refresh the relevant reads instead of repeating stale arguments.",
         "wshcm_xquery accepts server-side XQuery including sql:, without a BorisType DLL. Queries can modify data. Row/output limits do not bound database work, and truncated results are incomplete. After a timeout or lost mutation response, establish the actual outcome before retrying; cancellation and rollback are not guaranteed.",
         "On the tested Linux C/PostgreSQL path, negative SQL integers can become null before SOAP; CAST them to text in SQL to preserve the value. SQL NULL and empty text may be indistinguishable. Preserve exact IDs as text or with lossless JSON parsing; JavaScript Number can round large integer tokens.",
+        "Object tools use native XML strings: get_form returns expanded schema, get_object returns a full document and readToken, save_object explicitly creates or fully replaces it. Omitted fields are removed on replace. Read the complete object in this MCP instance before replacing, reread after every replace attempt, and preserve exact IDs as decimal strings. XML validation is partial; platform types/defaults/hooks still apply. Form loading may execute code. Save errors/timeouts can leave persisted changes; no atomic CAS, rollback, UI permission equivalence or blind retry guarantee.",
       ].join("\n"),
     },
   );
@@ -53,6 +55,7 @@ export function createServer(connection: WshcmConnection): McpServer {
   registerMoveFileTool(server, connection, reads);
   registerGetFileInfoTool(server, connection);
   registerXQueryTool(server, connection);
+  registerObjectTools(server, connection);
 
   return server;
 }

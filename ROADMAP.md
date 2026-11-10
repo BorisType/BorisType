@@ -8,6 +8,17 @@
 
 ## Текущий спринт (В процессе)
 
+### MCP: XML object MVP (2026-11-10)
+
+- [x] Раскрытая XMD через `wshcm_get_form`, полный XML объекта через `wshcm_get_object`
+- [x] `wshcm_save_object`: create либо whole replace из исходного XML, без typed JSON mapping/DLL
+- [x] Full-read tokens, bounded XML и строгий XML parser, native form/root/identity/cardinality/integer guards
+- [x] Protocol/state/XML negatives и CLI/stdio/SOAP native acceptance на собственном `cost_center`
+- [ ] Расширить native matrix на custom lifecycle/types, Windows/MSSQL, новую модель, external data и CAS/authorization
+
+[Контракт](packages/mcp-server/README.md#xml-объектов-форма-чтение-сохранение),
+[первая реализация и acceptance](plans/mcp-server/10-object-model/first-implementation.md).
+
 ### MCP: серверный XQuery (2026-11-07)
 
 - [x] Один `wshcm_xquery` поверх существующего evaluator, включая `sql:`, без новой DLL

@@ -1,0 +1,89 @@
+{
+  "date": "2026-11-10",
+  "implementationBase": "5f4722da0eaa1a267d07b1c5df80a40e6b2f21fc",
+  "image": "websoft/hcm:2025.2.1333",
+  "imageId": "sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab",
+  "runtime": {
+    "assembly": "2.25.12.4 [202512041524]",
+    "clr": "9.0.11",
+    "os": "Linux x64",
+    "database": "PostgreSQL 16",
+    "model": "legacy (UseObjectTypes=false)"
+  },
+  "toolchain": {
+    "node": "24.22.2",
+    "pnpm": "12.16.1",
+    "typescript": "6.0.3"
+  },
+  "localTests": {
+    "passed": 218,
+    "failed": 0,
+    "skipped": 0,
+    "kind": "Node protocol/state/XML/VM and CLI tests; not native semantics"
+  },
+  "nativeSuite": {
+    "carrier": "CLI/stdio/SOAP/native XML API; no BorisType DLL in object path",
+    "log": "observed/first-object-tools-e2e.log",
+    "logSha256": "21ddc4606276f1e6a06ca5f5fb725592ea941d100f6f64e9b28d7fdb36ded404",
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0,
+    "ownedObjectId": "7349590554884596918"
+  },
+  "sourceSha256": {
+    "packages/mcp-server/src/tools/object-xml.ts": "b2b8e79f1343043d7dad53115a9b387a7085b84b9bdfc3f9bca6658392ce4db4",
+    "packages/mcp-server/src/tools/object-state.ts": "1581a8aafb8c6108109ea93c2aeef28b4d8777af1ae0bfc954f0571e7413f68e",
+    "packages/mcp-server/src/tools/objects.ts": "1eda22412c8f1b7e97226f38bdfcf75c475fedf27a164c22119792089fdc2d18",
+    "packages/mcp-server/resources/object-operation.bs": "6ad7a358210a51c5e73196a053d60bb4efd3112b34c30286321ea847af1a585b",
+    "packages/mcp-server/test/e2e/objects.mjs": "598a45f28c753db11f6839147861ecbad2cdd7b230287dbdf82eb9dd7f23778b",
+    "patches/saxes@6.0.0.patch": "b8c3aefb35c8d63a4c5fb8bdfde3444f841cb4e6fc10990f49de6396d30abb01"
+  },
+  "runs": [
+    {
+      "source": "probes/first-create-load.bs",
+      "sourceSha256": "aee99d68b067e2389bd99d8597808e0e0b05eed3816801a56ca61c7b301faa5d",
+      "rawTranscriptSha256": "b50de4015c72c59d3d536b5e579305fe52dc7a5f9ae420ab8d99c3ae9d35f549",
+      "observedTranscript": "observed/first-create-load.result.jsonl",
+      "observedTranscriptSha256": "784fb2193773bb3eb8778e05703a0f48c0a34f92d9759dc4913a01243af2e26b"
+    },
+    {
+      "source": "probes/first-id-format.bs",
+      "sourceSha256": "20f33fd03b8d2dde4a5b155a5e11c8321bc90b94cedf9b24035f5373716ab267",
+      "rawTranscriptSha256": "66ee31f2087444e869804aea872ffdc07d00fc33a487934ce19aa295cefcaf84",
+      "observedTranscript": "observed/first-id-format.result.jsonl",
+      "observedTranscriptSha256": "64b7fdde257a9231c1795c8ddaf2b455359e9cacfd71e14a4fea9bd2fdb74034"
+    },
+    {
+      "source": "probes/first-diagnostic-range.bs",
+      "sourceSha256": "7a8bea161f402daedceff0629bd955f02e8c2e143940dea37844d919f16f4399",
+      "rawTranscriptSha256": "0db7995ea33e6acf9bccafef5235b154d734da6b4272fb3ec26c7e5278553111",
+      "observedTranscript": "observed/first-diagnostic-range.result.jsonl",
+      "observedTranscriptSha256": "c6226b12eb2d59b2fb52d47a00be6ae888ec91fb5ea26a09c52613df6aad87cc"
+    },
+    {
+      "source": "probes/first-postcheck.bs",
+      "sourceSha256": "41bbb73e0399e130149c99dec1eaf736f9fad961f831474fc6c696884dfc1944",
+      "rawTranscriptSha256": "a86ca35be8e1adfc8b5d70269b4b4f3d03113e97bd5e03540e207a3a77e1795f",
+      "observedTranscript": "observed/first-postcheck.result.jsonl",
+      "observedTranscriptSha256": "0c2b2a8ff11f7726e4a8cf52f6a38bf24b9d41905a0162f5d26df049da9c13db"
+    }
+  ],
+  "cleanup": {
+    "ownCodePrefixRows": 0,
+    "knownOwnedIdsAbsent": [
+      "7349585223810462098",
+      "7349585580943734205",
+      "7349586110038372401",
+      "7349586349801536169",
+      "7349589053615876377",
+      "7349590554884596918"
+    ],
+    "physicalFixturesAndEvaluatorsAbsent": true,
+    "containersRestoredToStopped": true,
+    "wtExitCode": 143,
+    "postgresExitCode": 0,
+    "oomKilled": false,
+    "configurationOrDllChanged": false
+  },
+  "observedTranscripts": "Own sources only; file labels normalized and elapsedMs omitted. Source/evaluated hashes unchanged. Native e2e log copied without modification. No vendor XML or credentials included."
+}

@@ -1,0 +1,18 @@
+diff --git a/saxes.d.ts b/saxes.d.ts
+--- a/saxes.d.ts
++++ b/saxes.d.ts
+@@ -46,1 +46,1 @@
+-export declare type OpenTagStartHandler<O> = (tag: StartTagForOptions<O>) => void;
++export declare type OpenTagStartHandler<O extends SaxesOptions> = (tag: StartTagForOptions<O>) => void;
+@@ -55,1 +55,1 @@
+-export declare type AttributeHandler<O> = (attribute: AttributeEventForOptions<O>) => void;
++export declare type AttributeHandler<O extends SaxesOptions> = (attribute: AttributeEventForOptions<O>) => void;
+@@ -62,1 +62,1 @@
+-export declare type OpenTagHandler<O> = (tag: TagForOptions<O>) => void;
++export declare type OpenTagHandler<O extends SaxesOptions> = (tag: TagForOptions<O>) => void;
+@@ -69,1 +69,1 @@
+-export declare type CloseTagHandler<O> = (tag: TagForOptions<O>) => void;
++export declare type CloseTagHandler<O extends SaxesOptions> = (tag: TagForOptions<O>) => void;
+@@ -94,1 +94,1 @@
+-export declare type EventNameToHandler<O, N extends EventName> = {
++export declare type EventNameToHandler<O extends SaxesOptions, N extends EventName> = {

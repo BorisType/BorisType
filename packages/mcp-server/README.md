@@ -1,19 +1,20 @@
 # @boristype/mcp-server
 
-MCP сервер для WebSoft HCM — предоставляет AI-агентам доступ к файловой системе и серверному XQuery через [Model Context Protocol](https://modelcontextprotocol.io/) (stdio transport).
+MCP сервер для WebSoft HCM — предоставляет AI-агентам доступ к файловой системе, серверному XQuery и XML объектам через [Model Context Protocol](https://modelcontextprotocol.io/) (stdio transport).
 
 Использует [@boristype/ws-client](../ws-client/) для соединения с WSHCM сервером.
 
-Статус: экспериментальный checkpoint девяти файловых tools и новый `wshcm_xquery`.
+Статус: экспериментальный checkpoint девяти файловых tools, `wshcm_xquery` и
+первый XML object MVP (`get_form`, `get_object`, `save_object`).
 Требуется Node.js >=24.22.2. Девять файловых tools требуют отдельно установленную
-`BorisType.FileSystem.dll` **0.1.0-alpha.4 / API 2** на HCM; XQuery её не использует.
+`BorisType.FileSystem.dll` **0.1.0-alpha.4 / API 2** на HCM; XQuery и object tools её не используют.
 Файловые операции используют BS URL resolver и managed filesystem API, без Datex
 callbacks. Девять файловых tools и защита чтений прошли native e2e на Linux
 C-runtime `websoft/hcm:2025.2.1333` / CLR 9.0.11. Это evidence одной сборки;
 другие ОС/версии и полный permissions/VFS contract требуют отдельных проверок.
 [Отчёт](../../plans/dotnet/13-read-aware-files-results.md).
 
-Tools работают с физическими файлами. Логические URL-ресурсы в `spxml_blobs`
+Файловые tools работают с физическими файлами. Логические URL-ресурсы в `spxml_blobs`
 ими не читаются и не обновляются; успешная правка диска может не изменить
 результат `LoadUrlData` того же URL. [Граница checkpoint](../../plans/mcp-server/08-filesystem-checkpoint.md).
 
@@ -68,6 +69,9 @@ instructions и skill не добавляют гарантий чтения, и�
 | `wshcm_move_file`        | Rename без overwrite и copy/delete fallback       |
 | `wshcm_get_file_info`    | Metadata файла/каталога без чтения содержимого    |
 | `wshcm_xquery`           | Серверный XQuery, включая прямой SQL через `sql:` |
+| `wshcm_get_form`         | XML раскрытого root загруженной XMD               |
+| `wshcm_get_object`       | Полный экспортируемый XML объекта и readToken     |
+| `wshcm_save_object`      | Create либо полная замена объекта из XML          |
 
 Read/list/search/info помечены readOnlyHint. Write/edit/delete/move имеют
 `destructiveHint: true`, `idempotentHint: false`; create_directory —
@@ -77,13 +81,114 @@ XQuery имеет `readOnlyHint: false`, `destructiveHint: true`, `idempotentHin
 запрос передаётся платформе без проверки на чтение.
 
 Отложенные read-multiple/tree не зарегистрированы; их TS stubs и пять старых BS
-stubs удалены. Два файловых BS resources — URL bridges к DLL — и отдельный
-`xquery.bs` используются зарегистрированными tools.
+stubs удалены. Два файловых BS resources — URL bridges к DLL — и отдельные
+`xquery.bs`/`object-operation.bs` используются зарегистрированными tools.
 
 Это несовместимое обновление прототипа: read всегда возвращает JSON,
 includeMetadata удалён; edit требует readToken, write по умолчанию create-only.
 Установить DLL alpha.4/API 2 и обновить MCP вместе. Старые ответы API 1 отвергаются.
 Установка — в [.NET README](../dotnet/README.md#установка-для-mcp); npm не содержит DLL.
+
+### XML объектов: форма, чтение, сохранение
+
+Данные остаются XML строкой. JSON используется только для MCP аргументов и
+служебного ответа; вручную вызывать `EncodeJson` не нужно. Обратной сборки XML
+из JS objects нет. XML escaping (`&amp;`, `&lt;`, quotes в атрибутах) остаётся
+обычным правилом XML.
+
+`wshcm_get_form` получает загруженную платформой форму и возвращает
+`{formUrl,root,xml}`, где `xml = FetchForm(formUrl).TopElem.Xml`:
+
+```json
+{ "formUrl": "x-local://wtv/wtv_cost_center.xmd" }
+```
+
+Проверенные SAMPLE/INHERIT/составные TYPE раскрывает платформа. Это текущая форма
+из её cache, не исходный XMD и не гарантия автономной повторной регистрации всех
+зависимостей. Поддерживаются локальные `x-local://`/`x-app://` XMD URLs без open
+options; удалённые формы и произвольные options не принимаются.
+
+`wshcm_get_object` принимает `{id:"7349586349801536169"}` и возвращает
+`{id,formUrl,root,xml,readToken}`. ID в JSON — точная canonical positive decimal
+string; JS Number использовать нельзя. Внутри XML платформа может писать integer
+как `0x65FE…`; такие значения сравниваются точно и поддерживаются при записи.
+«Полный» означает весь экспорт `TopElem.Xml`, без усечения. Это не binary backup:
+TEMP/computed поля, external data и нормализация имеют платформенную семантику.
+
+`wshcm_save_object` требует явный режим. Создание:
+
+```json
+{
+  "mode": "create",
+  "formUrl": "x-local://wtv/wtv_cost_center.xmd",
+  "xml": "<cost_center><code>example-unique-code</code><name>Example</name></cost_center>"
+}
+```
+
+Create запрещает входной ID и использует `OpenNewDoc` → `LoadData` → `BindToDb`
+→ `Save`. На собственной native форме проверено сохранение значений OnCreate
+и заполнение переданных полей. Пользовательский XML заполняет новый документ;
+прикладные init hooks других типов этим не аттестованы.
+
+Замена после полного чтения этого же объекта:
+
+```json
+{
+  "mode": "replace",
+  "id": "7349586349801536169",
+  "readToken": "<token-from-get-object>",
+  "xml": "<cost_center><code>example-unique-code</code><name>Changed</name></cost_center>"
+}
+```
+
+**Replace полностью заменяет документ: пропущенные поля удаляются либо получают
+платформенные defaults.** Форма берётся из существующего объекта; менять её через
+payload нельзя. XML ID можно опустить либо передать совпадающее значение.
+Для replace создаётся отдельный документ из XML, с привязкой к существующему ID;
+`LoadData` существующего объекта как скрытый merge не используется.
+
+Token относится к одному ID в текущем MCP instance, действует 30 минут; хранится
+до 32 snapshots. Новое чтение меняет token. Replace расходует grant после входа
+в обработчик, включая ошибки XML, конфликты и неизвестный исход; после попытки
+нужно перечитать объект. Невалидный MCP input, отклонённый schema до обработчика,
+не является попыткой записи. Token из другой MCP instance не подходит;
+изоляции чатов внутри одного переиспользуемого instance нет.
+
+Сервер сравнивает прочитанные XML объекта, URL формы и XML раскрытой схемы;
+проверка повторяется перед Save. **Это не atomic CAS:** внешний writer может
+изменить объект после проверки. Token подтверждает выдачу XML клиенту, не то,
+что агент его получил/понял.
+
+Перед Save проверяются синтаксис/один root, root по форме, identity, известные
+field paths, singleton cardinality, вложенные теги scalar, mixed content
+structure и integer lexical/range. Integer поддерживает decimal/hex,
+signed int64 и unsigned XML representation до uint64 max. DTD/entity definitions,
+неизвестные entities, произвольные PI и атрибуты данных запрещены. Допустимы
+XML declaration, CDATA, стандартные/numeric entities и совпадающий root
+`SPXML-FORM`. Остальные scalar types проходят native conversion: неверное
+значение может быть нормализовано/отброшено платформой. Полной валидации XMD,
+foreign/PRIMARY-KEY и бизнес-правил нет.
+
+Input XML, output XML и schema XML ограничены 256 KiB UTF-8 каждый; input depth
+64 и до 8192 элементов, внутренний запрос с проверочными путями до 2 MiB.
+Большое чтение отклоняется целиком, token не выдаётся. Limits не ограничивают
+работу платформы до получения XML, callbacks и общую стоимость загрузки.
+
+Успех Save возвращает `{id,formUrl,root,xml,writeStatus:"saved"}` после отдельного
+readback. Ошибка содержит `error`, `phase`, `writeStatus` и известный ID:
+
+| writeStatus     | Значение                                                             |
+| --------------- | -------------------------------------------------------------------- |
+| `not_attempted` | До вызова Save; загрузка/инициализация формы уже могли выполнить код |
+| `unknown`       | Save мог начаться/завершиться, но достоверного подтверждения нет     |
+| `saved`         | Save завершился; ошибка относится к последующему readback/ответу     |
+
+Save/hooks могут иметь частичные эффекты. Rollback, cancellation, UI permissions
+и эквивалентность XMS-сценария не гарантируются; автоматических повторов нет.
+После неизвестного исхода сначала установить фактическое состояние по ID либо
+уникальному коду созданного объекта. Удаление, patch DSL и bulk не входят в MVP.
+
+[Native acceptance и границы](../../plans/mcp-server/10-object-model/first-implementation.md).
 
 ### Серверный XQuery и SQL
 
@@ -455,6 +560,20 @@ Output acceptance использует PostgreSQL `repeat`/`generate_series`. К
 и помогли исправить UTF-8 decoding на границах HTTP chunks в ws-client.
 Windows HCM, MSSQL, другие версии и полный контракт типов требуют отдельных проверок.
 [Native отчёт](../../plans/mcp-server/09-xquery-native.md).
+
+XML objects имеют отдельную acceptance-команду с теми же `WSHCM_E2E_*`:
+
+```bash
+pnpm --filter @boristype/mcp-server test:e2e:objects
+```
+
+BorisType DLL не требуется. Команда создаёт собственный `cost_center`, проверяет
+form/create/read/full replace, плохие XML без изменения объекта, consumed token
+и внешнее stale изменение. Удаляет свои объекты через независимый evaluator
+и проверяет catalog/trash/OpenDoc и evaluator cleanup. На Linux HCM 2025.2.1333 /
+CLR 9.0.11 / PostgreSQL 16 прошли **8/8** tests (семь сценариев и parent), без skips.
+Это ограниченная вертикаль одного типа; остальные типы/hooks/провайдеры требуют
+отдельных native проверок. [Evidence](../../plans/mcp-server/10-object-model/first-implementation.md).
 
 ### Что остаётся проверить
 

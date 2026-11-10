@@ -1,0 +1,102 @@
+// XML stays data. Node supplies only bounded validation paths and a full-read snapshot.
+function BtObjectOperation(_obReq) {
+    var _obPhase = 'read';
+    var _obWriteStatus = 'not_attempted';
+    var _obCode = 'PlatformError';
+    var _obId = '';
+    var _obDoc;
+    var _obForm;
+    var _obFormUrl;
+    var _obSchema;
+    var _obXml;
+    var _obNode;
+    var _obField;
+    var _obSegment;
+    var _obIndex;
+    var _obPathIndex;
+    var _obCandidate;
+    var _obMessage;
+    try {
+        if (_obReq.operation == 'get_form') {
+            _obForm = FetchForm(_obReq.formUrl);
+            _obSchema = _obForm.TopElem.Xml;
+            _obCode = 'OutputLimit';
+            if (StrCharCount(_obSchema) > 262144) throw 'Form XML exceeds the output limit';
+            return {ok:true,formUrl:_obForm.Url,root:_obForm.TopElem.Name,xml:_obSchema};
+        }
+        if (_obReq.operation == 'get_object' || _obReq.mode == 'replace') {
+            _obId = _obReq.id;
+            _obDoc = OpenDoc(UrlFromDocID(Int(_obId)));
+            _obFormUrl = _obDoc.FormUrl;
+        }
+        else _obFormUrl = _obReq.formUrl;
+        _obForm = FetchForm(_obFormUrl);
+        _obSchema = _obForm.TopElem.Xml;
+        _obCode = 'OutputLimit';
+        if (StrCharCount(_obSchema) > 262144) throw 'Form XML exceeds the output limit';
+        if (_obReq.operation == 'get_object') {
+            _obXml = _obDoc.TopElem.Xml;
+            if (StrCharCount(_obXml) > 262144) throw 'Object XML exceeds the output limit';
+            return {ok:true,id:StrInt(_obDoc.DocID),formUrl:_obFormUrl,root:_obDoc.TopElem.Name,xml:_obXml,schemaXml:_obSchema};
+        }
+        _obPhase = 'validate';
+        if (_obReq.mode == 'replace') {
+            _obCode = 'Conflict';
+            if (_obDoc.TopElem.Xml != _obReq.expected.xml || _obFormUrl != _obReq.expected.formUrl || _obSchema != _obReq.expected.schemaXml)
+                throw 'Object or form changed since the full read';
+        }
+        _obCode = 'InvalidXml';
+        if (_obReq.root != _obForm.TopElem.Name) throw 'Input XML root does not match the selected form';
+        if (_obForm.TopElem.OptChild('id') == undefined) throw 'Selected form has no object identity field';
+        for (_obIndex = 0; _obIndex < ArrayCount(_obReq.nodes); _obIndex++) {
+            _obNode = _obReq.nodes[_obIndex];
+            _obField = _obForm.TopElem;
+            for (_obPathIndex = 0; _obPathIndex < ArrayCount(_obNode.path); _obPathIndex++) {
+                _obSegment = _obNode.path[_obPathIndex];
+                _obField = _obField.OptChild(_obSegment);
+                if (_obField == undefined) throw 'Unknown XML field in input';
+            }
+            if (_obField.IsMethod) throw 'XML input contains a method/property';
+            if (_obNode.count > 1 && !_obField.IsMultiple) throw 'Repeated singleton XML field';
+            if (_obNode.hasElements && ArrayCount(_obField) == 0) throw 'Scalar XML field contains elements';
+            if (ArrayCount(_obField) != 0 && _obNode.hasText) throw 'Structure XML field contains text';
+            if (_obField.Type == 'integer' && !_obNode.integerValid) throw 'Invalid integer XML value';
+        }
+        _obCode = 'PlatformError';
+        _obPhase = 'load';
+        if (_obReq.mode == 'create') {
+            _obCandidate = OpenNewDoc(_obFormUrl);
+            _obCandidate.TopElem.LoadData(_obReq.xml);
+        }
+        else _obCandidate = OpenDocFromStr(_obReq.xml, 'form=' + _obFormUrl);
+        _obPhase = 'bind';
+        if (_obReq.mode == 'create') _obCandidate.BindToDb(DefaultDb);
+        else _obCandidate.BindToDb(DefaultDb, Int(_obId));
+        _obId = StrInt(_obCandidate.DocID);
+        if (_obReq.mode == 'replace') {
+            // Check again after load/bind, immediately before Save. Still not an atomic CAS.
+            _obPhase = 'validate';
+            _obCode = 'Conflict';
+            _obDoc = OpenDoc(UrlFromDocID(Int(_obId)));
+            if (_obDoc.TopElem.Xml != _obReq.expected.xml || _obDoc.FormUrl != _obReq.expected.formUrl || FetchForm(_obDoc.FormUrl).TopElem.Xml != _obReq.expected.schemaXml)
+                throw 'Object or form changed before Save';
+        }
+        _obPhase = 'save';
+        _obCode = 'PlatformError';
+        _obWriteStatus = 'unknown';
+        _obCandidate.Save();
+        _obWriteStatus = 'saved';
+        _obPhase = 'readback';
+        _obDoc = OpenDoc(UrlFromDocID(Int(_obId)));
+        _obXml = _obDoc.TopElem.Xml;
+        _obCode = 'OutputLimit';
+        if (StrCharCount(_obXml) > 262144) throw 'Saved object XML exceeds the output limit; reread independently';
+        return {ok:true,id:_obId,formUrl:_obDoc.FormUrl,root:_obDoc.TopElem.Name,xml:_obXml,writeStatus:'saved'};
+    }
+    catch (_obError) {
+        _obMessage = String(_obError);
+        if (StrCharCount(_obMessage) > 2000) _obMessage = StrLeftCharRange(_obMessage, 2000);
+        return {ok:false,id:_obId,phase:_obPhase,writeStatus:_obWriteStatus,error:{code:_obCode,message:_obMessage}};
+    }
+}
+return EncodeJson(EncodeJson(BtObjectOperation(ParseJson('${request}'))));

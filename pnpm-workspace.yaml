@@ -22,6 +22,10 @@ minimumReleaseAgeExclude:
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 43200
 trustLockfile: false
+patchedDependencies:
+  # saxes 6.0.0 handler aliases omit the bounds required by their referenced types.
+  # Only declarations change; retain strict library checking under TypeScript 6.
+  saxes@6.0.0: patches/saxes@6.0.0.patch
 strictDepBuilds: true
 dangerouslyAllowAllBuilds: false
 verifyDepsBeforeRun: error

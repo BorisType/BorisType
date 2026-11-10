@@ -5,10 +5,10 @@ read-aware edit/overwrite и ограниченный поиск через .NET
 [Граница завершённого шага, проверки и оставшиеся ограничения](08-filesystem-checkpoint.md).
 
 Добавлен [XQuery tool, его native-проверки и ограничения](09-xquery-native.md).
-Следующее направление: [объекты БД — XMD, каталоги, XMS и варианты MCP API](10-object-model/README.md).
-Текущее уточнение: [XML-first MVP — чтение раскрытой формы, XML объекта, create/replace](10-object-model/xml-mvp.md).
-Исследование включает сверку документации/types/JS/vendor source, три C-runtime
-пробы и 59 assertions; object CRUD tools пока не реализованы.
+Исследованы [объекты БД — XMD, каталоги, XMS и варианты MCP API](10-object-model/README.md).
+Реализованы [три XML tools: раскрытая форма, полный объект, create/replace](10-object-model/first-implementation.md).
+Checkpoint от 2026-11-10: 218 локальных tests и 8 native tests, ограниченная
+вертикаль на `cost_center`; полная бизнес-валидация и все типы не аттестованы.
 
 Ниже сохранён первичный аудит от 2026-11-05, до изменения реализации.
 
