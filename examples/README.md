@@ -4,7 +4,7 @@
 
 ## Примеры
 
-### 📦 [single/](single/) - Одиночный пакет (без btconfig.json)
+### 📦 [single/](single) - Одиночный пакет (без btconfig.json)
 
 Демонстрирует классический подход к линковке с использованием настроек в `package.json`.
 
@@ -31,7 +31,7 @@ npm run link
 
 ---
 
-### 🎯 [multi/](multi/) - Multi-package режим
+### 🎯 [multi/](multi) - Multi-package режим
 
 Демонстрирует новый подход к линковке множественных пакетов через `btconfig.json`.
 

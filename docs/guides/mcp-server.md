@@ -12,13 +12,62 @@ delete_file, create_directory, move_file и get_file_info с префиксом 
 Конфигурация CLI/env и клиента, installation и точные options — в
 [package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
 
+## Установка и подключение
+
+Требуются Node.js >=24.22.2 и доступ к серверу HCM. Для файловых tools сначала
+[установите DLL и проверьте её metadata](./dotnet). Для XQuery и XML tools этот
+шаг с DLL не нужен.
+
+Установите MCP сервер:
+
+```sh
+npm install -g @boristype/mcp-server
+```
+
+Например, для VS Code добавьте в `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "wshcm": {
+      "command": "boristype-mcp",
+      "args": ["--host", "localhost", "--port", "80", "--username", "admin"],
+      "env": {
+        "WSHCM_PASSWORD": "<пароль пользователя HCM>"
+      }
+    }
+  }
+}
+```
+
+Замените host, port и учётные данные на параметры вашего HCM. Для HTTPS добавьте
+`--https`. CLI имеет приоритет над переменными окружения; вместо CLI доступны
+`WSHCM_HOST`, `WSHCM_PORT`, `WSHCM_USERNAME`, `WSHCM_PASSWORD`, `WSHCM_HTTPS`.
+Конфигурацию с реальным паролем не включайте в репозиторий. Другие клиенты,
+включая Claude Desktop, описаны в
+[конфигурации package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#конфигурация).
+
+Запустите сервер средствами MCP-клиента и проверьте список tools: девять
+файловых, `wshcm_xquery` и три XML tools. Затем выполните операцию чтения,
+например `wshcm_get_form` с формой, существующей на вашей установке:
+
+```json
+{ "formUrl": "x-local://wtv/wtv_cost_center.xmd" }
+```
+
+Успех этого вызова подтверждает соединение и загрузку конкретной формы,
+но не установку DLL. Для файлового маршрута прочитайте известный физический
+UTF-8 файл через `wshcm_read_file`; результат должен содержать content, sha256
+и readToken. Параметры URL и ограничения — в
+[описании tools](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#tools).
+
 ## Руководство для агента
 
 Сервер передаёт короткие общие `instructions` при MCP initialization, а каждый
 tool публикует свои schema и description. Для подробных workflow можно установить
 skill `boristype-mcp`: чтение/правка с readToken, хранилища, XQuery/SQL,
 потери типов и обработка неизвестного исхода. Установка и границы доставки
-инструкций клиентом — в [руководстве по skills](./agent-skills.md).
+инструкций клиентом — в [руководстве по skills](agent-skills.md).
 Skill не устанавливает сервер или DLL и не добавляет новых гарантий.
 
 ## XML объектов
@@ -94,7 +143,7 @@ XML-полями и выдаются как `null`, даже `-7`. Привед�
 2025.2.1333 / CLR 9.0.11 / PostgreSQL 16 без BorisType DLL в query path. Проверены
 каталог, SQL, quotes/control escapes, row/output limit и большие Unicode-ответы.
 Команда требует запущенный локальный стенд; output fixtures используют PostgreSQL.
-[Evidence и ограничения типов](https://github.com/BorisType/BorisType/blob/main/plans/mcp-server/09-xquery-native.md).
+[Evidence и ограничения типов](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/09-xquery-native.md).
 
 ## Чтение перед изменением
 
@@ -140,7 +189,7 @@ blob из `spxml_blobs`, тогда как чтение физического �
 на диске. Изменение или удаление дисковой копии не обновляет этот blob.
 ReadToken/hash относятся к дисковому файлу. Операции с логическими URL и SQL
 resources требуют отдельного контракта; добавление поддержки схем его не заменяет.
-[Native исследование](https://github.com/BorisType/BorisType/blob/main/plans/dotnet/15-url-storage-routing-research.md).
+[Native исследование](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/15-url-storage-routing-research.md).
 
 Create-directory создаёт missing parents и допускает existing directory;
 создание цепочки не транзакционно. Get-info читает metadata, включая binary/large
@@ -162,7 +211,7 @@ form/create/read/whole replace, XML negatives и stale/consumed token на од�
 собственном `cost_center`, с независимым удалением/cleanup. На Linux HCM
 2025.2.1333 / CLR 9.0.11 / PostgreSQL 16 прошло 8/8 tests без skips.
 Общий локальный MCP suite — 218/218; он не заменяет native acceptance.
-[Отчёт и границы](https://github.com/BorisType/BorisType/blob/main/plans/mcp-server/10-object-model/first-implementation.md).
+[Отчёт и границы](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/10-object-model/first-implementation.md).
 
 Есть managed, MCP protocol/VM, stdio и pack проверки, а также отдельные native
 команды test:e2e, test:e2e:edit, test:e2e:read-aware, test:e2e:search. Native suites
@@ -170,5 +219,5 @@ form/create/read/whole replace, XML negatives и stale/consumed token на од�
 Все четыре серии прошли на Linux HCM 2025.2.1333 / CLR 9.0.11 с alpha.4/API 2:
 28/28 + 1/1 + 1/1 + 1/1, без skips. Байты и cleanup проверены независимо.
 Это evidence одной C-сборки; JS runtime и Windows HCM этим не проверены.
-[Контракт и границы](https://github.com/BorisType/BorisType/blob/main/plans/dotnet/11-read-aware-files-design.md),
-[результаты](https://github.com/BorisType/BorisType/blob/main/plans/dotnet/13-read-aware-files-results.md).
+[Контракт и границы](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/files-and-read-grants.md),
+[результаты](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/13-read-aware-files-results.md).

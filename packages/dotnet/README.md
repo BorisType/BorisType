@@ -5,7 +5,7 @@
 DLL, версию и зависимости. Первая библиотека — `BorisType.FileSystem`.
 
 Библиотека предоставляет metadata API, поиск имён и UTF-8 содержимого,
-read/write/list/delete/edit, mkdir, metadata и rename. Все девять MCP tools используют DLL через
+read/write/list/delete/edit, mkdir, metadata и rename. Все девять файловых MCP tools используют DLL через
 BS URL resolver. Есть managed tests и installation ZIP.
 
 ## Требования и команды
@@ -127,9 +127,9 @@ BS. PlainProbe входит в default build. DatexProbe требует отде
 в SOAP evaluator. Он сохранён для исследования и исключён из обычного runner.
 Причина не установлена; результат не обобщается на все Datex API.
 
-Происхождение и evidence: [дизайн](../../plans/dotnet/01-workspace-design.md),
-[native DLL experiment](../../plans/mcp-server/06-dotnet-probe.md),
-[референс wshcmx/net](../../plans/mcp-server/07-wshcmx-net-reference.md).
+Происхождение и evidence: [дизайн](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/workspace.md),
+[native DLL experiment](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/06-dotnet-probe.md),
+[референс wshcmx/net](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/07-wshcmx-net-reference.md).
 
 ## Файловый поиск
 
@@ -141,7 +141,7 @@ Core не знает платформенные URL и не выполняет c
 System.IO не воспроизводит платформенный storage hook: существующий физический
 путь и логический `x-local` URL могут обозначать разные данные на диске и в
 `spxml_blobs`. DLL оперирует физическими байтами; изменение диска не обновляет
-SQL blob. [Native сравнение](../../plans/dotnet/15-url-storage-routing-research.md).
+SQL blob. [Native сравнение](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/15-url-storage-routing-research.md).
 
 ```csharp
 string json = BorisType.FileSystem.Search.FindJson(
@@ -162,7 +162,7 @@ Linux-имени сохраняются как данные. Это не пут�
 
 Default budgets: 200 results, 10000 entries, depth 10, 1 MiB/file, 16 MiB/read,
 2000 ms, 2000 UTF-16 units/line. Hard maxima и все options — в
-[контракте поиска](../../plans/dotnet/04-search-design.md). JSON DLL и финальный
+[контракте поиска](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/search.md). JSON DLL и финальный
 MCP JSON ограничены 256 KiB. При нехватке budget limitReason явно указывает
 results/entries/bytes/time/regex/output. Пустой matches при limitReason != null
 не означает отсутствие совпадений. Счётчики skipped показывают пропуски links,
@@ -188,7 +188,7 @@ hot replacement — нет.
 Managed tests и MCP adapter/VM tests проходят вне HCM. Отдельный native e2e
 подтвердил resolver и поиск через CLI/stdio/SOAP/BS/DLL на Linux HCM 2025.2.1333 /
 CLR 9.0.11: имена, содержимое, Unicode/BOM/newlines, exclusions/links, binary,
-result limit, regex и quoted path/query. [Evidence и hashes](../../plans/dotnet/06-search-results.md).
+result limit, regex и quoted path/query. [Evidence и hashes](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/06-search-results.md).
 Windows и другие версии HCM этим запуском не проверены.
 Команда MCP `test:e2e:search` не запускает стенд, не устанавливает DLL и сканирует
 только свой temp fixture.
@@ -217,7 +217,7 @@ newText. Все patches проверяются до записи; dryRun воз�
 MCP хранит read-token/ranges отдельно для createServer; DLL не хранит сессий и не
 доказывает предшествующее чтение сама. Клиент использует только token/ranges,
 предоставленные MCP. Подробности накопления диапазонов, TTL, invalidation и
-отсутствующей гарантии границ чата — в [MCP README](../mcp-server/README.md).
+отсутствующей гарантии границ чата — в [MCP README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
 
 CreateDirectoryJson создаёт missing parents, existing directory — created=false;
 цепочка не транзакционна. InfoJson не читает содержимое: name/isDirectory,
@@ -237,8 +237,8 @@ Unix rwx сохраняются, новые файлы имеют 0600 с учё
 без гарантии. VFS, special files и hard syscall cancellation не обещаются.
 
 API 2 несовместим с alpha.3/API 1: обновить MCP и установленную DLL вместе.
-[Контракт](../../plans/dotnet/11-read-aware-files-design.md),
-[план проверки](../../plans/dotnet/12-read-aware-files-plan.md).
+[Контракт](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/files-and-read-grants.md),
+[план проверки](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/files-and-read-grants.md).
 
-DLL alpha.4/API 2 прошла native acceptance всех девяти MCP tools и read guards на
-Linux HCM 2025.2.1333 / CLR 9.0.11. [Результаты](../../plans/dotnet/13-read-aware-files-results.md).
+DLL alpha.4/API 2 прошла native acceptance всех девяти файловых MCP tools и read guards на
+Linux HCM 2025.2.1333 / CLR 9.0.11. [Результаты](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/13-read-aware-files-results.md).

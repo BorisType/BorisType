@@ -88,6 +88,6 @@ Windows HCM, supplied JS runtime, MSSQL и все SQL типы этим evidence
 - [wshcmx/types, lib/core/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/core/index.d.ts#L2613)
   и [lib/tools/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/tools/index.d.ts#L5104),
   revision `a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b`.
-- [Native query acceptance и диагностика](https://github.com/BorisType/BorisType/blob/main/plans/mcp-server/09-xquery-native.md):
+- [Native query acceptance и диагностика](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/09-xquery-native.md):
   самостоятельный справочник выше сохраняет существенные результаты без
   обязательного доступа к checkout, стенду или другому skill.

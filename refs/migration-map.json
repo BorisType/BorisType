@@ -1,0 +1,1327 @@
+{
+  "version": 1,
+  "baseCommit": "8ff2739ce14957e9f1d3e3b17c7a7cf88a396209",
+  "description": "Completed content migration accounting. Every baseline source has a final knowledge destination and disposition; sourceSha256 identifies its original git blob. sourceRetained marks in-place rewrites. Markdown may be summarized; preserveBytes entries retain exact artifact bytes.",
+  "entries": [
+    {
+      "source": "DOCUMENTATION_STRUCTURE.md",
+      "destination": "refs/development.md",
+      "action": "summarized",
+      "sourceSha256": "c6e3ceca00d0d852d829179676b9bf47b96e73c956f166a8c427c3f8275c25d2",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Content audited and consolidated into current topic/entrypoint; stale copies removed. Historical roles, retired wishlist promises and documentation decisions are recorded in refs/archive/documentation/2026-11-11-documentation-migration.md. Existing technical findings have current source/status in topic findings and TODO; original blob is available at baseCommit. Current public entry/API workflow or concrete findings; migration rationale and retirement status in closure record."
+    },
+    {
+      "source": "KNOWN_ISSUES.md",
+      "destination": "refs/compiler/findings.md",
+      "action": "summarized",
+      "sourceSha256": "fc99e59b796a11038dde2ad27586c04dacb1b6479b5535e3827ab35a98e5beeb",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Content audited and consolidated into current topic/entrypoint; stale copies removed. Historical roles, retired wishlist promises and documentation decisions are recorded in refs/archive/documentation/2026-11-11-documentation-migration.md. Existing technical findings have current source/status in topic findings and TODO; original blob is available at baseCommit. Current public entry/API workflow or concrete findings; migration rationale and retirement status in closure record."
+    },
+    {
+      "source": "plans/dotnet/01-workspace-design.md",
+      "destination": "refs/dotnet/workspace.md",
+      "action": "summarized",
+      "sourceSha256": "b1ae9daaf8daa7603253d97763d7ba3252ddd43310fbab27cfe1c65170eec971",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Initial metadata-only design superseded by established workspace. Independent assembly versions, wrapper isolation, metadata ABI, locked restore, ZIP manifest, vendor refs and layered CI. Alpha.1/API1 metadata-only is historical; current alpha.4/API2."
+    },
+    {
+      "source": "plans/dotnet/02-workspace-plan.md",
+      "destination": "refs/dotnet/workspace.md",
+      "action": "summarized",
+      "sourceSha256": "292208c05f90e4c012bd48ca15647c7bea3f698a716269c8b619f3f8b08f48f2",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Completed task-by-task implementation plan removed. Actual CLI/ZIP validation, complex MSBuild output-path escaping regression, SDK/target/host separation, build/artifact/vendor boundaries. Initial managed 1-test checkpoint was CLR9.0.22; native9.0.11 distinct."
+    },
+    {
+      "source": "plans/dotnet/03-path-resolution-research.md",
+      "destination": "refs/research/dotnet/03-path-resolution-research.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "cbccca088ef585c5a877665a215bb908f7a0945480418a827248a90e92edc9ae",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/dotnet/bridge.md. Historical acceptance is not fresh acceptance; non-Markdown evidence is unchanged."
+    },
+    {
+      "source": "plans/dotnet/04-search-design.md",
+      "destination": "refs/dotnet/search.md",
+      "action": "summarized",
+      "sourceSha256": "d6f34b37006b44c1d893ef70c5f05e77a1608ac188c22553fb13bbd0ff32d0fb",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Intermediate API1 design consolidated into API2 topic. Glob/filename distinctions, budgets, counters, DFS subset ordering, UTF8/line rules, exclusions, cooperative limits, unique ABI and rejected alternatives. Current JSON API2; Linux native first-search report remains dated alpha.2."
+    },
+    {
+      "source": "plans/dotnet/05-search-plan.md",
+      "destination": "refs/dotnet/search.md",
+      "action": "summarized",
+      "sourceSha256": "b138117b1761b3d4fa804d820295ef0d761d688b5060b8c31dbdb12fe30b1ea2",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Completed checklist superseded by implementation/evidence. Reflection/actual temporary files versus VM/native layers, deterministic cancellation and native fixture requirements. No new runtime acceptance from documentation transfer."
+    },
+    {
+      "source": "plans/dotnet/06-search-results.md",
+      "destination": "refs/research/dotnet/06-search-results.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "bcc49d0a7e6fa49272072165f0df08370c5fa27d5bfb922b9454f215faf3eea2",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/dotnet/search.md. Alpha.2/API1 ниже superseded alpha.4/API2. Сохраняются original build/template/DLL hashes, fixed expected и native cleanup; текущий API описан в теме."
+    },
+    {
+      "source": "plans/dotnet/07-file-tools-design.md",
+      "destination": "refs/dotnet/files-and-read-grants.md",
+      "action": "summarized",
+      "sourceSha256": "d75a84db79bcd531b13ab77e946f370406f8fbd7b19752261b96a963b3123126",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Alpha.3 design superseded by read-aware API2. Strict bytes/BOM/limits, exact sequential and overlap patches, no partial commit, temp/flush/rename, Unix modes, CAS window and rejected dispatch alternative via bridge topic. includeMetadata and optional edit precondition/overwrite were superseded."
+    },
+    {
+      "source": "plans/dotnet/08-file-tools-plan.md",
+      "destination": "refs/dotnet/files-and-read-grants.md",
+      "action": "summarized",
+      "sourceSha256": "ba22764f4c4565f0efd9f1c7b97d4ddd88d51e31e1ca222b237296e1a25b66f7",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Completed migration checklist consolidated. Actual filesystem/ABI tests, malformed response checks, managed-versus-native separation and bounded independent cleanup. Six-tool API1 checkpoint superseded by nine-tool API2."
+    },
+    {
+      "source": "plans/dotnet/09-file-tools-results.md",
+      "destination": "refs/research/dotnet/09-file-tools-results.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "3acf3a58f7c797b06666956ce140e0b59cc888dbd16c55edd24f984d8fa5f8b1",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/dotnet/files-and-read-grants.md. Alpha.3/API1, optional metadata/hash и unconditional overwrite ниже superseded read-aware alpha.4/API2. Byte/edit evidence остаётся датированным."
+    },
+    {
+      "source": "plans/dotnet/10-file-tools-next-steps.md",
+      "destination": "refs/dotnet/files-and-read-grants.md",
+      "action": "summarized",
+      "sourceSha256": "c19988116eeacd1dd15264416b504231979fb6f310397b0305111e1fff0255cb",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Next-steps status wrapper superseded by completed read-aware work. Read delivery versus hashes; MCP-instance/chat boundary; deferred multi-read/tree; deterministic external-writer CAS research protocol. CAS still unresolved; token implementation is no longer future work."
+    },
+    {
+      "source": "plans/dotnet/11-read-aware-files-design.md",
+      "destination": "refs/dotnet/files-and-read-grants.md",
+      "action": "summarized",
+      "sourceSha256": "e038ff9b97ed2788b18b92c9f7910991396eca2d62a4d03df3034afda18e4972",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Design consolidated into current explanatory topic. Exact URL/hash/acknowledgement-chain grants, UTF16/BOM/ranges, TTL/eviction, invalidation, preview, create-only/overwrite and native no-copy rename. DLL trusts MCP ranges; grant is not chat isolation or external CAS."
+    },
+    {
+      "source": "plans/dotnet/12-read-aware-files-plan.md",
+      "destination": "refs/dotnet/files-and-read-grants.md",
+      "action": "summarized",
+      "sourceSha256": "05f4947ebf56b138c5c30ab63c92b171859c79ab4901465e0b668767b87942fe",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Completed read-aware checklist removed after extraction. Coverage transforms, transport loss invalidation, artifact-stub cleanup, Windows/native and cross-device test distinctions. Linux checkpoint source evidence retained in 13-results; no renewed acceptance."
+    },
+    {
+      "source": "plans/dotnet/13-read-aware-files-results.md",
+      "destination": "refs/research/dotnet/13-read-aware-files-results.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "68e1a944149cfea89f10dcb96ad552e6de87c8885d3c1f8bf7ce2278fe387cbc",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/dotnet/files-and-read-grants.md. Alpha.4/API2 checkpoint не переаттестован переносом документации. Windows managed CI и Windows HCM — разные проверки."
+    },
+    {
+      "source": "plans/dotnet/14-path-schemes-research.md",
+      "destination": "refs/research/dotnet/14-path-schemes-research.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "c70e452f9f812716c6a0121b851d66363243314f6dd47b805817d0af883acff8",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/platform/paths-and-storage.md. Прямые x-app/file probes не расширили публичную MCP file schema. Последующий routing research различает physical mapping и SQL blobs."
+    },
+    {
+      "source": "plans/dotnet/15-url-storage-routing-research.md",
+      "destination": "refs/research/dotnet/15-url-storage-routing-research.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "1098a2fba72a0509276a418bc92edbccc23a9a79e670e0cb71444eb4a3124735",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/platform/paths-and-storage.md. Historical acceptance is not fresh acceptance; non-Markdown evidence is unchanged."
+    },
+    {
+      "source": "plans/dotnet/README.md",
+      "destination": "refs/research/dotnet/README.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "470480da42111193198cd84c054ffb3aee30d4eb3c7ff68ac483e8e8cd25a80e",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Rewritten current/evidence entry routes readers by question rather than implementation stage. Current explanations and bounded evidence/reproduction navigation. Historical acceptance is not fresh acceptance; non-Markdown evidence is unchanged."
+    },
+    {
+      "source": "plans/dotnet/probes/path-schemes/managed-alias-read.bs",
+      "destination": "refs/research/dotnet/probes/path-schemes/managed-alias-read.bs",
+      "action": "relocated",
+      "sourceSha256": "9f1a0ac84572e376135022e2c08cf43e15b51cc67860d4382d4b4eacac15a4f2",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/issue-13-labeled-statements.md",
+      "destination": "refs/compiler/control-flow.md",
+      "action": "summarized",
+      "sourceSha256": "562b48d65c1a381faaae365ac1ca373a142bfa1347069a4602a0e9d91d9fb609",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Модель completion/targets/catch, отклонённые alternatives, invariants; dated outcomes/metrics и counterexamples в refs/research/compiler-control-flow/2026-10-07-results.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/maintenance/2026-11-07-dependency-refresh.md",
+      "destination": "refs/archive/maintenance/2026-11-07-dependency-refresh.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "6b621c588d3d62bd347546db00458cea6ef0dc68519ce1bf1ab8ec4c4280e59a",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated maintenance evidence and appended explicit Nov11 read-only reassessment. Historical upgrade inventory/provenance/pins/hosted CI counts/native limits; cross-linked current maintenance topic. Minimatch moderate remains; its age cutoff elapsed. New low fxp advisory applies to lockfile; cutoff Nov17; no updates or native calls."
+    },
+    {
+      "source": "plans/mcp-server/01-dependency-refresh.md",
+      "destination": "refs/mcp/transport-and-lifecycle.md",
+      "action": "summarized",
+      "sourceSha256": "f30c285b12c374a4d6d1efec77cde1f3c9e6500b8918923569ab108893be0e09",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Dependency-refresh status wrapper superseded by current transport/contracts. R01–R07 mechanisms and fixed/open distinction; carrier escaping, pack artifact versus registry install, unchanged strict envelope/partial-start gaps. SDK1 versions/test counts belong to 2026-11-05, not current acceptance."
+    },
+    {
+      "source": "plans/mcp-server/02-sdk-v2-migration.md",
+      "destination": "refs/mcp/transport-and-lifecycle.md",
+      "action": "summarized",
+      "sourceSha256": "cf39c3edb5466c9eba87ab18defce1d51fd7c63442ca305442338f070463dc77",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Completed SDK migration wrapper consolidated by mechanism. Renamed stable SDK packages, dist-tag trap, v2 exports/Zod schema/stdio and in-memory verification; upstream migration URLs. 2.3.1 cooldown was intermediate; current manifest SDK ^2.4.0."
+    },
+    {
+      "source": "plans/mcp-server/03-dependency-review.md",
+      "destination": "refs/research/mcp/03-dependency-review.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "f2be686d219b2b897614c2be8f697c8d0fbe8f605283c8d2b3c0b6ec71f0de60",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/mcp/transport-and-lifecycle.md. Metadata/latest/advisory findings ниже датированы 2026-11-05. Текущие versions определяются manifests/lockfile; SDK теперь ^2.4.0. Это не новый dependency audit."
+    },
+    {
+      "source": "plans/mcp-server/04-local-e2e.md",
+      "destination": "refs/research/mcp/04-local-e2e.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "2abb01e09d45052ee74c2d7b651e5b730f2bd922a9a8ec5a81f482550cf05dae",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/mcp/transport-and-lifecycle.md. Pre-DLL templates/четыре tools ниже — исторический carrier. Current files используют alpha.4/API2; byte/transport/lifecycle findings и original hashes сохраняются."
+    },
+    {
+      "source": "plans/mcp-server/05-dotnet-search-research.md",
+      "destination": "refs/research/mcp/05-dotnet-search-research.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "e3cfff3823fe3559deb48f6cfc0e59b4aaebfa12e7edb93336b482a8410927ed",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/dotnet/bridge.md. Предложенный здесь smoke/search впоследствии реализован. Сохранена инвентаризация конкретной поставки и существующих логов; это не новый native запуск."
+    },
+    {
+      "source": "plans/mcp-server/06-dotnet-probe.md",
+      "destination": "refs/research/mcp/06-dotnet-probe.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "428bab4aeb4be8c2fd82398a3991aa8beb4b42d5d563aa3a4b07142b87676edc",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/dotnet/bridge.md. Причина Datex callback exit139 не установлена; это не отказ всех callbacks. Native hashes/cleanup ниже относятся к исходным сборкам."
+    },
+    {
+      "source": "plans/mcp-server/07-wshcmx-net-reference.md",
+      "destination": "refs/research/mcp/07-wshcmx-net-reference.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "2de9e27efe03cb8d01ec89665bbce542be920ba678aa0c17f9ea3de0d36abab9",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/dotnet/bridge.md. Historical acceptance is not fresh acceptance; non-Markdown evidence is unchanged."
+    },
+    {
+      "source": "plans/mcp-server/08-filesystem-checkpoint.md",
+      "destination": "refs/research/mcp/08-filesystem-checkpoint.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "19b02920750fda7e620805b79a737af7ac087d7d1f9a18cdf4c4b46410e54dcc",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/dotnet/files-and-read-grants.md. Девять tools/API2 — состав filesystem checkpoint. Позднее добавлены XQuery и три XML tools; tests/advisory/CI status ниже относятся к указанному commit."
+    },
+    {
+      "source": "plans/mcp-server/09-xquery-native.md",
+      "destination": "refs/research/mcp/09-xquery-native.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "16ad1d6cf59917908b8f54844e8c0bb36995321aa94f37986ac22843884514c1",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/mcp/xquery.md. Historical acceptance is not fresh acceptance; non-Markdown evidence is unchanged."
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/README.md",
+      "destination": "refs/research/mcp/10-object-model/README.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "1ebf1233133129866981fcabf090682fc2c4125e416842989a5dbdfed1b14b70",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Rewritten current/evidence entry routes readers by question rather than implementation stage. Current explanations and bounded evidence/reproduction navigation. Historical acceptance is not fresh acceptance; non-Markdown evidence is unchanged."
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/declarations.md",
+      "destination": "refs/research/mcp/10-object-model/declarations.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "8528959c149e94e4be2b6cbf2038c48df348e3326a6055a1b63d78dd8712f6ec",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/platform/object-model.md. Ниже закреплённые declarations и первоначальные кандидаты проверок, не текущий tool contract. Часть пунктов 1–6 проверена последующими native probes; полнота API, new model, права/transactions не установлены."
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/evidence-manifest.json",
+      "destination": "refs/research/mcp/10-object-model/evidence-manifest.json",
+      "action": "relocated",
+      "sourceSha256": "56a69cbe3d35e46fb98e3ed56cbea3e3b601eaaf9bec8f9259b84b4a03300af9",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/first-implementation-evidence.json",
+      "destination": "refs/research/mcp/10-object-model/first-implementation-evidence.json",
+      "action": "relocated",
+      "sourceSha256": "638d48d1e85f4ce640f0dacc53d38408bcc566719d4c4e01a1226b581cf0f0c6",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/first-implementation.md",
+      "destination": "refs/research/mcp/10-object-model/first-implementation.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "3af4fda0a0e488792b8df9af6e48fb24e46e6897f1f5eacae33b7929a1c74759",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/mcp/xml-objects.md. Historical acceptance is not fresh acceptance; non-Markdown evidence is unchanged."
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/implementation.md",
+      "destination": "refs/mcp/xml-objects.md",
+      "action": "summarized",
+      "sourceSha256": "7caf22ad934ae1b54471f37ed3422e79efc1b179e83e812c4d60e159d6af9bf2",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Completed implementation checklist duplicated current topic/product evidence. Create uses OpenNewDoc+LoadData; replace distinct doc/bind; exact identities, partial validation limits, token consumption, phases/status and no blind retry. Native checkpoint retained separately with unchanged evidence bytes."
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/js-reference.md",
+      "destination": "refs/research/mcp/10-object-model/js-reference.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "d8b56f0187279c8df00e3036368d87bdc200fdf483ef65141d74171779758fb8",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/platform/object-model.md. Статический browser JS reference не является C-runtime implementation или его acceptance. Vendor source нужен отдельно по указанному hash/locator."
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/native-evidence.md",
+      "destination": "refs/research/mcp/10-object-model/native-evidence.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "8241e0e488c04656983b998df341464413e1eaa252bd3369765e2b35fc166988",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/platform/object-model.md. Linux legacy observations и проверка saved transcripts не аттестуют current head. Unknown method на этом стенде не означает отсутствие API универсально."
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/01-reflection.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/01-reflection.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "034de9b4b5a96738223575cd793542192e00d63c2b60101a9c7c23b41b6e59cc",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/02-values-and-hooks.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/02-values-and-hooks.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "d6d2c6dd3975247623cd1f86f35177e7f11eede9cc6777a3dace889b98310edc",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/03-owned-crud.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/03-owned-crud.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "a394414de0d094ab7807f4c28c5d9f4c61f385885636012c45f1c52fe9b0c0a1",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/first-create-load.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/first-create-load.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "784fb2193773bb3eb8778e05703a0f48c0a34f92d9759dc4913a01243af2e26b",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/first-diagnostic-range.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/first-diagnostic-range.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "c6226b12eb2d59b2fb52d47a00be6ae888ec91fb5ea26a09c52613df6aad87cc",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/first-id-format.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/first-id-format.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "64b7fdde257a9231c1795c8ddaf2b455359e9cacfd71e14a4fea9bd2fdb74034",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/first-object-tools-e2e.log",
+      "destination": "refs/research/mcp/10-object-model/observed/first-object-tools-e2e.log",
+      "action": "relocated",
+      "sourceSha256": "21ddc4606276f1e6a06ca5f5fb725592ea941d100f6f64e9b28d7fdb36ded404",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/first-postcheck.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/first-postcheck.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "0c2b2a8ff11f7726e4a8cf52f6a38bf24b9d41905a0162f5d26df049da9c13db",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/postcheck.bs",
+      "destination": "refs/research/mcp/10-object-model/observed/postcheck.bs",
+      "action": "relocated",
+      "sourceSha256": "eb9f666d909ce221ec6507bdea02d6975c536248c617b94046022fb819e6d5f8",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/postcheck.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/postcheck.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "8f1fca8b781f30cb3843c1d93df32f8ca51abb34194ab11588cd917a144c5cc9",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/xml-core.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/xml-core.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "5b9ea407ae780f9f9e315084c5741ac75378465de0d5dd7a39f717f5ec2f200d",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/xml-crud.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/xml-crud.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "012bd5692576430654abce3c4b09116ab106bf893484867723252d6f66c44a45",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/xml-local-validator.json",
+      "destination": "refs/research/mcp/10-object-model/observed/xml-local-validator.json",
+      "action": "relocated",
+      "sourceSha256": "a752230490f616011859bad319d07f2ce718c3ca45d5cd7a4f7bc5f8a33fa617",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/xml-postcheck.bs",
+      "destination": "refs/research/mcp/10-object-model/observed/xml-postcheck.bs",
+      "action": "relocated",
+      "sourceSha256": "c7bcf0392e9154dc4675c2429c68e8f5a03065a63939fb4660d7aade14d0a847",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/observed/xml-postcheck.result.jsonl",
+      "destination": "refs/research/mcp/10-object-model/observed/xml-postcheck.result.jsonl",
+      "action": "relocated",
+      "sourceSha256": "5920bfbc84ce61b30f8a582350f413abf89209e84b0ec38d2e0ce29299f0621f",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/01-reflection.bs",
+      "destination": "refs/research/mcp/10-object-model/probes/01-reflection.bs",
+      "action": "relocated",
+      "sourceSha256": "01b334b867ae3069562f259710c1db85d448c42dae1be993e5f18c72d910b0c3",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/02-values-and-hooks.bs",
+      "destination": "refs/research/mcp/10-object-model/probes/02-values-and-hooks.bs",
+      "action": "relocated",
+      "sourceSha256": "eca6dda6ecebe83adf3f174cbf18cf5b8717a33d0b12364f8ec57f08255f0ee3",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/03-owned-crud.bs",
+      "destination": "refs/research/mcp/10-object-model/probes/03-owned-crud.bs",
+      "action": "relocated",
+      "sourceSha256": "4b56ce22a76808aa37e00f13fc2e4336e9c0f93d010a12684f88673d0ef3f13b",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/first-create-load.bs",
+      "destination": "refs/research/mcp/10-object-model/probes/first-create-load.bs",
+      "action": "relocated",
+      "sourceSha256": "aee99d68b067e2389bd99d8597808e0e0b05eed3816801a56ca61c7b301faa5d",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/first-diagnostic-range.bs",
+      "destination": "refs/research/mcp/10-object-model/probes/first-diagnostic-range.bs",
+      "action": "relocated",
+      "sourceSha256": "7a8bea161f402daedceff0629bd955f02e8c2e143940dea37844d919f16f4399",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/first-id-format.bs",
+      "destination": "refs/research/mcp/10-object-model/probes/first-id-format.bs",
+      "action": "relocated",
+      "sourceSha256": "20f33fd03b8d2dde4a5b155a5e11c8321bc90b94cedf9b24035f5373716ab267",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/first-postcheck.bs",
+      "destination": "refs/research/mcp/10-object-model/probes/first-postcheck.bs",
+      "action": "relocated",
+      "sourceSha256": "41bbb73e0399e130149c99dec1eaf736f9fad961f831474fc6c696884dfc1944",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/verify-results.mjs",
+      "destination": "refs/research/mcp/10-object-model/probes/verify-results.mjs",
+      "action": "relocated",
+      "sourceSha256": "55d1601a396bdb6b02414f9647c77adfc031dc3d2ab8c248bc42de85eaf7f241",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/verify-xml-results.mjs",
+      "destination": "refs/research/mcp/10-object-model/probes/verify-xml-results.mjs",
+      "action": "relocated",
+      "sourceSha256": "01db5149922a88f1b4a1471b6adc79ae1698bfef76496cf0f1e8d4d266ed7667",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/xml-core.bs",
+      "destination": "refs/research/mcp/10-object-model/probes/xml-core.bs",
+      "action": "relocated",
+      "sourceSha256": "bc4fbf6db295ebb327ea336a7e9cb4df92dd9a9be7e08a47b0307381c5ced22e",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/probes/xml-crud.bs",
+      "destination": "refs/research/mcp/10-object-model/probes/xml-crud.bs",
+      "action": "relocated",
+      "sourceSha256": "3804a6afd721686aa931bfb02bb829ce1d24270bec1cb6326feb609c0f0970a7",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/tool-options.md",
+      "destination": "refs/mcp/xml-objects.md",
+      "action": "summarized",
+      "sourceSha256": "805d06ca7479d5f0d52cfef2abf0b28f59ecb5a676c7a7d7cc539cc7821ca06c",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Alternatives/staged roadmap consolidated after XML-first implementation. All six alternatives and rejection/tradeoff reasons, known-full reads, CAS limits, pure-validation counterexamples, authorization/unknown-outcome boundaries. Typed patch recommendation superseded; trash/business adapters/expanded runtime matrix remain separate unimplemented scope."
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/xmd-and-catalogs.md",
+      "destination": "refs/research/mcp/10-object-model/xmd-and-catalogs.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "ba50e10f867d4c5a55f4b24010af453522893721233648630c0b17f4ded6b251",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/platform/object-model.md. Historical acceptance is not fresh acceptance; non-Markdown evidence is unchanged."
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/xml-evidence-manifest.json",
+      "destination": "refs/research/mcp/10-object-model/xml-evidence-manifest.json",
+      "action": "relocated",
+      "sourceSha256": "e12fe271ede11e22bf05e75b03223e34498772f962c2169de12cd2291132eecf",
+      "preserveBytes": true
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/xml-mvp.md",
+      "destination": "refs/research/mcp/10-object-model/xml-mvp.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "8875948ad9551403e2c6ba3ed2db241b9224f08f1cb728b9ad8bb545a01dc481",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/mcp/xml-objects.md. XML-first направление реализовано последующим product checkpoint. Ниже сохранены исходные native negatives/import/lifecycle и отдельный manifest; current contract находится в теме."
+    },
+    {
+      "source": "plans/mcp-server/10-object-model/xms-and-business-logic.md",
+      "destination": "refs/research/mcp/10-object-model/xms-and-business-logic.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "b087d37536ecb96ca1ea3ae6da55ca0df34fe68871957587b0be870ecd1d758f",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Retained dated technical/native evidence with explicit current-theme link and source-layer status. Original observations, revisions, external source URLs, hashes/provenance/cleanup remain here; current decision extracted to refs/platform/object-model.md. XMS содержит права, validation, prompts и побочные бизнес-действия; его hooks не являются чистой авторизацией. Native execution этих business operations не проводился."
+    },
+    {
+      "source": "plans/mcp-server/README.md",
+      "destination": "refs/research/mcp/README.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "58e764a0e2e9a622cabc26306b0c8d982231b7df7104cfce3f38b0a09bba7bbe",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Rewritten current/evidence entry routes readers by question rather than implementation stage. Current explanations and bounded evidence/reproduction navigation. Historical acceptance is not fresh acceptance; non-Markdown evidence is unchanged."
+    },
+    {
+      "source": "plans/probes/README.md",
+      "destination": "refs/research/compiler-control-flow/probes/README.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "63ce96b707289261ced9c85aaff858c6c5c0f901dc6b6f19ed96ee6f5ae4ebe6",
+      "preserveBytes": false,
+      "notes": "Reviewed usable generation/replay recipe; unsafe diagnostic separated from bounded fixed smoke, exact traces/user-reported60-case C/version unknown retained."
+    },
+    {
+      "source": "plans/skills/01-websoft-hcm.md",
+      "destination": "refs/platform/agent-skills.md",
+      "action": "summarized",
+      "sourceSha256": "cb8c55f1b098f7c5c12af97f40ad1b9543e964e20e7e0ba3f5706cb1db46dbc1",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Completed skill authoring/install process log consolidated. Independent installed reference boundary, baseline/control scenarios, CLI revision/URLs, hashes/config distinctions, storage follow-up/install bytes. Config read did not prove root registry recipe; native follow-up disproved simple recipe."
+    },
+    {
+      "source": "plans/skills/02-mcp-and-numbers.md",
+      "destination": "refs/platform/agent-skills.md",
+      "action": "summarized",
+      "sourceSha256": "69a756d4c5aa04305c7481c2f64f1c6e10185476b119c8528470677a446968cf",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Completed authoring/test log consolidated. Six MCP/five numeric scenarios, baseline attribution limits, stdio instructions versus resource/prompt choice and CLI installation/artifact evidence. One before/after application pass is not a model benchmark; no additional native acceptance."
+    },
+    {
+      "source": "plans/skills/03-websoft-hcm-admin.md",
+      "destination": "refs/platform/agent-skills.md",
+      "action": "summarized",
+      "sourceSha256": "8936a5fe5437d3c43d3d4a89daab0899d0fc722556a38b88323e7992a6ea4b5d",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Completed first-UI-skill process log consolidated. Exact observed admin route/labels, fulltext/index explanation provenance, sensitive screenshots, API-create/UI-read versus unperformed UI-save. 20-minute indexing is user example, ordinary filter/schedule unverified; fixture deliberately retained for user."
+    },
+    {
+      "source": "plans/ts-bs-semantics/00-context.md",
+      "destination": "refs/research/compiler-semantics/README.md",
+      "action": "summarized",
+      "sourceSha256": "41af7fd7c826ebd79195714aab63165f3fb90da9069a2870eeb587afc975e070",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Baseline identity, completed research checkpoint, незавершённые inventory/design/C gates; уникальные hypotheses и leaf boundaries извлечены в expression-evaluation/scope. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/01-feature-map.md",
+      "destination": "refs/research/compiler-semantics/scope.md",
+      "action": "summarized",
+      "sourceSha256": "762497db07546b9ca5c1d7e3cd4bbff3f0994560ba4a98c959694886eca0681f",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Полный нерешённый тематический inventory и существенные acceptance/dependencies; это область исследования, не утверждённые implementation waves. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/02-findings.md",
+      "destination": "refs/compiler/findings.md",
+      "action": "summarized",
+      "sourceSha256": "c10eff5a8dcb7e7c697a429211d9ac8a314dde0d4b8d9c4b05b36a0a76e8287b",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Все R01–R29/K01–K11 observations и literal seed reproductions с baseline/runtime boundaries сохранены. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/03-workflow.md",
+      "destination": "refs/compiler/verification.md",
+      "action": "summarized",
+      "sourceSha256": "acc141f551ac70f65e70550e770bd48536656d76482e1b710fde67d1b7afe6fe",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Oracle/target separation, nonzero gates, матрица, output/cost rules, bounded C safety, evidence manifest. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/04-verification.md",
+      "destination": "refs/compiler/verification.md",
+      "action": "summarized",
+      "sourceSha256": "86293c417672eeaa480341173775f2314693cb7b6ccce2c2f638cff7899128bd",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Oracle/target separation, nonzero gates, матрица, output/cost rules, bounded C safety, evidence manifest. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/05-backlog.md",
+      "destination": "refs/research/compiler-semantics/scope.md",
+      "action": "summarized",
+      "sourceSha256": "8eb3d764258b9b61ce450a900d284de137e527119e5184c001aa102616c6bac6",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Полный нерешённый тематический inventory и существенные acceptance/dependencies; это область исследования, не утверждённые implementation waves. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/README.md",
+      "destination": "refs/research/compiler-semantics/README.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "9a7bf5d4b50c7395c23f3d7e93f7f7630ff885e7b58fddb625aaac0974dfde10",
+      "preserveBytes": false,
+      "notes": "Rewritten concise checkpoint entry with original surface baseline identities/counts/provenance; removed mandatory L0-L5 hierarchy and links current research/questions."
+    },
+    {
+      "source": "plans/ts-bs-semantics/research/01-expression-evaluation-results.md",
+      "destination": "refs/research/compiler-semantics/expression-evaluation.md",
+      "action": "summarized",
+      "sourceSha256": "74f22b7c9ce7377f655e74f62bc8cd6dd9c7e005cdc117c195b48386eb96b042",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Датированный substantive producer/consumer audit, counterexamples, A/B/C/I/D/E tradeoffs, точные structural costs и preliminary recommendation. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/research/01-expression-evaluation.md",
+      "destination": "refs/research/compiler-semantics/README.md",
+      "action": "summarized",
+      "sourceSha256": "475a4465ea0ad16b0468c9719bb010af54b7c7ba5a9bcd5d1a0044e54dc95f97",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Baseline identity, completed research checkpoint, незавершённые inventory/design/C gates; уникальные hypotheses и leaf boundaries извлечены в expression-evaluation/scope. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/research/README.md",
+      "destination": "refs/research/compiler-semantics/README.md",
+      "action": "summarized",
+      "sourceSha256": "81861e6e5735e669eddc93092bc76ed41b4efcc4ae5deadea611bdf323b6c0cf",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Baseline identity, completed research checkpoint, незавершённые inventory/design/C gates; уникальные hypotheses и leaf boundaries извлечены в expression-evaluation/scope. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/results/2026-10-08-expression-baseline.md",
+      "destination": "refs/research/compiler-semantics/results/2026-10-08-expression-baseline.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "373ec017731db4b6b991fcb8d6951a46bfa1a57dc00931de96d4de52a76e3535",
+      "preserveBytes": false,
+      "notes": "Retained dated execution evidence: compiler/runtime/catalog hashes, exact counts/commands, prototype distinctions, C handoff hashes and instrumentation limits."
+    },
+    {
+      "source": "plans/ts-bs-semantics/results/2026-11-05-research-checkpoint.md",
+      "destination": "refs/research/compiler-semantics/results/2026-11-05-research-checkpoint.md",
+      "action": "reviewed-evidence",
+      "sourceSha256": "04892b3458d87e953a471585fb881e6eccc88fc948ae7afa5e7b12f8548246f4",
+      "preserveBytes": false,
+      "notes": "Retained different-runtime revalidation hashes and exact10PASS38XFAIL, numeric platform-test separation, dependency boundary and no new C/memory acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/results/README.md",
+      "destination": "refs/compiler/verification.md",
+      "action": "summarized",
+      "sourceSha256": "099ebc203b671d3387756cb1868de758b89efc774878506201627844916c2818",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Oracle/target separation, nonzero gates, матрица, output/cost rules, bounded C safety, evidence manifest. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/specs/01-expression-evaluation.md",
+      "destination": "refs/research/compiler-semantics/expression-contract-draft.md",
+      "action": "summarized",
+      "sourceSha256": "f7e81b686e8300b0b6f92f612a1816c4ae8139cd3dc19923a07572f69930500d",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Содержательный нормативный draft сохранён целиком с явным on-hold/not-accepted статусом. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/specs/README.md",
+      "destination": "refs/research/compiler-semantics/README.md",
+      "action": "summarized",
+      "sourceSha256": "bf79e9724eb9e307c8bf0a23f9460d085a5f08457c123dfd283622d638d0808e",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Baseline identity, completed research checkpoint, незавершённые inventory/design/C gates; уникальные hypotheses и leaf boundaries извлечены в expression-evaluation/scope. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/tasks/F-02-expression-baseline.md",
+      "destination": "refs/research/compiler-semantics/README.md",
+      "action": "summarized",
+      "sourceSha256": "b20785c295d92aa965e31c1a133b5e012a7e13f0869b1d15bd2e30b259ded452",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Baseline identity, completed research checkpoint, незавершённые inventory/design/C gates; уникальные hypotheses и leaf boundaries извлечены в expression-evaluation/scope. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "plans/ts-bs-semantics/tasks/README.md",
+      "destination": "refs/research/compiler-semantics/README.md",
+      "action": "summarized",
+      "sourceSha256": "c85487c6ab2701527cfa75787c09623f70dc89e1bc02f0140d43f7961b911319",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Baseline identity, completed research checkpoint, незавершённые inventory/design/C gates; уникальные hypotheses и leaf boundaries извлечены в expression-evaluation/scope. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/algorithms/bt-ir-lowering-vs-pass.md",
+      "destination": "refs/compiler/pipeline.md",
+      "action": "summarized",
+      "sourceSha256": "5d1090446f8832419e37cf82307692d8fec3b4645b7cacf5ef5ea77ae6a53ee9",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Текущие entrypoints/passes, mode flags, env/reference invariants; частичная семантика и исправленные исторические утверждения в findings/proposals. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/algorithms/versioning-strategy.md",
+      "destination": "refs/cli/release-and-maintenance.md",
+      "action": "summarized",
+      "sourceSha256": "69ded76e14db8c40932a098df9ce65b40fe5f927e020405ad3a090eb0c54e6ea",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Current release policy replaces duplicated historic numbered workflow and mandatory rules. Changesets fixed group vs independent packages; internal bumps; semver intent and prerelease distinction. Alpha package names do not prove active Changesets prerelease; no pre.json; pnpm run version avoids builtin ambiguity; fixed numbering not ABI proof."
+    },
+    {
+      "source": "ref/architecture/build-pipeline.md",
+      "destination": "refs/cli/build-and-watch.md",
+      "action": "summarized",
+      "sourceSha256": "340484635978dffaec975bdfb75cfb98d06aff026c4447bc7d8351f48b129625",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Replaced inaccurate API/flag/default examples with checked current build/watch dataflow. TS diagnostics vs bt-ir emit; per-package watch; initial barrier; partial emit; non-TS behavior. Confirmed outDir option not consumed; metadata subset loss; corrected BuildResult absolute paths and removed 10x claim."
+    },
+    {
+      "source": "ref/architecture/dev-mode.md",
+      "destination": "refs/cli/build-and-watch.md",
+      "action": "summarized",
+      "sourceSha256": "51cd85c8b43102985fb800ef814579d5694df575d7038b41c7fdc1d03ca9252a",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Proposed DevPipeline/UI/config-reload design is not implemented; useful reasons merged with current coordinator. Different per-package configs; watcher filtering; dependency coordination questions. Push stub superseded by real session/queue; old hotkeys and 150ms debounce not implemented; concurrent-link risk classified as hypothesis."
+    },
+    {
+      "source": "ref/architecture/ir-pipeline.md",
+      "destination": "refs/compiler/pipeline.md",
+      "action": "summarized",
+      "sourceSha256": "74aea4aef1f9761334455888f550794a45f1d2b9e86ae8d5ebb4f0e6e54d3513",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Текущие entrypoints/passes, mode flags, env/reference invariants; частичная семантика и исправленные исторические утверждения в findings/proposals. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/architecture/ir-transformations.md",
+      "destination": "refs/compiler/pipeline.md",
+      "action": "summarized",
+      "sourceSha256": "c26f8691302f34f2f7960fa8e2564161d810100cbe78cbfd8a8fd8ed32153c45",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Текущие entrypoints/passes, mode flags, env/reference invariants; частичная семантика и исправленные исторические утверждения в findings/proposals. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/architecture/linking-system.md",
+      "destination": "refs/cli/linking-and-cache.md",
+      "action": "summarized",
+      "sourceSha256": "0f078220943000427f7cb41574ba5b808362be519b58cb6b869cf11cbc787932",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Removed 1087-line duplicated contract/source catalog after reconciling with current parser/linkers/cache. Unified single/multi pipeline; system-first order; per-module filemap; component init differences; two-tier cache and alternatives. Exact orphan/cache conditions classified; broad workspace invalidation fixed in code; file: protocol alone not guarantee; executable key mismatch confirmed."
+    },
+    {
+      "source": "ref/architecture/monorepo.md",
+      "destination": "refs/cli/release-and-maintenance.md",
+      "action": "summarized",
+      "sourceSha256": "d23a78e7a063ef322ee49c93342ee1a30898ea06bc7634a7cdd7b3d2b2f012d7",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Static graph and postversion/peer claims stale; manifests now source of truth. pnpm/Turbo rationale and ADR; .NET graph distinction; workspace protocol publishing effects. No runtime peer, no postversion script; fixed not linked; no release CI; no blanket workspace:* rule."
+    },
+    {
+      "source": "ref/architecture/push-system.md",
+      "destination": "refs/cli/push-and-artifacts.md",
+      "action": "summarized",
+      "sourceSha256": "fda7e8edd51e37765979f06f7cb5612dcbd2291e8de519a5da45665b756957ab",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Merged lifecycle rationale, corrected uploader/reinit/retry against current source. Persistent evaluator; debounce; reconnect boundary; initialization order; credentials configuration. Retry whole operation; init failures logged; component order not dependency-sorted; no logout guarantee; concrete HTTPS/parser bugs."
+    },
+    {
+      "source": "ref/decisions/2026-02-23-incremental-linking.md",
+      "destination": "refs/decisions/2026-02-23-incremental-linking.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "2a5ae1d3377d52342065375d24b0b00445b0fc6b28794e84ebf26594d89f8039",
+      "preserveBytes": false,
+      "notes": "Retained incremental-copy rationale, write-if-changed and full-link tradeoff; removed old implementation checklist and unverified current guarantees. Concrete deletion/cache/multipackage gaps now in refs/cli/build-and-watch.md and linking-and-cache.md."
+    },
+    {
+      "source": "ref/decisions/2026-02-23-ir-over-transformers.md",
+      "destination": "refs/decisions/2026-02-23-ir-over-transformers.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "fca16d007ea17daa86262ba731aa8b5c405761c9d926749fd8a916fe9723c740",
+      "preserveBytes": false,
+      "notes": "Retained IR/scoping/transformer-order rationale and rejected orchestrator/Babel/direct emit/interpreter alternatives. Removed false API example, unsupported universal correctness/performance and invented release claims; current pipeline linked."
+    },
+    {
+      "source": "ref/decisions/2026-02-23-nullish-check-optional-chaining.md",
+      "destination": "refs/decisions/2026-02-23-nullish-check-optional-chaining.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "c176d0b389f4f4bf85ed6e667fb18fbb148d8896944a21aee2f034f0cf6a7b7c",
+      "preserveBytes": false,
+      "notes": "Retained falsy-vs-nullish counterexample, explicit double-check choice and rejected helper/strict/truthiness alternatives. Qualified target coercion/performance and full-context claims; current implementation and expression evidence linked."
+    },
+    {
+      "source": "ref/decisions/2026-02-23-unified-linking.md",
+      "destination": "refs/decisions/2026-02-23-unified-linking.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "775aefe1589840e7db58afdc133d2bb43708fa527214f2b4940923e3c9275f18",
+      "preserveBytes": false,
+      "notes": "Retained single-path/optional-config rationale and alternatives; removed fictional packages schema/API/version claims. Actual config and source contracts now in refs/cli/linking-and-cache.md."
+    },
+    {
+      "source": "ref/decisions/2026-02-24-pnpm-monorepo-migration.md",
+      "destination": "refs/decisions/2026-02-24-pnpm-monorepo-migration.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "f65da51a8d0db551bdc9c780ba74e9a3bcb8db8bffcb5b7d9dd674a1716020be",
+      "preserveBytes": false,
+      "notes": "Retained workspace/build/cache/release rationale and alternatives; corrected npm-lockfile claim, obsolete pins/private naming and historical measurements. Peer-runtime step distinguished from later project-owned dependency."
+    },
+    {
+      "source": "ref/decisions/2026-02-26-decouple-system-packages.md",
+      "destination": "refs/decisions/2026-02-26-decouple-system-packages.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "57060a8a4da06cc1942262cbe52f9222656396e6e42b2647d26fc8c121b345c1",
+      "preserveBytes": false,
+      "notes": "Retained bootstrap-cycle and project-owned runtime rationale, external-runtime limit and dependency tradeoff. Removed placeholder metrics/production assurance/obsolete version examples."
+    },
+    {
+      "source": "ref/decisions/2026-02-26-unified-env-resolution.md",
+      "destination": "refs/decisions/2026-02-26-unified-env-resolution.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "f314d1b88a6568de82ec5ca416632c14b6cb84b9f119af6853f84ca926c46419",
+      "preserveBytes": false,
+      "notes": "Retained shared-state/depth/callee bugs, per-call env/central helpers and three rejected approaches. Correctness/cost claims bounded and strong cycles connected to current memory freeze."
+    },
+    {
+      "source": "ref/decisions/2026-03-03-expression-extraction.md",
+      "destination": "refs/decisions/2026-03-03-expression-extraction.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "435007af3839056bd8a4706728a85f689985ad5ae0d6c30fd2cc6f467710f2b8",
+      "preserveBytes": false,
+      "notes": "Retained parser counterexample, conditional-temp extraction, reuse mechanism and alternatives. Universal parser/semantic claims corrected using current exact XFAIL and grouped-inline JS evidence; C unknown."
+    },
+    {
+      "source": "ref/decisions/2026-03-09-logical-operators-lowering.md",
+      "destination": "refs/decisions/2026-03-09-logical-operators-lowering.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "f659be98ec5e606bcc66376ac94f137eb7b5d6e1dc4d656e592934d2a707649d",
+      "preserveBytes": false,
+      "notes": "Retained value-return conditional schemes, inline assignment necessity, bare helper-recursion boundary and rejected eager/lambda/boolean alternatives. Full-context guarantees qualified by pending-effects failures."
+    },
+    {
+      "source": "ref/decisions/2026-03-11-try-finally-desugaring.md",
+      "destination": "refs/decisions/2026-03-11-try-finally-desugaring.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "e0a59e935bcc3b25f4cc15e2ed05643f803a4832824d30ad6de91ec9b5dcd772",
+      "preserveBytes": false,
+      "notes": "Summarized superseded sentinel scheme and original motivations, preserved failure reasons and alternatives. Current structured completion contract linked; old full-correctness/low-cost/no-IR-passes claims removed as current rules."
+    },
+    {
+      "source": "ref/decisions/2026-03-14-bt-ir-multi-pass-refactoring.md",
+      "destination": "refs/decisions/2026-03-14-bt-ir-multi-pass-refactoring.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "b7ecc1384ea9eebcc1d1d3aaf97de4d6460478bf6431f3808e45d0cef174e83c",
+      "preserveBytes": false,
+      "notes": "Retained lowering/pass/emitter rationale and rejected premature helpers/context/bare merge. First-generation figures labeled historical; shared pass state/current pipeline and static exhaustiveness gap clarified."
+    },
+    {
+      "source": "ref/decisions/2026-03-30-numeric-literal-precision.md",
+      "destination": "refs/decisions/2026-03-30-numeric-literal-precision.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "664c3223b33ae1aa4f54a8f965ce9ede9706a723083374e3a46e8149222e807a",
+      "preserveBytes": false,
+      "notes": "Retained raw-vs-value and normalization decision with all alternatives; qualified float rounding/target range/JS Number divergence and historical consumer assumptions."
+    },
+    {
+      "source": "ref/decisions/2026-10-07-safe-for-updates.md",
+      "destination": "refs/decisions/2026-10-07-safe-for-updates.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "edb4b70a4f1aae6d99ecc179d906d1ef3eee4df8c54e9cb98b4881b4a43fec60",
+      "preserveBytes": false,
+      "notes": "Retained substantive native-observation workaround proof, output costs, rejected alternatives, exact manual C traces/version unknown and boundaries. No new native result claimed."
+    },
+    {
+      "source": "ref/decisions/2026-10-07-structured-abrupt-completion.md",
+      "destination": "refs/decisions/2026-10-07-structured-abrupt-completion.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "95a5f2127a4017dfeba9627f25089bd6436e88c4b51a8f02265b5784b131f50c",
+      "preserveBytes": false,
+      "notes": "Retained lexical target/carrier/finalizer algorithm, fast paths, rejected alternatives and dated JS/C output evidence. C60-case smoke remains distinct from full three-mode JS matrix."
+    },
+    {
+      "source": "ref/decisions/2026-11-05-script-module-memory-freeze.md",
+      "destination": "refs/decisions/2026-11-05-script-module-memory-freeze.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "db606c411e494ea236a7042f9492c2cfd09f3c713acc51b2d2edf6a320dcb770",
+      "preserveBytes": false,
+      "notes": "Retained active support boundary, user-observed RC-cycle risk, unchanged defaults/regressions and explicit ownership/lifetime/memory acceptance prerequisites. No memory strategy selected."
+    },
+    {
+      "source": "ref/decisions/2026-11-06-dotnet-search-boundary.md",
+      "destination": "refs/decisions/2026-11-06-dotnet-search-boundary.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "0d237e8eb201a6d0221b86af1459f0d496a4ed912dcb7dfe2b316af08ea41542",
+      "preserveBytes": false,
+      "notes": "Retained standalone string ABI, physical URL resolution boundary and shell/Datex alternatives; current search topic linked. Crash cause remains unknown."
+    },
+    {
+      "source": "ref/decisions/2026-11-06-dotnet-workspace.md",
+      "destination": "refs/decisions/2026-11-06-dotnet-workspace.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "e1635e1e764f2b209c6cf6ca204cc623f23e3bb463c707773546082d2c3b54fa",
+      "preserveBytes": false,
+      "notes": "Retained independent .NET workspace/assembly choice and alternatives. Metadata-only/SDK pins marked original step; subsequent alpha4/API2 search/files linked."
+    },
+    {
+      "source": "ref/decisions/2026-11-06-managed-file-tools.md",
+      "destination": "refs/decisions/2026-11-06-managed-file-tools.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "04ab22fc9585d32bf57f06351b599815392b8a674e7ee8bbcfbe58ddd3a59f13",
+      "preserveBytes": false,
+      "notes": "Retained exact edits/encoding/temp rename choice and alternatives. Explicitly marked alpha3/API1 as historical and superseded by read-aware alpha4/API2."
+    },
+    {
+      "source": "ref/decisions/2026-11-06-portable-agent-skills.md",
+      "destination": "refs/decisions/2026-11-06-portable-agent-skills.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "e8929206206522e764c99bb16baa05e1cf14a738d5964ee1d26dc26f098c7d5a",
+      "preserveBytes": false,
+      "notes": "Retained independent installable platform knowledge rationale and alternatives. Current evidence/provenance/application limitations extracted in refs/platform/agent-skills.md."
+    },
+    {
+      "source": "ref/decisions/2026-11-06-read-aware-file-tools.md",
+      "destination": "refs/decisions/2026-11-06-read-aware-file-tools.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "658f386ef374d790652d98d1ff65e8a1b48e6a84e0483145d495ab0327e01333",
+      "preserveBytes": false,
+      "notes": "Retained active ranges/hash/token acknowledgement contract, MCP-instance boundary, alternatives and external CAS limitation; current files topic/evidence linked."
+    },
+    {
+      "source": "ref/decisions/2026-11-10-native-xml-object-tools.md",
+      "destination": "refs/decisions/2026-11-10-native-xml-object-tools.md",
+      "action": "reviewed-decision",
+      "sourceSha256": "26b446e7f5503f56b146fea7869939386ff58d6c777e9bdd517d113c1d27fc6c",
+      "preserveBytes": false,
+      "notes": "Retained XML-first decision, alternatives, exact snapshot grant/identity/save and unknown-outcome limitations. Source audit consistent; no new native acceptance implied."
+    },
+    {
+      "source": "ref/proposals/2026-03-05-borisscript-object-methods-optimization.md",
+      "destination": "refs/compiler/proposals.md",
+      "action": "summarized",
+      "sourceSha256": "2cfb1f5232eb12f475aafaf8115ebb5515215dbdae8383b77dfa93b72039c05f",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Проблема, состояние реализации/замены/отсрочки, существенные альтернативы, costs, source/test routes и открытые вопросы. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/proposals/2026-03-05-classes-and-prototypes.md",
+      "destination": "refs/compiler/proposals.md",
+      "action": "summarized",
+      "sourceSha256": "f82e02092e937043e5f06303a1027734c6970985bfb7e67a553bc9d0902b4b4b",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Проблема, состояние реализации/замены/отсрочки, существенные альтернативы, costs, source/test routes и открытые вопросы. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/proposals/2026-03-05-typescript-declaration-files-generation.md",
+      "destination": "refs/compiler/proposals.md",
+      "action": "summarized",
+      "sourceSha256": "2534bdbd5e00dca1be86244696a6ecd0c9436e5f68f58885079bdfd4d83baede",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Проблема, состояние реализации/замены/отсрочки, существенные альтернативы, costs, source/test routes и открытые вопросы. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/proposals/2026-03-09-boolean-logical-optimization.md",
+      "destination": "refs/compiler/proposals.md",
+      "action": "summarized",
+      "sourceSha256": "6148d9ca0cc6902ee20296dd622dd959fb3464d448ecc559f1c7010da86b803c",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Проблема, состояние реализации/замены/отсрочки, существенные альтернативы, costs, source/test routes и открытые вопросы. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/proposals/2026-03-15-break-continue-try-finally.md",
+      "destination": "refs/compiler/proposals.md",
+      "action": "summarized",
+      "sourceSha256": "9f4aa5d9d5d8c2947d0c8632bdfa8331aa4e672226f4a2998d7996dcacee5866",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Проблема, состояние реализации/замены/отсрочки, существенные альтернативы, costs, source/test routes и открытые вопросы. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/proposals/2026-03-15-computed-object-keys.md",
+      "destination": "refs/compiler/proposals.md",
+      "action": "summarized",
+      "sourceSha256": "5adbd16296800fe3245a70f7444638f6bd8c1808f51e0b7e9ef9d66468afdc8f",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Проблема, состояние реализации/замены/отсрочки, существенные альтернативы, costs, source/test routes и открытые вопросы. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/proposals/2026-03-15-destructured-parameters.md",
+      "destination": "refs/compiler/proposals.md",
+      "action": "summarized",
+      "sourceSha256": "69930e4e93d540848eedf989f05d2b9535d0d80c2e61ec76322d7bf096e393b8",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Проблема, состояние реализации/замены/отсрочки, существенные альтернативы, costs, source/test routes и открытые вопросы. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/proposals/2026-04-01-platform-objects-sync.md",
+      "destination": "refs/compiler/proposals.md",
+      "action": "summarized",
+      "sourceSha256": "fbe342f21538830f83324940a2c3f7b0fa344d93492ad8451600908efa498d0e",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Проблема, состояние реализации/замены/отсрочки, существенные альтернативы, costs, source/test routes и открытые вопросы. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-1/phase-1-results.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "f2c3faebe58e7d995880c3be1ccb7638601cc9a4d29dc845130b3e8ccb70abc5",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-1/phase-2-results.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "4fcb3e82e5a50f0f7a262a1454b9c8c027d8c3c93b8e8f7c72f7c0a60687bc8f",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-1/phase-3-results.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "810bf22c5ceeed61d1a17847780765efcc8edd3551fc722657ab3ec1e5f23808",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-1/plan-vs-implementation-review.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "d1e159c656a3e5076ead1fc1cca8bec02bdb49954411c33dbb421b01090a7ec3",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-1/plan.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "d4b7d1edbb1e4bc41bef6a167662d7d4253cd6ec91aea3f7d19a754e57f03d19",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-2/bt-ir-2gen-plan.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "e525e3a0b306729af6cc7c1a4fcd8041b549c96f5a2a26bd5706f514c570d024",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-2/bt-ir-2gen-report.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "5aa4fdde111224517893f19299eab53a1ef81c4b360a14b7862ad2e82e2cffc0",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-2/bt-ir-code-review-claude.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "725e49ebfbfa9cd706b2aab8cd0fc17ebf8823aba5f6f77e12c99942462b0aac",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-2/bt-ir-code-review-composer.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "81403b78d2f70b8e85da64884fcc3a537ab982f65108d11aee357f7eb9158a85",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-2/bt-ir-final-review-claude.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "49616ea826ece6a45b81e6eab73e254f05370dbb55086983abaec2617233f96a",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-2/bt-ir-final-review-composer.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "23907221107d732264b10a50157ddbd2cc41514fb66ddfb492f712c6af135564",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-2/bt-ir-final-review-merged.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "168378502039869d12aee4f464de91f37e37df1a044d2034f026ac642305c913",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-3/bt-ir-3gen-plan.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "99201f8e4ce8842808b1df9080bc69466f3841eedefe7285077324aa3fc32dbd",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "ref/temp/gen-3/bt-ir-3gen-report.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "3c19ab04784310d7fafa8916b55a0c009752fc7c6be56ec21a2b073e9679da91",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Содержательная консолидация после чтения; устаревшие планы/параллельные status wrappers удаляются, полезное знание извлечено. Причины split/helpers, отвергнутые abstractions, атомарный hoist/emitter перенос, диагностический формат, costs и повторный аудит reviews в refs/compiler/findings.md. Текущие проверки и нерешённые вопросы: refs/compiler/findings.md; исторические числа явно привязаны к дате, не current acceptance."
+    },
+    {
+      "source": "README.md",
+      "destination": "README.md",
+      "action": "rewritten",
+      "sourceSha256": "b03a5bd44e6848fd402a5df60c85177ebaf71c524268c61d909ff50e8ccbddbc",
+      "preserveBytes": false,
+      "sourceRetained": true,
+      "notes": "Content audited and consolidated into current topic/entrypoint; stale copies removed. Historical roles, retired wishlist promises and documentation decisions are recorded in refs/archive/documentation/2026-11-11-documentation-migration.md. Existing technical findings have current source/status in topic findings and TODO; original blob is available at baseCommit. Current public entry/API workflow or concrete findings; migration rationale and retirement status in closure record."
+    },
+    {
+      "source": "ROADMAP.md",
+      "destination": "ROADMAP.md",
+      "action": "rewritten",
+      "sourceSha256": "555a538bdcb7d23d26cf0281f2ed973ed034d5b9b23fa1658af955956241448f",
+      "preserveBytes": false,
+      "sourceRetained": true,
+      "notes": "Content audited and consolidated into current topic/entrypoint; stale copies removed. Historical roles, retired wishlist promises and documentation decisions are recorded in refs/archive/documentation/2026-11-11-documentation-migration.md. Existing technical findings have current source/status in topic findings and TODO; original blob is available at baseCommit. Current public entry/API workflow or concrete findings; migration rationale and retirement status in closure record."
+    },
+    {
+      "source": "TODO.md",
+      "destination": "TODO.md",
+      "action": "rewritten",
+      "sourceSha256": "e2800fd1a4aaa24cb368f60b7dc003346b5b06871ce4f6523f860f1c4048a6ff",
+      "preserveBytes": false,
+      "sourceRetained": true,
+      "notes": "Content audited and consolidated into current topic/entrypoint; stale copies removed. Historical roles, retired wishlist promises and documentation decisions are recorded in refs/archive/documentation/2026-11-11-documentation-migration.md. Existing technical findings have current source/status in topic findings and TODO; original blob is available at baseCommit. Current public entry/API workflow or concrete findings; migration rationale and retirement status in closure record."
+    },
+    {
+      "source": "packages/botest/README.md",
+      "destination": "packages/botest/README.md",
+      "action": "rewritten",
+      "sourceSha256": "678cc2171427b8fe6c09c2494eef9308fc10feaacb9047373f14d92ba00cc6c6",
+      "preserveBytes": false,
+      "sourceRetained": true,
+      "notes": "Content audited and consolidated into current topic/entrypoint; stale copies removed. Historical roles, retired wishlist promises and documentation decisions are recorded in refs/archive/documentation/2026-11-11-documentation-migration.md. Existing technical findings have current source/status in topic findings and TODO; original blob is available at baseCommit. Current public entry/API workflow or concrete findings; migration rationale and retirement status in closure record."
+    },
+    {
+      "source": "packages/bt-ir/README.md",
+      "destination": "packages/bt-ir/README.md",
+      "action": "rewritten",
+      "sourceSha256": "08030bea4ce5c5ca993d5af625fd80073ce109ce4c03cebaaca3b7e6c9c131e4",
+      "preserveBytes": false,
+      "sourceRetained": true,
+      "notes": "Content audited and consolidated into current topic/entrypoint; stale copies removed. Historical roles, retired wishlist promises and documentation decisions are recorded in refs/archive/documentation/2026-11-11-documentation-migration.md. Existing technical findings have current source/status in topic findings and TODO; original blob is available at baseCommit. Current public entry/API workflow or concrete findings; migration rationale and retirement status in closure record."
+    },
+    {
+      "source": ".github/copilot-instructions.md",
+      "destination": "refs/development.md",
+      "action": "retired-after-extraction",
+      "sourceSha256": "1f94d5b57f3f9455e00073126a97afa7b99552bffad2b5edbcfdd7ade63ba900",
+      "preserveBytes": false,
+      "notes": "Duplicated editor-specific instructions removed. Verified useful navigation/workflow retained in destination, AGENTS.md and compiler skill; stale commands, blanket JSDoc/roadmap ceremony and unverified universal claims not carried forward. Original bytes remain in baseCommit."
+    },
+    {
+      "source": ".github/instructions/botest.instructions.md",
+      "destination": "packages/botest/README.md",
+      "action": "retired-after-extraction",
+      "sourceSha256": "ba2cd189561cb47b51f3438b08554fe9009cd405fa45216fd2e04f659bb8258a",
+      "preserveBytes": false,
+      "notes": "Duplicated editor-specific instructions removed. Verified useful navigation/workflow retained in destination, AGENTS.md and compiler skill; stale commands, blanket JSDoc/roadmap ceremony and unverified universal claims not carried forward. Original bytes remain in baseCommit."
+    },
+    {
+      "source": ".github/instructions/bt-ir.instructions.md",
+      "destination": "refs/compiler/README.md",
+      "action": "retired-after-extraction",
+      "sourceSha256": "dd3d042deffb19f28f5ea9b27afad3e70d71ca7f0a82689214303c645f2ff75d",
+      "preserveBytes": false,
+      "notes": "Duplicated editor-specific instructions removed. Verified useful navigation/workflow retained in destination, AGENTS.md and compiler skill; stale commands, blanket JSDoc/roadmap ceremony and unverified universal claims not carried forward. Original bytes remain in baseCommit."
+    },
+    {
+      "source": ".github/instructions/btc.instructions.md",
+      "destination": "refs/development.md",
+      "action": "retired-after-extraction",
+      "sourceSha256": "3cb0cd4f179190c93296d1046d55ca751a9e05aabee502ffd240954393ea1601",
+      "preserveBytes": false,
+      "notes": "Duplicated editor-specific instructions removed. Verified useful navigation/workflow retained in destination, AGENTS.md and compiler skill; stale commands, blanket JSDoc/roadmap ceremony and unverified universal claims not carried forward. Original bytes remain in baseCommit."
+    },
+    {
+      "source": ".cursor/rules/botest-tests.mdc",
+      "destination": "packages/botest/README.md",
+      "action": "retired-after-extraction",
+      "sourceSha256": "4ce1c8222c50f4c6d83e442097e8f164e066183fe485073db0cce97055fe20b9",
+      "preserveBytes": false,
+      "notes": "Duplicated editor-specific instructions removed. Verified useful navigation/workflow retained in destination, AGENTS.md and compiler skill; stale commands, blanket JSDoc/roadmap ceremony and unverified universal claims not carried forward. Original bytes remain in baseCommit."
+    },
+    {
+      "source": ".cursor/rules/bt-ir.mdc",
+      "destination": "refs/compiler/README.md",
+      "action": "retired-after-extraction",
+      "sourceSha256": "75f5761df422c834e553be4742aa1b6d84c9a718da340b23d5f0ddb59f7e2806",
+      "preserveBytes": false,
+      "notes": "Duplicated editor-specific instructions removed. Verified useful navigation/workflow retained in destination, AGENTS.md and compiler skill; stale commands, blanket JSDoc/roadmap ceremony and unverified universal claims not carried forward. Original bytes remain in baseCommit."
+    },
+    {
+      "source": ".cursor/rules/btc.mdc",
+      "destination": "refs/development.md",
+      "action": "retired-after-extraction",
+      "sourceSha256": "30b5dbb7f5a20c2aaa18d09b417639e63340e4b8c3884f4c36dfba733ea0cb2e",
+      "preserveBytes": false,
+      "notes": "Duplicated editor-specific instructions removed. Verified useful navigation/workflow retained in destination, AGENTS.md and compiler skill; stale commands, blanket JSDoc/roadmap ceremony and unverified universal claims not carried forward. Original bytes remain in baseCommit."
+    },
+    {
+      "source": ".cursor/rules/project-boristype.mdc",
+      "destination": "refs/development.md",
+      "action": "retired-after-extraction",
+      "sourceSha256": "5bb3c2ca930e1590cdaef0af241798d7e8c306d9ea1b5378ebc1ec1123546bec",
+      "preserveBytes": false,
+      "notes": "Duplicated editor-specific instructions removed. Verified useful navigation/workflow retained in destination, AGENTS.md and compiler skill; stale commands, blanket JSDoc/roadmap ceremony and unverified universal claims not carried forward. Original bytes remain in baseCommit."
+    },
+    {
+      "source": "packages/bt-ir/src/lowering/REFACTORING.md",
+      "destination": "refs/compiler/evolution.md",
+      "action": "summarized",
+      "sourceSha256": "57c48926e48a00184f8f08380e42f1c10e1c421ccf979108f057acc5dd886a40",
+      "preserveBytes": false,
+      "sourceRetained": false,
+      "notes": "Read all99 lines of stale source-local refactoring checklist; extracted phase history/remaining work and alternatives into evolution/pipeline/findings. No separate current plan remains beside source; original baseline blob retained in git."
+    }
+  ]
+}

@@ -1,334 +1,164 @@
 # Система линковки (Linking)
 
-Система линковки в BorisType отвечает за создание финальной структуры проекта в директории `dist/`, которая затем копируется в целевую платформу для выполнения BorisScript.
+`btc link` собирает готовые файлы и BT dependencies в `dist/`. Он не запускает
+компиляцию. Это часть существующего экспериментального module pipeline:
+развитие `script/module` заморожено до решения стратегии памяти C-runtime.
+См. [режимы](../reference/compile-modes).
 
 ## Как работает линковка
 
-Система линковки использует **единый механизм** для всех проектов:
-
-1. Если **есть `btconfig.json`** — использует конфигурацию линковки из него
-2. Если **нет `btconfig.json`** — автоматически создаёт виртуальную конфигурацию для текущего пакета
+Непустой `btconfig.json#linking.packages` задаёт список пакетов. Секция `linking`
+без массива переопределяет пути текущего пакета. Без неё используется текущий
+executable BT пакет из `package.json`.
 
 ## Одиночный пакет (без btconfig.json)
-
-Если вы не создали `btconfig.json`, линковщик автоматически использует текущий пакет.
-
-**Конфигурация через package.json:**
 
 ```json
 {
   "name": "my-app",
+  "version": "1.0.0",
   "main": "index.js",
+  "ws:name": "my-app",
   "ws:package": "standalone",
   "ws:root": "./wt/my-app"
 }
 ```
 
-**Ключевые поля:**
+`ws:name` обязателен. Для standalone `ws:root` опционален, default —
+`./wt/<ws:name>`. `main` относится к корню готового output, а не к `src/`.
+Для module pipeline установите совместимую версию `@boristype/runtime`
+в зависимости проекта.
 
-- `ws:package`: `"standalone"` или `"component"` - тип пакета
-- `ws:root`: путь внутри `dist/` куда будет скопирован `build/` (только для standalone пакетов)
-- `ws:apiext` (опционально): конфигурация API расширений
-
-**Запуск:**
-
-```bash
-npx btc link
-npx btc link --clean              # Очистить dist/ перед линковкой
-npx btc link --linking-system-as standalone  # System пакеты как standalone
+```sh
+npx btc build --compile-mode module --include-non-ts-files
+npx btc link --clean
 ```
+
+Файловые директивы могут переопределить CLI mode. Runtime и generated init
+не добавляют module ABI к bare output.
 
 ## Multi-package режим
-
-Для монорепозиториев с несколькими пакетами создайте `btconfig.json` в корневой директории.
-
-**Структура btconfig.json:**
-
-```json
-{
-  "packages": {
-    "backend": "./backend",
-    "frontend": "./frontend",
-    "library": "./library"
-  }
-}
-```
-
-Или с детальной конфигурацией линковки:
 
 ```json
 {
   "linking": {
-    "packages": [
-      // BT пакет с ws:package: "standalone" - shorthand нотация
-      {
-        "name": "backend"
-      },
-      // Обычная директория - требуются source и target
-      {
-        "name": "frontend",
-        "source": "./frontend/src",
-        "target": "./wt/frontend"
-      },
-      // Можно переопределить пути для BT пакета
-      {
-        "name": "library",
-        "source": "./library/build",
-        "target": "./wt/lib"
-      }
-    ]
+    "packages": [{ "name": "backend" }, { "name": "frontend", "source": "./frontend/dist", "target": "./wt/frontend" }]
   }
 }
 ```
 
-**Поля конфигурации пакета:**
-
-- **name** (string, обязательное): Путь директории пакета относительно корня проекта
-- **source** (string, опциональное): Путь к директории с файлами для копирования
-  - Для BT пакетов (с `ws:package: "standalone"` в package.json): по умолчанию `{name}/build`
-  - Для обычных директорий: обязательное поле
-- **target** (string, опциональное): Целевой путь внутри `dist/`
-  - Для BT пакетов: по умолчанию берется из `ws:root` в package.json
-  - Для обычных директорий: обязательное поле
-
-**Shorthand нотация для BT пакетов:**
-
-Если пакет содержит `package.json` с полем `ws:package: "standalone"` или `ws:package: "component"`, можно использовать сокращенную запись:
-
-```json
-{
-  "name": "backend" // автоматически: source="backend/build", target из ws:root
-}
-```
+`backend` — BT пакет со своим `package.json` и готовым `build/`; `frontend` —
+обычный каталог. `source` задан относительно корня проекта, `target` — внутри
+`dist/`. Каталог из `name` должен существовать и при явном `source`.
+Top-level `packages` map не поддерживается.
+Соберите каждый пакет отдельно, затем выполните `btc link` из корня.
+Подробные defaults и root-only форма — в [btconfig.json](../reference/btconfig).
 
 ## Процесс линковки
 
-### Multi-package режим
+1. Находит system dependencies корневого проекта и копирует их готовый `build/`.
+2. В порядке конфигурации копирует пользовательские пакеты/статические директории.
+3. Для standalone/component копирует распознанные library dependencies и создаёт
+   initialization/metadata. Executables из `.executables.json` участвуют в filemap.
+4. Пишет `source/api_ext.xml`, если собраны API entries: system standalone перед
+   пользовательскими standalone. Component имеет отдельные `spxml/` файлы.
 
-1. Читает `btconfig.json`
-2. Загружает системные зависимости (runtime)
-3. Для каждого пакета в `linking.packages`:
-   - Проверяет наличие `package.json` с `ws:package: "standalone"` или `ws:package: "component"` (BT пакет)
-   - Определяет `source`:
-     - Если указан явно - использует его
-     - Для BT пакетов - `{name}/build`
-     - Для обычных директорий - обязательно указать
-   - Определяет `target`:
-     - Если указан явно - использует его
-     - Для BT пакетов - из `ws:root` в package.json или стандартный путь для `component` пакетов
-     - Для обычных директорий - обязательно указать
-   - Копирует содержимое `source` в `dist/target`
-   - Для BT пакетов дополнительно:
-     - Обрабатывает `.executables.json`
-     - Копирует `node_modules` (только пакеты с `ws:package: "library"`)
-     - Создает `init.xml` при необходимости
-4. Копирует системные зависимости (runtime) в начало списка
-5. Создает `api_ext.xml` с правильным порядком загрузки
+Прикладные зависимости не сортируются топологически; нужный порядок задаётся
+конфигурацией. System-пакеты должны уже содержать свою инициализацию.
 
 ## CLI опции
 
-```bash
-btc link [options]
-```
+| Опция                        | Действие                                  | Default     |
+| ---------------------------- | ----------------------------------------- | ----------- |
+| `--clean`                    | Удаляет `dist/` и `.btc/` перед линковкой | Выключено   |
+| `--no-cache`                 | Не использует dependency cache            | Кэш включён |
+| `--linking-system-as <mode>` | `component` или `standalone`              | `component` |
+| `--external-runtime`         | Пропускает автообнаруженные system-пакеты | Выключено   |
 
-| Опция                        | Описание                                                       | По умолчанию |
-| ---------------------------- | -------------------------------------------------------------- | ------------ |
-| `--clean`                    | Очистить `dist/` перед линковкой                               | `false`      |
-| `--linking-system-as <mode>` | Режим линковки system пакетов                                  | `component`  |
-| `--external-runtime`         | Пропустить линковку system-пакетов (runtime управляется извне) | `false`      |
+`--external-runtime` требует заранее установленный подходящий runtime; это не
+режим компиляции без runtime. Для повторной поставки после удаления/переименования
+файлов очистите старый output сборки и выполните `link --clean`.
 
 ### Режимы линковки system пакетов
 
-System пакеты (runtime) уже полностью готовы к линковке. Режим определяет целевой путь и регистрацию в `api_ext.xml`:
-
-| Режим                      | Целевой путь        | api_ext.xml |
-| -------------------------- | ------------------- | ----------- |
-| `component` (по умолчанию) | `components/<name>` | ❌ Нет      |
-| `standalone`               | из `ws:root`        | ✅ Да       |
-
-Подробнее см. [Типы пакетов](../reference/package-types#system).
+| Режим        | Путь                                                   | api_ext.xml    |
+| ------------ | ------------------------------------------------------ | -------------- |
+| `component`  | `components/<ws:name>`                                 | Не добавляется |
+| `standalone` | `ws:root` (обязателен для найденной system dependency) | Из metadata    |
 
 ## Итоговая структура dist/
 
-```
+```text
 dist/
-├── wt/                    # Целевые пути из конфигурации
-│   ├── backend/           # target из btconfig.json или ws:root
-│   │   ├── index.js
-│   │   ├── init.xml
-│   │   ├── .filemap.json  # Маппинг executables (per-module)
-│   │   ├── ...
-│   │   └── node_modules/
-│   └── frontend/          # обычная директория
-│       ├── index.html
-│       └── ...
-├── components/            # Компоненты и system-пакеты в режиме component
-│   ├── bt-runtime/        # System пакет (по умолчанию сюда)
-│   │   └── ...
-│   └── my-component/      # Component пакет
-│       ├── package.json   # Сгенерированный для платформы
-│       ├── .filemap.json  # Маппинг executables (per-module)
+├── components/
+│   ├── bt-runtime/
+│   └── my-component/
+│       ├── package.json
 │       └── spxml/
-│           ├── my-component.xml
-│           └── my-component.js
-└── source/
-    └── api_ext.xml        # Конфигурация API расширений
+├── wt/backend/
+│   ├── index.js
+│   ├── init.xml
+│   ├── .filemap.json
+│   └── node_modules/
+└── source/api_ext.xml
 ```
+
+Не все файлы обязательны: init зависит от metadata, filemap — от executables.
+[Типы пакетов](../reference/package-types) описывают эти условия.
 
 ## Filemap (.filemap.json)
 
-Маппинг для разрешения путей к исполняемым объектам (executable objects).
-Это в первую очередь необходимо для поддержки `import` внутри агентов, выборок и других исполняемых объектов, в которых по умолчанию недоступна ссылка на текущий файл.
-
-**Генерируется per-module** — каждый модуль содержит собственный `.filemap.json` в корне своей целевой директории.
-
-**Формат:**
-
-```json
-{
-  "packageName+packageVersion+filePath": "x-local://wt/myapp/path/to/file.js"
-}
-```
-
-**Ключ формируется как:** `${packageName}+${packageVersion}+${filePath}`
+Generated `.filemap.json` сопоставляет executable keys с целевыми URL.
+Вручную полагаться на формат ключа как публичный API не следует: CLI compiler и
+линкер сейчас расходятся в нормализации source/output paths; это известный
+дефект executable mapping. Полная линковка не доказывает работоспособность
+импортов из executable script. Проверяйте конкретный generated key/URL и вызов.
 
 ## api_ext.xml
 
-XML файл, описывающий API расширения для платформы. Генерируется на основе:
-
-- Поля `ws:apiext` в `package.json` каждого standalone пакета
-- Автоматически создаваемых расширений для модулей с `main`
-- System пакетов в режиме `standalone`
-
-**Не включает:**
-
-- Component пакеты (инициализируются через `spxml/`)
-- System пакеты в режиме `component`
-- Library пакеты
-
-**Пример:**
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<api_ext>
-  <apis>
-    <api>
-      <name>module:backend</name>
-      <libs>
-        <lib>
-          <path>x-local://wt/backend/init.xml</path>
-        </lib>
-      </libs>
-    </api>
-  </apis>
-</api_ext>
-```
+Общий файл `dist/source/api_ext.xml` содержит entries standalone и system в
+standalone mode. Component и library туда не добавляются.
+`ws:apiext` задаёт имя и libs явно; без него `main` standalone создаёт entry
+на `init.xml`. Если нового набора API entries нет, старый `api_ext.xml` может
+сохраниться. Отдельно: при удалении пакета или смене его `ws:name`/target старый
+каталог и файлы остаются в `dist`, даже если другие пакеты продолжают линковаться.
+Перед поставкой используйте `link --clean` и актуальный compiler output.
 
 ## Копирование node_modules
 
-Система автоматически копирует зависимости из `node_modules`, но **только те пакеты**, которые содержат поле `ws:package: "library"` в своем `package.json`.
-
-::: warning Совместимость с обычными npm пакетами
-Обычные npm пакеты (не предназначенные для платформы) не будут скопированы и не будут доступны в runtime. Проекты на JavaScript не работают в среде BorisScript.
-:::
-
-**Поддерживаемые типы:**
-
-- `ws:package: "standalone"` - самостоятельный модуль
-- `ws:package: "component"` - компонент платформы
-- `ws:package: "system"` - системный пакет
-- `ws:package: "library"` - библиотечный пакет
-
-Подробнее см. [Типы пакетов](../reference/package-types).
-
-**Особенности:**
-
-- Следует по symlinks (pnpm workspace, `file:` зависимости)
-- Рекурсивно копирует вложенные `node_modules`
-- Пропускает `.git`, `.bin` и другие служебные директории
-- Поддерживает scoped пакеты (`@scope/package`)
+Копируются только пакеты с точным `ws:package: "library"`; обычная npm-зависимость
+не становится совместимой с BorisScript от установки. Legacy `lib` нормализуется
+для типа пакета, но текущий dependency copier его не распознаёт.
+Поддержаны scoped names и symlinks; вложенные libraries копируются рекурсивно.
+Library должна содержать готовые файлы в форме, ожидаемой вашим import runtime.
+Линковщик не компилирует её TS и не превращает npm JavaScript в BorisScript.
 
 ### Кэширование
 
-Для оптимизации повторных линковок используется двухуровневый кэш:
+`.btc/linking-cache.json` хранит hash ближайшего `pnpm-lock.yaml`/`package-lock.json`
+и content hashes локальных библиотек. Поиск lockfile поднимается до workspace
+root; без него используется hash `package.json`.
+Локальной считается symlink-библиотека с realpath **вне `node_modules`**.
+`file:` dependency внутри pnpm store не получает гарантии content invalidation.
 
-1. **Lockfile hash** — SHA256 от `pnpm-lock.yaml` / `package-lock.json`. Lockfile ищется поднимаясь от директории пакета к корню workspace (поддержка monorepo).
-2. **Per-library content hash** — для каждой локальной (workspace) библиотеки. Если lockfile не изменился — копируются только библиотеки с изменённым контентом.
-
-::: tip Управление кэшем
-
-- `--no-cache` — отключить кэш (полное копирование каждый раз)
-- `--clean` — удалить кэш и `dist/` перед линковкой
-  :::
+Удаление `dist/` без удаления кэша, изменение target или nested dependency при
+неизменном lockfile могут оставить неполную/старую копию. Удаление последней
+library также не очищает старую копию автоматически. `link --clean` пересоздаёт
+и output, и кэш; `--no-cache` само по себе не очищает произвольные старые файлы.
+[Причины и подтверждённые границы](https://github.com/BorisType/BorisType/blob/main/refs/cli/linking-and-cache.md).
 
 ## Примеры использования
 
-### Простой проект
+Одиночный BT пакет использует `package.json` выше. Для multi-package сначала
+соберите backend и frontend их собственными командами, затем из корня:
 
-```json
-// package.json
-{
-  "name": "my-app",
-  "main": "index.js",
-  "ws:package": "standalone",
-  "ws:root": "./wt/app"
-}
+```sh
+npx btc link --clean
+npx btc artifact --clean
 ```
 
-```bash
-npx btc build              # Компиляция
-npx btc link               # Линковка
-npx btc link --clean       # Линковка с очисткой dist/
-```
+## Справочник конфигурации
 
-### Мульти-пакетный проект
-
-```
-my-project/
-├── btconfig.json
-├── package.json
-├── backend/
-│   ├── src/
-│   ├── package.json
-│   └── tsconfig.json
-└── frontend/
-    ├── src/
-    ├── package.json
-    └── tsconfig.json
-```
-
-```bash
-cd backend && npx btc build && cd ..
-cd frontend && npx vite build && cd ..
-
-# В корне проекта
-npx btc link
-```
-
-## TypeScript типы
-
-Типы для `btconfig.json` определены в [`btc/src/core/btconfig.types.ts`](../btc/src/core/btconfig.types.ts):
-
-```typescript
-export type BtConfigLinkingPackage = {
-  name: string; // Обязательное - имя директории пакета
-  source?: string; // Опциональное - путь к файлам
-  target?: string; // Опциональное - целевой путь в dist/
-};
-
-export type BtConfigLinking = {
-  packages: BtConfigLinkingPackage[];
-};
-
-export type BtConfig = {
-  linking?: BtConfigLinking;
-};
-```
-
-**Логика определения source и target:**
-
-- Если пакет содержит `ws:package` (BT пакет):
-  - `source` по умолчанию: `{name}/build`
-  - `target` по умолчанию: значение `ws:root` из package.json или путь к компоненту для `component` пакетов
-- Если обычная директория:
-  - `source` и `target` обязательны
+- [btconfig.json](../reference/btconfig)
+- [Типы пакетов](../reference/package-types)
+- [Dev mode и ограничения incremental link](./dev-mode)

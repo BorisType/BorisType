@@ -3,7 +3,7 @@
 > Deprecated: текущий компилятор поддерживает `break`/`continue` через `finally`,
 > в том числе labelled jumps. Правило удалено из recommended; включайте его
 > явно только для старых версий компилятора. Ниже сохранено историческое описание.
-> См. [structured completions](../../../../ref/decisions/2026-10-07-structured-abrupt-completion.md).
+> См. [structured completions](../../../../refs/decisions/2026-10-07-structured-abrupt-completion.md).
 
 Предупреждает об использовании `break`/`continue` внутри `try`/`catch` блока при наличии `finally`.
 
@@ -15,7 +15,7 @@ BorisType десахаризует `try-catch-finally` в конструкции
 
 Правило **не срабатывает** на `break`/`continue` внутри вложенных циклов/switch — они безопасны, так как не покидают try-блок.
 
-Подробнее: [ADR 010 — try-finally desugaring](../../../ref/decisions/010-try-finally-desugaring.md).
+Подробнее: [ADR 010 — try-finally desugaring](../../../../refs/decisions/2026-03-11-try-finally-desugaring.md).
 
 ## Что проверяется
 

@@ -127,6 +127,6 @@ JSON-текстом. SQL-проба PostgreSQL-specific из-за `AS text`; о�
 [object_to_text](https://wshcm-docs.boristype.dev/news/platform/7163334555835046783.html),
 [core/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/core/index.d.ts#L2613),
 [tools/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/tools/index.d.ts#L5104)
-того же revision. [История native исследования](https://github.com/BorisType/BorisType/blob/main/plans/mcp-server/09-xquery-native.md)
+того же revision. [История native исследования](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/09-xquery-native.md)
 содержит дополнительные контроли и границы; для применения facts выше она
 не является обязательной зависимостью.

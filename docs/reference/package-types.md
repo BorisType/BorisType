@@ -1,293 +1,145 @@
 # Типы пакетов при линковке
 
-Документ описывает типы пакетов BorisType и логику их линковки в директорию `dist/`.
+Тип задаёт `package.json#ws:package`, а не `btconfig.json`.
+Module pipeline остаётся экспериментальным; [ограничения памяти](./compile-modes)
+не снимаются наличием generated initialization.
 
 ## Поле ws:name
 
-> **Важно:** Поле `ws:name` является **обязательным** для всех пакетов кроме `library`.
-
-`ws:name` — это "чистое" имя пакета, используемое:
-
-- В путях (`components/<ws:name>`, `./wt/<ws:name>`)
-- В `api_ext.xml` (`module:<ws:name>`)
-- В именах файлов (`spxml/<ws:name>.xml`)
-
-Это позволяет использовать scoped npm имена (`@scope/package`) без проблем с путями.
-
-**Пример:**
-
-```json
-{
-  "name": "@boristype/runtime",
-  "ws:name": "bt-runtime",
-  "ws:package": "system"
-}
-```
-
-Пакет `@boristype/runtime` будет линковаться как `bt-runtime` в `components/bt-runtime`.
+`ws:name` обязателен для standalone/component/system. Он определяет платформенное
+имя, пути по умолчанию и `module:<ws:name>`; npm `name` может быть scoped.
+Используйте разные `ws:name` для разных пакетов проекта: по нему также ключуется
+linking cache и начальная координация dev.
 
 ## Standalone
-
-Самостоятельный исполняемый модуль. Инициализируется через `api_ext.xml`.
-
-### Конфигурация package.json
 
 ```json
 {
   "name": "@myorg/myapp",
+  "version": "1.0.0",
   "ws:name": "myapp",
-  "main": "index.js",
   "ws:package": "standalone",
-  "ws:root": "./wt/myapp",
-  "ws:apiext": {
-    "name": "module:myapp",
-    "libs": ["./init.xml"]
-  }
+  "main": "index.js"
 }
 ```
 
-**Обязательные поля:**
-
-- `ws:package`: `"standalone"` (обратная совместимость: `"app"`)
-- `ws:name`: имя для путей и api_ext
-
-**Опциональные поля:**
-
-- `ws:root`: путь внутри `dist/` (по умолчанию `./wt/<ws:name>`)
-- `main`: точка входа (например `"index.js"`)
-- `ws:apiext`: явная конфигурация для `api_ext.xml`
+Готовый `build/` копируется в `dist/wt/myapp/`. Optional `ws:root` или явный
+`target` линковки переопределяет путь. `main` относительно корня готового пакета.
 
 ### Логика генерации init.xml
 
-| `ws:apiext`  | `main`       | init.xml в build/ | Результат                                                     |
-| ------------ | ------------ | ----------------- | ------------------------------------------------------------- |
-| ✅ указан    | любой        | любой             | Используем `ws:apiext`, ничего не генерируем                  |
-| ❌ не указан | ✅ указан    | ❌ нет            | Генерируем `init.xml`, добавляем в `api_ext.xml`              |
-| ❌ не указан | ✅ указан    | ✅ есть           | Используем существующий `init.xml`, добавляем в `api_ext.xml` |
-| ❌ не указан | ❌ не указан | любой             | Ничего не генерируем, нет записи в `api_ext.xml`              |
+При наличии `main` линкер создаёт `init.xml`, если его ещё нет **в целевом
+каталоге после копирования**. Уже существующий init не регенерируется, включая
+старый generated init от предыдущей линковки. При изменении `main` используйте
+`link --clean`, предварительно проверив output сборки.
 
-### Генерируемый init.xml
-
-Создаётся только если отсутствует в `build/`:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<SPXML-INLINE-FORM>
-  <OnInit PROPERTY="1" EXPR="
-    bt.require('index.js', 'x-local://wt/myapp')
-  "/>
-</SPXML-INLINE-FORM>
-```
-
-### Результат линковки
-
-```
-dist/
-└── wt/
-    └── myapp/              # из ws:root
-        ├── index.js        # скомпилированный код
-        ├── init.xml        # сгенерирован или из build/
-        ├── .filemap.json   # маппинг executables (если есть)
-        └── node_modules/
-            └── ...         # library-зависимости
-```
+`ws:apiext` задаёт `{ "name": "...", "libs": ["./custom-init.xml"] }` и имеет
+приоритет при формировании API entry. Нужные custom файлы поставляет сам пакет.
+Без `ws:apiext`, но с `main` добавляется `module:<ws:name>` → `init.xml`.
+Без обоих entry не создаётся. Наличие custom API entry само по себе не запрещает
+линкеру создать неиспользуемый default init при `main`.
 
 ## Component
 
-Компонент платформы. Инициализируется через файлы в `spxml/`, **не добавляется** в `api_ext.xml`.
-
-### Конфигурация package.json
-
 ```json
 {
-  "name": "@myorg/other-app",
-  "ws:name": "other-app",
-  "main": "index.js",
-  "ws:package": "component"
+  "name": "@myorg/mycomponent",
+  "version": "1.0.0",
+  "ws:name": "mycomponent",
+  "ws:package": "component",
+  "main": "index.js"
 }
 ```
 
-**Обязательные поля:**
-
-- `ws:package`: `"component"`
-- `ws:name`: используется для определения целевой папки и именования файлов
-
-**Запрещённые поля:**
-
-- `ws:root`: компоненты не могут иметь это поле (путь `components/<ws:name>` определяется автоматически)
+Default путь — `dist/components/mycomponent/`. Не задавайте `ws:root`;
+при стандартном выборе target линкер отклоняет это поле. Явный `target` имеет
+приоритет, но перенос компонента требует отдельно учитывать его регистрацию.
+Component не добавляется в `api_ext.xml`.
 
 ### Файлы инициализации
 
-Располагаются в `spxml/`. Генерируются только если отсутствуют в `build/`.
-
-**`spxml/<name>.xml`:**
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<SPXML-INLINE-FORM CODE-LIB="1">
-
-<other-app>
-</other-app>
-
-</SPXML-INLINE-FORM>
-```
-
-**`spxml/<name>.js`:**
-
-```js
-function init() {
-  try {
-    alert("Component other-app initializing...");
-    bt.require("index.js", "x-local://components/other-app/spxml");
-    alert("Component other-app initialized");
-  } catch (g_err) {
-    alert("ERROR: Component initializing: other-app:\r\n" + g_err);
-    throw g_err;
-  }
-}
-```
-
-### Генерируемый package.json
-
-Для компонента создаётся `package.json` в формате платформы:
-
-```json
-{
-  "name": "other-app",
-  "version": "1.0.0.0",
-  "description": "other-app",
-  "enableByDefault": true,
-  "dependencies": {},
-  "type": "standard",
-  "tags": ["#public"]
-}
-```
-
-### Результат линковки
-
-```
-dist/
-└── components/
-    └── other-app/          # из ws:name
-        ├── index.js        # скомпилированный код
-        ├── package.json    # сгенерирован для платформы
-        ├── .filemap.json   # маппинг executables (если есть)
-        ├── spxml/
-        │   ├── other-app.xml   # сгенерирован или из build/
-        │   └── other-app.js    # сгенерирован или из build/
-        └── node_modules/
-            └── ...         # library-зависимости
-```
+Создаётся `spxml/<ws:name>.xml`, а при `main` — `spxml/<ws:name>.js` с вызовом
+`bt.require`. Существующие целевые файлы сохраняются. Generated platform
+`package.json` перезаписывается из `ws:name`, `version`, `description`;
+version преобразуется утилитой `@boristype/ws-version`. Это не исходный npm manifest.
+Для имени компонента выбирайте простой identifier: auto-push строит выражение
+`<componentName>.init()` без кавычек.
 
 ## System
 
-Системные пакеты, **полностью готовые** к линковке. Все необходимые файлы уже присутствуют в `build/`. **Ничего не генерируется** — только копирование.
+Готовые системные пакеты (например `@boristype/runtime`) копируются из `build/`
+без генерации init. Автообнаружение идёт по dependencies/devDependencies
+корневого проекта (только прямые точные `system` dependencies, без рекурсивного поиска); standalone/component/library dependencies не
+подменяют поиск system-пакетов.
 
-### Особенности
+| Режим `--linking-system-as` | Путь                                        | API entry                 |
+| --------------------------- | ------------------------------------------- | ------------------------- |
+| `component` (default)       | `components/<ws:name>`                      | Нет                       |
+| `standalone`                | `ws:root`, обязателен для system dependency | Из `ws:apiext` или `main` |
 
-- Режим линковки определяется через CLI флаг `--linking-system-as`
-- По умолчанию линкуются как **component** (копируются в `components/<ws:name>`)
-- Используются для системных модулей (runtime)
-- System-пакеты обнаруживаются автоматически среди `dependencies`/`devDependencies` проекта по полю `ws:package: "system"`
-- Если runtime не найден в зависимостях — выводится предупреждение
-- Флаг `--external-runtime` позволяет пропустить линковку system-пакетов (когда runtime управляется извне)
-
-### Режимы линковки
-
-| Режим                      | Целевой путь           | api_ext.xml |
-| -------------------------- | ---------------------- | ----------- |
-| `component` (по умолчанию) | `components/<ws:name>` | ❌ Нет      |
-| `standalone`               | из `ws:root`           | ✅ Да       |
+`--external-runtime` пропускает найденные system dependencies. Пользователь
+отвечает за совместимый runtime на целевой платформе. У system-пакета,
+перечисленного как пользовательская запись `linking.packages`, пути вычисляются
+по правилам пользовательской записи; эта форма не заменяет dependency mode.
 
 ## Library
-
-Библиотечные пакеты. **Не являются самостоятельными модулями**.
-
-### Особенности
-
-- Копируются в `node_modules/` каждого Standalone/Component/System пакета
-- Не имеют собственной точки входа и инициализации
-- Не могут быть слинкованы напрямую
-
-### Конфигурация package.json
 
 ```json
 {
   "name": "@myorg/utils",
+  "version": "1.0.0",
   "main": "index.js",
   "ws:package": "library"
 }
 ```
 
+Library нельзя линковать самостоятельной записью. Она копируется в
+`node_modules/` executable пакета, может иметь `main` для разрешения import,
+но не получает собственного generated init или API entry. `ws:name` не нужен.
+Наличие metadata не доказывает совместимость кода или работу всех imports.
+
 ### Логика копирования node_modules
 
-При линковке пакета:
+Сканируется `node_modules/` каждого executable пакета. Копируются только
+**точные** `ws:package: "library"`, включая вложенные libraries и scoped packages.
+Legacy `lib` dependency copier не распознаёт. Symlink разрешается; content hash
+вычисляется только для realpath вне `node_modules`.
 
-1. Сканируется `node_modules/` исходного пакета (discovery)
-2. Копируются **только** пакеты с `ws:package: "library"`
-3. Рекурсивно обрабатываются вложенные `node_modules/`
-4. Поддерживаются scoped пакеты (`@scope/package`)
-5. Поддерживаются symlink'и (pnpm workspace, `file:` зависимости)
-6. Пропускаются служебные директории (`.bin`, `.git` и т.д.)
-
-**Кэширование:**
-
-- **Tier 1**: lockfile hash (pnpm-lock.yaml / package-lock.json, ищется поднимаясь к корню workspace) — если изменился, перекопируются все библиотеки
-- **Tier 2**: per-library content hash для локальных (workspace) пакетов — если lockfile не изменился, копируются только библиотеки с изменённым контентом
-- Cleanup: библиотеки, удалённые из зависимостей, автоматически удаляются из `dist/`
+Кэш ускоряет повторные полные линковки, но не гарантирует восстановление
+вручную удалённого output, изменение target, nested libraries или удаление
+последней dependency. См. [кэш и обход через `--clean`](../guides/linking#кэширование).
 
 ## Общие механизмы
 
 ### Executables и Filemap
 
-Компилятор генерирует `.executables.json` для пакетов с executable objects.
-
-**При линковке:**
-
-- Читается `.executables.json` из `build/`
-- Генерируется `.filemap.json` **per-module** (в каждом модуле отдельно)
+`.executables.json` содержит metadata compiler, `.filemap.json` — mapping
+линкера. Текущая нормализация source/output paths имеет известное расхождение;
+не считайте generated mapping проверенным только по успешному `link`.
+[Описание границы](../guides/linking#filemap-filemap-json).
 
 ### api_ext.xml
 
-Общий файл конфигурации. Располагается в `dist/source/api_ext.xml`.
-
-**Содержит записи для:**
-
-- System пакетов в режиме `standalone`
-- Standalone пакетов
-
-**Не содержит:**
-
-- Component пакеты
-- System пакеты в режиме `component`
-- Library пакеты
+`dist/source/api_ext.xml` формируется из system standalone и пользовательских
+standalone entries в порядке линковки. Component имеет отдельную инициализацию.
+Library отдельной entry не получает. Чистая линковка удаляет старые entries.
 
 ## Сводная таблица типов
 
-| Тип            | ws:package          | ws:name        | ws:root                                     | Целевой путь           | Init файлы              | api_ext.xml       | node_modules          |
-| -------------- | ------------------- | -------------- | ------------------------------------------- | ---------------------- | ----------------------- | ----------------- | --------------------- |
-| **Standalone** | `standalone`, `app` | ✅ обязательно | опционально (по умолчанию `./wt/<ws:name>`) | из `ws:root`           | `init.xml` (если нужен) | ✅ Да             | ✅ Копируются         |
-| **Component**  | `component`         | ✅ обязательно | ❌ запрещено                                | `components/<ws:name>` | `spxml/*` (если нужны)  | ❌ Нет            | ✅ Копируются         |
-| **System**     | `system`, `bt`      | ✅ обязательно | для standalone                              | зависит от режима      | ❌ Не генерируются      | зависит от режима | ✅ Копируются         |
-| **Library**    | `library`, `lib`    | ❌ не нужно    | —                                           | —                      | —                       | —                 | Является зависимостью |
+| Тип          | Legacy имя | Default путь                 | Generated initialization        |
+| ------------ | ---------- | ---------------------------- | ------------------------------- |
+| `standalone` | `app`      | `wt/<ws:name>`               | `init.xml` при `main`           |
+| `component`  | —          | `components/<ws:name>`       | `spxml/`, platform package.json |
+| `system`     | `bt`       | Зависит от dependency mode   | Уже содержится в пакете         |
+| `library`    | `lib`      | В `node_modules/` executable | Нет; copier требует `library`   |
 
 ## CLI опции
 
-```bash
-btc link [options]
+```sh
+btc link --clean
+btc link --no-cache
+btc link --linking-system-as standalone
+btc link --external-runtime
 ```
 
-| Опция                        | Описание                                                       | По умолчанию |
-| ---------------------------- | -------------------------------------------------------------- | ------------ |
-| `--clean`                    | Очистить `dist/` перед линковкой                               | `false`      |
-| `--linking-system-as <mode>` | Режим линковки system пакетов: `standalone` или `component`    | `component`  |
-| `--external-runtime`         | Пропустить линковку system-пакетов (runtime управляется извне) | `false`      |
-
-**Примеры:**
-
-```bash
-btc link                              # System как component
-btc link --clean                      # Очистить dist
-btc link --linking-system-as standalone  # System как standalone
-btc link --external-runtime           # Пропустить runtime
-```
+Подробности: [линковка](../guides/linking) и [btconfig.json](./btconfig).

@@ -45,7 +45,7 @@ JS-проверки используют supplied `main.js`, загружаем�
 
 Дополнительные server-side eval проверки числового вывода, строк и SQL проведены
 2026-11-07 на Linux `websoft/hcm:2025.2.1333` / CLR 9.0.11. Они описаны в EXPR-04
-и [отчёте XQuery acceptance](https://github.com/BorisType/BorisType/blob/main/plans/mcp-server/09-xquery-native.md);
+и [отчёте XQuery acceptance](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/09-xquery-native.md);
 это отдельные пробы, не расширение compiler control-flow gate.
 
 | Область                                       | Supplied JS implementation                                               | Независимая C implementation                                                                |
@@ -85,7 +85,7 @@ Bare не создаёт общую env/descriptor infrastructure; собств�
 семантика этим режимом не обещается. Условия возобновления script/module:
 принятый lifetime contract и ABI plan, сохранение escaping values и доказанная
 обработка циклов с ограниченными memory/teardown tests на реальной C-платформе.
-См. [ADR](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-11-05-script-module-memory-freeze.md).
+См. [ADR](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-11-05-script-module-memory-freeze.md).
 
 ## Compile modes
 
@@ -342,10 +342,9 @@ access. Partial lowering не разрешает эти формы в recommende
 loop/switch distinction и function boundaries. Resolver определяет target до
 структурного rewrite.
 
-Affected scope использует completion record: `NORMAL=0`, `RETURN=1`, `THROW=2`,
-`BREAK=3`, `CONTINUE=4`, с optional value/target slots. Non-exceptional jumps
-переносятся через ordinary break/state checks. Source catch не должен ловить
-return/break/continue.
+Source catch не должен ловить return/break/continue как исключения.
+Внутреннее представление completion и причины выбора описаны в
+[решении о control flow](https://github.com/BorisType/BorisType/blob/main/refs/compiler/control-flow.md).
 
 Return expression вычисляется до RETURN. Crossed finalizers выполняются
 inside-out. Normal finalizer сохраняет pending completion; abrupt finalizer
@@ -456,7 +455,13 @@ JS wall time не является C benchmark.
 Expression order/frequency также имеют подтверждённые script/module failures:
 late optional argument может обогнать early argument/callee, а extracted loop
 condition выполниться один раз до loop. Permanent strict-valid probes и границы
-evidence: [research report](https://github.com/BorisType/BorisType/blob/main/plans/ts-bs-semantics/research/01-expression-evaluation-results.md).
+evidence: [research report](https://github.com/BorisType/BorisType/blob/main/refs/compiler/findings.md).
+
+Ambient `declare` в исполняемом source требует осторожности: в `script/module`
+объявление вроде `declare var bt: any` сейчас может стать присваиванием
+`bt = undefined` и затереть runtime. Размещайте такие объявления в `.d.ts`/type
+roots, не в executable файле. Это подтверждённый дефект lowering, не исправление;
+[разбор и воспроизведение](https://github.com/BorisType/BorisType/blob/main/refs/compiler/findings.md).
 
 ## Диагностики и integration API
 
@@ -480,12 +485,10 @@ TS checks выполняет вызывающий btc/consumer. BT90018 сохр
 без source/loc — positionless fallback. Error даёт `success: false`, `outputs: []`;
 Warning не обязан блокировать output.
 
-Custom pipeline использует shared `PassContext.bindings` из analysis/lowering.
-Порядок: for-update-desugar → abrupt-completion-desugar → parenthesize → comma
-safety → cleanup grouping → literal extract → hoist. `runPasses()` проверяет
-dependency completion pass, прекращает следующие passes после новых Error
-diagnostics. При прямых `.run()` calls consumer обеспечивает порядок/checks сам.
-`tryFinallyDesugarPass` — deprecated alias, не старый throw-sentinel pass.
+При прямом использовании bt-ir сверяйтесь с его package README. Внутренний
+порядок passes, shared analysis state и compatibility aliases описаны в
+[compiler pipeline](https://github.com/BorisType/BorisType/blob/main/refs/compiler/pipeline.md);
+CLI применяет этот pipeline самостоятельно.
 
 ## Проверка переносимости и обновление правил
 
@@ -515,9 +518,9 @@ C gate при изменении target shape. Supplied runtime нельзя п�
 
 - [ModeConfig](https://github.com/BorisType/BorisType/blob/main/packages/bt-ir/src/lowering/mode-config.ts), [lowering](https://github.com/BorisType/BorisType/tree/main/packages/bt-ir/src/lowering), [diagnostics](https://github.com/BorisType/BorisType/blob/main/packages/bt-ir/src/pipeline/diagnostics.ts).
 - [Runtime semantic helpers](https://github.com/BorisType/BorisType/blob/main/packages/builtin-runtime/src/semantic.ts), [recommended ESLint](https://github.com/BorisType/BorisType/blob/main/packages/eslint-plugin/src/index.ts).
-- [Structured completion ADR](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-10-07-structured-abrupt-completion.md), [C-safe updates ADR](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-10-07-safe-for-updates.md).
-- [Numeric literal ADR](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-03-30-numeric-literal-precision.md), [IR architecture](https://github.com/BorisType/BorisType/blob/main/ref/architecture/ir-pipeline.md).
-- [Pre-merge/C probes](https://github.com/BorisType/BorisType/blob/main/plans/probes/README.md), [implementation plan](https://github.com/BorisType/BorisType/blob/main/plans/issue-13-labeled-statements.md).
+- [Structured completion ADR](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-10-07-structured-abrupt-completion.md), [C-safe updates ADR](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-10-07-safe-for-updates.md).
+- [Numeric literal ADR](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-03-30-numeric-literal-precision.md), [IR architecture](https://github.com/BorisType/BorisType/blob/main/refs/compiler/pipeline.md).
+- [Pre-merge/C probes](https://github.com/BorisType/BorisType/blob/main/refs/research/compiler-control-flow/probes/README.md), [implementation plan](https://github.com/BorisType/BorisType/blob/main/refs/compiler/control-flow.md).
 
 При расхождении исторического ADR/комментария с текущим output документ фиксирует
 наблюдаемое состояние, не объявляет прошлое намерение реализованной гарантией.
