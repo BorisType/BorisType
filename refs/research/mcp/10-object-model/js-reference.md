@@ -1,5 +1,5 @@
-> Исторический материал из `plans/mcp-server/10-object-model/js-reference.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../../platform/object-model.md).
+> Статический browser JS reference не является C-runtime implementation или его acceptance. Vendor source нужен отдельно по указанному hash/locator.
 
 # Поставляемый JS-reference: XMD, создание и сохранение
 

@@ -1,92 +1,74 @@
 # btconfig.json Reference
 
-Конфигурационный файл для BorisType компилятора.
+`btconfig.json` задаёт **линковку**, а не параметры компиляции или подключения
+к HCM. `btc build` использует `tsconfig.json`; подключение задаётся в
+[btconfig.properties](./btconfig-properties).
 
 ## Расположение
 
-Файл должен находиться в корневой директории проекта (там же, где `package.json`).
+Файл читается из текущей рабочей директории `btc link`/`btc dev`.
+Все явно заданные `source` и `target` относятся к корню проекта:
+`source` — к текущей директории, `target` — к `dist/`.
 
 ## Формат
 
 ```json
 {
-  "$schema": "./schemas/btconfig.schema.json",
   "linking": {
-    "packages": [
-      // BT пакет - shorthand нотация
-      {
-        "name": "backend"
-      },
-      // Обычная директория - полная запись
-      {
-        "name": "frontend",
-        "source": "./frontend/src",
-        "target": "./wt/frontend"
-      }
-    ]
+    "packages": [{ "name": "backend" }, { "name": "frontend", "source": "./frontend/build", "target": "./wt/frontend" }]
   }
 }
 ```
+
+В JSON нет комментариев и завершающих запятых. Top-level `packages`, карта
+`{ "backend": "./backend" }` и поле `packageType` не поддерживаются.
+Тип BT пакета задаёт `package.json#ws:package`.
 
 ## Поля
 
 ### `$schema` (optional)
 
-Ссылка на JSON схему для валидации и автодополнения в IDE.
-
-**Тип:** `string`  
-**Пример:** `"./schemas/btconfig.schema.json"`
+Ссылка для IDE. [Схема репозитория](https://github.com/BorisType/BorisType/blob/main/schemas/btconfig.schema.json)
+не копируется в ваш проект командой `init`; указывайте локальный путь только
+после её копирования. CLI читает JSON и не запускает JSON Schema validator.
 
 ### `linking` (optional)
 
-Конфигурация системы линковки.
-
-**Тип:** `object`
+Поддерживаются две формы: настройки текущего пакета либо непустой список
+`linking.packages`. Не смешивайте их: при наличии непустого массива поля
+`source`/`target` корневой секции не используются.
 
 #### `linking.packages`
 
-Массив пакетов для включения в итоговую сборку.
+| Поле     | Значение                                                             |
+| -------- | -------------------------------------------------------------------- |
+| `name`   | Обязательный относительный путь каталога пакета; `.` означает корень |
+| `source` | Каталог готовых файлов относительно корня проекта                    |
+| `target` | Целевой путь внутри `dist/`                                          |
 
-**Тип:** `array`  
-**Элементы:** `LinkingPackage`
+Для `standalone`, `component`, `system` `source` по умолчанию — `{name}/build`.
+Для обычной директории `source` и `target` обязательны. `library` нельзя
+линковать отдельной записью: это зависимость другого пакета.
 
-##### `LinkingPackage`
+У BT пакетов нужен `ws:name`. Standalone по умолчанию использует `ws:root`,
+а при его отсутствии — `./wt/<ws:name>`. Component использует
+`./components/<ws:name>`; не задавайте ему `ws:root`.
+Явные `source`/`target` имеют приоритет. Для component рекомендуем стандартный
+путь: его регистрацию и push нужно учитывать отдельно при переопределении.
 
-**Поля:**
-
-| Поле     | Тип      | Обязательное | Описание                                         |
-| -------- | -------- | ------------ | ------------------------------------------------ |
-| `name`   | `string` | ✅           | Имя директории пакета относительно корня проекта |
-| `source` | `string` | ⚠️ Условно\* | Путь к директории с файлами для копирования      |
-| `target` | `string` | ⚠️ Условно\* | Целевой путь внутри `dist/`                      |
-
-**\* Условная обязательность:**
-
-- **Для BT пакетов** (содержат `package.json` с `ws:package: "app"`):
-  - `source` опциональное, по умолчанию: `{name}/build`
-  - `target` опциональное, по умолчанию: из `ws:root` в package.json
-  - Можно использовать shorthand: `{ "name": "package" }`
-
-- **Для обычных директорий:**
-  - `source` обязательное
-  - `target` обязательное
-
-**Приоритет:** Явно указанные `source` и `target` имеют приоритет над значениями по умолчанию.
+Корневой `linking.name` не переименовывает пакет в текущей реализации:
+задавайте платформенное имя через `package.json#ws:name`.
 
 ## Примеры
 
 ### Базовый пример (BT пакет)
 
+Без `btconfig.json` линковка обрабатывает текущий executable BT пакет.
+Для переопределения output:
+
 ```json
 {
-  "$schema": "",
-  "linking": {
-    "packages": [
-      {
-        "name": "backend" // Shorthand для BT пакета
-      }
-    ]
-  }
+  "linking": { "source": "./build", "target": "./wt/my-app" }
 }
 ```
 
@@ -94,61 +76,35 @@
 
 ```json
 {
-  "$schema": "",
   "linking": {
     "packages": [
-      // BT пакет - shorthand нотация
-      {
-        "name": "backend"
-      },
-      // Обычная директория со статикой
-      {
-        "name": "frontend",
-        "source": "./frontend/src",
-        "target": "./wt/frontend"
-      },
-      // Обычная директория с ресурсами
-      {
-        "name": "shared-assets",
-        "source": "./assets",
-        "target": "./wt/assets"
-      }
+      { "name": "backend" },
+      { "name": "frontend", "source": "./frontend/dist", "target": "./wt/frontend" },
+      { "name": "assets", "source": "./assets", "target": "./wt/assets" }
     ]
   }
 }
 ```
+
+Каталоги `backend`, `frontend` и `assets` должны существовать. Линковка
+не вызывает их build. Порядок standalone записей сохраняется в `api_ext.xml`;
+автоматической сортировки прикладных зависимостей нет.
 
 ### Переопределение путей для BT пакета
 
 ```json
 {
-  "$schema": "",
   "linking": {
-    "packages": [
-      // BT пакет с кастомными путями
-      {
-        "name": "backend",
-        "source": "./backend/dist", // Вместо backend/build
-        "target": "./wt/api" // Вместо ws:root
-      },
-      // Обычные директории
-      {
-        "name": "config",
-        "source": "./config",
-        "target": "./wt/config"
-      },
-      {
-        "name": "resources",
-        "source": "./resources",
-        "target": "./wt/resources"
-      }
-    ]
+    "packages": [{ "name": "backend", "source": "./backend/custom-output", "target": "./wt/api" }]
   }
 }
 ```
 
+Для таких переопределений выполняйте полную линковку; текущий incremental dev
+может потерять явные пути. См. [ограничения watch](../guides/dev-mode).
+
 ## См. также
 
-- [Документация по линковке](../guides/linking)
-- [Пример использования](https://github.com/BorisType/BorisType/tree/main/examples)
-- [JSON Schema](https://github.com/BorisType/BorisType/blob/main/schemas/btconfig.schema.json)
+- [Линковка](../guides/linking)
+- [Типы пакетов](./package-types)
+- [Примеры репозитория](https://github.com/BorisType/BorisType/tree/main/examples)

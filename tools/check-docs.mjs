@@ -94,9 +94,32 @@ try {
       if (hash(readFileSync(resolve(root, entry.destination))) !== entry.sourceSha256)
         errors.push(`Changed evidence bytes: ${entry.destination}`);
     }
-    if (entry.action !== "snapshot-before-rewrite" && exists(entry.source)) errors.push(`Retired source still exists: ${entry.source}`);
+    const sourceRetained = entry.sourceRetained ?? entry.action === "snapshot-before-rewrite";
+    if (sourceRetained && !exists(entry.source)) errors.push(`Rewritten source missing: ${entry.source}`);
+    if (!sourceRetained && exists(entry.source)) errors.push(`Retired source still exists: ${entry.source}`);
   }
-  const originals = git("ls-tree", "-r", "--name-only", manifest.baseCommit, "ref", "plans").toString().trim().split("\n").filter(Boolean);
+  // Fixed baseline scope: coverage includes retired instructions and rewritten entries,
+  // not only the two removed documentation trees.
+  const migrationScope = [
+    "ref",
+    "plans",
+    "DOCUMENTATION_STRUCTURE.md",
+    "KNOWN_ISSUES.md",
+    "README.md",
+    "ROADMAP.md",
+    "TODO.md",
+    "packages/botest/README.md",
+    "packages/bt-ir/README.md",
+    "packages/bt-ir/src/lowering/REFACTORING.md",
+    ".github/copilot-instructions.md",
+    ".github/instructions",
+    ".cursor/rules",
+  ];
+  const originals = git("ls-tree", "-r", "--name-only", manifest.baseCommit, ...migrationScope)
+    .toString()
+    .trim()
+    .split("\n")
+    .filter(Boolean);
   for (const source of originals) if (!sources.has(source)) errors.push(`Missing migration accounting: ${source}`);
   for (const oldDirectory of ["ref", "plans"]) {
     if (exists(oldDirectory)) errors.push(`Retired directory still exists: ${oldDirectory}`);

@@ -2,196 +2,66 @@
 
 ## Назначение
 
-**Команда `artifact`** создает ZIP-архивы из директории `dist/` для поставки и развертывания на целевой платформе.
-
-Это финальный этап в пайплайне сборки:
-
-```
-build → link → artifact → deploy
-```
+`btc artifact` создаёт **один** `artifact/main.zip` со всем содержимым `dist/`,
+**включая `components/`**. Отдельные ZIP компонентов не создаются.
+Команда не компилирует, не линкует и не отправляет файлы на сервер.
 
 ## Использование
 
-```bash
-btc artifact
+Из корня подготовленного проекта:
+
+```sh
+npx btc link --clean
+npx btc artifact --clean
 ```
 
-Команда запускается из корня проекта, где находится директория `dist/`.
-
-::: warning Внимание
-Поведение команды еще не определено окончательно и может измениться в будущих версиях. Текущая реализация может отличается от описанного.
-:::
+Перед линковкой соберите все нужные пакеты. `--clean` у `artifact` удаляет
+предыдущее содержимое `artifact/`; у `link` этот флаг очищает `dist/` и кэш.
+Без него существующий `main.zip` перезаписывается, другие старые архивы остаются.
 
 ## Логика работы
 
-### 1. Поиск директории dist
-
-- Ищет `dist/` в текущем рабочем каталоге (cwd)
-- Если не найдена — выдает ошибку и прерывает выполнение
-
-### 2. Создание директории artifact
-
-- Создает директорию `artifact/` в текущем рабочем каталоге
-- Если уже существует — использует её
-
-### 3. Архивирование основного содержимого
-
-Создает **`main.zip`** со всем содержимым `dist/`, **исключая** директорию `components/`:
-
-```
-artifact/
-  └── main.zip
-       ├── module1/
-       ├── module2/
-       ├── init.xml
-       └── ... (всё кроме components/)
-```
-
-### 4. Архивирование компонентов
-
-Если в `dist/` присутствует директория `components/`, каждая её поддиректория упаковывается в отдельный архив:
-
-```
-dist/
-  └── components/
-       ├── my-component/
-       ├── another-component/
-       └── ...
-
-→
-
-artifact/
-  ├── main.zip
-  ├── my-component.zip
-  └── another-component.zip
-```
-
-**Обработка:**
-
-- Только директории внутри `components/` архивируются
-- Файлы в `components/` пропускаются с предупреждением
-- Каждый компонент получает отдельный архив с именем `{component-name}.zip`
-
-## Параметры архивирования
-
-- **Формат:** ZIP
-- **Степень сжатия:** максимальная (zlib level 9)
-- **Библиотека:** [archiver](https://www.npmjs.com/package/archiver)
+1. Проверяет существование каталога `dist/` в текущей директории.
+2. Создаёт `artifact/`, при `--clean` предварительно удаляет его.
+3. Архивирует все файлы и подкаталоги `dist/` в `main.zip` без внешней папки `dist`.
 
 ## Структура результата
 
-```
+```text
 project/
-  ├── dist/                    # Результат linking
-  │   ├── components/
-  │   │   ├── component-a/
-  │   │   └── component-b/
-  │   ├── module1/
-  │   └── init.xml
-  │
-  └── artifact/                # Результат artifact
-      ├── main.zip             # Основной архив
-      ├── component-a.zip      # Компонент A
-      └── component-b.zip      # Компонент B
+├── dist/
+│   ├── components/my-component/
+│   ├── wt/backend/
+│   └── source/api_ext.xml
+└── artifact/
+    └── main.zip
 ```
+
+Пути внутри ZIP начинаются с `components/`, `wt/`, `source/`. Формат ZIP,
+сжатие zlib level 9. Побайтовая воспроизводимость ZIP не обещается.
 
 ## Примеры использования
 
-### Standalone приложение
-
-```bash
-# Сборка
-btc build
-
-# Линковка
-btc link
-
-# Создание архивов
-btc artifact
-```
-
-Результат: `artifact/main.zip` с полной структурой приложения.
-
-### Multi-package проект с компонентами
-
-```json
-// btconfig.json
-{
-  "packages": [
-    { "name": "backend", "packageType": "standalone" },
-    { "name": "component-ui", "packageType": "component" }
-  ]
-}
-```
-
-```bash
-btc build
-btc link
-btc artifact
-```
-
-Результат:
-
-- `artifact/main.zip` — backend и общие модули
-- `artifact/component-ui.zip` — UI компонент
+Для [multi-package конфигурации](./btconfig) соберите каждый пакет своим build,
+затем из корня выполните `btc link --clean` и `btc artifact --clean`.
+Типы компонентов определяются их `package.json`, а не полем `packageType`
+в `btconfig.json`.
 
 ## Интеграция с CI/CD
 
-Архивы из `artifact/` готовы для:
-
-- Загрузки на платформу WebSoft HCM
-- Развертывания через API платформы
-- Хранения в artifact registry
-- Версионирования релизов
-
-### Пример GitHub Actions
-
-```yaml
-- name: Build and create artifacts
-  run: |
-    npm run build
-    npx btc link
-    npx btc artifact
-
-- name: Upload artifacts
-  uses: actions/upload-artifact@v3
-  with:
-    name: borisscript-dist
-    path: artifact/*.zip
-```
+Сохраняйте `artifact/main.zip` как artifact вашей CI. Команда не создаёт manifest,
+не проверяет совместимость с установленным HCM и не выбирает способ установки
+компонентов. Deployment и platform acceptance выполняются отдельно.
+Существующий module pipeline остаётся экспериментальным из-за
+[ограничений памяти](./compile-modes).
 
 ## Обработка ошибок
 
-- **Директория dist не найдена:** выводится ошибка, выполнение прерывается
-- **Файл в components/:** пропускается с предупреждением
-- **Ошибка архивирования:** выводится сообщение об ошибке, выполнение прерывается
-
-## Технические детали
-
-### Реализация
-
-Файл: `btc/src/core/artifact.ts`
-
-Функция: `processArtifact(cwd: string): Promise<void>`
-
-### Зависимости
-
-- `archiver` — создание ZIP архивов
-- `@types/archiver` — TypeScript типы
-
-### Архитектура
-
-```typescript
-processArtifact()
-  ├─ createMainArchive()       // Основной архив
-  │   └─ createZipArchive()    // Низкоуровневая утилита
-  │
-  └─ createComponentArchives() // Архивы компонентов
-      └─ createZipArchive()    // Низкоуровневая утилита
-```
+Отсутствующий `dist/` и ошибка создания архива прерывают команду. Наличие ZIP
+не заменяет проверку его содержимого и диагностики предыдущей сборки.
 
 ## См. также
 
-- [Линковка](../guides/linking) — руководство по линковке
-- [Архитектура линковки](https://github.com/BorisType/BorisType/blob/main/refs/archive/compiler/architecture/linking-system.md) — детали реализации
-- [btconfig.json](./btconfig) — конфигурация multi-package проектов
+- [Линковка](../guides/linking)
+- [Push & Deploy](../guides/push-deploy)
+- [Внутреннее устройство поставки](https://github.com/BorisType/BorisType/blob/main/refs/cli/push-and-artifacts.md)

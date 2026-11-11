@@ -1,127 +1,68 @@
-> Исторический материал из `plans/ts-bs-semantics/README.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../README.md).
+# Исследование TS → BS семантики
 
-# TS → BS: исследование и восстановление семантики
+Завершённый research checkpoint, **не feature acceptance**. Развитие
+script/module приостановлено до [стратегии памяти](../../decisions/2026-11-05-script-module-memory-freeze.md);
+реализации/defaults/regressions сохранены. Активное направление — bare с
+ограниченным native subset, без обещания general closures или полной JS semantics.
 
-Дата начала: 2026-10-07. Обновлено: 2026-11-05. Статус: первый research/test
-срез завершён как checkpoint; production compiler не изменён.
+- [Expression evaluation](expression-evaluation.md): причина R01–R03/R29,
+  producer/consumer audit, native parser survey, A/B/C/inline alternatives и costs.
+- [Draft expression contract](expression-contract-draft.md): substantive rules
+  ORDER/LAZY/THROW/FREQ/PHASE/SAFE; **не accepted**, implementation on hold.
+- [Исследовательская область](scope.md): неполный F-01 inventory, downstream
+  Reference/functions/loops/bindings/modules/classes/library вопросы и критерии.
+- [Findings/reproductions](../../compiler/findings.md): R01–R29, K01–K11 и
+  современная классификация старых reviews, включая ambient declarations.
+- [2026-10-08 baseline](results/2026-10-08-expression-baseline.md) и
+  [2026-11-05 checkpoint](results/2026-11-05-research-checkpoint.md): разные JS
+  runtime hashes, команды/counts, C handoff, limits и результаты.
 
-Развитие **script/module приостановлено до решения стратегии памяти** C-runtime
-(reference counting без сборщика циклов, по сообщению пользователя). Реализации,
-регрессии и текущие исследовательские изменения сохраняются. Поддерживаемое
-направление дальнейшей разработки — bare, с его ограниченным native subset.
-[Решение и условия возобновления](../../decisions/2026-11-05-script-module-memory-freeze.md),
-[измеримый checkpoint](results/2026-11-05-research-checkpoint.md).
+Первый срез: 23 strict-valid named TS cases / 48 mode comparisons — **38 exact
+XFAIL и 10 PASS**. Baseline зелёный только при exact known mismatches; XPASS,
+changed mismatch, errors, timeout и empty selection ошибочны. Strict runner
+требует equivalence и остаётся красным на этих failures. Production lowering
+этим исследованием не менялся. Все остальные R/K ещё не перенесены в этот catalog.
 
-Цель — максимально широкая достижимая JS-семантика через преобразования, с
-предсказуемым и недорогим BorisScript output на **двух независимых runtime**.
-Работа охватывает не только найденные контрпримеры, но и остальные ветки
-реализованных преобразований и их взаимодействия.
+Prototypes — 24 sketches, 21 conforming/3 intentional A counterexamples.
+Предварительная рекомендация **B + inline fast path**, не принятый дизайн.
+Native JS survey — 6 MATCH/2 PARSER_REJECTION, C capability pending.
+Два bounded C shape files имеют ожидаемый `OK:6/6`, но **C запусков нет**;
+они не compiled production fix и не descriptor/module ABI acceptance.
 
-Это рабочая папка, а не новый публичный language contract. Актуальный контракт
-пользователя остаётся в [reference](../../../docs/reference/borisscript-constraints.md).
-Исторические ADR описывают намерения; проверенный output имеет больший вес.
+## Откуда взялся baseline
 
-## Навигация: от общего к частному
+Surface audit 2026-10-07: HEAD `57eaa89050f850eb426e971e5c8d338c87037cb6`,
+compiler после PR #27 `fa493a2f69aaf2c48d284ff4224ace8983bbbbb`.
+Recorded Node24.21.0/pnpm12.5.1/TS6.0.3 — исторические identity, актуальные pins
+берутся из manifests. Supplied JS runtime был `/home/agent/workspace/main.js`,
+ignored symlink `packages/botest/build/borisscript/main.js`, version unknown,
+hash `8f999ef036db5b9d4ce9ce98b0d81709f7db265197919c2a337560fad56b5090`.
+Botest adapter предоставляет часть host/file API, не полную платформу.
 
-| Уровень             | Документ/каталог                                                         | Что должно появиться                                                                  |
-| ------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| L0 — контекст       | [00-context.md](00-context.md)                                           | Baseline, runtime identity, подтверждённые результаты и ограничения evidence          |
-| L1 — карта          | [01-feature-map.md](01-feature-map.md), [02-findings.md](02-findings.md) | Полный реестр веток преобразований, находок и неизвестных областей                    |
-| L2 — исследование   | [research/](research/README.md)                                          | Причина, native probes, несколько вариантов эмуляции, плюсы/минусы/стоимость          |
-| L3 — спецификация   | [specs/](specs/README.md)                                                | Нумерованные семантические правила, modes, output invariants, acceptance cases        |
-| L4 — работа         | [tasks/](tasks/README.md), [05-backlog.md](05-backlog.md)                | Маленькие зависимые задачи: tests → implementation → integration                      |
-| L5 — доказательства | [results/](results/README.md)                                            | Результаты на конкретном commit и runtime, output review, стоимость, остаточные риски |
+Surface audit recorded: 55 IR tests, 148 E2E/17 suites; advisory Node137 PASS,
+1 FAIL,10 SKIP. Числовой failure `7603264645902515852` → Node Number
+`7603264645902516000` позже выделен в platform-specific test (Nov5 report),
+а не объявлен исправлением numeric lowering. Полный abrupt gate тогда не
+повторялся самим surface audit: его исторический результат — 5760 comparisons.
+Прежние in-memory seed findings не равны permanent suite.
 
-Процесс описан в [03-workflow.md](03-workflow.md), проверки — в
-[04-verification.md](04-verification.md). Первое исследование подготовлено как
-[brief по expression lowering](research/01-expression-evaluation.md), не как
-уже принятое архитектурное решение.
+Следующий expression baseline использовал commit `324c588` (merge #32).
+Oct8/Nov5 reports сохраняют точные hashes библиотек/catalog/manifest и изменение
+runtime identity; supplied runtime требуется предоставить отдельно. Files в
+ignored build воспроизводятся runners, не обещаются как доступный git artifact.
+C carrier `AB`/`012`, Check27Fixed и selected 60-case smoke относятся к отдельному
+[control-flow evidence](../compiler-control-flow/2026-10-07-results.md), не к этим
+expression sketches или class/module support.
 
-## Маршрут после снятия ограничений по памяти
+## Как продолжать после решения памяти
 
-1. Зафиксировать существующие failures и научить проверочный запуск надёжно
-   отличать pass, failure, отсутствие runtime и нулевую выборку. Для начала нужен
-   небольшой runner, не законченная универсальная инфраструктура.
-2. Исследовать **evaluation order / laziness / evaluation frequency**. Выбрать
-   модель expression lowering и переносить на неё consumers небольшими шагами.
-3. Стабилизировать **Reference semantics**: property reads/writes, compound/update,
-   delete, calls и optional calls.
-4. Проверить functions/scopes/parameters и loops/iteration; это основа корректных
-   destructuring, classes и captured exports.
-5. Довести templates, destructuring, spread, numeric/type erasure и parser safety.
-   Независимые маленькие fixes допустимы раньше, если не закрепляют ошибочный core.
-6. Довести module ABI/live bindings и class/prototype semantics.
-7. Исследовать polyfills **по одному методу/семейству** и type-based dispatch.
-   Мелкие независимые fixes допускаются раньше; стоимость проверяется во всех волнах.
-8. Выполнить cross-feature матрицу, повторить JS/C gates и синхронизировать
-   публичную документацию с фактически доказанным subset.
+Сначала принять design и один vertical slice, затем branch/ordered-call/loop/
+parameter consumers с соответствующими interactions. Не восстанавливать потерянную
+source semantics поздним parser pass; не обходить lowering bug изменением test
+source; не заменять target execution запуском emitted BS в Node. Не начинать
+whole-visitor rewrite или считать Error rejection реализацией requested feature.
 
-Diagnostics/source validation — сквозная работа во всех волнах. Новая поддержка
-должна расширять subset. Временный Error diagnostic защищает от silent corruption,
-но **не считается исправлением поддерживаемой фичи** и не закрывает её feature task.
-Отказ от достижимой семантики либо изменение публичного ABI требуют отдельного решения.
-
-## Зависимости
-
-```text
-baseline + воспроизводимые cases
-              ↓
-expression evaluation + безопасные имена
-              ↓
-references / calls / optional chains
-              ↓
-functions / scopes / parameters / loops
-              ↓
-destructuring / spread / modules / classes
-              ↓
-cross-feature validation + JS/C acceptance
-```
-
-Templates, numeric normalization, diagnostics и отдельные polyfills не обязаны
-ждать всю цепочку: зависимости задаются для каждой задачи, а не только для папки.
-Performance review сопровождает каждый шаг, не переносится в конец.
-
-## Правила границ работы
-
-- Не переписывать весь compiler заранее. Сохранять полезные analyzer/IR/pass/emitter
-  abstractions; заменять механизм после исследования и сравнения вариантов.
-- Не выводить поддержку C из JS result; не переносить bare smoke на script/module.
-- Не заменять output execution сравнением generated JS, запущенного в Node.
-- Не компенсировать lowering defect обходом в тестовом исходнике.
-- Не публиковать supplied runtime и не смешивать планирование с runtime provisioning.
-- Не начинать массовую миграцию callers до проверки одного vertical slice.
-- Не пересобирать labels/finalizers с нуля без нового доказанного дефекта;
-  PR #27 остаётся regression baseline.
-- Не обещать доказательство всей ECMAScript для произвольных программ. Завершение
-  измеряется конкретным inventory, контрактами и покрытыми interactions.
-
-## Текущий прогресс
-
-- [x] F-02a: 23 named expression cases / 48 comparisons; 38 exact XFAIL, 10 controls.
-- [x] E-01 JS-срез: audit pending producers/consumers, raw parser survey,
-      A/B/C/inline prototypes, output/cost comparison.
-- [x] Подготовлен draft E-02 и два bounded C shape probes; дизайн ещё не принят.
-- [x] Поверхностный аудит и выборочные in-memory probes выполнены до создания папки.
-- [x] Context, findings, feature map, workflow и backlog записаны.
-- [x] Подготовлен brief первого точечного исследования.
-- [ ] Все findings перенесены в постоянные executable cases и заново воспроизведены.
-- [ ] L1 inventory сверено со всеми dispatch branches, modifiers и runtime exports.
-- [ ] Выбран expression lowering design, зафиксированы ADR/spec и acceptance cases.
-- [ ] Первый implementation slice завершён и проверен.
-- [ ] Весь согласованный inventory прошёл итоговые gates.
-
-## Первый рабочий пакет (завершённый research checkpoint)
-
-Начать с `F-01` + `F-02` + `E-01`: перенести контрпримеры `R01–R03` в
-воспроизводимый runner, исследовать pending-statements и сравнить варианты из
-brief. Deliverable: отчёт, рекомендуемая модель, мини-spec и несколько маленьких
-implementation tasks. Создание этой папки само по себе не запускает реализацию.
-
-Первый пакет начат по разрешению пользователя 2026-10-08. Результат:
-[исследование и варианты](research/01-expression-evaluation-results.md),
-[draft spec](specs/01-expression-evaluation.md),
-[leaf/handoff](tasks/F-02-expression-baseline.md),
-[проверки и C файлы](results/2026-10-08-expression-baseline.md).
-Рекомендация B + проверенный inline fast path предварительная; скобки нельзя
-отвергать по старому ADR без native evidence. Полное F-01 ещё не завершено.
+[Verification](../../compiler/verification.md) задаёт evidence/JS/C/cost gates,
+[scope](scope.md) сохраняет конкретные questions. Диагностическая защита, локальный
+fix, исследовательский результат и portable acceptance — разные исходы; дата
+исторического PASS не переносится на current output автоматически.

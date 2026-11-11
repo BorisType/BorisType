@@ -1,5 +1,5 @@
-> Исторический материал из `plans/mcp-server/03-dependency-review.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../mcp/transport-and-lifecycle.md).
+> Metadata/latest/advisory findings ниже датированы 2026-11-05. Текущие versions определяются manifests/lockfile; SDK теперь ^2.4.0. Это не новый dependency audit.
 
 # Проверка остальных зависимостей после SDK migration
 

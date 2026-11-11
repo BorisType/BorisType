@@ -1,5 +1,5 @@
-> Исторический материал из `plans/dotnet/06-search-results.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../dotnet/search.md).
+> Alpha.2/API1 ниже superseded alpha.4/API2. Сохраняются original build/template/DLL hashes, fixed expected и native cleanup; текущий API описан в теме.
 
 # File search: implementation evidence and remaining acceptance
 
@@ -13,7 +13,7 @@
 
 Поиск имён работает без чтения содержимого. Поиск содержимого использует strict
 UTF-8, literal или .NET line regex, glob filters/exclusions и budgets из
-[контракта](04-search-design.md). Lazy DFS не сортирует всё дерево; ограниченные
+[контракта](../../dotnet/search.md). Lazy DFS не сортирует всё дерево; ограниченные
 matches сортируются перед возвратом. Counters и limitReason описывают пропуски
 и неполные результаты. Symlinks/junctions не обходятся.
 

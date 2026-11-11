@@ -2,7 +2,11 @@
 
 **Date:** 2026-11-06
 
-**Status:** Accepted
+**Status:** Accepted historical API 1 checkpoint; superseded API requirements
+by [read-aware tools](2026-11-06-read-aware-file-tools.md). Current alpha.4/API 2
+has nine file tools, mandatory read grants for edits/overwrite and JSON read
+responses with readToken: [current contract](../dotnet/files-and-read-grants.md).
+Alpha.3/six tools/default-format statements below describe the original step.
 
 ## Context
 
@@ -40,7 +44,7 @@ possible. Transport failure after commit does not undo a mutation. Edit requests
 are consequently marked non-idempotent.
 
 Managed/protocol tests and native Linux HCM acceptance passed; other OS/runtime
-combinations require their own checks. [Contract](../research/dotnet/07-file-tools-design.md),
+combinations require their own checks. [Contract](../dotnet/files-and-read-grants.md),
 [evidence](../research/dotnet/09-file-tools-results.md).
 
 ## Alternatives Considered

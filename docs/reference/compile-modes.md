@@ -48,20 +48,25 @@ bt-ir компилирует TypeScript в одном из трёх режимо
 /// @bt-mode bare
 
 // Этот файл компилируется в режиме bare
-export function myFunction() { ... }
+function myFunction() {
+  return 1;
+}
 ```
 
 **Распознаваемые значения:** `bare`, `script`, `module` (статус развития см. выше)
 
 **Использование:**
 
-- Добавляйте перед любыми импортами или кодом
-- Используется только первая директива `/// @bt-mode`
+- Разместите в первых 30 строках; рекомендуем первую строку
+- Используется первое распознанное совпадение `/// @bt-mode` в этих строках
 - Регистр важен
 
 ### Исполняемые объекты
 
-Файлы, импортирующие следующие типы из `@boristype/types`, автоматически используют режим `script`:
+CLI распознаёт именованные импорты перечисленных имён из `@boristype/types`
+и путей с этим префиксом; они выбирают `script`. Проверяется локальное имя
+import binding: переименование через `as` может не распознаться. Это эвристика,
+а не доказательство платформенного типа значения:
 
 - `remoteAction`
 - `remoteCollection`
@@ -76,13 +81,11 @@ export function myFunction() { ... }
 import { remoteAction } from "@boristype/types";
 
 // Автоматически компилируется в режиме script
-export const myAction = remoteAction({
-  // ...
-});
+// Сам импорт распознаётся CLI; он не является примером вызова remoteAction.
 ```
 
 ## См. также
 
 - [Ограничения BorisScript](./borisscript-constraints)
-- [Архитектура IR](https://github.com/BorisType/BorisType/blob/main/refs/archive/compiler/architecture/ir-pipeline.md)
+- [Архитектура IR](https://github.com/BorisType/BorisType/blob/main/refs/compiler/pipeline.md)
 - [README bt-ir](https://github.com/BorisType/BorisType/blob/main/packages/bt-ir/README.md)

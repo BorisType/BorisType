@@ -57,5 +57,5 @@ Windows HCM requires its own acceptance.
 - Close the external race now: ordinary process/file locks do not establish a
   portable protocol with unrelated platform writers; defer the research.
 
-[Contract](../research/dotnet/11-read-aware-files-design.md),
+[Contract](../dotnet/files-and-read-grants.md),
 [verification](../research/dotnet/13-read-aware-files-results.md).

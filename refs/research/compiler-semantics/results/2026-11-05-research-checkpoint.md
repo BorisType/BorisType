@@ -116,7 +116,7 @@ execution results выше — локальные проверки, отдель
 Стоимость оценена структурно: bytes, IR nodes, generated bindings, helper call
 sites, array/object sites. Это не measured allocation count или benchmark C;
 B/C byte-identical, inline меньше на шести выбранных contexts.
-[Варианты, плюсы/минусы и ограничения](../research/01-expression-evaluation-results.md).
+[Варианты, плюсы/минусы и ограничения](../expression-evaluation.md).
 
 Script/module implementation leaves E-03a–E-07a и зависимые задачи остаются on hold.
 Перед их возобновлением нужны memory strategy, принятый design/spec и отдельные

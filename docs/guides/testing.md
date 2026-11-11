@@ -15,6 +15,10 @@ pnpm exec turbo run build
 pnpm test
 ```
 
+Для выполнения нужен отдельно предоставленный разрешённый JS runtime
+`packages/botest/build/borisscript/main.js`; сборка его не создаёт.
+См. prerequisites в [compiler verification](https://github.com/BorisType/BorisType/blob/main/refs/compiler/verification.md).
+
 Корневая команда `pnpm test` запускает runner для уже собранного `tests/build`;
 она не собирает тесты автоматически. Для выбора набора после сборки:
 

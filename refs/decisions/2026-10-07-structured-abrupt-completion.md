@@ -101,7 +101,7 @@ This does not rely on botest's advisory `--node-check` exit status.
 The same command produces a standalone C pack, `BtAbruptProbe.js`, with embedded
 Node expectations and one `MESSAGE` result. Its independent C execution checks
 the selected bare-mode smoke cases, separately from the full three-mode JS gate.
-See `plans/probes/README.md`.
+See [C probe recipes](../research/compiler-control-flow/probes/README.md).
 
 The first C attempt hung in check27 (compound for update), per the user. This is
 consistent with a skipped increment, but not a verified diagnosis of C parser

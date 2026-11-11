@@ -1,10 +1,10 @@
-> Исторический материал из `plans/dotnet/13-read-aware-files-results.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../dotnet/files-and-read-grants.md).
+> Alpha.4/API2 checkpoint не переаттестован переносом документации. Windows managed CI и Windows HCM — разные проверки.
 
 # Результаты: учёт чтений и девять файловых tools
 
-Дата: 2026-11-06. [Контракт](11-read-aware-files-design.md),
-[задачи](12-read-aware-files-plan.md),
+Дата: 2026-11-06. [Контракт](../../dotnet/files-and-read-grants.md),
+[задачи](../../dotnet/files-and-read-grants.md),
 [ADR](../../decisions/2026-11-06-read-aware-file-tools.md).
 
 ## Реализовано

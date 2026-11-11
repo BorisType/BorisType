@@ -1,5 +1,5 @@
-> Исторический материал из `plans/mcp-server/08-filesystem-checkpoint.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../dotnet/files-and-read-grants.md).
+> Девять tools/API2 — состав filesystem checkpoint. Позднее добавлены XQuery и три XML tools; tests/advisory/CI status ниже относятся к указанному commit.
 
 # Файловый MCP checkpoint
 

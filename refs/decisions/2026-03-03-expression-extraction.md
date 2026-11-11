@@ -1,97 +1,56 @@
-# 008. Expression Extraction для ограничений парсера BorisScript
+# ADR 008: Extraction выражений для ограничений BS parser
 
-**Date:** 2026-03-03  
-**Status:** Accepted
+Дата решения: 2026-03-03. Статус: историческое основание действующего механизма;
+его общая семантическая корректность не подтверждена.
 
-## Context
+## Проблема и выбор
 
-Парсер BorisScript (BS) обрабатывает операторы **строго слева направо** без приоритетов.
-Это означает, что сложные выражения (conditional/ternary), инлайненные внутри бинарных
-операций, парсятся некорректно.
+При встраивании conditional, полученного из `a?.b?.c`, в конкатенацию наблюдался
+неверный разбор: suffix попадал в alternate ternary вместо общей конкатенации.
+Историческое описание «BS всегда вычисляет строго слева направо» было слишком
+общим: конкретный parser counterexample не устанавливает универсальную таблицу
+приоритетов для двух реализаций runtime.
 
-Конкретная проблема: optional chaining (`a?.b?.c`) транспилируется в nested conditional
-expression (`(__tmp = ...) == null || __tmp == undefined ? undefined : ...`).
-Если такое conditional используется как операнд `+`, `===`, `||` и т.д., BS-парсер
-«захватывает» внешний оператор внутрь ternary:
+Выбран `maybeExtract`: conditional заменяется временным идентификатором, а его
+вычисление добавляется в `pendingStatements`:
 
-```
-// Ожидаемая семантика:
-"PREFIX " + <ternary_result> + " SUFFIX"
-
-// BS парсит как:
-"PREFIX " + (<test_часть_ternary>) ? undefined : <alternate> + " SUFFIX"
-//                                                ^^^^^^^^^^^^^^^^
-//                        " SUFFIX" склеивается с alternate вместо общей конкатенации
+```javascript
+var __oc;
+__oc = complexConditional;
+var result = "PREFIX " + __oc + " SUFFIX";
 ```
 
-Дополнительно: каждый `?.` в цепочке (`a?.b?.c?.d`) создавал отдельную временную
-переменную (`__tmp0`, `__tmp1`, `__tmp2`), хотя промежуточные значения перезаписываются
-последовательно и одной переменной достаточно.
+Простое выражение возвращается без extraction. `isUnsafeInlineExpression` проверяет
+conditional на верхнем уровне; это эвристика для формы output, не анализ эффектов.
+Текущие helpers — [dispatch.ts](../../packages/bt-ir/src/lowering/expressions/dispatch.ts).
 
-## Decision
+В optional chain temp промежуточного receiver переиспользуется через
+`extractOptionalChainTempName`, `createOptionalCheck` и `chainOptionalAccess`:
+это сокращает число temp, но не отменяет необходимость проверять однократность
+вычислений и границы короткого замыкания.
 
-### 1. Expression Extraction (`maybeExtract`)
+## Альтернативы
 
-Ввели утилиту `maybeExtract(expr, ctx)` в `lowering/expressions.ts`:
+- Скобки без extraction: исторически отклонены из-за parser/access форм, включая
+  `(expr).key`. Это не доказательство невозможности всех скобочных вариантов.
+  Поздние inline/shape prototypes сохраняются как отдельные кандидаты.
+  В raw JS probe grouped ternary совпал в шести contexts; grouped member access
+  и dynamic case были отклонены. Это не C acceptance.
+- Полное преобразование в последовательность statements требует учитывать эффекты
+  и каждый control-flow context; больший рефакторинг не был выбран в марте.
+- Исправление только template literals оставляло тот же риск в binary expressions,
+  логических операторах, аргументах и значениях литералов.
 
-- Если выражение — `ConditionalExpression` (результат optional chaining, ternary, ?? и т.д.),
-  выносим его во временную переменную через `pendingStatements`:
-  ```
-  var __oc;
-  __oc = <complex_expression>;
-  // Далее используем __oc как безопасный идентификатор
-  ```
-- Для простых выражений — возвращаем как есть (zero-cost)
+## Ограничения и проверка
 
-Критерий «небезопасности» (`isUnsafeInlineExpression`): верхний уровень выражения
-является `ConditionalExpression`. Может быть расширен в будущем.
+Extraction использовался в перечисленных контекстах, но старое обещание «корректно
+во всех контекстах» снято. Перенос pending effects может нарушать short-circuit,
+порядок receiver/arguments, условные ветви и повторное вычисление loop condition.
+Var declaration и effectful assignment имеют разные требования к месту исполнения.
+Дополнительные statements и temp также увеличивают стоимость output.
 
-### 2. Места применения
-
-`maybeExtract` применяется во всех контекстах, где inline conditional может сломать парсер:
-
-| Контекст                                     | Почему опасно                           |
-| -------------------------------------------- | --------------------------------------- |
-| Template literal spans                       | Ternary внутри `+` конкатенации         |
-| Binary operators (`+`, `-`, `===`, ...)      | `?:` перехватывает операнд              |
-| Logical operators (`&&`, `\|\|`)             | `?:` в null-check конфликтует с внешним |
-| Conditional expression (condition, branches) | Вложенный ternary `? : ?:`              |
-| Array literal elements                       | `?:` коллизия с `,` парсером            |
-| Object literal values                        | `?:` коллизия с парсером                |
-| Call expression arguments                    | Превентивная мера                       |
-
-### 3. Оптимизация temp переменных optional chaining
-
-При цепочке `a?.b?.c?.d` переиспользуем одну temp переменную (`__tmp0`) вместо
-создания отдельной для каждого `?.` (`__tmp0`, `__tmp1`, `__tmp2`).
-
-Реализовано через:
-
-- `extractOptionalChainTempName()` — извлекает имя temp из existing conditional
-- `createOptionalCheck(..., reuseTempName?)` — принимает имя для переиспользования
-- `chainOptionalAccess()` — передаёт reuse name когда base уже optional chain result
-
-## Consequences
-
-### Pros
-
-- Корректная работа optional chaining во всех expression-контекстах
-- Уменьшение количества временных переменных (1 temp + 1 extraction вместо N temps)
-- Общий механизм, расширяемый на новые паттерны
-- Не влияет на простые выражения (zero-cost path)
-
-### Cons
-
-- Дополнительные statements для extraction (var decl + assignment)
-- Немного больший размер output для сложных выражений
-- `isUnsafeInlineExpression` проверяет только `ConditionalExpression` —
-  может потребоваться расширение если появятся другие проблемные паттерны
-
-## Alternatives Considered
-
-1. **Только скобки вокруг ternary** — невозможно, т.к. BS запрещает `(expr).key`
-   и left-to-right parsing всё равно ломает `(ternary) + suffix`
-2. **Перестройка optional chaining в sequential statements** — слишком инвазивно,
-   потребовало бы переписать весь visitor pattern
-3. **Точечный фикс только для template literals** — не решает проблему для `+`, `===`,
-   `||` и остальных контекстов
+[Checkpoint выражений](../research/compiler-semantics/expression-evaluation.md)
+содержит 48 сравнений: 10 PASS и 38 exact XFAIL. Prototypes не являются исправлением
+production lowering. [Findings](../compiler/findings.md) и
+[pipeline](../compiler/pipeline.md) задают текущий маршрут исследования;
+развитие script/module остаётся замороженным.

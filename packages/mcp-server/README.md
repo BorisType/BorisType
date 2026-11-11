@@ -330,7 +330,7 @@ Write/edit используют temp рядом с target, flush и rename; edit
 внешних процессов не гарантируется:** между проверкой и rename остаётся окно.
 Новые Unix файлы имеют mode 0600 с учётом umask; existing rwx сохраняются,
 owner/ACL/inode/hardlinks — без гарантии. Ошибка доставки ответа не откатывает commit.
-Подробный [контракт](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/11-read-aware-files-design.md).
+Подробный [контракт](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/files-and-read-grants.md).
 
 ### Поиск
 
@@ -373,7 +373,7 @@ Default limits: 200 hits, 10000 entries, depth 10, 1 MiB/file, 16 MiB/read,
 с reparse points отвергаются. Timeout cooperative и не прерывает зависший syscall.
 Обычные стабильные файлы — текущая граница поддержки; TOCTOU sandbox не обещается.
 Все options, hard maxima и точный контракт — в
-[спецификации](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/04-search-design.md).
+[спецификации](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/search.md).
 
 ### URL-модель
 

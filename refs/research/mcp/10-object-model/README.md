@@ -1,89 +1,74 @@
-> Исторический материал из `plans/mcp-server/10-object-model/README.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../../README.md).
+# Object model: sources, native observations и воспроизведение
 
-# Объекты HCM: XMD, каталоги, XMS и будущие MCP tools
+Текущий контракт трёх tools — [XML objects](../../../mcp/xml-objects.md),
+различия XMD/catalog/XMS/UI — [platform object model](../../../platform/object-model.md).
+Эта директория хранит техническое evidence 2026-11-08/10: его исходники,
+manifests, sanitized transcripts, verifiers и cleanup receipts сохранены
+в одном комплекте. Это не текущий implementation plan и не новая acceptance.
 
-Исследование от **2026-11-08**, дополнено **2026-11-10** проверкой XML-first MVP,
-после merge PR #57 (`07b6cc2`). На этой основе добавлена
-[первая XML-реализация](first-implementation.md): три tools и ограниченный native
-acceptance. Исследование и одна проверенная вертикаль не обещают поддержку
-любых типов/бизнес-сценариев.
+## Как найти основание
 
-**Текущее направление по уточнению пользователя:** три операции с нативным XML:
-прочитать раскрытую форму, прочитать объект, сохранить XML как новый объект или
-полную замену существующего. MCP JSON содержит XML-строку и служебные параметры;
-типизированная модель данных XML → JS → XML для MVP не нужна. Базовая проверка
-перед записью обязательна: успешный `OpenDocFromStr` не доказывает пригодность
-данных. Сохранение документа и выполнение пользовательского сценария — разные
-операции, обе могут иметь побочные эффекты.
+| Нужный вывод                                                                      | Источник и степень подтверждения                                                                                                                |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Полный XML, каталог-связка, SAMPLE/INHERIT/TYPE/custom fields                     | [XMD/catalog](xmd-and-catalogs.md): vendor/static + явно выделенные native observations                                                         |
+| Точные declarations/пропущенные arguments/contradictions                          | [Types audit](declarations.md): wshcmx/types a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b, не runtime proof                                         |
+| SaveEvent(false), UI actions, права, notifications/related docs                   | [XMS audit](xms-and-business-logic.md): 18 vendor hashes/locators, business operations не запускались                                           |
+| Browser client hooks/options/cache                                                | [JS reference](js-reference.md): pinned artifact hash и source locators, не C semantics                                                         |
+| Defaults/hooks/post-write error, reduced-form loss, lost update, owned CRUD/trash | [Native 2026-11-08](native-evidence.md), [manifest](evidence-manifest.json)                                                                     |
+| Expanded root XML, permissive import/wrong-root data loss, create/replace         | [Native XML 2026-11-10](xml-mvp.md), [manifest](xml-evidence-manifest.json)                                                                     |
+| Product form/read/save tools и исправления negative paths                         | [First implementation](first-implementation.md), [manifest](first-implementation-evidence.json), [e2e log](observed/first-object-tools-e2e.log) |
 
-## Что исследовано
+## Что доступно без HCM
 
-- [XMD и каталоги](xmd-and-catalogs.md): модель данных, наследование,
-  поля/методы, проекции, связи, custom fields, discovery и storage.
-- [Declarations](declarations.md): закреплённый `wshcmx/types`, API-кандидаты,
-  противоречия сигнатур и непроверенные возможности.
-- [XMS и бизнес-логика](xms-and-business-logic.md): проверки интерфейса,
-  callbacks, связанные документы, уведомления и права.
-- [JS reference](js-reference.md): поставляемый `main.js` и его границы
-  относительно серверного C-runtime.
-- [Native evidence](native-evidence.md): реальные открытия/сохранения,
-  потеря данных, ошибки hooks, foreign-ссылки, конкуренция, корзина и cleanup.
-- [Варианты tools и этапы](tool-options.md): альтернативы, компромиссы,
-  предлагаемые ограничения и проверяемые критерии следующих шагов.
-- [Нативный XML для MVP](xml-mvp.md): подтверждённая сериализация раскрытой формы,
-  создание/замена из XML, тихая потеря входных данных и минимальные проверки.
-- [Первая реализация](first-implementation.md): контракт, проверенные cases,
-  negative-path regression fixes, native acceptance и оставшиеся ограничения.
+Из корня checkout:
 
-Проверены три собственные BS-пробы с **59/59 assertions** на наблюдаемое
-поведение. Пройдены создание, привязка, сохранение, чтение каталога и полного
-документа, конфликт двух копий, удаление в корзину, восстановление и окончательное
-удаление одного собственного `cost_center`. Проверены и отрицательные случаи.
-Схема/hooks отдельно проверялись на собственном временном XML-файле.
-Дополнительные две XML-пробы и независимая проверка очистки сохранены отдельно;
-они не входят в прежние 59 assertions. Команда их проверки приведена в новой заметке.
+```sh
+node refs/research/mcp/10-object-model/probes/verify-results.mjs refs/research/mcp/10-object-model/observed
+node refs/research/mcp/10-object-model/probes/verify-xml-results.mjs
+```
 
-## Выводы, определяющие контракт
+Первые 59/59 и отдельные 53/53 — assertions над **записанными** native
+observations/evidence hashes/cleanup, не число независимых production tests.
+Product checkpoint отдельно содержит 218 local tests и 8 native Node tests.
+Переносимые transcripts исключают vendor schema XML, сокращают stack до первой
+строки, нормализуют путь probe и опускают elapsed time; manifests сохраняют
+hash исходного и производного transcripts и source/evaluated hashes.
 
-| Наблюдение                                                                                   | Практическое следствие                                                                                  |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Каталог — проекция; встречаются каталоги-связки с отдельными синтетическими ID               | Нельзя считать любую каталожную строку самостоятельным объектом или сохранять её как полный документ    |
-| XMD содержит исполняемые свойства/hooks, XMS — дополнительные проверки и действия            | Generic patch не гарантирует повторение UI-сценария; создание и сохранение могут выполнять код          |
-| Strict XML parser отвергает 71 из 919 XMD `/wtv`                                             | Обычного XML parser недостаточно для полного анализа SPXML-форм; нужна runtime reflection               |
-| Две независимо открытые копии сохраняются без обнаружения конфликта                          | Нужна собственная проверка прочитанного состояния; атомарный CAS пока не доказан                        |
-| `Save()` принимает dangling foreign; `PRIMARY-KEY` не мешает добавить дубликаты в XML-массив | Эти атрибуты не заменяют проверку ссылок/уникальности в контракте tool                                  |
-| Ошибка `OnSave` произошла после записи файла                                                 | Ошибка операции может означать уже изменённые данные; автоматический retry опасен                       |
-| `Save()` сокращённой формы теряет скрытые данные                                             | Записывать только через полную доверенную форму; частичное чтение не должно становиться объектом записи |
-| `XmlForm.TopElem.Xml` раскрывает проверенные `INHERIT` и составные `TYPE`                    | Агент может получить готовую структуру из загруженной платформой формы                                  |
-| `OpenDocFromStr` принял чужой root, неизвестный тег и неверный integer                       | Перед `Save` нужны проверки входа; иначе даже непустой XML может очистить существующий объект           |
-| `NOT-NULL` на тестовом string не запретил сохранение пустого поля                            | Нельзя выводить бизнес-требуемость из одного атрибута XMD                                               |
-| Стенд использует старую объектную модель                                                     | API новой модели и каталожные pluralization-правила требуют capability check                            |
-| Удаление XML ресурса не равно удалению бинарных данных                                       | Для ресурсов нужен исследованный прикладной адаптер; универсального hard delete недостаточно            |
+`observed/postcheck.bs`, `xml-postcheck.bs`, `first-postcheck.bs` — receipts
+для **конкретных исторических ID**, не cleanup scripts нового запуска. Их
+повторный запуск не удаляет/не проверяет автоматически новые выделенные ID.
+Не изменять source/manifests/transcripts/verifiers попутно с форматированием
+Markdown: hashes относятся к точным bytes.
 
-Точные границы каждого результата — в соответствующей заметке. Например,
-порядок hooks и post-write error проверены для собственного файлового документа;
-это не аттестация транзакций provider-а для всех типов БД.
+## Prerequisites native-воспроизведения
 
-## Источники и границы
+Нужен отдельно предоставленный HCM runtime/config: Linux x64 HCM 2025.2.1333,
+assembly 2.25.12.4 [202512041524], CLR 9.0.11, PostgreSQL 16, legacy model.
+Точный image ID и carrier указаны в manifests. Полный vendor source и raw logs
+не распространяются в git; hash без этих prerequisites не делает native серию
+самодостаточной. Нужны authenticated ws-client evaluator, собранный ws-client,
+HTTP/auth/arithmetic smoke и эксклюзивный fixture scope на локальном тестовом
+стенде. BorisType DLL для object path не требуется.
 
-1. Документация через `wshcm-docs`, с HTTPS-ссылками в заметках. Это заявления
-   документации; Datex может пропускать аргументы и ошибаться.
-2. `wshcmx/types` revision `a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b`,
-   package 14.1.0. Декларации не доказывают runtime semantics.
-3. Исходники поставки `websoft/hcm:2025.2.1333`, выборка `/wtv` и `/app`.
-4. Серверный C-runtime Linux/.NET 9.0.11, assembly
-   `2.25.12.4 [202512041524]`, PostgreSQL 16, authenticated SOAP evaluator.
-5. Статический JS reference с отдельным SHA256 и отличающимся carrier.
+Ручные `01-reflection.bs`, `02-values-and-hooks.bs`, `03-owned-crud.bs` и
+`xml-core.bs`/`xml-crud.bs` запускаются по одному через carrier исследованной
+установки без source transformation. Исторический внешний runner `wshcm-probes`
+не входит в production package; универсальный repo CLI для этих raw sources
+этот комплект не обещает. Первые/reflection — read/memory; values/hooks пишет
+свой temporary XML, owned-crud/xml-crud создают и удаляют **только выделенный
+ими ID**. Wrong-root negative намеренно разрушает свой объект. Не подавать
+существующий чужой ID и не повторять их на production.
 
-Версии, SHA256 и состав evidence сохранены в
-[evidence-manifest.json](evidence-manifest.json) и отдельном
-[XML manifest](xml-evidence-manifest.json). Полный vendor source, сырые
-ответы с каноническими формами и конфигурация стенда остаются вне git. Собственные
-пробы и verifier лежат в [probes/](probes).
-Переносимые снимки наблюдений без vendor-схем — в [observed/](observed).
+Для product acceptance есть отдельный `test:e2e:objects`; точный env, build и
+команда — в [first implementation](first-implementation.md#native-acceptance)
+и [package README](../../../../packages/mcp-server/README.md).
+Runner не разворачивает стенд; native серия должна прекращаться после первой
+ошибки. Timeout не отменяет серверный код и не разрешает blind retry. Сначала
+проверить runtime state, известные ID и evaluator. После серии независимо
+проверить catalog/trash/OpenDoc и physical fixture/evaluator debris; memory
+form eviction исторически не доказан, cache освобождён остановкой процесса.
 
-Windows, MSSQL, новая объектная модель, кластерные кэши, низкопривилегированный
-пользователь, binary cleanup и бизнес-сценарии сотрудника/мероприятия не прошли
-native acceptance. Исследование не вводит новых гарантий для существующего
-`wshcm_xquery` и файловых tools.
+Linux evidence не аттестует Windows/MSSQL/new model/cluster/low-privilege claims,
+все business lifecycles или binary cleanup. Неуспех API на legacy стенде не
+доказывает его отсутствия универсально. Datex docs и types дают кандидаты и
+сигнатуры; native statements относятся только к выполненным пробам.

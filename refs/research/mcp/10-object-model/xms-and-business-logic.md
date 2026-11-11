@@ -1,5 +1,5 @@
-> Исторический материал из `plans/mcp-server/10-object-model/xms-and-business-logic.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../../platform/object-model.md).
+> XMS содержит права, validation, prompts и побочные бизнес-действия; его hooks не являются чистой авторизацией. Native execution этих business operations не проводился.
 
 # XMS, XMD hooks и бизнес-операции над объектами
 

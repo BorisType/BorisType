@@ -1,5 +1,5 @@
-> Исторический материал из `plans/mcp-server/04-local-e2e.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../mcp/transport-and-lifecycle.md).
+> Pre-DLL templates/четыре tools ниже — исторический carrier. Current files используют alpha.4/API2; byte/transport/lifecycle findings и original hashes сохраняются.
 
 # MCP: e2e на локальном C-стенде
 

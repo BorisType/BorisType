@@ -141,7 +141,7 @@ export function visitCallExpression(node: ts.CallExpression, ctx: VisitorContext
       // платформенных типов на встроенные вызовы (type-to-builtin dispatch).
       //
       // @temporary Заменить на обобщённый механизм платформенных типов
-      // @todo Спроектировать generic platform type dispatch (см. refs/archive/compiler/proposals/)
+      // @todo Спроектировать generic platform type dispatch (см. refs/compiler/proposals.md)
       // -----------------------------------------------------------------------
       const typeString = ctx.typeChecker.typeToString(type);
       if (typeString === "GlobalCache" && ["get", "set", "has"].includes(methodName)) {

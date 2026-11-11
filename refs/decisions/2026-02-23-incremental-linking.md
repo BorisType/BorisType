@@ -1,232 +1,71 @@
 # ADR 004: Инкрементальная линковка для dev mode
 
-**Дата:** 2026-02-23  
-**Статус:** Принято и реализовано ✅
+**Дата решения:** 2026-02-23. **Статус:** принято; механизм реализован с
+ограничениями ниже. Текущий код сверён 2026-11-11; эта сверка не меняла CLI.
 
-## Контекст
+## Контекст и решение
 
-В dev mode при каждом изменении файла происходила полная перелинковка — копирование всей директории `build/` в `dist/`. Это было медленно и неэффективно, особенно для больших проектов.
+Полное копирование build каждого пакета при каждом сохранении повторяет IO
+для неизменившихся файлов и dependencies. Выбрано передавать список реально
+эмитированных output paths из build в linking и для standalone/component в dev
+копировать этот список вместо всего дерева. Initial linking остаётся полным,
+чтобы подготовить весь проект и dependencies до первых обновлений.
 
-## Решение
+Источник списка — emit, а не простое переименование source path: postprocessing
+может менять расширение на XML/HTML, а TypeScript определяет affected files,
+включая зависимые исходники. Старый пример `customWriteFile` больше не описывает
+актуальный BS emit: его выполняет bt-ir, tsc отвечает за diagnostics и `.d.ts`.
 
-Оптимизировать dev mode: копировать только изменённые файлы вместо всей директории `build/`.
+## Текущий dataflow
 
-## Текущий flow (было)
+[compiler.ts](../../packages/bt-cli/src/core/building/compiler.ts) собирает
+абсолютные output paths `emittedFiles`. [DevCoordinator](../../packages/bt-cli/src/core/building/coordinator.ts)
+ждёт успешные initial builds всех выбранных watchers, выполняет full link,
+затем передаёт `devMode:true` и `changedFiles` в общий pipeline
+[ADR 002](2026-02-23-unified-linking.md).
 
-```
-TS файл изменился → BuildPipeline.watch → emit в build/ → relinkPackage() → копирует ВСЮ build/ в dist/
-```
+[Standalone/component linkers](../../packages/bt-cli/src/core/linking/linkers)
+копируют changed files относительно sourceDir; при пустом списке возвращаются
+к полному копированию. В incremental ветке их node_modules copy пропускается.
+System dependencies обрабатываются отдельно и могут снова копироваться, поэтому
+«в dev никогда не копируются dependencies» было бы слишком сильным выводом.
+Generated файлы используют [writeIfChanged](../../packages/bt-cli/src/core/linking/utils/write.ts),
+где это предусмотрено: helper сравнивает текст и не пишет неизменённый файл.
+Он не регенерирует автоматически уже существующие init templates и не применяется
+ко всем output безусловно (общий api_ext.xml пишется отдельно).
 
-## Новый flow (стало)
+## Альтернатива и цена решения
 
-```
-TS файл изменился → BuildPipeline.watch → emit в build/ (+ emittedFiles) → processPackagesLinking(devMode) → копирует ТОЛЬКО изменённые файлы
-```
+Полная линковка после каждого изменения проще: каждый раз виден весь набор
+конфигурации и metadata. Она сохранена для initial build и итоговой поставки,
+но не выбрана для каждого dev update из-за повторного IO. Ускорение не измерено
+как универсальные «10x» и не гарантировано для любых размеров проекта.
 
----
+Избирательное копирование требует корректного полного состояния отдельно от
+списка changed files: удаления, registry metadata, dependency changes и paths
+нельзя восстановить из одного массива emitted files. Эти обязанности не следует
+объявлять решёнными лишь по факту добавления двух options.
 
-## Реализованные изменения
+## Подтверждённые ограничения и условия пересмотра
 
-### 1. Добавить `emittedFiles` в `BuildResult`
+Сверка текущего исходника выявила конкретные границы:
 
-**Файл:** `btc/src/core/building/types.ts`
+- Координатор передаёт только `{name}` изменённого пакета: теряет явные
+  `source`/`target` и при записи общего api_ext может исключить остальные пакеты.
+- Non-TS unlink удаляет build-файл, но callback передаёт source path: линкер
+  не удаляет старый target. Общего удаления stale TS output также нет.
+- Watch executable registry заменяется affected subset; filemap имеет ещё
+  отдельное расхождение absolute/relative key normalization.
+- Library/static directories не получают своих watchers; dependencies нужно
+  собирать и линковать отдельно. Push после incremental link всё ещё загружает
+  весь dist, а не только changed files.
 
-```typescript
-interface BuildResult {
-  readonly success: boolean;
-  readonly emitResult?: ts.EmitResult;
-  readonly executables: ExecutableObjectSourceFileInfo[];
-  readonly diagnostics: readonly ts.Diagnostic[];
-  readonly duration: number;
-  /** Список emitted файлов (абсолютные пути в build/) - для инкрементальной линковки */
-  readonly emittedFiles: string[];
-}
-```
-
-### 2. Собирать emittedFiles в compiler.ts
-
-**Файл:** `btc/src/core/building/compiler.ts`
-
-В `createWatchProgram`:
-
-- В `customWriteFile` собирать все записанные `.js` файлы в массив
-- Передавать `emittedFiles` в `onRebuild` callback
-
-```typescript
-// В afterProgramCreate:
-const emittedFiles: string[] = [];
-
-const customWriteFile: ts.WriteFileCallback = (fileName, text, ...) => {
-  if (fileName.endsWith('.js')) {
-    const { fileName: newFileName, content: newContent } = transformOutput(fileName, text, options);
-    ts.sys.writeFile(newFileName, newContent, writeByteOrderMark);
-    emittedFiles.push(newFileName);  // <-- собираем
-  } else {
-    ts.sys.writeFile(fileName, text, writeByteOrderMark);
-  }
-};
-
-// В onRebuild callback:
-onRebuild({
-  success: !hasErrors,
-  emittedFiles,  // <-- передаём
-  // ...
-});
-```
-
-### 3. Добавить опции в LinkingOptions
-
-**Файл:** `btc/src/core/linking/types.ts`
-
-```typescript
-interface LinkingOptions {
-  // ... существующие опции
-
-  /** Режим dev (инкрементальная линковка) */
-  devMode?: boolean;
-  /** Изменённые файлы (абсолютные пути в build/) — только для devMode */
-  changedFiles?: string[];
-}
-```
-
-### 4. Добавить helper `writeIfChanged`
-
-**Файл:** `btc/src/core/linking/utils/write.ts` (новый)
-
-```typescript
-/**
- * Записывает файл только если содержимое изменилось
- *
- * @param filePath - Путь к файлу
- * @param content - Новое содержимое
- * @returns true если файл был записан, false если содержимое не изменилось
- */
-export function writeIfChanged(filePath: string, content: string): boolean {
-  if (fs.existsSync(filePath)) {
-    const existing = fs.readFileSync(filePath, "utf-8");
-    if (existing === content) {
-      return false;
-    }
-  }
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content, "utf-8");
-  return true;
-}
-```
-
-### 5. Изменить линкеры
-
-**Файлы:**
-
-- `btc/src/core/linking/linkers/standalone.ts`
-- `btc/src/core/linking/linkers/component.ts`
-
-Добавить логику для `devMode`:
-
-```typescript
-link(pkg: PackageInfo, ctx: LinkingContext): LinkedPackage {
-  const { devMode, changedFiles } = ctx;
-
-  // 1. Копирование файлов
-  if (devMode && changedFiles && changedFiles.length > 0) {
-    // Инкрементальное копирование
-    for (const srcFile of changedFiles) {
-      const relativePath = path.relative(sourceDir, srcFile);
-      const dstFile = path.join(fullTargetPath, relativePath);
-      fs.mkdirSync(path.dirname(dstFile), { recursive: true });
-      fs.copyFileSync(srcFile, dstFile);
-    }
-  } else {
-    // Полное копирование
-    copyRecursive(sourceDir, fullTargetPath);
-  }
-
-  // 2. node_modules — только при полной линковке
-  if (!devMode) {
-    copyNodeModulesWithCache(...);
-  }
-
-  // 3. Генерация файлов — всегда, но с writeIfChanged
-  if (mainFile && !initXmlExists) {
-    const initXmlContent = buildInitXml(mainFile, rootUrl);
-    if (writeIfChanged(initXmlPath, initXmlContent)) {
-      generatedFiles.push('init.xml');
-    }
-  }
-
-  // 4. .filemap.json — всегда с writeIfChanged
-  if (executables.size > 0) {
-    const filemapContent = generateFilemapJson(executables);
-    if (writeIfChanged(path.join(fullTargetPath, '.filemap.json'), filemapContent)) {
-      generatedFiles.push('.filemap.json');
-    }
-  }
-}
-```
-
-### 6. Передать devMode в контекст
-
-**Файл:** `btc/src/core/linking/context.ts`
-
-```typescript
-interface CreateContextOptions {
-  // ... существующие
-  devMode?: boolean;
-  changedFiles?: string[];
-}
-
-interface LinkingContext {
-  // ... существующие
-  devMode: boolean;
-  changedFiles: string[];
-}
-```
-
-### 7. Изменить dev.ts
-
-**Файл:** `btc/src/cli/commands/dev.ts`
-
-```typescript
-onRebuild: (result) => {
-  if (result.success) {
-    logger.success(`✅ [${pkg.wsName}] Build successful (${result.duration}ms)`);
-
-    // Инкрементальная линковка
-    processPackagesLinking(
-      projectPath,
-      [
-        {
-          name: pkg.name,
-          // source/target определятся автоматически из package.json
-        },
-      ],
-      {
-        devMode: true,
-        changedFiles: result.emittedFiles,
-      },
-    );
-  }
-};
-```
-
----
-
-## Что НЕ делаем (TODO на будущее)
-
-- [ ] Удаление файлов из dist при удалении из src (используем clean build)
-- [ ] Отслеживание изменений в library пакетах
-- [ ] Инкрементальная загрузка на сервер (пока загружаем всё)
-
----
-
-## Порядок реализации
-
-1. ✅ `types.ts` — добавить `emittedFiles` в `BuildResult`
-2. ✅ `compiler.ts` — собирать и передавать `emittedFiles`
-3. ✅ `linking/types.ts` — добавить `devMode`, `changedFiles`
-4. ✅ `linking/utils/write.ts` — создать `writeIfChanged`
-5. ✅ `linking/context.ts` — расширить контекст
-6. ✅ `linkers/standalone.ts` — добавить инкрементальную логику
-7. ✅ `linkers/component.ts` — добавить инкрементальную логику
-8. ✅ `dev.ts` — использовать новый API
-9. ✅ Удалить `relinkPackage` из `linking/index.ts` (больше не нужен)
+Эти пункты — действующие ограничения, а не список обещанных будущих features.
+Причины, точные условия и текущие обходы находятся в
+[build/watch](../cli/build-and-watch.md) и [linking/cache](../cli/linking-and-cache.md);
+конкретный реализационный долг учитывается в [TODO](../../TODO.md).
+Перед поставкой: убрать stale compiler output, собрать нужные пакеты и выполнить
+полную `btc link --clean`. Это не исправляет алгоритм incremental metadata,
+но даёт полный вход линковщику. Дальнейшая оптимизация должна сохранять полный
+registry/config state и выражать удаления отдельно; отсутствие ускорения не
+оправдывает потерю корректности.

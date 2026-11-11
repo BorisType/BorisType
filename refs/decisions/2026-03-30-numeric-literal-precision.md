@@ -1,7 +1,14 @@
 # 012. Сохранение точности числовых литералов
 
 **Date:** 2026-03-30  
-**Status:** Accepted
+**Status:** Accepted; границы уточнены при миграции 2026-11-11.
+
+Это решение сохраняет текст integer output, а не превращает arithmetic BS в JS
+Number semantics и не расширяет диапазон target integer. Float/exponent проходят
+через `Number`: возможны rounding, overflow и изменение формы записи. Сохранение
+целых вне JS safe range намеренно может отличаться от результата JS Number.
+Claims о consumers IR ниже относятся к моменту решения; новый numerical pass
+обязан проверить различие `raw` и lossy `value`.
 
 ## Context
 
@@ -41,7 +48,7 @@ TypeScript Compiler API усугубляет ситуацию: свойство 
 | Hex              | `0xFF`                      | `BigInt("0xFF")` → `"255"`                          |
 | Octal            | `0o77`                      | `BigInt("0o77")` → `"63"`                           |
 | Binary           | `0b1010`                    | `BigInt("0b1010")` → `"10"`                         |
-| Float / exp      | `3.14`, `1e10`              | `String(Number(text))` (precision-safe для float)   |
+| Float / exp      | `3.14`, `1e10`              | `String(Number(text))` (JS Number rounding)         |
 | Separators       | `1_000_000`                 | Удаляются через `replace(/_/g, "")` до нормализации |
 
 `BigInt` используется **только как промежуточный шаг** для конвертации hex/octal/binary в десятичное —
@@ -61,7 +68,7 @@ IR тип `IRLiteral.value` не изменяется — остаётся `stri
 
 **Плюсы:**
 
-- Числовые литералы любого размера сохраняются с точностью до исходного текста
+- Текст десятичных целых сохраняется без промежуточного округления Number; диапазон target остаётся ограниченным
 - Все форматы (hex, octal, binary, separators) корректно конвертируются в десятичные
 - Нулевые изменения в IR типах — обратная совместимость
 - Минимальный объём изменений (только lowering)

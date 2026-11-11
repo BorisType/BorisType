@@ -41,8 +41,8 @@ pnpm docs:build
 семантическую истинность текста, внешние URL или все anchors.
 `docs:test` проверяет checker на временных fixtures. Для coverage переноса нужна
 история baseline из карты (в shallow checkout: `git fetch --unshallow`).
-Исторические неразрешённые ссылки перечислены поштучно в
-[link-exceptions.json](link-exceptions.json); для актуальной документации исключений нет. Исполняемые примеры требуют относящихся к ним
+Файл [link-exceptions.json](link-exceptions.json) оставлен как явный реестр
+исключений; после миграции он пуст. Исполняемые примеры требуют относящихся к ним
 проверок; перенос Markdown не требует нового native запуска известной crash-пробы.
 Проверки компилятора описаны [отдельно](compiler/verification.md).
 MCP и .NET имеют свои локальные suites и отдельные native runners в package scripts.

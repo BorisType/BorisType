@@ -1,5 +1,5 @@
-> Исторический материал из `plans/mcp-server/10-object-model/native-evidence.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../../platform/object-model.md).
+> Linux legacy observations и проверка saved transcripts не аттестуют current head. Unknown method на этом стенде не означает отсутствие API универсально.
 
 # Native evidence: XMD, XML values и CRUD
 

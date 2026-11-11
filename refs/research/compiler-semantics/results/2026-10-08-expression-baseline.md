@@ -93,7 +93,7 @@ bytes/final IR nodes/generated bindings/call sites/array/object sites запис
 per case. Static sites включают emitted scaffold; это не measured allocations.
 B/C sketches byte-identical; I меньше по code/scalars на шести выбранных cases.
 Exact counts, caveats, trade-offs:
-[research](../research/01-expression-evaluation-results.md).
+[research](../expression-evaluation.md).
 
 C timing, heap allocations, copies, N-size benchmark **not measured**.
 Raw parser survey: grouped ternary в 6 contexts — MATCH; grouped member и
@@ -102,8 +102,8 @@ dynamic case — PARSER_REJECTION на указанном JS runtime, C unknown.
 ## Вывод / открытое
 
 F-02a завершён, E-01 имеет JS evidence и recommendation **B + inline fast path**.
-[Spec](../specs/01-expression-evaluation.md) остаётся draft; accepted ADR ещё нет.
+[Spec](../expression-contract-draft.md) остаётся draft; accepted ADR ещё нет.
 F-01 full inventory и F-04 native/C matrix не завершены. Никакая feature не
 помечена fixed: production compiler пока воспроизводит 38 known failures.
 Дальнейшие leaf tasks:
-[F-02a handoff](../tasks/F-02-expression-baseline.md).
+[F-02a handoff](../README.md).

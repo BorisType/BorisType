@@ -1,99 +1,52 @@
-# 011. BT-IR Multi-Pass Refactoring
+# ADR 011: Разделение lowering, IR passes и emission
 
-**Date:** 2026-03-14  
-**Status:** Accepted
+Дата решения: 2026-03-14. Статус: архитектурное разделение сохранено;
+описание конкретного pipeline актуализируется в [pipeline](../compiler/pipeline.md).
 
-## Context
+## Причина и решение
 
-BT-IR до рефакторинга имел проблемы:
+Монолитные expression/statement lowering и emitter смешивали TS AST analysis,
+режимные преобразования, finally desugaring и hoisting. Env/method-call patterns
+повторялись, исправление одного пути оставляло аналогичный дефект в другом.
 
-1. **File bloat** — expressions.ts ~1950 строк, statements.ts ~1750, bt-emitter ~1100
-2. **Code duplication** — 5 паттернов дублировались в 3–6 местах (per-call env, method calls, hoisting)
-3. **Architectural limitations** — single lowering pass смешивал concerns; try-finally desugaring и hoisting были встроены в lowering/emitter; 200+ проверок `ctx.mode`
+Выбрано разделение:
 
-Требовался итеративный рефакторинг для maintainability и расширяемости без изменения выходного кода.
+- lowering переводит TS AST в семантический IR;
+- passes выполняют преобразования IR → IR;
+- emitter печатает подготовленный IR;
+- общие env/call helpers и ModeConfig выражают повторяемую политику.
 
-## Decision
+Первая реализация выделила directories expressions/statements/emitter, helpers
+`createPerCallEnv`/`createMethodCall`, pass runner/walker, finally и hoist passes.
+Порядок `tryFinallyDesugarPass → hoistPass` описывает мартовский срез, а не весь
+текущий pipeline. Позже добавлены structured completions и safe for updates;
+shared bindings/pass context тоже появились при реальной потребности.
 
-### Phase 1: Extract & Split
+## Почему не другие варианты
 
-1. **Shared helpers** — `function-helpers.ts` (createPerCallEnv, extractFunctionParams), `call-helpers.ts` (createMethodCall)
-2. **Split expressions.ts** → `expressions/` (index, operators, calls, literals, functions, module-access)
-3. **Split statements.ts** → `statements/` (index, dispatch, declarations, control-flow, loops, blocks)
-4. **Split bt-emitter** → `emitter/` (bt-emitter, emit-helpers, emit-statements, emit-expressions, emit-polyfills, emit-hoisting)
+- Bare visitors оставили отдельно: plain params и env/descriptor отличаются;
+  механическое объединение увеличивало ветвление. Это не запрет пересмотра.
+- PassContext не вводили заранее, когда два passes не делили состояние. Это
+  историческая причина, а не правило «passes всегда stateless».
+- Env setup оставили helper: выделение pass тогда не давало соразмерной пользы.
+- Мелкие `resolveHoistingTarget` и контекстный `createSuperCall` не выделили
+  только ради симметрии модулей.
+- ModeConfig уменьшает повторение mode checks, но не означает, что `ctx.mode`
+  запрещён во всём коде или все поведенческие различия уже покрыты флагами.
 
-**Отклонения от плана:**
+## Что доказывал старый отчёт
 
-- `resolveHoistingTarget` не выделен — слишком мелкая абстракция
-- `createSuperCall` не выделен — super-логика компактна и контекстно-зависима
-- Добавлены module-access.ts, dispatch.ts, emit-helpers.ts, emit-hoisting.ts — по необходимости
+Отчёт первого поколения заявлял byte-identical output 138/138 файлов и меньшие
+размеры modules. Это исторические показатели конкретного рефакторинга, не текущая
+матрица acceptance и не ограничение длины файлов. Точная исходная запись доступна
+через baseline и [migration map](../migration-map.json).
 
-### Phase 2: Multi-Pass IR Architecture
+Выделенный walker уменьшает дублирование обхода, но не обеспечивает статическую
+исчерпываемость автоматически: `assertNever(node as never)` может подавлять нужную
+проверку TypeScript. Этот finding и другие остаточные ограничения находятся в
+[findings](../compiler/findings.md); история поколений и исправленные противоречия
+старых reviews — в [evolution](../compiler/evolution.md).
 
-1. **Pass infrastructure** — `passes/types.ts` (IRPass), `passes/walker.ts` (mapStatements, mapExpression, forEachStatement), `passes/index.ts` (runPasses)
-2. **Try-finally desugar pass** — вынесен из control-flow.ts, работает на IR
-3. **Hoist pass** — вынесен из emitter, трансформирует IR (VarDecl → assignments, function hoisting)
-4. **Pipeline** — `runPasses(ir, [tryFinallyDesugarPass, hoistPass])` между lowering и emit
-
-**Отклонения:**
-
-- PassContext не создан — оба pass работают без shared context
-- Env setup pass пропущен — createPerCallEnv достаточно чист
-
-### Phase 3: Mode System
-
-1. **ModeConfig** — типизированный объект с boolean флагами вместо `ctx.mode === "bare"`
-2. **Замена проверок** — все 58 проверок `ctx.mode` → `ctx.config.wrapPropertyAccess` и т.д.
-3. **Bare-visitors** — оставлены как fast-path, dispatch через `!ctx.config.useEnvDescPattern`
-
-**Отклонения:**
-
-- `hoistFunctions` флаг не создан — управляется через IRProgram.noHoist
-- `moduleWrapper` → `moduleExports` — точнее описывает семантику
-- Bare-visitors не merged — увеличило бы complexity без выигрыша
-
-## Consequences
-
-### Плюсы
-
-- Файлы управляемого размера (макс 665 строк)
-- Устранено дублирование (createPerCallEnv, createMethodCall)
-- IR passes — расширяемая инфраструктура для будущих трансформаций
-- Emitter упрощён (−488 строк), circular dependency устранена
-- ModeConfig — самодокументирующиеся флаги, типизация
-- Output byte-identical (138/138 файлов SHA256)
-
-### Минусы
-
-- declarations.ts остаётся крупным (665 строк)
-- Walker 532 строки — пропорционален IR, но больше ожидаемого
-- mode field в VisitorContext остаётся (обратная совместимость)
-
-### Правила для разработчиков
-
-- **Lowering** — для TS AST → IR (новые языковые конструкции)
-- **Pass** — для IR → IR (трансформации существующих узлов)
-- **ModeConfig** — для режим-зависимого поведения, не ctx.mode
-
-## Alternatives Considered
-
-### Merge bare-visitors в main visitors
-
-Отвергнуто: bare mode — принципиально другая трансляция (plain params vs env/desc). Merge удвоил бы cyclomatic complexity.
-
-### PassContext с первого дня
-
-Отвергнуто: YAGNI. Текущие passes не требуют shared state. Добавить при появлении use case.
-
-### Env setup как pass
-
-Отложено: createPerCallEnv из Phase 1 достаточно чист. Pass добавил бы complexity без пропорционального выигрыша.
-
-## References
-
-- [Plan](../archive/compiler/refactoring/gen-1/plan.md)
-- [Phase 1 Results](../archive/compiler/refactoring/gen-1/phase-1-results.md)
-- [Phase 2 Results](../archive/compiler/refactoring/gen-1/phase-2-results.md)
-- [Phase 3 Results](../archive/compiler/refactoring/gen-1/phase-3-results.md)
-- [Plan vs Implementation Review](../archive/compiler/refactoring/gen-1/plan-vs-implementation-review.md)
-- [Lowering vs Pass Guide](../archive/compiler/algorithms/bt-ir-lowering-vs-pass.md)
+Развитие script/module [заморожено](2026-11-05-script-module-memory-freeze.md).
+Новая трансформация выбирается по семантике и эффектам, не по обязательству
+разместить любое изменение в очередном pass.

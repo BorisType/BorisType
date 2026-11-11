@@ -1,5 +1,5 @@
-> Исторический материал из `plans/dotnet/14-path-schemes-research.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../platform/paths-and-storage.md).
+> Прямые x-app/file probes не расширили публичную MCP file schema. Последующий routing research различает physical mapping и SQL blobs.
 
 # Схемы путей WebSoft и границы файловых tools
 

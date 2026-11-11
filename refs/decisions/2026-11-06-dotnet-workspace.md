@@ -2,7 +2,10 @@
 
 **Date:** 2026-11-06
 
-**Status:** Accepted
+**Status:** Accepted (структура workspace). Metadata-only первый шаг завершён;
+впоследствии добавлены search и read-aware file API, текущий alpha.4/API 2 описан
+в [workspace](../dotnet/workspace.md). Упомянутые ниже SDK/version и отсутствие
+search относятся к моменту этого решения.
 
 ## Context
 
@@ -51,5 +54,5 @@ compiler script/module остаётся замороженным по прежн
 - Одна общая DLL для всех будущих функций: связывает unrelated API/версии;
   общая директория не должна диктовать единую assembly.
 
-Детальный [дизайн](../research/dotnet/01-workspace-design.md) и
-[план](../research/dotnet/02-workspace-plan.md).
+Текущее устройство, ограничения сборки и извлечённые основания —
+[workspace](../dotnet/workspace.md).

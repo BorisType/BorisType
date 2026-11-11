@@ -1,67 +1,65 @@
-# btc — BorisType Compiler
+# @boristype/bt-cli
 
-Транспилятор TypeScript → BorisScript для платформы WebSoft HCM.
+CLI `btc` компилирует ограниченное подмножество TypeScript в BorisScript для
+WebSoft HCM. Он не гарантирует полную JS/npm-совместимость.
 
-Использует [bt-ir](https://github.com/BorisType/BorisType/tree/main/packages/bt-ir) для emit: TypeScript Compiler API создаёт Program с `noEmit: true`, а кодогенерация выполняется через `compileSourceFile()` из bt-ir.
+Текущее направление разработки — **bare**; `script/module` заморожены до решения
+стратегии памяти C-runtime. Реализации и regression tests сохранены.
+**Default CLI остаётся `module`**: выбирайте bare явно.
+[Режимы и ограничения](https://boristype.github.io/BorisType/reference/compile-modes).
+
+## Установка и первая сборка
+
+Нужен Node.js >=24 и TypeScript 6 Compiler API:
+
+```sh
+npm install -D @boristype/bt-cli @boristype/types typescript@^6.0.3
+npx btc init
+```
+
+`init` создаёт только отсутствующий `tsconfig.json`. Добавьте `src/index.ts`:
+
+```typescript
+/// @bt-mode bare
+var message = "Hello from BorisType";
+alert(message);
+```
+
+```sh
+npx btc build --compile-mode bare
+```
+
+Сгенерированный BorisScript находится в `build/` при настройках `init`; он
+предназначен для целевой платформы, не обычного Node.js. Bare не предоставляет
+общую эмуляцию closures/modules/polyfills. Полное руководство:
+[быстрый старт](https://boristype.github.io/BorisType/guides/getting-started).
 
 ## CLI-команды
 
-```
-btc init          # Создать проект (scaffold)
-btc build         # Однократная сборка
-btc dev           # Watch mode с инкрементальной компиляцией и авто-линковкой
-btc link          # Линковка модулей в dist/
-btc push          # Деплой dist/ на сервер WSHCM
-btc artifact      # Создание артефакта для развёртывания
-```
+| Команда                | Действие                                                     |
+| ---------------------- | ------------------------------------------------------------ |
+| `btc init`             | Создать tsconfig, не трогая существующий                     |
+| `btc build`            | Компиляция по tsconfig; ресурсы с `--include-non-ts-files`   |
+| `btc link --clean`     | Собрать готовые пакеты в dist, очистив старые dist/cache     |
+| `btc artifact --clean` | Один artifact/main.zip со всем dist, включая components      |
+| `btc push`             | Загрузить готовый dist и выполнить initialization на HCM     |
+| `btc dev --no-push`    | Watch/build/link локально; без этого флага auto-push включён |
 
-## Структура `src/`
+`link/dev/push` обслуживают существующий экспериментальный module pipeline;
+для него отдельно устанавливается совместимый `@boristype/runtime`.
+У `dev` нет `--compile-mode`; директива файла выше CLI default.
+`link`/`push`/`artifact` не компилируют пакеты автоматически.
+Сборка может оставить partial/stale output: проверяйте diagnostics/exit status.
+После удаления исходников очистите старые файлы build перед `link --clean`.
 
-```
-src/
-├── index.ts                  # Точка входа (CLI bootstrap)
-├── cli/                      # Тонкие обёртки над commander
-│   ├── index.ts              # Регистрация команд
-│   └── commands/             # Обработчики CLI-команд
-├── core/                     # Вся бизнес-логика
-│   ├── config.ts             # Чтение tsconfig / btconfig
-│   ├── logger.ts             # Re-export логгера
-│   ├── utils/                # Общие утилиты
-│   │   ├── logger.ts         # Logger (singleton)
-│   │   ├── properties.ts     # Парсер .properties файлов
-│   │   └── xml.ts            # Общие XML builder/parser
-│   ├── building/             # Компиляция TS → BS
-│   │   ├── compiler.ts       # Program + emit через bt-ir
-│   │   ├── compile-mode.ts   # Определение режима файла (module/script)
-│   │   ├── coordinator.ts    # Координатор dev mode (multi-package)
-│   │   ├── files.ts          # Копирование non-TS файлов
-│   │   ├── output.ts         # Пост-обработка вывода
-│   │   └── types.ts          # BuildContext, BuildResult, BtcCompileOptions
-│   ├── linking/              # Сборка dist/ из модулей
-│   │   ├── index.ts          # Pipeline: resolve → link → finalize
-│   │   ├── parsers.ts        # Парсеры PackageInfo
-│   │   ├── executables.ts    # Сбор executables
-│   │   ├── dependencies.ts   # Дерево зависимостей
-│   │   ├── cache.ts          # Кэширование линковки
-│   │   ├── context.ts        # LinkingContext
-│   │   ├── types.ts          # PackageInfo, LinkingOptions
-│   │   ├── linkers/          # Линковщики по типу пакета
-│   │   ├── generators/       # Генерация api_ext.xml, init.xml и т.д.
-│   │   └── utils/            # URL, copy, node_modules
-│   ├── pushing/              # Деплой на сервер WSHCM
-│   │   ├── session.ts        # DeploySession (с retry/reconnect)
-│   │   ├── upload.ts         # Загрузка файлов
-│   │   ├── config.ts         # Чтение btconfig.properties
-│   │   ├── queue.ts          # DebouncedPushQueue для dev mode
-│   │   └── reinit.ts         # Реинициализация на сервере
-│   └── artifacting/          # Создание архивов для деплоя
-```
+[Линковка и кэш](https://boristype.github.io/BorisType/guides/linking),
+[watch ограничения](https://boristype.github.io/BorisType/guides/dev-mode),
+[push/HTTPS configuration](https://boristype.github.io/BorisType/guides/push-deploy).
+Все зарегистрированные flags: `npx btc <command> --help`.
 
-## Сборка
+## Разработка CLI
 
-```bash
-npm run build    # tsc → build/
-```
-
-Для разработки monorepo используются Node.js 24.22.2 и pnpm 12.16.1;
-версии закреплены в корневых `.node-version` и `package.json#packageManager`.
+[Внутренняя архитектура и причины](https://github.com/BorisType/BorisType/blob/main/refs/cli/README.md).
+В checkout используйте Node/pnpm из root pins, `pnpm install --frozen-lockfile`
+и `pnpm exec turbo run build`. Package README не требует наличия этого checkout
+для установки опубликованного CLI.

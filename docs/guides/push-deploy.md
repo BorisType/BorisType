@@ -1,104 +1,101 @@
 # Деплой на WebSoft HCM
 
-Это руководство описывает существующий экспериментальный module pipeline.
-Развитие `script/module` приостановлено до решения стратегии памяти;
-поддерживаемое направление разработки — `bare`. CLI по умолчанию остаётся
-`module`. См. [режимы и статус поддержки](../reference/compile-modes).
-
-## Обзор
-
-Команда `btc push` загружает скомпилированный код на сервер WebSoft HCM и реинициализирует модули для немедленного применения изменений.
+`btc push` загружает готовый `dist/` и запускает инициализацию модулей на HCM.
+Команда относится к существующему экспериментальному module pipeline;
+развитие `script/module` заморожено до решения стратегии памяти C-runtime.
+[Статус режимов](../reference/compile-modes) распространяется и на generated init.
+Bare output не получает module ABI автоматически при загрузке через этот pipeline.
 
 ## Базовое использование
 
-```bash
-npx btc push
+Сначала соберите пакеты, затем из корня выполните:
+
+```sh
+npx btc link --clean
+npx btc push --host example.com --port 8080 --username developer
 ```
 
-Использует значения по умолчанию: `localhost:80`, `user1/user1`
+Пароль можно задать в `btconfig.properties`. `push` не выполняет build/link
+и не читает ZIP из `artifact/` — он отправляет содержимое `dist/`.
+Проверьте адрес сервера перед запуском: без конфигурации используются
+`localhost:80`, `user1/user1`.
 
 ## Конфигурация
 
 ### Опции CLI
 
-```bash
-npx btc push \
-  --host example.com \
-  --port 8080 \
-  --username admin \
-  --password secret \
-  --https
+```sh
+npx btc push --https --host example.com --port 443 --username developer
 ```
+
+Поддерживаются `--host`, `--port`, `--username`, `--password`, `--https`.
+Host/port/credentials из CLI перекрывают файл. Для HTTPS one-shot push явно
+передавайте `--https`: его отсутствие сейчас перекрывает `https=true` файла.
+HTTPS не переключает port с 80 на 443 автоматически.
 
 ### btconfig.properties
 
-Создайте `btconfig.properties` в корне проекта:
-
 ```properties
-https=true
 host=example.com
-port=8080
-username=admin
-password=secret
+port=443
+username=developer
+password=replace-me
+https=true
 ```
 
-**Приоритет:** CLI опции > btconfig.properties > значения по умолчанию
+Имя файла фиксировано, env substitution и выбор environment-файла отсутствуют.
+См. [точные правила parser и HTTPS override](../reference/btconfig-properties).
 
 ## Автоматический push в dev mode
 
-Dev mode автоматически выполняет push после каждой успешной линковки:
-
-```bash
-npx btc dev              # авто-push включён (по умолчанию)
-npx btc dev --no-push    # отключить авто-push
+```sh
+npx btc dev
+npx btc dev --no-push
 ```
 
-**Debounce:** задержка 500мс между push'ами
+Auto-push включён по умолчанию; отключённый вариант работает локально.
+Сессия переиспользуется, очередь объединяет изменения с debounce 500 мс.
+Каждый push отправляет весь `dist/`. См. [ограничения watch](./dev-mode).
 
 ## Как это работает
 
-1. **Загрузка dist/** - вся директория на WebSoft HCM
-2. **Сбор init-скриптов** - из компонентов и standalone-модулей
-3. **Сброс кеша require** - `bt.init_require()`
-4. **Выполнение init-скриптов** - применение изменений
+1. Загружает файлы `dist/` через evaluator/uploader в `x-local://`.
+2. Собирает вызовы `<componentName>.init()` для каталогов `components/`
+   (исключая `bt-runtime`), затем standalone OnInit из `source/api_ext.xml`.
+3. При наличии init scripts вызывает `bt.init_require()`, затем выполняет scripts.
+
+Нет гарантии атомарного обновления или удаления старых серверных файлов.
+При распознанной сетевой ошибке повторяется **весь push** после reconnect,
+не только последний файл. Init может иметь побочные эффекты; retry не является
+гарантией exactly-once. Ошибки отдельных init scripts логируются и не отклоняют
+push целиком: проверяйте сообщения и прикладной результат.
+Порядок standalone init следует `api_ext.xml`; компоненты не сортируются
+по прикладному графу зависимостей.
 
 ## Безопасность
 
-**⚠️ Никогда не коммитьте `btconfig.properties` с credentials в git!**
-
-Добавьте в `.gitignore`:
-
-```
-btconfig.properties
-```
-
-Используйте конфигурационные файлы для разных окружений:
-
-- `btconfig.dev.properties`
-- `btconfig.test.properties`
-- `btconfig.prod.properties`
+Не коммитьте `btconfig.properties` с реальными credentials. Храните безопасный
+шаблон отдельно. Для выбора окружения замените содержимое фиксированного файла
+или задайте CLI options команды `push`.
 
 ## Устранение проблем
 
 ### Connection refused
 
-- Проверьте host/port
-- Убедитесь что сервер WebSoft HCM запущен
-- Проверьте правила файрвола
+Проверьте host, port и доступность HCM. Для HTTPS укажите `--https` при one-shot push.
 
 ### Authentication failed
 
-- Проверьте username/password
-- Проверьте логи сервера на статус аккаунта
+Проверьте credentials и доступ пользователя к evaluator платформы.
 
 ### Модули не перезагружаются
 
-- Проверьте init-скрипты в компонентах
-- Проверьте поле `ws:package` в package.json
-- Проверьте логи evaluator на сервере
+Проверьте полный `api_ext.xml`, generated init и ошибки каждого script в логе.
+После multi-package dev выполните полную линковку перед повторной загрузкой.
+Сообщение об успешной загрузке файлов не доказывает успешный reinit всех модулей.
 
 ## См. также
 
-- [Руководство Dev Mode](./dev-mode)
-- [Справка btconfig.properties](../reference/btconfig-properties)
-- [Архитектура Push](https://github.com/BorisType/BorisType/blob/main/refs/archive/compiler/architecture/push-system.md)
+- [Dev Mode](./dev-mode)
+- [btconfig.properties](../reference/btconfig-properties)
+- [Внутренние границы upload/retry](https://github.com/BorisType/BorisType/blob/main/refs/cli/push-and-artifacts.md)

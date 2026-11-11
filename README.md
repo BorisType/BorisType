@@ -51,4 +51,5 @@ pnpm docs:build
 Команды локальных и native проверок MCP описаны в README пакета.
 
 [TODO](TODO.md) содержит конкретный долг, [ROADMAP](ROADMAP.md) — направления.
-[Переход документации](DOCUMENTATION_TRANSITION.md) фиксирует охват текущей миграции.
+[Итоги миграции документации](refs/archive/documentation/2026-11-11-documentation-migration.md)
+объясняют структуру и судьбу прежних материалов.

@@ -5,6 +5,7 @@
 Правила ведения обеих баз и смысловой дельты PR — [refs/development.md](refs/development.md).
 Читай тематический вход по задаче, а не весь архив.
 
+- CLI: [refs/cli/](refs/cli/README.md): build/watch, linking/cache, push/release.
 - MCP: [refs/mcp/](refs/mcp/README.md); C#: [refs/dotnet/](refs/dotnet/README.md).
 - Компилятор: [refs/compiler/](refs/compiler/README.md),
   [проверки](refs/compiler/verification.md),

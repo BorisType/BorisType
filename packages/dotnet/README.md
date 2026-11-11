@@ -5,7 +5,7 @@
 DLL, версию и зависимости. Первая библиотека — `BorisType.FileSystem`.
 
 Библиотека предоставляет metadata API, поиск имён и UTF-8 содержимого,
-read/write/list/delete/edit, mkdir, metadata и rename. Все девять MCP tools используют DLL через
+read/write/list/delete/edit, mkdir, metadata и rename. Все девять файловых MCP tools используют DLL через
 BS URL resolver. Есть managed tests и installation ZIP.
 
 ## Требования и команды
@@ -127,7 +127,7 @@ BS. PlainProbe входит в default build. DatexProbe требует отде
 в SOAP evaluator. Он сохранён для исследования и исключён из обычного runner.
 Причина не установлена; результат не обобщается на все Datex API.
 
-Происхождение и evidence: [дизайн](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/01-workspace-design.md),
+Происхождение и evidence: [дизайн](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/workspace.md),
 [native DLL experiment](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/06-dotnet-probe.md),
 [референс wshcmx/net](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/07-wshcmx-net-reference.md).
 
@@ -162,7 +162,7 @@ Linux-имени сохраняются как данные. Это не пут�
 
 Default budgets: 200 results, 10000 entries, depth 10, 1 MiB/file, 16 MiB/read,
 2000 ms, 2000 UTF-16 units/line. Hard maxima и все options — в
-[контракте поиска](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/04-search-design.md). JSON DLL и финальный
+[контракте поиска](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/search.md). JSON DLL и финальный
 MCP JSON ограничены 256 KiB. При нехватке budget limitReason явно указывает
 results/entries/bytes/time/regex/output. Пустой matches при limitReason != null
 не означает отсутствие совпадений. Счётчики skipped показывают пропуски links,
@@ -237,8 +237,8 @@ Unix rwx сохраняются, новые файлы имеют 0600 с учё
 без гарантии. VFS, special files и hard syscall cancellation не обещаются.
 
 API 2 несовместим с alpha.3/API 1: обновить MCP и установленную DLL вместе.
-[Контракт](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/11-read-aware-files-design.md),
-[план проверки](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/12-read-aware-files-plan.md).
+[Контракт](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/files-and-read-grants.md),
+[план проверки](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/files-and-read-grants.md).
 
-DLL alpha.4/API 2 прошла native acceptance всех девяти MCP tools и read guards на
+DLL alpha.4/API 2 прошла native acceptance всех девяти файловых MCP tools и read guards на
 Linux HCM 2025.2.1333 / CLR 9.0.11. [Результаты](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/13-read-aware-files-results.md).

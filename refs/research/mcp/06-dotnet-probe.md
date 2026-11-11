@@ -1,5 +1,5 @@
-> Исторический материал из `plans/mcp-server/06-dotnet-probe.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../dotnet/bridge.md).
+> Причина Datex callback exit139 не установлена; это не отказ всех callbacks. Native hashes/cleanup ниже относятся к исходным сборкам.
 
 # MCP: собственные .NET DLL, native smoke и сбой callback
 
@@ -124,7 +124,7 @@ BS reference counting и не размораживает script/module compiler 
 ## Завершение проверки
 
 После этого эксперимента probes перенесены в `packages/dotnet/probes` при
-[оформлении общего workspace](../dotnet/01-workspace-design.md). Исторические
+[оформлении общего workspace](../../dotnet/workspace.md). Исторические
 hashes и native results выше относятся к исходным путям/сборкам до переноса.
 
 - Итоговые DLL и BS имеют SHA256 из таблицы/примера выше; vendor Datex.Global

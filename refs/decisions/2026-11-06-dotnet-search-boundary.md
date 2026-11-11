@@ -37,7 +37,7 @@ are supported; path races are not a security sandbox.
 Managed filesystem tests and MCP/VM tests validate independent layers. Bounded
 native acceptance of resolver and bridge passed on Linux HCM 2025.2.1333 / CLR
 9.0.11. Windows and other HCM versions still require their own acceptance.
-See the [contract](../research/dotnet/04-search-design.md) and
+See the [contract](../dotnet/search.md) and
 [evidence](../research/dotnet/06-search-results.md).
 
 ## Alternatives Considered

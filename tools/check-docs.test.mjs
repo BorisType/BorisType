@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +9,7 @@ import { test } from "node:test";
 
 const checker = fileURLToPath(new URL("./check-docs.mjs", import.meta.url));
 
-function fixture(t) {
+function fixture(t, additionalOriginals = {}) {
   const root = mkdtempSync(join(tmpdir(), "boristype-docs-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   function write(path, text) {
@@ -21,6 +21,8 @@ function fixture(t) {
   }
   git("init", "-q");
   write("ref/probe.bs", "MESSAGE = 42;\n");
+  write("README.md", "# Original\n");
+  for (const [path, content] of Object.entries(additionalOriginals)) write(path, content);
   git("add", ".");
   git(
     "-c",
@@ -44,6 +46,14 @@ function fixture(t) {
       version: 1,
       baseCommit,
       entries: [
+        {
+          source: "README.md",
+          destination: "README.md",
+          action: "rewritten",
+          sourceRetained: true,
+          sourceSha256: createHash("sha256").update("# Original\n").digest("hex"),
+          preserveBytes: false,
+        },
         {
           source: "ref/probe.bs",
           destination: "refs/probe.bs",
@@ -167,3 +177,66 @@ test("resolves site asset links from the VitePress public directory", (t) => {
   const result = f.run();
   assert.equal(result.status, 0, result.stdout + result.stderr);
 });
+
+test("allows a summarized original whose source is explicitly retained and rewritten", (t) => {
+  const f = fixture(t);
+  const manifest = JSON.parse(readFileSync(join(f.root, "refs/migration-map.json"), "utf8"));
+  Object.assign(
+    manifest.entries.find((entry) => entry.source === "README.md"),
+    {
+      source: "README.md",
+      destination: "refs/summary.md",
+      action: "summarized",
+      sourceRetained: true,
+      sourceSha256: createHash("sha256").update("# Original\n").digest("hex"),
+      preserveBytes: false,
+      notes: "Unique rationale retained in summary; user entry rewritten in place.",
+    },
+  );
+  f.write("refs/summary.md", "# Summary\n");
+  f.write("refs/migration-map.json", JSON.stringify(manifest));
+  const result = f.run();
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+});
+
+test("rejects deletion of a source declared retained and rewritten", (t) => {
+  const f = fixture(t);
+  const manifest = JSON.parse(readFileSync(join(f.root, "refs/migration-map.json"), "utf8"));
+  Object.assign(
+    manifest.entries.find((entry) => entry.source === "README.md"),
+    {
+      source: "README.md",
+      destination: "refs/summary.md",
+      action: "summarized",
+      sourceRetained: true,
+      sourceSha256: createHash("sha256").update("# Original\n").digest("hex"),
+      preserveBytes: false,
+    },
+  );
+  f.write("refs/summary.md", "# Summary\n");
+  f.write("refs/migration-map.json", JSON.stringify(manifest));
+  rmSync(join(f.root, "README.md"));
+  const result = f.run();
+  assert.equal(result.status, 1);
+  assert.match(result.stdout + result.stderr, /README\.md/);
+});
+
+test("detects a rewritten root document omitted from migration accounting", (t) => {
+  const f = fixture(t);
+  const manifest = JSON.parse(readFileSync(join(f.root, "refs/migration-map.json"), "utf8"));
+  manifest.entries = manifest.entries.filter((entry) => entry.source !== "README.md");
+  f.write("refs/migration-map.json", JSON.stringify(manifest));
+  const result = f.run();
+  assert.equal(result.status, 1);
+  assert.match(result.stdout + result.stderr, /Missing migration accounting: README\.md/);
+});
+
+for (const source of [".github/copilot-instructions.md", "packages/bt-ir/src/lowering/REFACTORING.md"]) {
+  test(`detects deleted instructions omitted from accounting: ${source}`, (t) => {
+    const f = fixture(t, { [source]: "# Original instructions\n" });
+    rmSync(join(f.root, source));
+    const result = f.run();
+    assert.equal(result.status, 1);
+    assert.ok((result.stdout + result.stderr).includes(`Missing migration accounting: ${source}`));
+  });
+}

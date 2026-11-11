@@ -219,5 +219,5 @@ form/create/read/whole replace, XML negatives и stale/consumed token на од�
 Все четыре серии прошли на Linux HCM 2025.2.1333 / CLR 9.0.11 с alpha.4/API 2:
 28/28 + 1/1 + 1/1 + 1/1, без skips. Байты и cleanup проверены независимо.
 Это evidence одной C-сборки; JS runtime и Windows HCM этим не проверены.
-[Контракт и границы](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/11-read-aware-files-design.md),
+[Контракт и границы](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/files-and-read-grants.md),
 [результаты](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/13-read-aware-files-results.md).

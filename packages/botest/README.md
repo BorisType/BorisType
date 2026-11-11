@@ -63,8 +63,8 @@ sentinel; размещай его в конце и не перехватывай
 
 ## Устройство и границы
 
-[tester.ts](src/tester.ts) находит `_suite.json`, проверяет output и запускает
-зарегистрированные файлы. [borisscript](src/borisscript/) содержит adapter к
+[tester.ts](https://github.com/BorisType/BorisType/blob/main/packages/botest/src/tester.ts) находит `_suite.json`, проверяет output и запускает
+зарегистрированные файлы. [borisscript](https://github.com/BorisType/BorisType/tree/main/packages/botest/src/borisscript) содержит adapter к
 предоставленному JS runtime; это не полная модель всех версий платформы.
 `bt.*` и polyfills поступают из собранного [builtin-runtime](https://github.com/BorisType/BorisType/tree/main/packages/builtin-runtime).
 

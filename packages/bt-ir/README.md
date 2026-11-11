@@ -21,7 +21,7 @@ env/descriptor/receiver циклы удерживаются reference counting �
 - **Выход:** BorisScript (.js файлы)
 - **Метод:** TypeScript AST → IR (Intermediate Representation) → BorisScript
 
-**Зачем IR?** Проще, легче поддерживать и корректнее, чем предыдущий подход на основе трансформеров.
+**Зачем IR?** Явные промежуточные формы отделяют TS lowering, target rewrites и emission. Это облегчает проверку; само наличие IR не гарантирует JS equivalence.
 
 ## Установка
 
@@ -134,7 +134,8 @@ interface CompileResult {
   /** Результаты компиляции (обычно один файл) */
   outputs: CompileOutput[];
 
-  /** Диагностики компиляции (TS + bt-ir) */
+  /** BT diagnostics; compile() также собирает TS diagnostics.
+   * compileSourceFile() оставляет TS diagnostics вызывающему consumer. */
   diagnostics: ts.Diagnostic[];
 
   /** Флаг успеха */
@@ -152,7 +153,7 @@ interface CompileOutput {
   /** Сгенерированный BorisScript код */
   code: string;
 
-  /** Source map (если включено) */
+  /** Source map: поле зарезервировано, генерация пока не реализована */
   map?: string;
 }
 ```
@@ -290,13 +291,14 @@ BorisScript Output
 - **let/const** → var с hoisting
 - **Labels / try-finally** → structured completion state без return-throw sentinel
 - **Catch bindings** → уникальный параметр, lexical scope и per-entry captured env
-- **Замыкания** → цепочка \_\_env для captured переменных
+- **Captured bindings** → частичная env/descriptor эмуляция в script/module; general JS closures не обещаются
 - **Доступ к свойствам** → bt.getProperty() (script/module mode)
 - **Вызовы методов** → bt.callFunction() (script/module mode)
 
 ### Polyfills
 
-Автоматическое внедрение polyfill для:
+Script/module имеют type-driven dispatch в runtime library; ниже категории механизма,
+не гарантия полноты каждого метода (есть known failures/stubs):
 
 - Методы массивов: map, filter, reduce, forEach, ...
 - Методы строк: split, trim, substring, ...
@@ -305,8 +307,8 @@ BorisScript Output
 ### Анализ Scope
 
 - Обнаруживает captured переменные в замыканиях
-- Генерирует минимальную цепочку \_\_env
-- Правильный variable hoisting
+- Вычисляет env chain для реализованных captured-binding путей
+- Выполняет variable hoisting; это не полная TDZ/const semantics
 
 ### Labels и finalizers
 
@@ -359,7 +361,7 @@ node packages/bt-ir/test/semantic/run-expression-prototypes.mjs
 node packages/bt-ir/test/semantic/run-expression-native.mjs
 ```
 
-Первый запуск проверяет exact known failures (сейчас 38 XFAIL и 10 PASS), **не**
+Первый запуск проверяет exact known failures (checkpoint 2026-11-05: 38 XFAIL и 10 PASS), **не**
 объявляет фичу исправленной. Без `--baseline` runner строго требует JS equivalence
 и пока возвращает exit 1. Неизвестная/пустая выборка, compile/load/runtime errors,
 timeout, changed mismatch и XPASS не скрываются baseline manifest.
@@ -370,8 +372,13 @@ Prototypes — исследовательские sketches, не production lowe
 тоже не green gate: сейчас exit 1 из-за двух parser rejections, остальные шесть
 contexts совпадают с Node. `test:semantic` остаётся отдельным abrupt/update gate.
 Результаты, варианты, draft spec и C probes:
-[research](https://github.com/BorisType/BorisType/blob/main/refs/research/compiler-semantics/research/01-expression-evaluation-results.md).
+[research](https://github.com/BorisType/BorisType/blob/main/refs/research/compiler-semantics/expression-evaluation.md).
 Checkpoint сохранён; дальнейшая script/module migration отложена до решения памяти.
+
+Ambient `declare const/let/var` внутри executable script/module source пока могут
+эмитить локальные переменные и затирать globals; @ts-nocheck не является причиной.
+Перенеси типы в `.d.ts`/type roots. Bare фильтрует такие variable statements.
+[Проверенная reproduction и границы](https://github.com/BorisType/BorisType/blob/main/refs/compiler/findings.md#ambient-declarations-уточнение-старой-ts-nocheck-находки).
 
 ## Разработка и CLI
 

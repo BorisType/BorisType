@@ -109,3 +109,25 @@ High/critical audit gate сохраняется, moderate advisory не скры
 При следующих ручных обновлениях повторять inventory registry/release dates,
 проверку provenance/совместимости, lockfile refresh, сборку и тесты; смотреть
 `pnpm audit` и NuGet vulnerability report, даже если high gate проходит.
+
+## Повторная оценка при миграции документации — 2026-11-11
+
+Запись выше сохранена как evidence refresh 2026-11-07: её counts и выводы не
+являются новой проверкой head. Текущие правила и release workflow находятся в
+[refs/cli](../../cli/release-and-maintenance.md).
+
+Read-only `pnpm audit --json` текущего lockfile: **1 moderate minimatch10.2.6,
+1 low fast-xml-parser5.11.2, 0 high/critical**. Moderate advisory остаётся
+[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249);
+новый low — [GHSA-474x-hrwr-fgx4](https://github.com/advisories/GHSA-474x-hrwr-fgx4),
+CPU amplification при сканировании незавершённого stop-node tag. Audit показывает
+fxp в CLI/ws-client; это не новое воспроизведение атаки или автоматическое
+доказательство достижимости через конкретную parser configuration.
+
+Registry `pnpm view minimatch@11.0.1 time --json` вернул публикацию
+2026-10-27T22:26:03.755Z: 14 дней истекли 2026-11-10T22:26:03.755Z.
+Для `fast-xml-parser@5.12.0` публикация 2026-11-03T12:15:08.693Z, cutoff —
+2026-11-17T12:15:08.693Z. Старый срок minimatch больше не блокирует рассмотрение
+обновления; major/range compatibility потребителей остаётся отдельной задачей.
+Lockfile/manifests и supply-chain policy не менялись. Новые NuGet/native HCM
+проверки не выполнялись; прежний no-advisory NuGet результат остаётся датированным.

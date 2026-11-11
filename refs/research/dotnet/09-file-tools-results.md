@@ -1,5 +1,5 @@
-> Исторический материал из `plans/dotnet/09-file-tools-results.md` (baseline `8ff2739`).
-> Статусы, команды и утверждения ниже относятся к описанному этапу; актуальные входы — [refs](../../README.md).
+> Датированное техническое evidence; текущие основания — [тематическая запись](../../dotnet/files-and-read-grants.md).
+> Alpha.3/API1, optional metadata/hash и unconditional overwrite ниже superseded read-aware alpha.4/API2. Byte/edit evidence остаётся датированным.
 
 # Managed file tools: implementation and native evidence
 
@@ -15,7 +15,7 @@ BS только разрешает URL и вызывает DLL; Datex dependenci
 Все шесть tools зарегистрированы. Прежние default success formats сохранены;
 read includeMetadata возвращает SHA256 исходных bytes и BOM. Edit предоставляет
 exact sequential patches, preview, original-byte hash precondition и explicit
-ambiguity/missing/conflict errors. Подробности: [spec](07-file-tools-design.md).
+ambiguity/missing/conflict errors. Подробности: [spec](../../dotnet/files-and-read-grants.md).
 
 Миграция намеренно уточняет contract: strict UTF-8/NUL policy, 1 MiB file/output,
 8 MiB JSON, list 10000, edits 100, no implicit parents, no link paths, no directory
