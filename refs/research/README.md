@@ -7,6 +7,7 @@ observations, source/declaration audits, воспроизводимые конт
 
 | Вопрос                                          | Текущий вывод и исходные данные                                                                                                                                          |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Структура SQL-БД и файлов сервера               | [Карта хранения](../platform/storage-layout.md), [срез 2026-11-11 и collectors](platform-storage/README.md): документы, каталоги, blobs, форматы и FT                    |
 | MCP transport/XQuery/XML                        | [MCP](../mcp/README.md), [датированные evidence](mcp/README.md), [object model комплект](mcp/10-object-model/README.md)                                                  |
 | .NET bridge/files/search                        | [.NET](../dotnet/README.md), [native отчёты](dotnet/README.md)                                                                                                           |
 | URL roots и disk/blob routing                   | [Платформенные пути](../platform/paths-and-storage.md), ссылки на отдельные версии runtime и probes внутри                                                               |

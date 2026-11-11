@@ -1,0 +1,380 @@
+{
+  "date": "2026-11-11",
+  "scope": "Regular files under /WebsoftServer, stopped container root including writable layer plus readonly volume inventories. Not a pristine vendor image.",
+  "export": {
+    "regularFiles": 21529,
+    "bytes": 2249123839
+  },
+  "combined": {
+    "regularFiles": 24044,
+    "bytes": 2617613517,
+    "rootFileCounts": {
+      "(root)": 14,
+      "FT": 1151,
+      "Logs": 71,
+      "Player": 5,
+      "app": 93,
+      "app_ui": 180,
+      "applications": 63,
+      "components": 1218,
+      "custom": 148,
+      "data_local": 1,
+      "dotnetcore": 624,
+      "i18n": 4451,
+      "lngs": 23,
+      "neural": 5,
+      "platform": 153,
+      "qti": 30,
+      "source": 3,
+      "spxml_web": 39,
+      "storage": 3,
+      "templates": 382,
+      "wt": 10574,
+      "wtv": 4813
+    },
+    "extensions": {
+      "(none)": 249,
+      ".bin": 1,
+      ".bmp": 12,
+      ".bs": 1607,
+      ".cfe": 234,
+      ".cfs": 234,
+      ".config": 1,
+      ".core": 1,
+      ".cs": 25,
+      ".csproj": 7,
+      ".css": 645,
+      ".csv": 1,
+      ".cur": 6,
+      ".del": 7,
+      ".dep": 2,
+      ".dll": 632,
+      ".doc": 5,
+      ".docx": 7,
+      ".dtd": 28,
+      ".eot": 103,
+      ".exe": 4,
+      ".flv": 1,
+      ".gen": 221,
+      ".gif": 490,
+      ".hta": 3,
+      ".htm": 58,
+      ".html": 993,
+      ".ico": 1278,
+      ".ini": 2,
+      ".jpg": 212,
+      ".js": 2143,
+      ".json": 5007,
+      ".log": 71,
+      ".map": 22,
+      ".md": 9,
+      ".mp3": 13,
+      ".mp4": 4,
+      ".opf": 1,
+      ".out": 1,
+      ".pb": 1,
+      ".pbtxt": 1,
+      ".pdb": 3,
+      ".pdf": 11,
+      ".png": 4303,
+      ".pptx": 1,
+      ".properties": 5,
+      ".si": 234,
+      ".sln": 1,
+      ".so": 28,
+      ".svg": 791,
+      ".swf": 39,
+      ".tflite": 2,
+      ".ts": 6,
+      ".ttf": 128,
+      ".txt": 20,
+      ".webp": 49,
+      ".woff": 224,
+      ".woff2": 141,
+      ".wsdl": 1,
+      ".xaml": 392,
+      ".xap": 1,
+      ".xfpx": 2,
+      ".xhtml": 1,
+      ".xhttp": 1,
+      ".xls": 3,
+      ".xmd": 1050,
+      ".xmi": 11,
+      ".xml": 702,
+      ".xms": 1044,
+      ".xsd": 474,
+      ".xsl": 6,
+      ".xsx": 1,
+      ".zip": 27
+    }
+  },
+  "volumes": [
+    {
+      "mount": "/WebsoftServer/ft-idx",
+      "regularFiles": 0,
+      "bytes": 0,
+      "extensions": {}
+    },
+    {
+      "mount": "/WebsoftServer/wt/web/webtutor",
+      "regularFiles": 2381,
+      "bytes": 362267885,
+      "extensions": {
+        ".xsd": 456,
+        ".dtd": 26,
+        ".jpg": 142,
+        ".png": 1078,
+        ".html": 80,
+        ".css": 37,
+        ".js": 419,
+        ".woff": 81,
+        ".ttf": 6,
+        ".xml": 37,
+        ".txt": 3,
+        ".pdf": 10,
+        ".zip": 1,
+        ".pptx": 1,
+        ".gif": 2,
+        ".mp4": 2
+      }
+    },
+    {
+      "mount": "/WebsoftServer/wt_data",
+      "regularFiles": 0,
+      "bytes": 0,
+      "extensions": {}
+    },
+    {
+      "mount": "/WebsoftServer/Logs",
+      "regularFiles": 71,
+      "bytes": 1775914,
+      "extensions": {
+        ".log": 71
+      }
+    },
+    {
+      "mount": "/WebsoftServer/applications",
+      "regularFiles": 63,
+      "bytes": 4445879,
+      "extensions": {
+        ".xml": 22,
+        ".xms": 30,
+        ".js": 5,
+        ".xmd": 3,
+        ".html": 2,
+        ".jpg": 1
+      }
+    }
+  ],
+  "routing": {
+    "routing": [
+      {
+        "line": 4,
+        "key": "DEFAULT-DATABASE",
+        "value": "wt_data"
+      },
+      {
+        "line": 6,
+        "key": "FTI",
+        "value": "wt_data"
+      },
+      {
+        "line": 19,
+        "key": "CATALOG-STORAGE",
+        "value": "xdb"
+      },
+      {
+        "line": 20,
+        "key": "WEB-DIR",
+        "value": "wt/web"
+      },
+      {
+        "line": 38,
+        "key": "DOTNETCORE-PATH",
+        "value": "dotnetcore/core"
+      },
+      {
+        "line": 51,
+        "key": "DESIGN-DB",
+        "value": "wtv"
+      },
+      {
+        "line": 52,
+        "key": "DESIGN-DB",
+        "value": "qti"
+      },
+      {
+        "line": 53,
+        "key": "DESIGN-DB",
+        "value": "wt"
+      },
+      {
+        "line": 54,
+        "key": "DESIGN-DB",
+        "value": "applications"
+      },
+      {
+        "line": 55,
+        "key": "DESIGN-DB",
+        "value": "custom"
+      },
+      {
+        "line": 56,
+        "key": "DESIGN-DB",
+        "value": "lngs"
+      },
+      {
+        "line": 57,
+        "key": "DESIGN-DB",
+        "value": "templates"
+      },
+      {
+        "line": 58,
+        "key": "DESIGN-DB",
+        "value": "udt"
+      },
+      {
+        "line": 59,
+        "key": "DESIGN-DB",
+        "value": "source"
+      },
+      {
+        "line": 60,
+        "key": "DESIGN-DB",
+        "value": "components"
+      },
+      {
+        "line": 61,
+        "key": "DESIGN-DB",
+        "value": "i18n"
+      },
+      {
+        "line": 62,
+        "key": "DESIGN-DB",
+        "value": "data_translate"
+      },
+      {
+        "line": 63,
+        "key": "DESIGN-DB",
+        "value": "sxw"
+      },
+      {
+        "line": 64,
+        "key": "DESIGN-DB",
+        "value": "platform"
+      },
+      {
+        "line": 65,
+        "key": "DESIGN-DB",
+        "value": "i18n_update"
+      },
+      {
+        "line": 66,
+        "key": "DATA-DB",
+        "value": "source"
+      },
+      {
+        "line": 67,
+        "key": "DATA-DB",
+        "value": "updates"
+      },
+      {
+        "line": 68,
+        "key": "DATA-DB",
+        "value": "wt_data"
+      },
+      {
+        "line": 69,
+        "key": "DATA-DB",
+        "value": "trash"
+      },
+      {
+        "line": 70,
+        "key": "DATA-DB",
+        "value": "share"
+      },
+      {
+        "line": 71,
+        "key": "DATA-DB",
+        "value": "udt"
+      },
+      {
+        "line": 72,
+        "key": "DATA-DB",
+        "value": "last"
+      },
+      {
+        "line": 73,
+        "key": "DATA-DB",
+        "value": "Player"
+      },
+      {
+        "line": 74,
+        "key": "DATA-DB",
+        "value": "assessment"
+      },
+      {
+        "line": 75,
+        "key": "DATA-DB",
+        "value": "components"
+      },
+      {
+        "line": 76,
+        "key": "DATA-DB",
+        "value": "data_translate"
+      },
+      {
+        "line": 77,
+        "key": "DATA-DB",
+        "value": "platform"
+      },
+      {
+        "line": 78,
+        "key": "DATA-DB",
+        "value": "wftrecords"
+      },
+      {
+        "line": 86,
+        "key": "DB-STORE-HOOK",
+        "value": "wt_data x-local://platform/storage/spxml/sx_store_sql.xml"
+      },
+      {
+        "line": 87,
+        "key": "DB-STORE-HOOK",
+        "value": "trash x-local://platform/storage/spxml/sx_store_sql.xml"
+      }
+    ],
+    "providerSettings": [
+      {
+        "name": "LookFailedUrlsOnDisk",
+        "value": "true"
+      },
+      {
+        "name": "FetchBackFoundUrlsOnDisk",
+        "value": "true"
+      },
+      {
+        "name": "LocalFileCache",
+        "value": "false"
+      },
+      {
+        "name": "LuceneFTIndex",
+        "value": "true"
+      },
+      {
+        "name": "SharedFTDirectory",
+        "value": "/WebsoftServer/ft-idx/"
+      }
+    ],
+    "sources": {
+      "xHttp.ini": "2df12d723ede6505468290cc05db84e92e3eb11e1d6bb33defca5c067fd9bcd5",
+      "spxml_unibridge_config.xml": "006aac9e4846f00664cd55d5d46883ff3683ae4af1e1898fd6df10a5b028946d"
+    }
+  },
+  "cleanup": {
+    "hcmStarted": false,
+    "postgresStartedForReadOnlyQueries": true,
+    "bothContainersStoppedAtEnd": true,
+    "helperContainerRemoved": true
+  }
+}

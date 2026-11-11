@@ -1,0 +1,1011 @@
+{
+  "date": "2026-11-11",
+  "evidenceType": "PostgreSQL metadata and bounded aggregate queries; HCM stopped",
+  "serverVersion": "16.15 (Debian 16.15-1.pgdg13+2)",
+  "sqlSchema": "dbo",
+  "tableCount": 1153,
+  "columnCount": 9277,
+  "registrationCount": 1148,
+  "documentTableCount": 414,
+  "catalogTableCount": 734,
+  "catalogBreakdown": {
+    "namedDocumentPairs": 414,
+    "literalCommonPrefix": 270,
+    "other": 50
+  },
+  "constraintsByPgType": {
+    "p": 1153,
+    "f": 414
+  },
+  "indexesByMethod": {
+    "btree": 2807,
+    "gin": 118
+  },
+  "arrayColumns": {
+    "count": 188,
+    "tableCount": 121,
+    "byPgType": {
+      "_int8": 172,
+      "_varchar": 16
+    }
+  },
+  "catalogXmlColumns": {
+    "count": 74,
+    "tableCount": 28
+  },
+  "documentTableShape": [
+    {
+      "name": "id",
+      "type": "bigint",
+      "pgType": "int8"
+    },
+    {
+      "name": "created",
+      "type": "timestamp without time zone",
+      "pgType": "timestamp"
+    },
+    {
+      "name": "modified",
+      "type": "timestamp without time zone",
+      "pgType": "timestamp"
+    },
+    {
+      "name": "data",
+      "type": "xml",
+      "pgType": "xml"
+    }
+  ],
+  "serviceTables": {
+    "(ft_last_index)": [
+      {
+        "name": "form",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "last_ft_index_date",
+        "type": "timestamp without time zone",
+        "pgType": "timestamp"
+      },
+      {
+        "name": "id",
+        "type": "integer",
+        "pgType": "int4"
+      }
+    ],
+    "(spxml_blobs)": [
+      {
+        "name": "url",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "data",
+        "type": "bytea",
+        "pgType": "bytea"
+      },
+      {
+        "name": "ext",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "created",
+        "type": "timestamp without time zone",
+        "pgType": "timestamp"
+      },
+      {
+        "name": "modified",
+        "type": "timestamp without time zone",
+        "pgType": "timestamp"
+      },
+      {
+        "name": "hashdata",
+        "type": "character varying",
+        "pgType": "varchar"
+      }
+    ],
+    "(spxml_foreign_arrays)": [
+      {
+        "name": "catalog",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "catalog_elem",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "foreign_array",
+        "type": "character varying",
+        "pgType": "varchar"
+      }
+    ],
+    "(spxml_metadata)": [
+      {
+        "name": "schema",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "form",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "tablename",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "hash",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "doc_list",
+        "type": "boolean",
+        "pgType": "bool"
+      },
+      {
+        "name": "primary_key",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "parent_id_elem",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "spxml_form",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "spxml_form_elem",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "spxml_form_type",
+        "type": "integer",
+        "pgType": "int4"
+      },
+      {
+        "name": "single_tenant",
+        "type": "integer",
+        "pgType": "int4"
+      },
+      {
+        "name": "ft_idx",
+        "type": "boolean",
+        "pgType": "bool"
+      },
+      {
+        "name": "is_shared",
+        "type": "boolean",
+        "pgType": "bool"
+      }
+    ],
+    "(spxml_objects)": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "pgType": "int8"
+      },
+      {
+        "name": "form",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "spxml_form",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "is_deleted",
+        "type": "integer",
+        "pgType": "int4"
+      },
+      {
+        "name": "modified",
+        "type": "timestamp without time zone",
+        "pgType": "timestamp"
+      }
+    ]
+  },
+  "registrationExamples": [
+    {
+      "schema": "dbo",
+      "form": "active_learning",
+      "tablename": "active_learning",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_active_learning.xmd",
+      "spxml_form_elem": "active_learning",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "active_learnings",
+      "tablename": "active_learnings",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_active_learnings.xmd",
+      "spxml_form_elem": "active_learnings.active_learning",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "assessment",
+      "tablename": "assessment",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://qti/qti_assessment.xmd",
+      "spxml_form_elem": "assessment",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "assessments",
+      "tablename": "assessments",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://qti/qti_assessments.xmd",
+      "spxml_form_elem": "assessments.assessment",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "collaborator",
+      "tablename": "collaborator",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_collaborator.xmd",
+      "spxml_form_elem": "collaborator",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "collaborators",
+      "tablename": "collaborators",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_collaborators.xmd",
+      "spxml_form_elem": "collaborators.collaborator",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "common.event_status_types",
+      "tablename": "common.event_status_types",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/websoft.common.event_status_types.xml",
+      "spxml_form_elem": "common.event_status_types.event_status_type",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "common.exchange_object_types",
+      "tablename": "common.exchange_object_types",
+      "doc_list": true,
+      "primary_key": "name",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/websoft.common.exchange_object_types.xml",
+      "spxml_form_elem": "common.exchange_object_types.exchange_object_type",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "course",
+      "tablename": "course",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_course.xmd",
+      "spxml_form_elem": "course",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "courses",
+      "tablename": "courses",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_courses.xmd",
+      "spxml_form_elem": "courses.course",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "custom_web_template",
+      "tablename": "custom_web_template",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_custom_web_template.xmd",
+      "spxml_form_elem": "custom_web_template",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "custom_web_templates",
+      "tablename": "custom_web_templates",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_custom_web_templates.xmd",
+      "spxml_form_elem": "custom_web_templates.custom_web_template",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "event",
+      "tablename": "event",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_event.xmd",
+      "spxml_form_elem": "event",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "event_collaborators",
+      "tablename": "event_collaborators",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_event_collaborators.xmd",
+      "spxml_form_elem": "event_collaborators.event_collaborator",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "event_result",
+      "tablename": "event_result",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_event_result.xmd",
+      "spxml_form_elem": "event_result",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "event_results",
+      "tablename": "event_results",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_event_results.xmd",
+      "spxml_form_elem": "event_results.event_result",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "events",
+      "tablename": "events",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_events.xmd",
+      "spxml_form_elem": "events.event",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "group",
+      "tablename": "group",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_group.xmd",
+      "spxml_form_elem": "group",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "group_collaborators",
+      "tablename": "group_collaborators",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_group_collaborators.xmd",
+      "spxml_form_elem": "group_collaborators.group_collaborator",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "groups",
+      "tablename": "groups",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_groups.xmd",
+      "spxml_form_elem": "groups.group",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "org",
+      "tablename": "org",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_org.xmd",
+      "spxml_form_elem": "org",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "orgs",
+      "tablename": "orgs",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_orgs.xmd",
+      "spxml_form_elem": "orgs.org",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "pa",
+      "tablename": "pa",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_pa.xmd",
+      "spxml_form_elem": "pa",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "pas",
+      "tablename": "pas",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_pas.xmd",
+      "spxml_form_elem": "pas.pa",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "position",
+      "tablename": "position",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_position.xmd",
+      "spxml_form_elem": "position",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "positions",
+      "tablename": "positions",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_positions.xmd",
+      "spxml_form_elem": "positions.position",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "recruitment_methods",
+      "tablename": "recruitment_methods",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_recruitment_methods.xmd",
+      "spxml_form_elem": "recruitment_methods.budget_type",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "recruitment_plans",
+      "tablename": "recruitment_plans",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_recruitment_plans.xmd",
+      "spxml_form_elem": "recruitment_plans.budget_type",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "resource",
+      "tablename": "resource",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_resource.xmd",
+      "spxml_form_elem": "resource",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "resources",
+      "tablename": "resources",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_resources.xmd",
+      "spxml_form_elem": "resources.resource",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "resume",
+      "tablename": "resume",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_resume.xmd",
+      "spxml_form_elem": "resume",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "resumes",
+      "tablename": "resumes",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_resumes.xmd",
+      "spxml_form_elem": "resumes.resume",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "server_agent",
+      "tablename": "server_agent",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_server_agent.xmd",
+      "spxml_form_elem": "server_agent",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "server_agents",
+      "tablename": "server_agents",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_server_agents.xmd",
+      "spxml_form_elem": "server_agents.server_agent",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "subdivision",
+      "tablename": "subdivision",
+      "doc_list": false,
+      "primary_key": null,
+      "parent_id_elem": null,
+      "spxml_form": "x-local://wtv/wtv_subdivision.xmd",
+      "spxml_form_elem": "subdivision",
+      "spxml_form_type": 0,
+      "ft_idx": true
+    },
+    {
+      "schema": "dbo",
+      "form": "subdivisions",
+      "tablename": "subdivisions",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": "parent_object_id",
+      "spxml_form": "x-local://wtv/wtv_subdivisions.xmd",
+      "spxml_form_elem": "subdivisions.subdivision",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    },
+    {
+      "schema": "dbo",
+      "form": "trash_docs",
+      "tablename": "trash_docs",
+      "doc_list": true,
+      "primary_key": "id",
+      "parent_id_elem": null,
+      "spxml_form": "x-local://app/sx_trash_docs.xmd",
+      "spxml_form_elem": "trash_docs.trash_doc",
+      "spxml_form_type": 0,
+      "ft_idx": null
+    }
+  ],
+  "otherCatalogs": [
+    "blog_authors",
+    "budget_objects",
+    "career_reserve_tutors",
+    "career_trees",
+    "chatbot_chatbot_types",
+    "compound_program_education_methods",
+    "contest_marks",
+    "course_parts",
+    "dn_discipl_blocks",
+    "dn_group_students",
+    "dn_register_students",
+    "document_collaborators",
+    "education_method_lectors",
+    "education_org_lectors",
+    "education_plan_collaborators",
+    "education_program_education_methods",
+    "event_collaborators",
+    "event_groups",
+    "event_lectors",
+    "event_object_resources",
+    "event_phases",
+    "event_room_collaborators",
+    "event_room_lectors",
+    "event_rooms",
+    "func_managers",
+    "group_collaborators",
+    "knowledge_objects",
+    "knowledges",
+    "kpi_managers",
+    "library_material_objects",
+    "object_experts",
+    "object_requirements",
+    "outstaff_order_execution_stages",
+    "person_activity_infos",
+    "person_hierarchys",
+    "person_object_link_objects",
+    "personal_chats",
+    "repositorium_authors",
+    "repositorium_resources",
+    "request_collaborators",
+    "resume_skills",
+    "site_owner_objects",
+    "social_entrys",
+    "staff_subs",
+    "subdivision_group_subdivisions",
+    "submission_recipients",
+    "subs",
+    "tagged_objects",
+    "talent_pool_func_managers",
+    "trash_docs"
+  ],
+  "catalogColumnExamples": {
+    "common.event_status_types": [
+      {
+        "name": "id",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "text_color",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "bk_color",
+        "type": "character varying",
+        "pgType": "varchar"
+      }
+    ],
+    "common.exchange_object_types": [
+      {
+        "name": "name",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "disp_name",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "title",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "web_title",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "web_template",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "web_const",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "is_hier",
+        "type": "boolean",
+        "pgType": "bool"
+      },
+      {
+        "name": "is_custom",
+        "type": "boolean",
+        "pgType": "bool"
+      },
+      {
+        "name": "form_url",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "form_type",
+        "type": "bigint",
+        "pgType": "int8"
+      },
+      {
+        "name": "max_records_num",
+        "type": "bigint",
+        "pgType": "int8"
+      },
+      {
+        "name": "ft_index",
+        "type": "boolean",
+        "pgType": "bool"
+      }
+    ],
+    "group_collaborators": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "pgType": "int8"
+      },
+      {
+        "name": "group_id",
+        "type": "bigint",
+        "pgType": "int8"
+      },
+      {
+        "name": "code",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "name",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "forum_id",
+        "type": "bigint",
+        "pgType": "int8"
+      },
+      {
+        "name": "tutor_id",
+        "type": "bigint",
+        "pgType": "int8"
+      },
+      {
+        "name": "tutor_fullname",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "is_dynamic",
+        "type": "boolean",
+        "pgType": "bool"
+      },
+      {
+        "name": "is_hidden",
+        "type": "boolean",
+        "pgType": "bool"
+      },
+      {
+        "name": "allow_social_post",
+        "type": "boolean",
+        "pgType": "bool"
+      },
+      {
+        "name": "collaborator_id",
+        "type": "bigint",
+        "pgType": "int8"
+      },
+      {
+        "name": "collaborator_fullname",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "position_id",
+        "type": "bigint",
+        "pgType": "int8"
+      }
+    ],
+    "trash_docs": [
+      {
+        "name": "id",
+        "type": "bigint",
+        "pgType": "int8"
+      },
+      {
+        "name": "object_name",
+        "type": "character varying",
+        "pgType": "varchar"
+      },
+      {
+        "name": "del_date",
+        "type": "timestamp without time zone",
+        "pgType": "timestamp"
+      },
+      {
+        "name": "desc",
+        "type": "character varying",
+        "pgType": "varchar"
+      }
+    ]
+  },
+  "storageAggregates": {
+    "registryObjects": 27592,
+    "blobsByRootAndExtension": [
+      {
+        "known_root": "(other)",
+        "ext": "xmd",
+        "count": 49
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "docx",
+        "count": 3
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "gif",
+        "count": 1
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "jpe",
+        "count": 1
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "jpeg",
+        "count": 3
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "jpg",
+        "count": 426
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "JPG",
+        "count": 1
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "mp4",
+        "count": 7
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "pdf",
+        "count": 17
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "png",
+        "count": 351
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "svg",
+        "count": 147
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "xml",
+        "count": 11
+      },
+      {
+        "known_root": "x-local://wt_data/",
+        "ext": "zip",
+        "count": 2
+      },
+      {
+        "known_root": "x-local://wtv/",
+        "ext": "xmd",
+        "count": 436
+      },
+      {
+        "known_root": "x-local://wtv/",
+        "ext": "xml",
+        "count": 270
+      }
+    ]
+  },
+  "registrationsByRootOrComponent": {
+    "app": {
+      "catalogs": 1
+    },
+    "kedo_management": {
+      "documents": 3,
+      "catalogs": 3
+    },
+    "qti": {
+      "documents": 4,
+      "catalogs": 4
+    },
+    "workspace_calendar": {
+      "documents": 2,
+      "catalogs": 2
+    },
+    "workspace_classifmodel": {
+      "documents": 1,
+      "catalogs": 1
+    },
+    "workspace_conversations": {
+      "documents": 14,
+      "catalogs": 16
+    },
+    "workspace_timetracker": {
+      "documents": 1,
+      "catalogs": 1
+    },
+    "wtv": {
+      "documents": 389,
+      "catalogs": 706
+    }
+  }
+}

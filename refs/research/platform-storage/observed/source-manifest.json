@@ -1,0 +1,257 @@
+{
+  "date": "2026-11-11",
+  "hcmImage": {
+    "tag": "websoft/hcm:2025.2.1333",
+    "id": "sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab"
+  },
+  "postgresImage": {
+    "tag": "postgres:16",
+    "id": "sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d"
+  },
+  "privateInputs": [
+    {
+      "name": "schema.private.json",
+      "sha256": "39e2c0ed603bc328accff46ea7f33c0df6132f423c8ef3f456776cb4e9fe20da"
+    },
+    {
+      "name": "registration.private.json",
+      "sha256": "25a04de2bb9b3fa9b67fbe3ab0fb4707b6e9f6752056bab1be6ddf12d24e7490"
+    },
+    {
+      "name": "files.private.json",
+      "sha256": "e121aef9e2b19a024b8711424bcfcadc83c0a2f51e29e748d74c412239923a94"
+    },
+    {
+      "name": "volume-files.private.json",
+      "sha256": "28936682c789f954f7e59aabb0219538201bf8e8ecbf2c04c66cd63cf2427b82"
+    },
+    {
+      "name": "combined-files.private.json",
+      "sha256": "edd76cc4d894e8571964ed2b075f18b20603acbd7f4ccb908571b5023baaf4de"
+    },
+    {
+      "name": "verified-schema.private.json",
+      "sha256": "26e24b590fbed3011f3bafa3d83ede5d58985110e2d8f3df4dc3a23494f1902f"
+    },
+    {
+      "name": "verified-registrations.private.json",
+      "sha256": "d822f93369bdee00525fdb98b5a56e9ea29645c58d85e863cba3f3da3aecdff8"
+    },
+    {
+      "name": "verified-storage-counts.private.json",
+      "sha256": "c3efa55e42b4028bbeac0a469e8264b3bb34bd23c5c1c9b302649c7bc8449618"
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "/WebsoftServer/wtv/wtv_tools_app.xml",
+      "sha256": "32ab36b6b0534cacd43eba284a2edb308ae645f3c8c0a953b80e5a0a2f6ad827",
+      "encoding": "utf-8",
+      "lines": [1644, 1646, 1651, 1652, 1675]
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_dlg_access_table_for_event.xms",
+      "sha256": "09c798be90b22e9821348cc28440b97f0bb0f28e48df485233d29da9292460f8",
+      "encoding": "utf-8",
+      "lines": [75]
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_tools_cl.xml",
+      "sha256": "3d3a86f92cb7c9ef985ac8e96e6c126b54e64410bad1bcc10229d62db93819ed",
+      "encoding": "utf-8",
+      "lines": [2385]
+    },
+    {
+      "path": "/WebsoftServer/wtv/agents/PdpExtAgentUpdateStatus.bs",
+      "sha256": "030516a5b8d6e4bd5a5d6e069cc476efabe6f1f8ed0acc5238b19e1bd1008b6c",
+      "encoding": "utf-8",
+      "lines": [1]
+    },
+    {
+      "path": "/WebsoftServer/wt/web/library/create_resource.bs",
+      "sha256": "af1450432b4458b4df63ef6f1cb3d7ecb65ca726a5e2912e1b230942053796f2",
+      "encoding": "utf-8",
+      "lines": [1]
+    },
+    {
+      "path": "/WebsoftServer/components/competences_assessment/custom/Inst_pack_websoft_assessment_competences.xml",
+      "sha256": "3c2bdbf59b460b6f4d130d7dbe8a282505e7de2621e8b264195ba62dd7a29685",
+      "encoding": "utf-8",
+      "lines": [2216, 2221, 2226, 2228]
+    },
+    {
+      "path": "/WebsoftServer/components/competences_assessment/spxml/remote_actions/AppCompCreateAssessmentAppraise.bs",
+      "sha256": "b95907d20686262012e59da3dba6197898509d9b1db235288db36caf22c9f492",
+      "encoding": "utf-8",
+      "lines": [1, 7, 9, 10, 11]
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_active_learning.xmi",
+      "sha256": "938ba7054f4a5ad246beb77065e373d952f4a23737b926f87172819e162368e3",
+      "encoding": "windows-1251 (also declared in file)",
+      "lines": [1, 2, 3, 7, 8, 9]
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_api.xmi",
+      "sha256": "ac43d4b7b020044f7201982341d0bc61f12d6efc8b25ddccc5412a442b188d42",
+      "encoding": "windows-1251 (also declared in file)",
+      "lines": [1, 2, 3, 7, 8, 9, 11]
+    },
+    {
+      "path": "/WebsoftServer/qti/qti_assessment.xmi",
+      "sha256": "a3490e410f23d9d73601b2c75adb3aaddfef3a9e55356fce6a12178fd81e20cf",
+      "encoding": "utf-8",
+      "lines": [1, 2, 3, 7, 8, 9]
+    },
+    {
+      "path": "/WebsoftServer/wt/web/api_wsdl.xml",
+      "sha256": "994eb4f4b0b06f92b8357d489cbc8b8e86b74162b3fcecb43403727ae57fbfda",
+      "encoding": "utf-8",
+      "lines": [91, 95, 100, 116, 128, 160, 244, 626]
+    },
+    {
+      "path": "/WebsoftServer/wt/web/courselab3/source/manifest/imscp_v1p1.xsd",
+      "sha256": "b97f3db2a5a6748011bf38fc569c830b34faae5110dde7eb7bbf26937516ba7f",
+      "encoding": "utf-8",
+      "lines": [2, 3, 4, 5, 6, 8]
+    },
+    {
+      "path": "/WebsoftServer/wt/web/courselab3/source/manifest/ims_xml.xsx",
+      "sha256": "639e5ed55bb9fd20672c74c20020c6c96b5ff721e45e9a337133af858998b08c",
+      "encoding": "utf-8",
+      "lines": [2, 3]
+    },
+    {
+      "path": "/WebsoftServer/templates/account_report.html",
+      "sha256": "656a35510db8302e4661fc07d0abe3a0637f0e813d0a2585c41cd8a14846587c",
+      "encoding": "utf-8",
+      "lines": [1, 6, 14, 16, 18]
+    },
+    {
+      "path": "/WebsoftServer/templates/access_table_for_event.doc",
+      "sha256": "f8115098a346984c8d93b05c22a26c10e18fc715151641860147429af833f5a9",
+      "encoding": "utf-8",
+      "lines": [1, 4, 22, 23, 35]
+    },
+    {
+      "path": "/WebsoftServer/components/sample_empty/spxml/sample_empty.xml",
+      "sha256": "3b4fed9f931ab4d88685087a2a9e483f0991cd11b475351945e0532b6501bfa1",
+      "encoding": "utf-8",
+      "lines": [2, 4, 6]
+    },
+    {
+      "path": "/WebsoftServer/components/competences_assessment/package.json",
+      "sha256": "200fb82758b6a347eb3440f1af68692d57fc09501e883090be6690baab3f25c5",
+      "encoding": "utf-8",
+      "lines": [2, 5, 7, 10]
+    },
+    {
+      "path": "/WebsoftServer/components/competences_assessment/spxml/competences_assessment.xml",
+      "sha256": "f54a9662a3d5f67914a5b4ae89c1e20d58fd78097e215e2169d8c7f75851dd14",
+      "encoding": "utf-8",
+      "lines": [2, 4]
+    },
+    {
+      "path": "/WebsoftServer/components/competences_assessment/spxml/competences_assessment.js",
+      "sha256": "2cfe9d0d3c4358bd53aec2cfaf21ba9d917b3ff9b1968b1bd46c1b4dd458e067",
+      "encoding": "utf-8",
+      "lines": [6, 7, 24]
+    },
+    {
+      "path": "/WebsoftServer/platform/ftindex/package.json",
+      "sha256": "e66c79ac599f1d16a872eb0ce25827685815f2eca93c245dcf5549bd421e8577",
+      "encoding": "utf-8",
+      "lines": [2, 3, 4, 5, 6]
+    },
+    {
+      "path": "/WebsoftServer/platform/lucene/package.json",
+      "sha256": "f79b13f14aec5417dd82e08d8c6fdacf34b0f3ff4fb720773ddd6c938f487e79",
+      "encoding": "utf-8",
+      "lines": [2, 3, 4, 5, 9, 10]
+    },
+    {
+      "path": "/WebsoftServer/platform/ftindex/spxml/component.js",
+      "sha256": "ec62698f961052cc26e6bf98daf366cf0e7bd26c1c514c2b6cb5930b765ca4b0",
+      "encoding": "utf-8",
+      "lines": [21, 22]
+    },
+    {
+      "path": "/WebsoftServer/platform/lucene/spxml/lucene-legacy.xml",
+      "sha256": "fb8477224a8cf1a41529a94666b37b2cffa3b3c080f32007e3e1bf65ea53139d",
+      "encoding": "utf-8",
+      "lines": [9, 10]
+    },
+    {
+      "path": "/WebsoftServer/ftindex.json",
+      "sha256": "bedfbcaf4c1d4503e25ed9b8fc73659b082264d0d45b8ff983517ffe405f945f",
+      "encoding": "utf-8",
+      "lines": [3, 4, 5, 6]
+    },
+    {
+      "path": "/WebsoftServer/lucene.json",
+      "sha256": "de16419c39ef8d1631ab45c6547b94d09d17df81d257d0bdb118675a4eea2c77",
+      "encoding": "utf-8",
+      "lines": [3, 6]
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_recruitment_methods.xmd",
+      "sha256": "5829a51d2510b080e71a18d9c6dc61c18a6c3ef18f9935f3b4278f589e6949b1",
+      "lines": [2, 7]
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_recruitment_plans.xmd",
+      "sha256": "6a2d025a7ee044a9a2afc262f52e95dcbc8c4d59b3e97c39af2c57885051e9cd",
+      "lines": [2, 7]
+    },
+    {
+      "path": "/WebsoftServer/wtv/wtv_courses.xmd",
+      "sha256": "8c77af48e3507d8d47f2a8b78adf0ccbbb4dadcbf5182b91bf45529abcd59245",
+      "lines": [21]
+    },
+    {
+      "path": "/WebsoftServer/xHttp.ini",
+      "sha256": "2df12d723ede6505468290cc05db84e92e3eb11e1d6bb33defca5c067fd9bcd5",
+      "lines": [4, 6, 19, 20, 38, 51, 65, 66, 78, 86, 87]
+    },
+    {
+      "path": "/WebsoftServer/spxml_unibridge_config.xml",
+      "sha256": "006aac9e4846f00664cd55d5d46883ff3683ae4af1e1898fd6df10a5b028946d",
+      "lines": []
+    },
+    {
+      "path": "/WebsoftServer/platform/storage/spxml/sx_store_sql.xml",
+      "sha256": "2efaadeebc44927015f444b840ef902bd18eaacf5b842f74d4e3807f4799cbfc",
+      "lines": []
+    },
+    {
+      "path": "/WebsoftServer/platform/ftindex/config/templates/ftindex.json",
+      "sha256": "bedfbcaf4c1d4503e25ed9b8fc73659b082264d0d45b8ff983517ffe405f945f",
+      "size": 130,
+      "scope": "Selected Lucene header or config template; no segment payload read"
+    },
+    {
+      "path": "/WebsoftServer/platform/lucene/config/templates/lucene.json",
+      "sha256": "de16419c39ef8d1631ab45c6547b94d09d17df81d257d0bdb118675a4eea2c77",
+      "size": 209,
+      "scope": "Selected Lucene header or config template; no segment payload read"
+    },
+    {
+      "path": "/WebsoftServer/FT/dbo-ft-idx/dbo-absence_reserve-ft-idx/_0.cfe",
+      "sha256": "2c301c799ff3d42a482d23f0e1fbaed8a9b1dfcbbf43b776d73f30f1ade93776",
+      "size": 284,
+      "scope": "Selected Lucene header or config template; no segment payload read"
+    },
+    {
+      "path": "/WebsoftServer/FT/dbo-ft-idx/dbo-absence_reserve-ft-idx/_0.si",
+      "sha256": "7b5acefe563528dfac4564bf90e4585dbc25e2e74354fe90feae8adf0341e781",
+      "size": 243,
+      "scope": "Selected Lucene header or config template; no segment payload read"
+    }
+  ],
+  "limits": [
+    "Hashes identify private evidence; vendor bytes are not redistributed.",
+    "Current execution evidence is SQL only; no HCM/CLR runtime execution.",
+    "Raw document/blob values and secrets are not included.",
+    "Mounted-volume contents were inventoried, not opened."
+  ]
+}
