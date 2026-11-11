@@ -27,7 +27,8 @@
     "docs:preview": "vitepress preview docs",
     "prepare": "lefthook install",
     "docs:check": "node tools/check-docs.mjs",
-    "docs:test": "node --test tools/check-docs.test.mjs"
+    "docs:test": "node --test tools/check-docs.test.mjs",
+    "release:test": "node --test tools/release.test.mjs"
   },
   "author": "",
   "license": "ISC",
@@ -38,6 +39,7 @@
     "eslint-config-prettier": "^10.1.8",
     "lefthook": "2.2.1",
     "prettier": "^3.9.10",
+    "semver": "^7.8.5",
     "syncpack": "^15.3.3",
     "turbo": "^2.11.10",
     "typescript-eslint": "^8.72.0",

@@ -53,6 +53,9 @@ jobs:
       - name: MCP package smoke test
         run: pnpm --filter @boristype/mcp-server test:pack
 
+      - name: Release tooling tests
+        run: pnpm release:test
+
       - name: Documentation integrity
         run: |
           pnpm docs:test
