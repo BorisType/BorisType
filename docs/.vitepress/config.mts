@@ -2,7 +2,7 @@ import { defineConfig } from "vitepress";
 
 export default defineConfig({
   title: "BorisType",
-  description: "Транспилятор TypeScript → BorisScript для платформы WebSoft HCM",
+  description: "MCP, .NET библиотеки, skills и компилятор для WebSoft HCM",
 
   lang: "ru-RU",
 
@@ -19,56 +19,49 @@ export default defineConfig({
     logo: "/logo.svg",
 
     nav: [
-      { text: "Руководства", link: "/guides/getting-started" },
-      { text: "Справочник", link: "/reference/btconfig" },
+      { text: "О проекте", link: "/guides/what-is-boristype" },
+      { text: "MCP", link: "/guides/mcp-server" },
+      { text: ".NET", link: "/guides/dotnet" },
+      { text: "Skills", link: "/guides/agent-skills" },
+      { text: "Компилятор", link: "/guides/getting-started" },
       {
-        text: "Архитектура",
-        link: "https://github.com/BorisType/BorisType/tree/main/ref/architecture",
+        text: "Разработчикам",
+        link: "https://github.com/BorisType/BorisType/blob/main/refs/README.md",
       },
     ],
 
-    sidebar: {
-      "/guides/": [
-        {
-          text: "Введение",
-          items: [
-            { text: "Что такое BorisType?", link: "/guides/what-is-boristype" },
-            { text: "Быстрый старт", link: "/guides/getting-started" },
-          ],
-        },
-        {
-          text: "Руководства",
-          items: [
-            { text: "Линковка", link: "/guides/linking" },
-            { text: "Dev Mode", link: "/guides/dev-mode" },
-            { text: "Push & Deploy", link: "/guides/push-deploy" },
-            { text: "Тестирование", link: "/guides/testing" },
-            { text: "MCP server (прототип)", link: "/guides/mcp-server" },
-            { text: ".NET библиотеки", link: "/guides/dotnet" },
-            { text: "Agent skills", link: "/guides/agent-skills" },
-          ],
-        },
-      ],
-      "/reference/": [
-        {
-          text: "Справочник",
-          items: [
-            { text: "btconfig.json", link: "/reference/btconfig" },
-            {
-              text: "btconfig.properties",
-              link: "/reference/btconfig-properties",
-            },
-            { text: "Режимы компиляции", link: "/reference/compile-modes" },
-            { text: "Типы пакетов", link: "/reference/package-types" },
-            {
-              text: "Ограничения BorisType и JS/C runtime",
-              link: "/reference/borisscript-constraints",
-            },
-            { text: "Команда artifact", link: "/reference/artifact-command" },
-          ],
-        },
-      ],
-    },
+    sidebar: [
+      {
+        text: "Работа с WebSoft HCM",
+        items: [
+          { text: "Что такое BorisType?", link: "/guides/what-is-boristype" },
+          { text: "Подключить MCP", link: "/guides/mcp-server" },
+          { text: "Установить .NET DLL", link: "/guides/dotnet" },
+          { text: "Установить agent skills", link: "/guides/agent-skills" },
+        ],
+      },
+      {
+        text: "Компиляция и поставка кода",
+        items: [
+          { text: "Начало работы", link: "/guides/getting-started" },
+          { text: "Режимы и статус поддержки", link: "/reference/compile-modes" },
+          { text: "Ограничения BorisType и JS/C runtime", link: "/reference/borisscript-constraints" },
+          { text: "Линковка", link: "/guides/linking" },
+          { text: "Dev Mode", link: "/guides/dev-mode" },
+          { text: "Push & Deploy", link: "/guides/push-deploy" },
+          { text: "Тестирование", link: "/guides/testing" },
+        ],
+      },
+      {
+        text: "Справочник компилятора",
+        items: [
+          { text: "btconfig.json", link: "/reference/btconfig" },
+          { text: "btconfig.properties", link: "/reference/btconfig-properties" },
+          { text: "Типы пакетов", link: "/reference/package-types" },
+          { text: "Команда artifact", link: "/reference/artifact-command" },
+        ],
+      },
+    ],
 
     socialLinks: [{ icon: "github", link: "https://github.com/BorisType/BorisType" }],
 

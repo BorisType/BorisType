@@ -1,3 +1,5 @@
+> Историческая запись рефакторинга. Актуальные входы: [compiler](../../../../refs/compiler/README.md) и [verification](../../../../refs/compiler/verification.md).
+
 # Рефакторинг BT-IR (Phase 1–3)
 
 **Статус:** Завершён (2026-03)
@@ -82,7 +84,7 @@ TS Source → Scope Analyzer → IR Lowering → [Try-Finally Desugar] → [Hois
 - **Pass** — для IR → IR (трансформации существующих узлов)
 - **ModeConfig** — для режим-зависимого поведения
 
-См. [ref/algorithms/bt-ir-lowering-vs-pass.md](../../../ref/algorithms/bt-ir-lowering-vs-pass.md).
+См. [исторический lowering/pass разбор](../../../../refs/archive/compiler/algorithms/bt-ir-lowering-vs-pass.md).
 
 ---
 
@@ -94,4 +96,4 @@ TS Source → Scope Analyzer → IR Lowering → [Try-Finally Desugar] → [Hois
 | Phase 2 | 2026-03-13 | Multi-pass: try-finally, hoist; walker infrastructure |
 | Phase 3 | 2026-03-13 | ModeConfig, замена ctx.mode проверок                  |
 
-См. ref/temp/phase-\*-results.md, ref/decisions/011-bt-ir-multi-pass-refactoring.md.
+См. [phase results](../../../../refs/archive/compiler/refactoring/gen-1/) и [multi-pass decision](../../../../refs/decisions/2026-03-14-bt-ir-multi-pass-refactoring.md).

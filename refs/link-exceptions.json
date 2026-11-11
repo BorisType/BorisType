@@ -1,0 +1,17 @@
+[
+  {
+    "file": "refs/archive/compiler/architecture/push-system.md",
+    "target": "../../btc/resources/",
+    "reason": "Old push architecture referenced btc/resources, absent in migration baseline. Kept as an explicit historical gap; current implementation route is refs/compiler/README.md."
+  },
+  {
+    "file": "refs/archive/compiler/refactoring/gen-2/bt-ir-code-review-composer.md",
+    "target": "../../../../../packages/bt-ir/src/lowering/precedence.ts",
+    "reason": "Historical review references a file absent from baseline. No replacement implementation is asserted by this migration."
+  },
+  {
+    "file": "refs/archive/documentation/roadmap-before-migration.md",
+    "target": "CONTRIBUTING.md",
+    "reason": "Original roadmap explicitly called this a future file. It never existed in baseline; current workflow is refs/development.md."
+  }
+]

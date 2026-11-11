@@ -1,219 +1,54 @@
-# BorisType Compiler (`btc`)
+# BorisType
 
-> Инструмент для компиляции TypeScript в валидный код на **BorisScript** и последующей сборки проекта для поставки.  
-> ⚠️ **Проект в активной разработке — не готов для продакшн-использования!**
+Инструменты для работы с WebSoft HCM: MCP-сервер, C# библиотеки, знания для агентов
+и компилятор ограниченного подмножества TypeScript в BorisScript.
+Компоненты можно использовать независимо. Проект экспериментальный;
+границы поддержки описаны у каждого инструмента.
 
-Поддерживаемый subset и известные расхождения:
-[ограничения BorisType и совместимость JS/C runtime](docs/reference/borisscript-constraints.md).
+| Задача                                                              | С чего начать                                                                                             |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Подключить агента к HCM: файлы, поиск, XQuery, XML объектов         | [MCP: установка и использование](docs/guides/mcp-server.md)                                               |
+| Установить DLL для файловых операций MCP                            | [.NET: установка и совместимость](docs/guides/dotnet.md)                                                  |
+| Установить знания о платформе и инструментах через `npx skills add` | [Каталог skills](skills/README.md)                                                                        |
+| Компилировать TS в BorisScript                                      | [Начало работы](docs/guides/getting-started.md), [ограничения](docs/reference/borisscript-constraints.md) |
+| Изменять реализацию или найти основания решений                     | [Внутренние справочники](refs/README.md), [разработка](refs/development.md)                               |
 
-С 2026-11-05 поддерживаемое направление разработки — **bare mode**.
-Развитие `script` и `module` приостановлено до принятия стратегии памяти:
-их env/descriptor graph может создавать сильные циклы, которые не освобождает
-reference counting C-runtime без сборщика циклов. Реализации и регрессионные
-тесты сохранены; CLI по-прежнему выбирает `module` по умолчанию.
-Выбирайте bare явно с учётом [приоритета выбора режима](docs/reference/compile-modes.md).
-[Решение и условия возобновления](ref/decisions/2026-11-05-script-module-memory-freeze.md).
+Пользовательские гайды и справка находятся в [docs/](docs/index.md) (сайт VitePress).
+Текущий контракт пакета также доступен в его README: [MCP](packages/mcp-server/README.md),
+[DLL](packages/dotnet/README.md), [компилятор CLI](packages/bt-cli/README.md).
 
-## Установка
+## Границы поддержки
 
-```sh
-npm install -D @boristype/bt-cli @boristype/types
-npx btc init
-```
+MCP предоставляет девять файловых инструментов, XQuery и три XML object tools.
+Файловые операции требуют standalone DLL alpha.4 / API 2 и обращаются к физическим
+файлам; чтение платформенного URL может вместо файла обращаться к БД.
+Native проверки выполнены на одной Linux-сборке HCM; это не acceptance Windows HCM
+или всех бизнес-сценариев. Подробнее — в гайдах соответствующих инструментов.
 
-Для агентов есть независимо устанавливаемый [каталог skills](skills/README.md):
-первый `websoft-hcm` содержит знания о платформе, путях и конфигурации.
-[Установка через npx skills add](docs/guides/agent-skills.md).
+Для компилятора поддерживаемое направление развития — **bare mode**.
+Развитие script/module приостановлено до принятия стратегии памяти: env/descriptor
+и receiver graph могут образовывать циклы, не освобождаемые reference counting
+C-runtime. Реализации и регрессии сохранены; CLI всё ещё выбирает module по умолчанию.
+[Выбор режима](docs/reference/compile-modes.md), [решение и условия возобновления](refs/decisions/2026-11-05-script-module-memory-freeze.md).
+Bare не обещает полную JS-семантику или отсутствие пользовательских циклов.
 
----
+## Разработка из checkout
 
-## Команды
-
-### `btc build [files...]`
-
-Транспиляция TypeScript в BorisScript. Команда по умолчанию.
-
-```sh
-npx btc build              # Собрать все файлы проекта
-npx btc build src/main.ts  # Собрать конкретный файл
-npx btc                    # Эквивалентно btc build
-```
-
-**Опции:**
-
-- `--compile-mode <mode>` — режим компиляции: `bare`, `script`, или `module` (по умолчанию)
-- `--outDir <dir>` — директория для сохранения обработанных файлов
-
-### `btc link`
-
-Компоновка модулей и зависимостей в структуру `dist/`.  
-Собирает все необходимые модули и формирует итоговую структуру для развёртывания.
+Версия Node закреплена в [.node-version](.node-version), pnpm — в
+[package.json](package.json). Из корня:
 
 ```sh
-npx btc link
+pnpm install --frozen-lockfile
+pnpm exec turbo run build
+pnpm docs:check
+pnpm docs:build
 ```
 
-См. подробнее в [документации по линковке](docs/guides/linking.md).
+Для C# требуется SDK из [global.json](global.json):
+[сборка, тесты и упаковка](packages/dotnet/README.md).
+[Проверки компилятора](refs/compiler/verification.md) требуют отдельно
+предоставленного JS runtime; `pnpm test` сам не собирает тесты и не устанавливает runtime.
+Команды локальных и native проверок MCP описаны в README пакета.
 
-### `btc init`
-
-Инициализация BorisType проекта. Создаёт `tsconfig.json` с необходимыми настройками.
-
-```sh
-npx btc init
-```
-
-### `btc push`
-
-Загрузка скомпилированного кода на WebSoft HCM сервер с автоматической реинициализацией модулей.
-
-```sh
-npx btc push                                  # Использует настройки по умолчанию
-npx btc push --host example.com --port 8080  # С кастомными параметрами
-```
-
-**Опции:**
-
-- `--host <host>` — адрес WebSoft HCM сервера (по умолчанию: localhost)
-- `--port <port>` — порт сервера (по умолчанию: 80)
-- `--username <user>` — имя пользователя (по умолчанию: user1)
-- `--password <pass>` — пароль (по умолчанию: user1)
-- `--https` — использовать HTTPS соединение
-
-**Конфигурация:** Можно создать файл `btconfig.properties` в корне проекта для хранения настроек подключения.  
-См. подробнее в [документации по деплою](docs/guides/push-deploy.md).
-
-### `btc dev`
-
-Режим разработки с автоматической пересборкой и деплоем при изменениях.
-
-```sh
-npx btc dev              # С автоматическим push (по умолчанию)
-npx btc dev --no-push    # Без автоматического push
-```
-
-**Возможности:**
-
-- Watch mode для TypeScript и не-TypeScript файлов
-- Инкрементальная компиляция (только изменённые файлы)
-- Автоматическая линковка после сборки
-- Автоматический push на сервер (debounced 500ms)
-- Координация multi-package сборки
-
-См. подробнее в [документации по dev mode](docs/guides/dev-mode.md).
-
-### `btc artifact`
-
-⚠️ **Команда в разработке**  
-Создание архивов для поставки с CI/CD.
-
----
-
-## Возможности
-
-### Компиляция
-
-- **IR-based compilation** — современный подход через промежуточное представление (bt-ir)
-- Три режима компиляции: `bare`, `script`, `module`
-- Директива `/// @bt-mode` для явного указания режима
-- Автоматическое определение executable objects
-
-### TypeScript Features
-
-- Объявление переменных внутри циклов
-- Поддержка циклов `for-of`
-- Стрелочные функции
-- Template literals
-- Частичная поддержка методов массивов (`forEach`, `map`, и др.)
-- Частичная поддержка методов объектов
-
-### Модульность
-
-- Работа с зависимостями через `npm`
-- `import`/`export` преобразуются в `require`
-- Собственная реализация `require` для BorisScript
-
-### Сборка и деплой
-
-- **Линковка модулей** (одиночные и multi-package проекты)
-- **Watch mode** с инкрементальной компиляцией
-- **Push на WebSoft HCM** с автоматической реинициализацией
-- Координация multi-package builds
-
-См. подробнее:
-
-- [Linking документация](docs/guides/linking.md)
-- [Push & Deploy](docs/guides/push-deploy.md)
-- [Dev Mode](docs/guides/dev-mode.md)
-
-## Сборка из исходников
-
-> Для разработки: Node.js 24.22.2 (ветка 24 LTS) и pnpm 12.16.1.
-> Версия Node закреплена в `.node-version`, pnpm — в `package.json#packageManager`;
-> эти же значения используют CI workflows.
-
-```sh
-git clone https://github.com/BorisType/BorisType.git
-cd BorisType
-pnpm install
-npx turbo run build
-```
-
-Запуск тестов:
-
-```sh
-npx turbo run test
-# или вручную:
-node ./packages/botest/build/index.js tests/build
-```
-
-### Структура monorepo
-
-Для C# библиотек есть отдельный [.NET workspace](packages/dotnet/README.md).
-Команды `pnpm build:dotnet`, `pnpm test:dotnet`, `pnpm pack:dotnet` и
-`pnpm test:dotnet:pack` требуют SDK из global.json; обычная Node-сборка — нет.
-
-| Пакет                                   | Директория                 | Назначение                      |
-| --------------------------------------- | -------------------------- | ------------------------------- |
-| `@boristype/bt-cli`                     | `packages/bt-cli`          | CLI компилятор                  |
-| `@boristype/bt-ir`                      | `packages/bt-ir`           | IR pipeline (транспиляция)      |
-| `@boristype/ws-client`                  | `packages/ws-client`       | WebSoft HCM клиент              |
-| `@boristype/ws-version`                 | `packages/ws-version`      | Конверсия версий                |
-| `@boristype/runtime`                    | `packages/builtin-runtime` | BorisScript polyfills           |
-| `botest`                                | `packages/botest`          | Тест-раннер                     |
-| `@boristype/dotnet-workspace` (private) | `packages/dotnet`          | C# библиотеки, тесты и упаковка |
-
-Подробнее об архитектуре: [ref/architecture/monorepo.md](ref/architecture/monorepo.md)
-
-_Тестирование компилятора проводится на версии 916._
-
----
-
-## Примеры использования
-
-Проект включает примеры для разных сценариев в директории `examples/`:
-
-### Single package
-
-```sh
-cd examples/single
-pnpm install
-pnpm run build && npx btc link
-```
-
-### Multi-package режим
-
-```sh
-cd examples/multi
-pnpm install
-npx btc link
-```
-
-Подробнее см. [examples/README.md](examples/README.md) и [документацию по линковке](docs/guides/linking.md).
-
----
-
-## Статус проекта
-
-BorisType Compiler находится в стадии активной разработки.  
-Некоторые возможности ещё не реализованы или могут измениться в будущем.
+[TODO](TODO.md) содержит конкретный долг, [ROADMAP](ROADMAP.md) — направления.
+[Переход документации](DOCUMENTATION_TRANSITION.md) фиксирует охват текущей миграции.

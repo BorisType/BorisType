@@ -193,5 +193,5 @@ processArtifact()
 ## См. также
 
 - [Линковка](../guides/linking) — руководство по линковке
-- [Архитектура линковки](https://github.com/BorisType/BorisType/blob/main/ref/architecture/linking-system.md) — детали реализации
+- [Архитектура линковки](https://github.com/BorisType/BorisType/blob/main/refs/archive/compiler/architecture/linking-system.md) — детали реализации
 - [btconfig.json](./btconfig) — конфигурация multi-package проектов

@@ -1,5 +1,10 @@
 # Dev Mode (Watch & Auto-Deploy)
 
+Это руководство описывает существующий экспериментальный module pipeline.
+Развитие `script/module` приостановлено до решения стратегии памяти;
+поддерживаемое направление разработки — `bare`. CLI по умолчанию остаётся
+`module`. См. [режимы и статус поддержки](../reference/compile-modes).
+
 ## Обзор
 
 Dev mode (`btc dev`) предоставляет:
@@ -117,4 +122,4 @@ npx btc dev --no-push
 
 - [Руководство Push & Deploy](./push-deploy)
 - [Руководство по линковке](./linking)
-- [Архитектура Build Pipeline](https://github.com/BorisType/BorisType/blob/main/ref/architecture/build-pipeline.md)
+- [Архитектура Build Pipeline](https://github.com/BorisType/BorisType/blob/main/refs/archive/compiler/architecture/build-pipeline.md)

@@ -2,20 +2,20 @@
 
 **IR-based компилятор TypeScript → BorisScript**
 
-bt-ir — бэкенд компиляции для [BorisType](../README.md), транспилирующий TypeScript в BorisScript через промежуточное представление (IR).
+bt-ir — бэкенд компиляции для [BorisType](https://github.com/BorisType/BorisType/blob/main/README.md), транспилирующий TypeScript в BorisScript через промежуточное представление (IR).
 
 ## Обзор
 
 Поддерживается ограниченный subset TypeScript/JS, не весь ECMAScript.
 Актуальные mode-specific ограничения, known miscompilations и отдельные
-подтверждения JS/C: [технический контракт](../../docs/reference/borisscript-constraints.md).
+подтверждения JS/C: [технический контракт](https://github.com/BorisType/BorisType/blob/main/docs/reference/borisscript-constraints.md).
 
 С 2026-11-05 поддерживаемое направление разработки — **bare**. Развитие
 script/module заморожено до решения стратегии памяти C-runtime: сильные
 env/descriptor/receiver циклы удерживаются reference counting без сборщика
 циклов. Реализации, regression tests и default `module` сохранены; наличие
 режима в API не означает C memory acceptance.
-[ADR и условия возобновления](../../ref/decisions/2026-11-05-script-module-memory-freeze.md).
+[ADR и условия возобновления](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-11-05-script-module-memory-freeze.md).
 
 - **Вход:** TypeScript исходный код
 - **Выход:** BorisScript (.js файлы)
@@ -26,7 +26,7 @@ env/descriptor/receiver циклы удерживаются reference counting �
 ## Установка
 
 ```bash
-npm install bt-ir
+pnpm add @boristype/bt-ir typescript@^6.0.3
 ```
 
 ## API
@@ -36,7 +36,7 @@ npm install bt-ir
 Компилирует строку TypeScript исходного кода.
 
 ```typescript
-import { compile } from "bt-ir";
+import { compile } from "@boristype/bt-ir";
 
 const result = compile(
   `
@@ -66,7 +66,7 @@ console.log(result.outputs[0].code);
 Компилирует TypeScript файл.
 
 ```typescript
-import { compileFile } from "bt-ir";
+import { compileFile } from "@boristype/bt-ir";
 
 const result = compileFile("./src/index.ts", {
   mode: "module",
@@ -88,7 +88,7 @@ console.log(result.outputs[0].code);
 
 ```typescript
 import ts from "typescript";
-import { compileSourceFile } from "bt-ir";
+import { compileSourceFile } from "@boristype/bt-ir";
 
 const program = ts.createProgram(["src/index.ts"], {});
 const sourceFile = program.getSourceFile("src/index.ts")!;
@@ -167,14 +167,14 @@ bt-ir реализует три режима компиляции (script/module
 | **script** | Тестовые файлы, executable объекты   | env/desc, bt.getProperty, доступные polyfills |
 | **module** | Codelibrary пакеты (по умолчанию)    | Обёрнуто в \_\_init(), hoisting переменных    |
 
-См. [Справка по режимам компиляции](../../docs/reference/compile-modes.md) для деталей.
+См. [Справка по режимам компиляции](https://github.com/BorisType/BorisType/blob/main/docs/reference/compile-modes.md) для деталей.
 
 ## Примеры
 
 ### Базовое использование
 
 ```typescript
-import { compile } from "bt-ir";
+import { compile } from "@boristype/bt-ir";
 
 const result = compile(`
   function add(a: number, b: number): number {
@@ -193,7 +193,7 @@ if (result.success) {
 ### С конкретным режимом
 
 ```typescript
-import { compile } from "bt-ir";
+import { compile } from "@boristype/bt-ir";
 
 // Bare mode - минимальный overhead
 const bareResult = compile(
@@ -229,7 +229,7 @@ const moduleResult = compile(
 
 ```typescript
 import ts from "typescript";
-import { compileSourceFile } from "bt-ir";
+import { compileSourceFile } from "@boristype/bt-ir";
 
 const host = ts.createWatchCompilerHost(
   "tsconfig.json",
@@ -275,12 +275,14 @@ BorisScript Output
 
 Для детальной архитектуры, см.:
 
-- [Архитектура IR Pipeline](../ref/architecture/ir-pipeline.md)
-- [Ограничения BorisScript](../docs/reference/borisscript-constraints.md)
+- [Текущая карта и основания](https://github.com/BorisType/BorisType/blob/main/refs/compiler/README.md)
+- [Ограничения BorisScript](https://github.com/BorisType/BorisType/blob/main/docs/reference/borisscript-constraints.md)
 
 ## Ключевые возможности
 
 ### Автоматические трансформации
+
+Механизмы зависят от режима и конструкции; список не обещает их наличие в bare.
 
 - **Стрелочные функции** → Обычные функции с env/desc
 - **Шаблонные литералы** → Конкатенация строк
@@ -332,7 +334,7 @@ Resolver сообщает каждую ошибку target/duplicate label от�
 сохранён как deprecated re-export.
 
 Execution gates обязательны перед merge compiler changes: см.
-[pre-merge checklist](../../plans/probes/README.md#обязательный-pre-merge-gate).
+[pre-merge checklist](https://github.com/BorisType/BorisType/blob/main/refs/research/compiler-control-flow/probes/README.md#обязательный-pre-merge-gate).
 
 Проверка: `pnpm --filter @boristype/bt-ir test`; строгая Node/BS матрица из корня
 monorepo: `pnpm test:semantic` (нужны build runtime/botest и предоставленный
@@ -368,37 +370,24 @@ Prototypes — исследовательские sketches, не production lowe
 тоже не green gate: сейчас exit 1 из-за двух parser rejections, остальные шесть
 contexts совпадают с Node. `test:semantic` остаётся отдельным abrupt/update gate.
 Результаты, варианты, draft spec и C probes:
-[research](../../plans/ts-bs-semantics/research/01-expression-evaluation-results.md).
+[research](https://github.com/BorisType/BorisType/blob/main/refs/research/compiler-semantics/research/01-expression-evaluation-results.md).
 Checkpoint сохранён; дальнейшая script/module migration отложена до решения памяти.
 
-## CLI (Разработка)
+## Разработка и CLI
 
-bt-ir включает CLI для тестирования:
+Из корня checkout, после установки Node/pnpm из project pins:
 
-```bash
-# После сборки
-npm run build
-node build/cli.js path/to/file.ts
-
-# С выводом в файл
-node build/cli.js path/to/file.ts -o output.js
+```sh
+pnpm install --frozen-lockfile
+pnpm exec turbo run build
+pnpm --filter @boristype/bt-ir test
+node packages/bt-ir/build/cli.js path/to/file.ts -o output.js
 ```
 
-## Разработка
-
-```bash
-# Установить зависимости
-npm install
-
-# Собрать
-npm run build
-
-# Запустить тесты
-npm test
-
-# Разработка
-npm run build && node build/cli.js path/to/your/file.ts
-```
+[Карта реализации и причины решений](https://github.com/BorisType/BorisType/blob/main/refs/compiler/README.md),
+[prerequisites и смысл verification gates](https://github.com/BorisType/BorisType/blob/main/refs/compiler/verification.md).
+Сборка не предоставляет vendor runtime. При изменении TS semantics проверяется
+поведение и output; один unit test или known-XFAIL baseline не заменяет native evidence.
 
 ## Структура проекта
 
@@ -418,7 +407,7 @@ bt-ir/
 
 ## Версия TypeScript
 
-Требуется TypeScript 5.0+
+Используется TypeScript 6 Compiler API; точный peer range — в [package.json](package.json). TypeScript 7 не является совместимой заменой API.
 
 ## Лицензия
 
@@ -426,8 +415,8 @@ MIT
 
 ## См. также
 
-- [Основной проект BorisType](../)
-- [Компилятор btc](../btc/)
-- [Справка по режимам компиляции](../docs/reference/compile-modes.md)
-- [Ограничения BorisScript](../docs/reference/borisscript-constraints.md)
-- [Архитектура IR Pipeline](../ref/architecture/ir-pipeline.md)
+- [Основной проект BorisType](..)
+- [Компилятор btc](https://github.com/BorisType/BorisType/tree/main/packages/bt-cli)
+- [Справка по режимам компиляции](https://github.com/BorisType/BorisType/blob/main/docs/reference/compile-modes.md)
+- [Ограничения BorisScript](https://github.com/BorisType/BorisType/blob/main/docs/reference/borisscript-constraints.md)
+- [Текущая карта и основания](https://github.com/BorisType/BorisType/blob/main/refs/compiler/README.md)

@@ -1,0 +1,32 @@
+# Historical probe/evidence hashes refer to exact bytes on every checkout.
+# Keep CRLF conversion from changing these artifacts on Windows.
+refs/research/dotnet/probes/path-schemes/managed-alias-read.bs -text
+refs/research/mcp/10-object-model/evidence-manifest.json -text
+refs/research/mcp/10-object-model/first-implementation-evidence.json -text
+refs/research/mcp/10-object-model/observed/01-reflection.result.jsonl -text
+refs/research/mcp/10-object-model/observed/02-values-and-hooks.result.jsonl -text
+refs/research/mcp/10-object-model/observed/03-owned-crud.result.jsonl -text
+refs/research/mcp/10-object-model/observed/first-create-load.result.jsonl -text
+refs/research/mcp/10-object-model/observed/first-diagnostic-range.result.jsonl -text
+refs/research/mcp/10-object-model/observed/first-id-format.result.jsonl -text
+refs/research/mcp/10-object-model/observed/first-object-tools-e2e.log -text
+refs/research/mcp/10-object-model/observed/first-postcheck.result.jsonl -text
+refs/research/mcp/10-object-model/observed/postcheck.bs -text
+refs/research/mcp/10-object-model/observed/postcheck.result.jsonl -text
+refs/research/mcp/10-object-model/observed/xml-core.result.jsonl -text
+refs/research/mcp/10-object-model/observed/xml-crud.result.jsonl -text
+refs/research/mcp/10-object-model/observed/xml-local-validator.json -text
+refs/research/mcp/10-object-model/observed/xml-postcheck.bs -text
+refs/research/mcp/10-object-model/observed/xml-postcheck.result.jsonl -text
+refs/research/mcp/10-object-model/probes/01-reflection.bs -text
+refs/research/mcp/10-object-model/probes/02-values-and-hooks.bs -text
+refs/research/mcp/10-object-model/probes/03-owned-crud.bs -text
+refs/research/mcp/10-object-model/probes/first-create-load.bs -text
+refs/research/mcp/10-object-model/probes/first-diagnostic-range.bs -text
+refs/research/mcp/10-object-model/probes/first-id-format.bs -text
+refs/research/mcp/10-object-model/probes/first-postcheck.bs -text
+refs/research/mcp/10-object-model/probes/verify-results.mjs -text
+refs/research/mcp/10-object-model/probes/verify-xml-results.mjs -text
+refs/research/mcp/10-object-model/probes/xml-core.bs -text
+refs/research/mcp/10-object-model/probes/xml-crud.bs -text
+refs/research/mcp/10-object-model/xml-evidence-manifest.json -text

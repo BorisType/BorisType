@@ -1,7 +1,7 @@
 # Тестовая .NET DLL для WebSoft HCM
 
 Исследовательский пример, не новый MCP tool. Подробности и ограничения:
-[результат native-проверки](../../../plans/mcp-server/06-dotnet-probe.md).
+[результат native-проверки](../../../refs/research/mcp/06-dotnet-probe.md).
 До переноса в общий workspace на Linux HCM 2025.2.1333 / .NET 9.0.11
 проверены **19/19** условий smoke-прогона. Перенос путей сам по себе не является
 новой native-проверкой.
@@ -90,7 +90,7 @@ return assembly.CallClassStaticMethod("BorisType.Probes.PlainBridge", "Ping", []
 
 У результата `GetAssembly` в этом пути метод вызывается **без `.Object`**.
 Возвращаемое значение для произвольного текста оборачивается в BS `EncodeJson`
-перед SOAP: [почему нужен JSON carrier](../../../plans/mcp-server/04-local-e2e.md).
+перед SOAP: [почему нужен JSON carrier](../../../refs/research/mcp/04-local-e2e.md).
 
 ## Известное падение: обратный вызов EncodeJson
 

@@ -2,7 +2,7 @@
 
 Транспилятор TypeScript → BorisScript для платформы WebSoft HCM.
 
-Использует [bt-ir](../bt-ir/) для emit: TypeScript Compiler API создаёт Program с `noEmit: true`, а кодогенерация выполняется через `compileSourceFile()` из bt-ir.
+Использует [bt-ir](https://github.com/BorisType/BorisType/tree/main/packages/bt-ir) для emit: TypeScript Compiler API создаёт Program с `noEmit: true`, а кодогенерация выполняется через `compileSourceFile()` из bt-ir.
 
 ## CLI-команды
 

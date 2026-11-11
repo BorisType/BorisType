@@ -45,7 +45,7 @@ JS-проверки используют supplied `main.js`, загружаем�
 
 Дополнительные server-side eval проверки числового вывода, строк и SQL проведены
 2026-11-07 на Linux `websoft/hcm:2025.2.1333` / CLR 9.0.11. Они описаны в EXPR-04
-и [отчёте XQuery acceptance](https://github.com/BorisType/BorisType/blob/main/plans/mcp-server/09-xquery-native.md);
+и [отчёте XQuery acceptance](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/09-xquery-native.md);
 это отдельные пробы, не расширение compiler control-flow gate.
 
 | Область                                       | Supplied JS implementation                                               | Независимая C implementation                                                                |
@@ -85,7 +85,7 @@ Bare не создаёт общую env/descriptor infrastructure; собств�
 семантика этим режимом не обещается. Условия возобновления script/module:
 принятый lifetime contract и ABI plan, сохранение escaping values и доказанная
 обработка циклов с ограниченными memory/teardown tests на реальной C-платформе.
-См. [ADR](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-11-05-script-module-memory-freeze.md).
+См. [ADR](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-11-05-script-module-memory-freeze.md).
 
 ## Compile modes
 
@@ -456,7 +456,7 @@ JS wall time не является C benchmark.
 Expression order/frequency также имеют подтверждённые script/module failures:
 late optional argument может обогнать early argument/callee, а extracted loop
 condition выполниться один раз до loop. Permanent strict-valid probes и границы
-evidence: [research report](https://github.com/BorisType/BorisType/blob/main/plans/ts-bs-semantics/research/01-expression-evaluation-results.md).
+evidence: [research report](https://github.com/BorisType/BorisType/blob/main/refs/research/compiler-semantics/research/01-expression-evaluation-results.md).
 
 ## Диагностики и integration API
 
@@ -515,9 +515,9 @@ C gate при изменении target shape. Supplied runtime нельзя п�
 
 - [ModeConfig](https://github.com/BorisType/BorisType/blob/main/packages/bt-ir/src/lowering/mode-config.ts), [lowering](https://github.com/BorisType/BorisType/tree/main/packages/bt-ir/src/lowering), [diagnostics](https://github.com/BorisType/BorisType/blob/main/packages/bt-ir/src/pipeline/diagnostics.ts).
 - [Runtime semantic helpers](https://github.com/BorisType/BorisType/blob/main/packages/builtin-runtime/src/semantic.ts), [recommended ESLint](https://github.com/BorisType/BorisType/blob/main/packages/eslint-plugin/src/index.ts).
-- [Structured completion ADR](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-10-07-structured-abrupt-completion.md), [C-safe updates ADR](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-10-07-safe-for-updates.md).
-- [Numeric literal ADR](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-03-30-numeric-literal-precision.md), [IR architecture](https://github.com/BorisType/BorisType/blob/main/ref/architecture/ir-pipeline.md).
-- [Pre-merge/C probes](https://github.com/BorisType/BorisType/blob/main/plans/probes/README.md), [implementation plan](https://github.com/BorisType/BorisType/blob/main/plans/issue-13-labeled-statements.md).
+- [Structured completion ADR](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-10-07-structured-abrupt-completion.md), [C-safe updates ADR](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-10-07-safe-for-updates.md).
+- [Numeric literal ADR](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-03-30-numeric-literal-precision.md), [IR architecture](https://github.com/BorisType/BorisType/blob/main/refs/archive/compiler/architecture/ir-pipeline.md).
+- [Pre-merge/C probes](https://github.com/BorisType/BorisType/blob/main/refs/research/compiler-control-flow/probes/README.md), [implementation plan](https://github.com/BorisType/BorisType/blob/main/refs/research/compiler-control-flow/labeled-statements.md).
 
 При расхождении исторического ADR/комментария с текущим output документ фиксирует
 наблюдаемое состояние, не объявляет прошлое намерение реализованной гарантией.

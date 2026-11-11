@@ -1,5 +1,10 @@
 # Деплой на WebSoft HCM
 
+Это руководство описывает существующий экспериментальный module pipeline.
+Развитие `script/module` приостановлено до решения стратегии памяти;
+поддерживаемое направление разработки — `bare`. CLI по умолчанию остаётся
+`module`. См. [режимы и статус поддержки](../reference/compile-modes).
+
 ## Обзор
 
 Команда `btc push` загружает скомпилированный код на сервер WebSoft HCM и реинициализирует модули для немедленного применения изменений.
@@ -96,4 +101,4 @@ btconfig.properties
 
 - [Руководство Dev Mode](./dev-mode)
 - [Справка btconfig.properties](../reference/btconfig-properties)
-- [Архитектура Push](https://github.com/BorisType/BorisType/blob/main/ref/architecture/push-system.md)
+- [Архитектура Push](https://github.com/BorisType/BorisType/blob/main/refs/archive/compiler/architecture/push-system.md)

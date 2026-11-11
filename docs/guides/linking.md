@@ -1,5 +1,10 @@
 # Система линковки (Linking)
 
+Это руководство описывает существующий экспериментальный module pipeline.
+Развитие `script/module` приостановлено до решения стратегии памяти;
+поддерживаемое направление разработки — `bare`. CLI по умолчанию остаётся
+`module`. См. [режимы и статус поддержки](../reference/compile-modes).
+
 Система линковки в BorisType отвечает за создание финальной структуры проекта в директории `dist/`, которая затем копируется в целевую платформу для выполнения BorisScript.
 
 ## Как работает линковка
@@ -305,30 +310,7 @@ cd frontend && npx vite build && cd ..
 npx btc link
 ```
 
-## TypeScript типы
+## Справочник конфигурации
 
-Типы для `btconfig.json` определены в [`btc/src/core/btconfig.types.ts`](../btc/src/core/btconfig.types.ts):
-
-```typescript
-export type BtConfigLinkingPackage = {
-  name: string; // Обязательное - имя директории пакета
-  source?: string; // Опциональное - путь к файлам
-  target?: string; // Опциональное - целевой путь в dist/
-};
-
-export type BtConfigLinking = {
-  packages: BtConfigLinkingPackage[];
-};
-
-export type BtConfig = {
-  linking?: BtConfigLinking;
-};
-```
-
-**Логика определения source и target:**
-
-- Если пакет содержит `ws:package` (BT пакет):
-  - `source` по умолчанию: `{name}/build`
-  - `target` по умолчанию: значение `ws:root` из package.json или путь к компоненту для `component` пакетов
-- Если обычная директория:
-  - `source` и `target` обязательны
+Поля `linking.packages`, правила `source`/`target` и примеры конфигурации описаны
+в [справочнике btconfig.json](../reference/btconfig).

@@ -14,7 +14,7 @@ Default `module` и правила автоматического выбора `
 Bare не добавляет общую эмуляцию closures/modules/polyfills и не гарантирует
 освобождение пользовательских циклов или platform handles.
 См. [контракт памяти](./borisscript-constraints#память-и-граница-поддержки) и
-[ADR](https://github.com/BorisType/BorisType/blob/main/ref/decisions/2026-11-05-script-module-memory-freeze.md).
+[ADR](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-11-05-script-module-memory-freeze.md).
 
 ## Обзор
 
@@ -84,5 +84,5 @@ export const myAction = remoteAction({
 ## См. также
 
 - [Ограничения BorisScript](./borisscript-constraints)
-- [Архитектура IR](https://github.com/BorisType/BorisType/blob/main/ref/architecture/ir-pipeline.md)
+- [Архитектура IR](https://github.com/BorisType/BorisType/blob/main/refs/archive/compiler/architecture/ir-pipeline.md)
 - [README bt-ir](https://github.com/BorisType/BorisType/blob/main/packages/bt-ir/README.md)

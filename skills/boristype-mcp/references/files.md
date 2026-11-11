@@ -89,8 +89,8 @@ symlink/junction отвергаются. Проверка bytes перед за�
 ## Источники
 
 - [Публичный контракт MCP](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
-- [Read-aware design](https://github.com/BorisType/BorisType/blob/main/plans/dotnet/11-read-aware-files-design.md)
-  и [native acceptance](https://github.com/BorisType/BorisType/blob/main/plans/dotnet/13-read-aware-files-results.md).
-- [Наблюдения SQL storage](https://github.com/BorisType/BorisType/blob/main/plans/dotnet/15-url-storage-routing-research.md):
+- [Read-aware design](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/11-read-aware-files-design.md)
+  и [native acceptance](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/13-read-aware-files-results.md).
+- [Наблюдения SQL storage](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/15-url-storage-routing-research.md):
   Linux HCM 2025.2.1333 / CLR 9.0.11, server-side eval, PostgreSQL.
   Windows и другие конфигурации этим запуском не проверены.

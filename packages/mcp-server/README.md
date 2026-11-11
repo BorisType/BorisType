@@ -2,7 +2,7 @@
 
 MCP сервер для WebSoft HCM — предоставляет AI-агентам доступ к файловой системе, серверному XQuery и XML объектам через [Model Context Protocol](https://modelcontextprotocol.io/) (stdio transport).
 
-Использует [@boristype/ws-client](../ws-client/) для соединения с WSHCM сервером.
+Использует [@boristype/ws-client](https://github.com/BorisType/BorisType/tree/main/packages/ws-client) для соединения с WSHCM сервером.
 
 Статус: экспериментальный checkpoint девяти файловых tools, `wshcm_xquery` и
 первый XML object MVP (`get_form`, `get_object`, `save_object`).
@@ -12,11 +12,11 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 callbacks. Девять файловых tools и защита чтений прошли native e2e на Linux
 C-runtime `websoft/hcm:2025.2.1333` / CLR 9.0.11. Это evidence одной сборки;
 другие ОС/версии и полный permissions/VFS contract требуют отдельных проверок.
-[Отчёт](../../plans/dotnet/13-read-aware-files-results.md).
+[Отчёт](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/13-read-aware-files-results.md).
 
 Файловые tools работают с физическими файлами. Логические URL-ресурсы в `spxml_blobs`
 ими не читаются и не обновляются; успешная правка диска может не изменить
-результат `LoadUrlData` того же URL. [Граница checkpoint](../../plans/mcp-server/08-filesystem-checkpoint.md).
+результат `LoadUrlData` того же URL. [Граница checkpoint](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/08-filesystem-checkpoint.md).
 
 Используется стабильная линия MCP TypeScript SDK 2.x: runtime-пакет
 `@modelcontextprotocol/server`; `@modelcontextprotocol/client` нужен только тестам.
@@ -26,7 +26,7 @@ C-runtime `websoft/hcm:2025.2.1333` / CLR 9.0.11. Это evidence одной с�
 TypeScript 6.0.3 следует общему Compiler API baseline workspace. Это не latest
 TypeScript CLI: версия 7 использует новый native compiler и другой API.
 Обоснование и отставшие зависимости перечислены в
-[dependency review](../../plans/mcp-server/03-dependency-review.md).
+[dependency review](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/03-dependency-review.md).
 
 ## Установка
 
@@ -51,7 +51,7 @@ npx skills add BorisType/BorisType --skill boristype-mcp
 Для изменений до публикации используй локальный checkout:
 `npx skills add . --skill boristype-mcp`.
 Skill не устанавливает MCP/DLL и не требует skill `websoft-hcm`.
-[Каталог и установка skills](../../docs/guides/agent-skills.md).
+[Каталог и установка skills](https://github.com/BorisType/BorisType/blob/main/docs/guides/agent-skills.md).
 MCP resources и prompts на этом шаге не зарегистрированы. Описания tools,
 instructions и skill не добавляют гарантий чтения, изоляции или отката сверх кода.
 
@@ -87,7 +87,7 @@ stubs удалены. Два файловых BS resources — URL bridges к DL
 Это несовместимое обновление прототипа: read всегда возвращает JSON,
 includeMetadata удалён; edit требует readToken, write по умолчанию create-only.
 Установить DLL alpha.4/API 2 и обновить MCP вместе. Старые ответы API 1 отвергаются.
-Установка — в [.NET README](../dotnet/README.md#установка-для-mcp); npm не содержит DLL.
+Установка — в [.NET README](https://github.com/BorisType/BorisType/blob/main/packages/dotnet/README.md#установка-для-mcp); npm не содержит DLL.
 
 ### XML объектов: форма, чтение, сохранение
 
@@ -188,7 +188,7 @@ Save/hooks могут иметь частичные эффекты. Rollback, ca
 После неизвестного исхода сначала установить фактическое состояние по ID либо
 уникальному коду созданного объекта. Удаление, patch DSL и bulk не входят в MVP.
 
-[Native acceptance и границы](../../plans/mcp-server/10-object-model/first-implementation.md).
+[Native acceptance и границы](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/10-object-model/first-implementation.md).
 
 ### Серверный XQuery и SQL
 
@@ -244,7 +244,7 @@ WebSoft. Ограничения клиентского LDS-вызова не п�
 Поддержка серверного `sql:` без дополнительных клиентских флагов — уточнение
 пользователя. Native acceptance прошёл 2026-11-07 на Linux HCM 2025.2.1333 /
 CLR 9.0.11 / PostgreSQL 16 без изменения настроек SQL. Это проверка текущего
-стенда, не всех версий/конфигураций. [Результаты и ограничения](../../plans/mcp-server/09-xquery-native.md).
+стенда, не всех версий/конфигураций. [Результаты и ограничения](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/09-xquery-native.md).
 
 ### Чтение и разрешённые изменения
 
@@ -330,14 +330,14 @@ Write/edit используют temp рядом с target, flush и rename; edit
 внешних процессов не гарантируется:** между проверкой и rename остаётся окно.
 Новые Unix файлы имеют mode 0600 с учётом umask; existing rwx сохраняются,
 owner/ACL/inode/hardlinks — без гарантии. Ошибка доставки ответа не откатывает commit.
-Подробный [контракт](../../plans/dotnet/11-read-aware-files-design.md).
+Подробный [контракт](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/11-read-aware-files-design.md).
 
 ### Поиск
 
 `wshcm_search_files` использует ту же отдельно установленную `BorisType.FileSystem.dll`
 версии `0.1.0-alpha.4` / API 2. Installation ZIP собирается
 командой `pnpm pack:dotnet`; установка и версия CLR описаны в
-[.NET README](../dotnet/README.md#установка-для-mcp). npm package не содержит DLL.
+[.NET README](https://github.com/BorisType/BorisType/blob/main/packages/dotnet/README.md#установка-для-mcp). npm package не содержит DLL.
 BS разрешает `x-local://` через `UrlToFilePath`, C# получает абсолютный физический
 каталог и не вызывает Datex обратно.
 
@@ -373,7 +373,7 @@ Default limits: 200 hits, 10000 entries, depth 10, 1 MiB/file, 16 MiB/read,
 с reparse points отвергаются. Timeout cooperative и не прерывает зависший syscall.
 Обычные стабильные файлы — текущая граница поддержки; TOCTOU sandbox не обещается.
 Все options, hard maxima и точный контракт — в
-[спецификации](../../plans/dotnet/04-search-design.md).
+[спецификации](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/04-search-design.md).
 
 ### URL-модель
 
@@ -391,7 +391,7 @@ x-local://wt/myapp/src/index.bs   — файл проекта
 `spxml_blobs`, пока физический файл того же адреса содержал другие байты.
 Изменение/удаление дискового файла не изменяет blob; readToken/hash покрывают
 только диск. Для логических URL/blob ресурсов нужны отдельные операции.
-[Проверка и границы](../../plans/dotnet/15-url-storage-routing-research.md).
+[Проверка и границы](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/15-url-storage-routing-research.md).
 
 ## Конфигурация
 
@@ -511,12 +511,12 @@ E2E использует отдельные `WSHCM_E2E_*` переменные, 
 
 Обычный `test` и CI не подключаются к HCM. E2E не скачивает, не разворачивает
 и не перенастраивает стенд. Evidence и platform workarounds:
-[local e2e report](../../plans/mcp-server/04-local-e2e.md).
+[local e2e report](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/04-local-e2e.md).
 
 С теми же environment variables отдельно выполнить `test:e2e:edit` и
 `test:e2e:read-aware`: второй проверяет диапазоны/чужой token/stale bytes,
 guarded overwrite и mkdir/info/binary rename. Текущие результаты всех серий —
-в [отчёте alpha.4](../../plans/dotnet/13-read-aware-files-results.md).
+в [отчёте alpha.4](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/13-read-aware-files-results.md).
 
 Поиск имеет отдельную acceptance-команду, которая дополнительно требует уже
 установленную DLL в `/WebsoftServer/dotnetcore/shared/`:
@@ -559,7 +559,7 @@ Output acceptance использует PostgreSQL `repeat`/`generate_series`. К
 прошли 10/10 Node tests (9 сценариев и parent), без skips. Большие ответы выявили
 и помогли исправить UTF-8 decoding на границах HTTP chunks в ws-client.
 Windows HCM, MSSQL, другие версии и полный контракт типов требуют отдельных проверок.
-[Native отчёт](../../plans/mcp-server/09-xquery-native.md).
+[Native отчёт](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/09-xquery-native.md).
 
 XML objects имеют отдельную acceptance-команду с теми же `WSHCM_E2E_*`:
 
@@ -573,7 +573,7 @@ form/create/read/full replace, плохие XML без изменения объ
 и проверяет catalog/trash/OpenDoc и evaluator cleanup. На Linux HCM 2025.2.1333 /
 CLR 9.0.11 / PostgreSQL 16 прошли **8/8** tests (семь сценариев и parent), без skips.
 Это ограниченная вертикаль одного типа; остальные типы/hooks/провайдеры требуют
-отдельных native проверок. [Evidence](../../plans/mcp-server/10-object-model/first-implementation.md).
+отдельных native проверок. [Evidence](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/10-object-model/first-implementation.md).
 
 ### Что остаётся проверить
 

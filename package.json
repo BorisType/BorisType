@@ -25,7 +25,9 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "docs:check": "node tools/check-docs.mjs",
+    "docs:test": "node --test tools/check-docs.test.mjs"
   },
   "author": "",
   "license": "ISC",
