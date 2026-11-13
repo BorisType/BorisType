@@ -31,6 +31,7 @@ const client = new WshcmClient({
   password: process.env.WSHCM_PASSWORD,
 });
 
+await client.initialize();
 const evaluator = client.createEvaluator();
 try {
   await evaluator.initialize();

@@ -8,7 +8,7 @@ import { WshcmClient } from "./client.js";
  *
  * @example
  * ```typescript
- * const evaluator = client.evaluator;
+ * const evaluator = client.createEvaluator();
  * await evaluator.initialize();
  * const result = await evaluator.eval('return 2 + 2;');
  * await evaluator.close();
