@@ -1,6 +1,6 @@
 {
   "name": "@boristype/ws-version",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "Утилита для преобразования semver версий в формат целевой системы",
   "type": "module",
   "main": "build/index.js",
