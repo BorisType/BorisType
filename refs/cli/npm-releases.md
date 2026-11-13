@@ -95,7 +95,13 @@ Actions run. [Ограничение GitHub](https://docs.github.com/en/actions/
    (совместимыми dev ranges, например TypeScript из quick start), проверяет импорт/справку CLI.
 6. Передаёт тот же архив через Actions artifact в отдельный `publish` job,
    сверяет SHA512 с output упаковки, повторяет проверки тега/dependencies.
-   Публикует prebuilt `.tgz` через pnpm native OIDC с provenance.
+   До обращения к publish endpoint сохраняет artifact с intent: package/version,
+   SHA512, source commit и номер попытки. Публикует prebuilt `.tgz` через pnpm native
+   OIDC с provenance; ожидание доступности внутри `pnpm publish` отключено.
+7. Отдельный `verify` job без `id-token:write` до 30 минут ждёт точную версию
+   в install metadata и скачивает её tarball. Проверяет размер и SHA512
+   скачанных bytes против исходного artifact, включая уже опубликованные версии.
+   Metadata и tarball могут появиться в разное время. Пересборки и upload здесь нет.
 
 Consumer smoke использует cooldown, trust, overrides, integrity и запрет scripts
 из workspace. Только отсутствие неприменимых patches разрешено через
@@ -108,13 +114,61 @@ Prerelease идёт в `next`, stable — в `latest`. Публикации од
 Старая версия, которая откатила бы channel назад, отклоняется. Это защита внутри
 данного CI; внешняя ручная публикация может гоняться с проверкой.
 
-После неясного результата upload helper перечитывает registry и сравнивает SHA512.
-Повторная загрузка автоматически не выполняется. Уже существующая версия считается
-успешной только при точном совпадении integrity; её dist-tags не меняются.
-401/403/429/5xx не трактуются как отсутствие версии. При остановке проверить npm
-и повторить **тот же Actions run**; не двигать тег и не перезаписывать версию.
-Истёкший artifact потребует повторного запуска всего workflow. Если повторная
-сборка дала другой архив для уже опубликованной версии, исследовать причину.
+## Задержки npm и ручное восстановление
+
+npm может принять upload до доступности пакета: официальное описание
+[publish-time scanning](https://github.blog/changelog/2026-07-28-npm-publish-time-malware-scanning-and-dual-use-metadata/)
+указывает обычно около пяти минут, иногда 15 минут и больше, без SLA.
+Это возможная причина задержки; по одному 404 нельзя определить статус сканирования,
+ручной проверки или отказа конкретного пакета. При валидации первых trusted publishers
+upload был принят, но наш `--publish-wait-timeout=120000` неоднократно истекал.
+Две минуты и дополнительные шесть lookup с паузами по пять секунд оказались недостаточны.
+
+Теперь чтение registry имеет общий deadline 30 минут, backoff 5–30 секунд
+и ограничение длительности каждого HTTP-запроса оставшимся временем.
+Сетевые сбои, 408, 429 и 5xx повторяются; учитывается `Retry-After`.
+401/403, некорректные metadata и несовпадение архива завершают проверку сразу.
+Tarball должен оставаться на том же registry origin; redirects не принимаются.
+Истечение deadline означает «доступность не подтверждена; upload мог быть принят».
+Проверка не становится успешной только из-за принятого upload.
+
+Для восстановления использовать **Re-run failed jobs** того же Actions run:
+
+| Где произошёл сбой                                                                                  | Что делает повторный запуск                                                 |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Build, tests или readiness зависимостей до upload                                                   | Повторяет незавершённые проверки; upload ещё не разрешён                    |
+| `verify` после принятого или неизвестного результата upload                                         | Повторяет только чтение registry и проверку исходного архива                |
+| `publish`, версия уже видна с тем же integrity                                                      | Пропускает upload, затем скачивает и проверяет архив; dist-tags не меняет   |
+| `publish`, прежний intent есть, но результата нет или он неизвестен                                 | Только проверяет доступность: runner мог завершиться после принятия upload  |
+| npm явно отклонил PUT                                                                               | Разрешает новую попытку для этого пакета после повторных preflight проверок |
+| Evidence отсутствует после начавшегося upload, истёк, повреждён или относится к другим bytes/commit | Останавливается; требует исследования состояния npm                         |
+
+Распознавание явного отказа ограничено диагностикой `ERR_PNPM_FAILED_TO_PUBLISH`
+закреплённого pnpm: HTTP 400/401/403/413/422 для точного package/version.
+Контракт этой диагностики проверяется настоящим pnpm против локального HTTP fixture.
+Conflict, 5xx, потеря ответа и остальные неоднозначные ошибки не разрешают повторный upload.
+Intent сохраняется **до** побочного эффекта; result — отдельным artifact даже при отказе.
+При восстановлении helper также смотрит историю upload step, чтобы удалённый artifact
+не выглядел как доказательство отсутствия предыдущей попытки. После download сверяет
+полноту восстановленных receipts с исходным списком: частичный download не разрешает upload.
+
+Архив и receipts хранятся 30 дней — в пределах поддерживаемого GitHub окна rerun.
+Полный rerun может повторить сборку, но receipts и опубликованная integrity должны
+совпасть с полученными bytes; при отличии требуется исследование, а не новый upload.
+Не удалять evidence для обхода защиты, не двигать тег и не перезаписывать версию.
+Если неизвестная попытка так и не появилась, сначала выяснить её исход в npm;
+отсутствие версии само по себе не разрешает повторную загрузку.
+
+Единица восстановления остаётся отдельным package workflow. Исправить упавшие
+публикации зависимостей, затем повторить workflows потребителей; успешно
+проверенные пакеты повторно отправлять не нужно. Проверка всех требуемых внутренних
+dependencies использует одно общее окно ожидания, затем smoke устанавливает consumer.
+Перед upload readiness dependencies проверяется повторно. Helper не создаёт их теги
+и не запускает их публикацию автоматически.
+
+Изменение workflow применяется к новым release commits. GitHub rerun сохраняет
+исходные `GITHUB_SHA`/`GITHUB_REF`, поэтому старый run не получает новый helper
+просто после merge этого исправления в main.
 
 Global `changeset publish`/recursive publish здесь не используются. Теги пушатся
 человеком. Для будущего автоматического создания тегов обычный GITHUB_TOKEN
@@ -169,6 +223,11 @@ ws-client остаётся обычной npm dependency; исправление
 публикация и настройки GitHub environment/trust локально не проверяются.
 Новый пакет требует обновления allowlist, package checks и npm trust.
 
+Проверки восстановления используют локальный HTTP server для metadata/tarball,
+управляемое время для многоминутных задержек, настоящие receipt files и отдельный
+ограниченный запуск pnpm с фиктивной аутентификацией на localhost. Они не публикуют
+пакеты в npm и не подтверждают причину задержки конкретной production-публикации.
+
 Первичные источники, сверены 2026-11-11:
 
 - [Changesets CLI](https://changesets.dev/guide/cli),
@@ -178,6 +237,9 @@ ws-client остаётся обычной npm dependency; исправление
 - [pnpm pack](https://pnpm.io/cli/pack), [publish](https://pnpm.io/cli/publish),
   [workspace publication](https://pnpm.io/workspaces#publishing-workspace-packages).
   Timeout registry может наступить после принятого upload.
+- [npm publish-time scanning](https://github.blog/changelog/2026-07-28-npm-publish-time-malware-scanning-and-dual-use-metadata/)
+  и [rerun semantics GitHub](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs),
+  дополнительно сверены 2026-11-13.
 - [npm trusted publishers](https://docs.npmjs.com/trusted-publishers/),
   [npm trust](https://docs.npmjs.com/cli/v11/commands/npm-trust/),
   [provenance](https://docs.npmjs.com/generating-provenance-statements/).

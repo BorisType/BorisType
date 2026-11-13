@@ -10,6 +10,7 @@ permissions:
 jobs:
   package:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     outputs:
       name: ${{ steps.release.outputs.name }}
       sha512: ${{ steps.pack.outputs.sha512 }}
@@ -70,14 +71,16 @@ jobs:
           name: npm-release
           path: ${{ runner.temp }}/npm-release/package.tgz
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
   publish:
     needs: package
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: npm
     permissions:
       contents: read
+      actions: read
       id-token: write
     concurrency:
       group: npm-publish-${{ needs.package.outputs.name }}
@@ -109,8 +112,96 @@ jobs:
           name: npm-release
           path: ${{ runner.temp }}/npm-release
 
-      - name: Publish the verified archive with npm trusted publishing
+      - name: Find durable publication receipts from this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/npm-state/prior"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" > "$RUNNER_TEMP/npm-state/artifacts.json"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=all&per_page=100" > "$RUNNER_TEMP/npm-state/jobs.json"
+
+      - name: Select publication receipt artifacts
+        id: receipts
         env:
           RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_SHA512: ${{ needs.package.outputs.sha512 }}
-        run: node tools/release.mjs publish "$RELEASE_TAG" "$RUNNER_TEMP/npm-release"
+        run: node tools/release.mjs receipt-ids "$RELEASE_TAG" "$RUNNER_TEMP/npm-release" "$RUNNER_TEMP/npm-state"
+
+      - name: Restore earlier upload intents and results
+        if: steps.receipts.outputs.ids != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ steps.receipts.outputs.ids }}
+          path: ${{ runner.temp }}/npm-state/prior
+
+      - name: Decide whether to upload or resume verification
+        id: plan
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_SHA512: ${{ needs.package.outputs.sha512 }}
+        run: node tools/release.mjs plan-upload "$RELEASE_TAG" "$RUNNER_TEMP/npm-release" "$RUNNER_TEMP/npm-state"
+
+      - name: Persist intent before contacting the publish endpoint
+        id: intent
+        if: steps.plan.outputs.mode == 'upload'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-upload-intent-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/npm-state/upload-intent.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload once with npm trusted publishing
+        if: steps.plan.outputs.mode == 'upload'
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_SHA512: ${{ needs.package.outputs.sha512 }}
+          RELEASE_INTENT_STORED: "true"
+        run: node tools/release.mjs upload "$RELEASE_TAG" "$RUNNER_TEMP/npm-release" "$RUNNER_TEMP/npm-state"
+
+      - name: Preserve the upload result even when npm rejected it
+        if: always() && steps.intent.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-upload-result-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/npm-state/upload-result.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+  verify:
+    needs: [package, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout release commit and main history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Download the original reviewed archive
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-release
+          path: ${{ runner.temp }}/npm-release
+
+      - name: Wait for installability and verify the downloaded archive
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_SHA512: ${{ needs.package.outputs.sha512 }}
+        run: node tools/release.mjs verify "$RELEASE_TAG" "$RUNNER_TEMP/npm-release"

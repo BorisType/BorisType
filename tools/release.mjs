@@ -6,10 +6,14 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import semver from "semver";
+import { npmRegistry, registryPackage, retryRegistryRead, verifyPublication, waitForDependencies } from "./npm-registry.mjs";
+import { uploadReceipt, uploadMode, receiptArtifactIds, assertRestoredReceipts, readReceipts, performUpload } from "./release-recovery.mjs";
+
+export { registryPackage } from "./npm-registry.mjs";
 
 const exec = promisify(execFile);
 const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-const registry = "https://registry.npmjs.org";
+const registry = npmRegistry;
 const directories = {
   "@boristype/bt-cli": "packages/bt-cli",
   "@boristype/bt-ir": "packages/bt-ir",
@@ -75,45 +79,15 @@ export function publicationState(target, bytes, metadata) {
   return "publish";
 }
 
-export async function publishVerified(target, bytes, upload, lookup = () => registryPackage(target.name)) {
-  if (publicationState(target, bytes, await lookup()) === "exists") {
-    console.log("Identical version already published; dist-tags left unchanged");
-    return;
+export function publicationMode(target, bytes, context, receipts, metadata) {
+  const mode = uploadMode(target, bytes, context, receipts);
+  if (metadata?.versions?.[target.version]) {
+    publicationState(target, bytes, metadata);
+    return "verify";
   }
-  let uploadError;
-  try {
-    await upload();
-  } catch (error) {
-    uploadError = error;
-  }
-  // Upload timeouts can happen after npm has accepted the artifact. Never retry the upload blindly.
-  for (let attempt = 0; attempt < 6; attempt++) {
-    if (publicationState(target, bytes, await lookup()) === "exists") {
-      console.log(`Verified npm tarball integrity for ${target.name}@${target.version}`);
-      return;
-    }
-    if (attempt < 5) await new Promise((resolve) => setTimeout(resolve, 5000));
-  }
-  throw uploadError ?? new Error("Published version did not become visible; inspect npm before rerunning");
-}
-
-export async function registryPackage(name, base = registry) {
-  const response = await fetch(`${base}/${encodeURIComponent(name)}`, {
-    signal: AbortSignal.timeout(30_000),
-    headers: { Accept: "application/json" },
-  });
-  if (response.status === 404) return undefined;
-  if (!response.ok) throw new Error(`Registry HTTP ${response.status} for ${name}`);
-  const data = await response.json();
-  if (
-    data.name !== name ||
-    !data.versions ||
-    typeof data.versions !== "object" ||
-    !data["dist-tags"] ||
-    typeof data["dist-tags"] !== "object"
-  )
-    throw new Error(`Invalid registry metadata for ${name}`);
-  return data;
+  if (mode === "verify") return mode;
+  publicationState(target, bytes, metadata);
+  return "upload";
 }
 
 export function internalDependencies(manifest, workspace) {
@@ -153,10 +127,17 @@ export async function inspectArchive(archive, target) {
   return manifest;
 }
 
-async function run(command, args, cwd) {
-  const result = await exec(command, args, { cwd, maxBuffer: 32 * 1024 * 1024, timeout: 10 * 60_000 });
-  process.stdout.write(result.stdout);
-  process.stderr.write(result.stderr);
+async function run(command, args, cwd, { stream = false } = {}) {
+  const pending = exec(command, args, { cwd, maxBuffer: 32 * 1024 * 1024, timeout: 10 * 60_000 });
+  if (stream) {
+    pending.child.stdout.pipe(process.stdout);
+    pending.child.stderr.pipe(process.stderr);
+  }
+  const result = await pending;
+  if (!stream) {
+    process.stdout.write(result.stdout);
+    process.stderr.write(result.stderr);
+  }
   return result.stdout;
 }
 
@@ -176,29 +157,43 @@ export function publishTarball(root, archive, target, dryRun = false) {
       "--registry",
       registry,
       "--config.ignore-scripts=true",
-      "--publish-wait-timeout=120000",
+      // A separate, unprivileged job waits for installability and verifies archive bytes.
+      "--publish-wait-timeout=0",
       ...(dryRun ? ["--dry-run"] : []),
     ],
     root,
+    { stream: true },
   );
 }
 
-async function dependenciesAvailable(root, manifest) {
+async function dependenciesAvailable(root, manifest, timeoutMs) {
   const workspace = new Map(
     await Promise.all(
       Object.entries(directories).map(async ([name, dir]) => [name, JSON.parse(await readFile(join(root, dir, "package.json"), "utf8"))]),
     ),
   );
-  for (const dependency of internalDependencies(manifest, workspace)) {
-    const metadata = await registryPackage(dependency.name);
-    const version = metadata?.versions?.[dependency.version];
-    if (!version?.dist?.tarball || !version.dist.integrity)
-      throw new Error(`Publish ${dependency.name}@${dependency.version} first; it is not available in npm`);
-    const url = new URL(version.dist.tarball);
-    if (url.protocol !== "https:" || url.hostname !== "registry.npmjs.org") throw new Error("Unexpected dependency tarball URL");
-    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(30_000) });
-    if (!response.ok) throw new Error(`Dependency tarball is unavailable: HTTP ${response.status}`);
-  }
+  const dependencies = internalDependencies(manifest, workspace);
+  await waitForDependencies(dependencies, {
+    timeoutMs,
+    onWait: progress(`Waiting for dependencies: ${dependencies.map((d) => `${d.name}@${d.version}`).join(", ")}`),
+  });
+}
+
+function progress(label) {
+  return ({ remainingMs, error }) => console.log(`${label}; ${Math.ceil(remainingMs / 1000)}s remaining${error ? ` (${error})` : ""}`);
+}
+
+async function output(values) {
+  const text = Object.entries(values)
+    .map(([key, value]) => `${key}=${value}\n`)
+    .join("");
+  if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, text);
+  process.stdout.write(text);
+}
+
+async function summary(text) {
+  console.log(text);
+  if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY, `${text}\n\n`);
 }
 
 export async function smoke(root, archive, target) {
@@ -235,7 +230,7 @@ export async function smoke(root, archive, target) {
 }
 
 async function main() {
-  const [command, tag, artifactPath] = process.argv.slice(2);
+  const [command, tag, artifactPath, statePath] = process.argv.slice(2);
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const target = await readRelease(root, tag);
   if (process.env.GITHUB_ACTIONS === "true") await verifyReleaseCommit(root, process.env.GITHUB_SHA, tag, "origin/main", "origin");
@@ -245,8 +240,10 @@ async function main() {
     process.stdout.write(output);
     return;
   }
-  if (!["pack", "smoke", "publish"].includes(command) || !artifactPath)
-    throw new Error("Usage: release.mjs validate|pack|smoke|publish <tag> [artifact-directory]");
+  if (!["pack", "smoke", "receipt-ids", "plan-upload", "upload", "verify"].includes(command) || !artifactPath)
+    throw new Error(
+      "Usage: release.mjs validate|pack|smoke|receipt-ids|plan-upload|upload|verify <tag> [artifact-directory] [state-directory]",
+    );
   const artifacts = resolve(artifactPath);
   if (command === "pack") {
     await mkdir(artifacts, { recursive: true });
@@ -268,9 +265,64 @@ async function main() {
   }
   if (process.env.GITHUB_ACTIONS === "true" && digest !== process.env.RELEASE_SHA512)
     throw new Error("Downloaded artifact digest differs from the verified archive");
-  await dependenciesAvailable(root, manifest);
-  if (command === "smoke") return smoke(root, archive, target);
-  await publishVerified(target, bytes, () => publishTarball(root, archive, target));
+  if (command === "smoke") {
+    await dependenciesAvailable(root, manifest);
+    return smoke(root, archive, target);
+  }
+  if (command === "verify") {
+    await verifyPublication(target, bytes, { onWait: progress(`Waiting for ${target.name}@${target.version}`) });
+    await summary(
+      `Verified ${target.name}@${target.version}: install metadata and downloaded archive match SHA512 ${digest}. Dist-tags left unchanged.`,
+    );
+    return;
+  }
+  if (!statePath) throw new Error("Expected publication state directory");
+  const state = resolve(statePath);
+  if (command === "receipt-ids") {
+    const pages = JSON.parse(await readFile(join(state, "artifacts.json"), "utf8"));
+    const jobPages = JSON.parse(await readFile(join(state, "jobs.json"), "utf8"));
+    if (!Array.isArray(pages) || pages.some((page) => !Array.isArray(page.artifacts))) throw new Error("Invalid run artifact response");
+    if (!Array.isArray(jobPages) || jobPages.some((page) => !Array.isArray(page.jobs))) throw new Error("Invalid run job response");
+    await output({
+      ids: receiptArtifactIds(
+        pages.flatMap((page) => page.artifacts),
+        jobPages.flatMap((page) => page.jobs),
+        Number(process.env.GITHUB_RUN_ATTEMPT),
+      ).join(","),
+    });
+    return;
+  }
+  const context = { commit: process.env.GITHUB_SHA, attempt: Number(process.env.GITHUB_RUN_ATTEMPT) };
+  if (command === "plan-upload") {
+    const receipts = await readReceipts(join(state, "prior"));
+    const pages = JSON.parse(await readFile(join(state, "artifacts.json"), "utf8"));
+    assertRestoredReceipts(
+      pages.flatMap((page) => page.artifacts),
+      receipts,
+    );
+    const metadata = await retryRegistryRead((remaining) => registryPackage(target.name, registry, remaining), {
+      timeoutMs: 120_000,
+      onWait: progress("Checking previous publication"),
+    });
+    const mode = publicationMode(target, bytes, context, receipts, metadata);
+    if (mode === "upload") {
+      await dependenciesAvailable(root, manifest, 120_000);
+      await writeFile(join(state, "upload-intent.json"), JSON.stringify(uploadReceipt(target, bytes, context)));
+    }
+    await output({ mode });
+    await summary(
+      `${target.name}@${target.version}: ${mode === "upload" ? "ready for one upload attempt" : "resume verification without uploading"}.`,
+    );
+    return;
+  }
+  const intent = JSON.parse(await readFile(join(state, "upload-intent.json"), "utf8"));
+  const expected = uploadReceipt(target, bytes, context);
+  if (JSON.stringify(intent) !== JSON.stringify(expected) || process.env.RELEASE_INTENT_STORED !== "true")
+    throw new Error("Upload requires the exact durable intent artifact from this attempt");
+  const status = await performUpload(target, bytes, context, state, () => publishTarball(root, archive, target));
+  await summary(`${target.name}@${target.version}: upload ${status}; availability will be checked without another upload.`);
+  if (status === "unknown")
+    console.log("::warning::Upload result uncertain. Only verification may be retried until the registry outcome is known.");
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
