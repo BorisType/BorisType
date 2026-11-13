@@ -2,11 +2,12 @@
 
 import { program } from "commander";
 import { startServer } from "./server.js";
+import { packageVersion } from "./version.js";
 
 program
   .name("boristype-mcp")
   .description("MCP server for WebSoft HCM — provides AI agents with access to server files")
-  .version("0.1.0-alpha.1")
+  .version(packageVersion)
   .requiredOption("--host <host>", "WSHCM server host", process.env["WSHCM_HOST"] ?? "localhost")
   .requiredOption("--port <port>", "WSHCM server port", process.env["WSHCM_PORT"] ?? "80")
   .requiredOption("--username <username>", "Username for authentication", process.env["WSHCM_USERNAME"] ?? "user1")

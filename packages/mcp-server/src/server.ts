@@ -4,6 +4,7 @@ import type { McpServerOptions } from "./types.js";
 import { createConnection, closeConnection } from "./connection.js";
 import type { WshcmConnection } from "./connection.js";
 import { ReadState } from "./tools/read-state.js";
+import { packageVersion } from "./version.js";
 import {
   registerReadFileTool,
   registerWriteFileTool,
@@ -30,7 +31,7 @@ export function createServer(connection: WshcmConnection): McpServer {
   const server = new McpServer(
     {
       name: "boristype-wshcm",
-      version: "0.1.0-alpha.1",
+      version: packageVersion,
     },
     {
       instructions: [

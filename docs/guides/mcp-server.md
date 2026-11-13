@@ -21,7 +21,7 @@ delete_file, create_directory, move_file и get_file_info с префиксом 
 Установите MCP сервер:
 
 ```sh
-npm install -g @boristype/mcp-server
+npm install -g @boristype/mcp-server@next
 ```
 
 Например, для VS Code добавьте в `.vscode/mcp.json`:

@@ -1,6 +1,6 @@
 {
   "name": "@boristype/ws-client",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "WSHCM SOAP client — клиент для работы с WebSoft HCM через SP-XML API",
   "type": "module",
   "main": "build/index.js",

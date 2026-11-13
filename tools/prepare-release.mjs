@@ -26,6 +26,7 @@ export async function prepareRelease(root, channel) {
   else if (channel === "stable" && pre?.mode === "pre") await changeset("pre", "exit");
   await changeset("version");
   await run(pnpm, "install", "--lockfile-only", "--ignore-scripts");
+  await run(pnpm, "install", "--frozen-lockfile", "--ignore-scripts");
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

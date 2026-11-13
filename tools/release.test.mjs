@@ -39,6 +39,8 @@ test("preparation keeps alpha explicit, versions the fixed group and can graduat
   execFileSync("pnpm", ["install", "--ignore-scripts"], { cwd: root, stdio: "pipe" });
   await assert.rejects(prepareRelease(root, "typo"), /channel/i);
   await prepareRelease(root, "alpha");
+  // pnpm exec must work immediately after preparation under verifyDepsBeforeRun:error.
+  execFileSync("pnpm", ["exec", "prettier", "--version"], { cwd: root, stdio: "pipe" });
   const manifest = async (name) => JSON.parse(await readFile(join(root, "packages", name, "package.json"), "utf8"));
   assert.equal((await manifest("ws-client")).version, "0.1.0-alpha.1");
   assert.equal((await manifest("mcp-server")).version, "0.1.0-alpha.1");
@@ -46,6 +48,7 @@ test("preparation keeps alpha explicit, versions the fixed group and can graduat
   assert.equal((await manifest("bt-cli")).version, (await manifest("runtime")).version);
   assert.equal((await manifest("runtime")).version, (await manifest("eslint-plugin")).version);
   await prepareRelease(root, "stable");
+  execFileSync("pnpm", ["exec", "prettier", "--version"], { cwd: root, stdio: "pipe" });
   assert.equal((await manifest("ws-client")).version, "0.1.0");
   assert.equal((await manifest("mcp-server")).version, "0.1.0");
   assert.ok((await readFile(join(root, "pnpm-lock.yaml"), "utf8")).includes("lockfileVersion"));

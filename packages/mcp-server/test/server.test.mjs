@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
+import { readFileSync } from "node:fs";
 import { Client, InMemoryTransport, ProtocolErrorCode } from "@modelcontextprotocol/client";
 import { createServer } from "../build/index.js";
 
@@ -21,6 +22,12 @@ async function connect(t, evaluate = () => assert.fail("Unexpected evaluation"))
 }
 
 const hash = "a".repeat(64);
+
+test("MCP initialization advertises the installed package version", async (t) => {
+  const client = await connect(t);
+  const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.deepEqual(client.getServerVersion(), { name: "boristype-wshcm", version });
+});
 const wire = (body) => JSON.stringify(JSON.stringify(body));
 const readBody = (content) => ({
   apiVersion: 2,
