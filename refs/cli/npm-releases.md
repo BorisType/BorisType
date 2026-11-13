@@ -72,6 +72,12 @@ git push origin 'refs/tags/@boristype/ws-client@<version-from-manifest>'
 bt-ir/ws-client/ws-version, если их версии ещё отсутствуют в npm. Дождаться
 успеха предыдущей публикации, а затем пушить тег потребителя.
 
+Каждый release tag отправлять отдельным `git push`. GitHub не создаёт `push`
+events, если одновременно отправлено больше трёх тегов: успешный push пяти тегов
+на этом workflow не запустил ни одной публикации. Не использовать `git push --tags`
+или общий push большого набора refs. После каждого push проверить появление
+Actions run. [Ограничение GitHub](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#push).
+
 [Publish npm package](../../.github/workflows/publish-package.yml):
 
 1. Принимает только семь публичных пакетов из allowlist в
