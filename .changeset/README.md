@@ -6,4 +6,8 @@
 
 Общий release PR готовится вручную запущенным `prepare-release.yml` с каналом
 alpha/stable. После merge каждый пакет публикуется отдельным package-version tag.
-Полный порядок и однократная настройка: [npm-релизы](../refs/cli/npm-releases.md).
+Полная инструкция: [подготовка и публикация npm-релизов](../refs/cli/npm-releases.md).
+В ней описаны fixed group и влияние dependencies, выбор patch/minor/major,
+alpha/stable и next/latest, проверка release PR, порядок отправки тегов,
+ручное восстановление и настройка нового пакета. Сам changeset и merge release PR
+ничего не публикуют; опубликованные версии повторно поднимать для rerun не нужно.

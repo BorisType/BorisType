@@ -12,6 +12,7 @@
 | Установить знания о платформе и инструментах через `npx skills add` | [Каталог skills](skills/README.md)                                                                        |
 | Компилировать TS в BorisScript                                      | [Начало работы](docs/guides/getting-started.md), [ограничения](docs/reference/borisscript-constraints.md) |
 | Изменять реализацию или найти основания решений                     | [Внутренние справочники](refs/README.md), [разработка](refs/development.md)                               |
+| Подготовить и выпустить npm-релиз                                   | [Группы версий, release PR, публикация и восстановление](refs/cli/npm-releases.md)                        |
 
 Пользовательские гайды и справка находятся в [docs/](docs/index.md) (сайт VitePress).
 Текущий контракт пакета также доступен в его README: [MCP](packages/mcp-server/README.md),
