@@ -123,27 +123,29 @@ test("retry accepts only the same immutable tarball; older queued releases canno
   assert.throws(() => release.publicationState(target, bytes, { versions: { "0.1.0-alpha.3": { dist: {} } } }), /integrity/i);
 });
 
-test("uncertain upload is reconciled by integrity, without a second upload", async () => {
-  let uploads = 0;
-  let stored;
-  const lookup = async () => stored;
-  const upload = async () => {
-    uploads++;
-    stored = { versions: { "0.1.0-alpha.3": { dist: { integrity } } }, "dist-tags": { next: "0.1.0-alpha.3" } };
-    throw new Error("Response lost after accepted upload");
+test("a rerun selects verification for existing or uncertain versions and never rewinds a channel", () => {
+  const context = { commit: "a".repeat(40), attempt: 2 };
+  const receipt = {
+    schema: 1,
+    name: target.name,
+    version: target.version,
+    channel: "next",
+    sha512: createHash("sha512").update(bytes).digest("hex"),
+    commit: context.commit,
+    attempt: 1,
+    status: "attempted",
   };
-  await release.publishVerified(target, bytes, upload, lookup);
-  await release.publishVerified(target, bytes, upload, lookup);
-  assert.equal(uploads, 1);
-  await assert.rejects(release.publishVerified(target, Buffer.from("changed archive"), upload, lookup), /integrity/i);
-  assert.equal(uploads, 1);
-  await assert.rejects(
-    release.publishVerified(target, bytes, upload, async () => {
-      throw new Error("Registry HTTP 403");
-    }),
-    /403/,
+  assert.equal(release.publicationMode(target, bytes, context, [], undefined), "upload");
+  assert.equal(release.publicationMode(target, bytes, context, [receipt], undefined), "verify");
+  assert.equal(release.publicationMode(target, bytes, context, [], { versions: { [target.version]: { dist: { integrity } } } }), "verify");
+  assert.throws(
+    () => release.publicationMode(target, Buffer.from("wrong"), context, [], { versions: { [target.version]: { dist: { integrity } } } }),
+    /integrity/i,
   );
-  assert.equal(uploads, 1);
+  assert.throws(
+    () => release.publicationMode(target, bytes, context, [], { versions: {}, "dist-tags": { next: "0.1.0-alpha.4" } }),
+    /older|rewind/i,
+  );
 });
 
 test("registry absence is distinguished from auth, rate limits, malformed metadata and server errors", async (t) => {

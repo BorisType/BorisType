@@ -28,7 +28,7 @@
     "prepare": "lefthook install",
     "docs:check": "node tools/check-docs.mjs",
     "docs:test": "node --test tools/check-docs.test.mjs",
-    "release:test": "node --test tools/release.test.mjs"
+    "release:test": "node --test tools/release.test.mjs tools/npm-registry.test.mjs tools/release-recovery.test.mjs"
   },
   "author": "",
   "license": "ISC",
