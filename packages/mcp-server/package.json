@@ -1,6 +1,6 @@
 {
   "name": "@boristype/mcp-server",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "MCP server for WebSoft HCM — provides AI agents with access to server files and resources",
   "type": "module",
   "main": "./build/index.js",
