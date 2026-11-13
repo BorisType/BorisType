@@ -31,7 +31,7 @@ TypeScript CLI: версия 7 использует новый native compiler �
 ## Установка
 
 ```bash
-npm install -g @boristype/mcp-server
+npm install -g @boristype/mcp-server@next
 ```
 
 ## Руководство для агента

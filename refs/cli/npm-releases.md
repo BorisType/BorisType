@@ -35,7 +35,9 @@ gh workflow run prepare-release.yml --ref main -f channel=alpha
 Суффикс alpha в manifest сам по себе не включает режим. `stable` выходит
 из активного prerelease mode и выпускает стабильные версии **всех** его участников.
 
-Helper обновляет manifests/changelogs и lockfile; workflow форматирует результат,
+Helper обновляет manifests/changelogs и lockfile, затем синхронизирует установку
+через frozen install: `pnpm exec` должен работать с `verifyDepsBeforeRun:error`
+сразу после изменения версий. Workflow форматирует результат,
 проверяет syncpack и открывает обычный PR из уникальной `release/versions-…` ветки.
 Следующая подготовка разрешена после merge/закрытия предыдущего PR.
 Перед merge проверить состав версий, внутренние dependencies и обычный CI.
