@@ -7,6 +7,7 @@
 - [Линковка и кэш](linking-and-cache.md): layout, system/library, invalidation, orphan output.
 - [Push и ZIP](push-and-artifacts.md): upload/reinit, retry, ошибки, отличие от artifact.
 - [Monorepo, release и maintenance](release-and-maintenance.md): текущий граф, fixed group, supply-chain policy.
+- [npm-релизы](npm-releases.md): общий release PR, пакетные теги, CI и настройка npm trust.
 
 Развитие script/module заморожено до принятия стратегии памяти C-runtime;
 наличие module default, watch и deploy не означает production acceptance.

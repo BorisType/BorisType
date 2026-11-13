@@ -39,12 +39,13 @@ pnpm exec changeset
 pnpm exec changeset status
 ```
 
-Release preparation — `pnpm run version` (root script = changeset version), затем
-проверка manifests, changelogs, lockfile и соответствующих checks. Publication
-выполняется отдельно через `pnpm exec changeset publish` в утверждённом release
-процессе. Эти команды описаны как workflow, не запускались при миграции.
-В репозитории нет `scripts/postversion.js`/postversion script и нет release CI;
-обещания об автоматическом exact pinning/публикации через них удалены.
+Release preparation выполняется общим PR через workflow с явным каналом alpha/stable,
+публикация — отдельно по тегу одного пакета. Настройка npm trust, порядок публикации
+внутренних dependencies, bootstrap и повторы описаны в [npm releases](npm-releases.md).
+В репозитории нет `scripts/postversion.js`/postversion script; global `changeset
+publish` не используется в пакетном publisher. Низкоуровневый `pnpm run version`
+только меняет версии; helper дополнительно управляет prerelease state и обновляет
+lockfile до явного форматирования.
 `pnpm version` двусмысленно с package-manager version command, поэтому используем
 `pnpm run version`. Не объявлять prerelease mode активным без `.changeset/pre.json`:
 alpha в package version сама по себе не означает его наличие.

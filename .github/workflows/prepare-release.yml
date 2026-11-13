@@ -1,0 +1,88 @@
+name: Prepare package releases
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Version channel (stable graduates all active prereleases)
+        type: choice
+        options: [alpha, stable]
+        default: alpha
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-package-releases
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Check release PR credentials and existing preparation
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          test -n "$GH_TOKEN" || { echo 'Configure RELEASE_PR_TOKEN: repository contents and pull requests write'; exit 1; }
+          count=$(gh pr list --state open --limit 1000 --json headRefName --jq '[.[] | select(.headRefName | startswith("release/versions-"))] | length')
+          test "$count" = 0 || { echo 'Merge or close the existing release preparation PR first'; exit 1; }
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Prepare versions and lockfile
+        env:
+          RELEASE_CHANNEL: ${{ inputs.channel }}
+          RELEASE_BRANCH: release/versions-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          git switch -c "$RELEASE_BRANCH"
+          node tools/prepare-release.mjs "$RELEASE_CHANNEL"
+          pnpm exec prettier --write .changeset packages/*/package.json packages/*/CHANGELOG.md
+          pnpm check-versions
+
+      - name: Create common release PR
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_CHANNEL: ${{ inputs.channel }}
+          RELEASE_BRANCH: release/versions-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          if git diff --quiet; then
+            echo 'No version changes to release' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .changeset packages pnpm-lock.yaml
+          git commit -m "chore: prepare $RELEASE_CHANNEL package releases"
+          gh auth setup-git
+          git push origin "HEAD:$RELEASE_BRANCH"
+          cat > "$RUNNER_TEMP/release-pr.md" <<'BODY'
+          Prepare package versions, changelogs and internal dependencies with Changesets.
+
+          Merge after CI passes. Publish selected packages by pushing their package-version tags on the merged main commit, with internal dependencies first. Merging this PR does not publish anything.
+
+          See refs/cli/npm-releases.md for npm trust setup, tag commands, retry rules and bootstrap of a new package.
+          BODY
+          gh pr create --base main --head "$RELEASE_BRANCH" --title "chore: prepare $RELEASE_CHANNEL package releases" --body-file "$RUNNER_TEMP/release-pr.md"

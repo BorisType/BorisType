@@ -194,6 +194,9 @@ importers:
       prettier:
         specifier: ^3.9.10
         version: 3.9.10
+      semver:
+        specifier: ^7.8.5
+        version: 7.8.5
       syncpack:
         specifier: ^15.3.3
         version: 15.3.3
