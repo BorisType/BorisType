@@ -128,7 +128,7 @@ for (const failure of ["corruptReadback", "lostResponse", "uploadError"]) {
 test("a corrupt existing immutable helper is rejected without overwriting it", async (t) => {
   const fixture = await bundle(t);
   const transport = runtimeTransport();
-  const helperPath = `/WebsoftServer/.boristype-runtime/bootstrap/${fixture.manifest.bootstrap.id}/${fixture.manifest.bootstrap.entryAssembly}`;
+  const helperPath = `/WebsoftServer/dotnetcore/shared/.boristype-runtime/bootstrap/${fixture.manifest.bootstrap.id}/${fixture.manifest.bootstrap.entryAssembly}`;
   const corrupt = Buffer.from("corrupt installed helper");
   transport.files.set(helperPath, corrupt);
   const runtime = new sdk.WshcmRuntime(transport, { bundleDirectory: fixture.directory });
@@ -232,7 +232,7 @@ test("lost managed response is not retried and explicit subsequent ensure can re
   assert.deepEqual(transport.calls.slice(-3), ["bootstrap", "operation", "EnsureJson"]);
 });
 
-test("custom installation names stay under AppDirectoryPath and traversal is rejected locally", async (t) => {
+test("custom installation names stay under dotnetcore/shared and traversal is rejected locally", async (t) => {
   const fixture = await bundle(t);
   const transport = runtimeTransport(undefined, { installationName: ".boristype-fixture" });
   const runtime = new sdk.WshcmRuntime(transport, { bundleDirectory: fixture.directory, installationName: ".boristype-fixture" });
@@ -333,3 +333,37 @@ test("bootstrap declares loop temporaries once for multi-file BorisScript bundle
   const loopBody = template.slice(template.indexOf("{", template.indexOf("for (")) + 1);
   assert.doesNotMatch(loopBody, /\bvar\s+/);
 });
+
+for (const installationName of ["native", "runtimes", "refs"]) {
+  test(`loader-reserved installation name is rejected locally: ${installationName}`, async (t) => {
+    const fixture = await bundle(t);
+    const runtime = new sdk.WshcmRuntime(
+      { eval: async () => assert.fail("Reserved loader path reached HCM") },
+      { bundleDirectory: fixture.directory, installationName },
+    );
+    await assert.rejects(runtime.ensure(), (error) => error.status.reason === "InvalidInstallationName");
+  });
+}
+
+for (const apiVersion of [0, 500]) {
+  test(`incompatible foreign loaded identity preserves diagnostics for API ${apiVersion}`, async (t) => {
+    const fixture = await bundle(t);
+    const foreignMvid = "aaaaaaaa-aaaa-0aaa-7aaa-aaaaaaaaaaaa";
+    const transport = runtimeTransport(undefined, {
+      status: ({ status }) => ({
+        ...status,
+        status: "blocked",
+        reason: "IncompatibleApi",
+        loaded: { ...status.loaded, apiVersion, version: "1.0.0.0", buildId: foreignMvid },
+      }),
+    });
+    const runtime = new sdk.WshcmRuntime(transport, { bundleDirectory: fixture.directory });
+    const status = await runtime.ensure();
+    assert.equal(status.status, "blocked");
+    assert.equal(status.reason, "IncompatibleApi");
+    assert.equal(status.process.pid, 41);
+    assert.equal(status.loaded.apiVersion, apiVersion);
+    assert.equal(status.loaded.version, "1.0.0.0");
+    assert.equal(status.loaded.buildId, foreignMvid);
+  });
+}

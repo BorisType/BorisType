@@ -55,7 +55,7 @@ export function runtimeTransport(evaluate = () => assert.fail("Unexpected platfo
                 return {
                   CallClassStaticMethod(type, method, args) {
                     assert.equal(type, "BorisType.RuntimeBootstrap.EntryPoint");
-                    assert.equal(args[0], posix.join("/WebsoftServer", options.installationName ?? ".boristype-runtime"));
+                    assert.equal(args[0], posix.join("/WebsoftServer/dotnetcore/shared", options.installationName ?? ".boristype-runtime"));
                     const expected = identity(JSON.parse(args[1]));
                     calls.push(method);
                     const status = {

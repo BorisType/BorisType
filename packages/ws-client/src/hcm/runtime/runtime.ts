@@ -21,7 +21,7 @@ const bootstrapResponse = z.strictObject({ schemaVersion: z.literal(1), files: z
 export interface WshcmRuntimeOptions {
   /** Directory containing manifest.json and bootstrap/component subdirectories. Defaults to packaged artifacts. */
   bundleDirectory?: string;
-  /** A single directory name below the answering server's AppDirectoryPath(). */
+  /** A directory name under AppDirectoryPath()/dotnetcore/shared; native/runtimes/refs are reserved. */
   installationName?: string;
 }
 
@@ -74,8 +74,14 @@ export class WshcmRuntime {
   private async prepare(): Promise<RuntimeStatus> {
     let expected: RuntimeBuildIdentity | null = null;
     try {
-      if (!/^\.?[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/.test(this.installationName))
-        throw new BundleFailure("InvalidInstallationName", "Expected one safe directory name under AppDirectoryPath");
+      if (
+        !/^\.?[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/.test(this.installationName) ||
+        ["native", "runtimes", "refs"].includes(this.installationName.toLowerCase())
+      )
+        throw new BundleFailure(
+          "InvalidInstallationName",
+          "Expected a non-reserved directory name under AppDirectoryPath()/dotnetcore/shared",
+        );
       const { manifest, bootstrapPayload, componentPayload } = await loadBundle(this.directory);
       expected = identity(manifest.component);
       const fingerprint = JSON.stringify(manifest.bootstrap);

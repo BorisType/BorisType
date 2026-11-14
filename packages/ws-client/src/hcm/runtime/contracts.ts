@@ -43,13 +43,19 @@ const processSchema = z.strictObject({
   framework: z.string().min(1).max(256),
   architecture: z.string().min(1).max(64),
 });
+// Foreign loaded assemblies may lack API metadata or expose AssemblyVersion instead of package SemVer.
+// Preserve their actual diagnostics; readiness separately requires the requested API and build.
+const loadedIdentitySchema = buildIdentitySchema.extend({
+  apiVersion: z.number().int().min(0).max(2147483647),
+  version: z.string().min(1).max(256),
+});
 export const runtimeStatusSchema = z.strictObject({
   schemaVersion: z.literal(1),
   status: z.enum(["ready", "restart_required", "blocked", "missing", "installed"]),
   reason: z.string().min(1).max(256),
   expected: buildIdentitySchema.nullable(),
   installed: buildIdentitySchema.nullable(),
-  loaded: buildIdentitySchema.nullable(),
+  loaded: loadedIdentitySchema.nullable(),
   changed: z.boolean(),
   process: processSchema,
 });

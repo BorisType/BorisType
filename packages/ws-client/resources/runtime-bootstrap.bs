@@ -1,6 +1,6 @@
 // BorisType runtime bootstrap v1: no managed assembly lookup before readback verification.
 var btRuntimeRequest = ParseJson('${request}');
-var btRuntimeRootPath = FilePath(AppDirectoryPath(), btRuntimeRequest.installationName);
+var btRuntimeRootPath = FilePath(FilePath(FilePath(AppDirectoryPath(), 'dotnetcore'), 'shared'), btRuntimeRequest.installationName);
 var btRuntimeDirectory = FilePath(FilePath(btRuntimeRootPath, 'bootstrap'), btRuntimeRequest.id);
 ObtainDirectory(btRuntimeDirectory, true);
 var btRuntimeResult = {};
