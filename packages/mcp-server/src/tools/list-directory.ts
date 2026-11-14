@@ -1,22 +1,19 @@
-import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/server";
-import type { WshcmConnection } from "../connection.js";
-import { fileUrl, listResponse } from "./file-contract.js";
-import { callManagedFile, fileTool } from "./managed-files.js";
+import { wshcmSchemas, type WshcmApi } from "@boristype/ws-client";
+import { toolResult } from "./result.js";
 
-/** Register immediate directory listing; links are marked as data and never traversed. */
-export function registerListDirectoryTool(server: McpServer, connection: WshcmConnection): void {
+export function registerListDirectoryTool(server: McpServer, api: WshcmApi): void {
   server.registerTool(
     "wshcm_list_directory",
     {
       description:
         "List immediate entries in ordinal order via BorisType.FileSystem.dll 0.1.0-alpha.4/API 2. Returns a JSON array of name/isDirectory and isSymbolicLink=true for links. At most 10000 entries; overflow is an error. Root links and file roots are rejected.",
-      inputSchema: z.strictObject({ path: fileUrl }),
+      inputSchema: wshcmSchemas.files.list,
       annotations: { readOnlyHint: true, destructiveHint: false },
     },
-    async ({ path }) =>
-      fileTool(async () => {
-        const data = await callManagedFile(connection, "ListJson", path, {}, listResponse);
+    async (input) =>
+      toolResult(async () => {
+        const data = await api.files.list(input);
         return JSON.stringify(data.entries);
       }),
   );

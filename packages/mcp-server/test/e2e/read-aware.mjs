@@ -42,7 +42,7 @@ test("read grants, line ranges and nine file tools on the local C runtime", { ti
       carrier: "CLI/stdio/SOAP/C-runtime/DotNetCoreHost",
       installedDllSha256: stand.exec("sha256sum", dll).toString().split(/\s/)[0],
       templateSha256: createHash("sha256")
-        .update(readFileSync(new URL("../../resources/file-operation.bs", import.meta.url)))
+        .update(readFileSync(new URL("../../../ws-client/resources/file-operation.bs", import.meta.url)))
         .digest("hex"),
     }),
   );

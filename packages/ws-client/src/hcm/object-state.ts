@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-/** Full object/schema snapshot returned to a client, scoped to one MCP instance. */
+/** Full object/schema snapshot returned to a client, scoped to one API instance. */
 export interface ObjectSnapshot {
   id: string;
   formUrl: string;

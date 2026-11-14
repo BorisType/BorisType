@@ -37,7 +37,7 @@ test("managed edit preserves bytes and refuses stale or ambiguous patches throug
       imageId: stand.imageId,
       carrier: "CLI/stdio/SOAP/C-runtime/DotNetCoreHost",
       templateSha256: createHash("sha256")
-        .update(readFileSync(new URL("../../resources/file-operation.bs", import.meta.url)))
+        .update(readFileSync(new URL("../../../ws-client/resources/file-operation.bs", import.meta.url)))
         .digest("hex"),
       installedDllSha256: stand.exec("sha256sum", dll).toString("utf8").split(/\s/)[0],
     }),

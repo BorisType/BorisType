@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { inspectObjectXml } from "../build/tools/object-xml.js";
+import { inspectObjectXml } from "../build/hcm/object-xml.js";
 
 const formUrl = "x-local://wtv/wtv_cost_center.xmd";
 const options = { formUrl };

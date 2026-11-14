@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ReadState } from "../build/tools/read-state.js";
+import { ReadState } from "../build/hcm/read-state.js";
 
 const read = (startOffset = 0, endOffset = 3, totalLength = 3) => ({
   apiVersion: 2,

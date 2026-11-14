@@ -47,7 +47,7 @@ test("MCP search → BS path resolver → installed .NET DLL", { timeout: 120_00
       imageId: stand.imageId,
       carrier: "CLI/stdio/SOAP/C-runtime/DotNetCoreHost",
       templateSha256: createHash("sha256")
-        .update(readFileSync(new URL("../../resources/search-files.bs", import.meta.url)))
+        .update(readFileSync(new URL("../../../ws-client/resources/search-files.bs", import.meta.url)))
         .digest("hex"),
       installedDllSha256: stand.exec("sha256sum", dll).toString("utf8").split(/\s/)[0],
     }),

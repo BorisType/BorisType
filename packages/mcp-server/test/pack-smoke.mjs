@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -30,11 +30,9 @@ try {
       assert.equal(existsSync(join(extracted, "build/tools", name + suffix)), false, `Stale emitted stub shipped: ${name}${suffix}`);
     }
   }
-  for (const filename of readdirSync(join(packageRoot, "resources"))) {
-    assert.equal(
-      readFileSync(join(extracted, "resources", filename), "utf8"),
-      readFileSync(join(packageRoot, "resources", filename), "utf8"),
-    );
+  assert.equal(existsSync(join(extracted, "resources")), false, "Platform resources belong to ws-client");
+  for (const name of ["file-contract", "managed-files", "read-state", "search-contract", "object-xml", "object-state"]) {
+    assert.equal(existsSync(join(extracted, "build/tools", name + ".js")), false, `Platform implementation remained in MCP: ${name}`);
   }
   execFileSync(
     process.execPath,
@@ -50,7 +48,7 @@ try {
   const { version } = JSON.parse(readFileSync(join(extracted, "package.json"), "utf8"));
   const cliVersion = execFileSync(process.execPath, [join(extracted, "build/cli.js"), "--version"], { encoding: "utf8", timeout: 10_000 });
   assert.equal(cliVersion.trim(), version);
-  console.log("PASS: tarball resources, package import, CLI help/version (workspace dependencies; no HCM connection)");
+  console.log("PASS: thin MCP tarball, package import, CLI help/version (workspace dependencies; no HCM connection)");
 } finally {
   rmSync(temporary, { recursive: true, force: true });
 }

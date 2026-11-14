@@ -3,7 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import type { McpServerOptions } from "./types.js";
 import { createConnection, closeConnection } from "./connection.js";
 import type { WshcmConnection } from "./connection.js";
-import { ReadState } from "./tools/read-state.js";
+import { WshcmApi } from "@boristype/ws-client";
 import { packageVersion } from "./version.js";
 import {
   registerReadFileTool,
@@ -45,18 +45,18 @@ export function createServer(connection: WshcmConnection): McpServer {
     },
   );
 
-  const reads = new ReadState();
-  registerReadFileTool(server, connection, reads);
-  registerWriteFileTool(server, connection, reads);
-  registerListDirectoryTool(server, connection);
-  registerDeleteFileTool(server, connection, reads);
-  registerSearchFilesTool(server, connection);
-  registerEditFileTool(server, connection, reads);
-  registerCreateDirectoryTool(server, connection, reads);
-  registerMoveFileTool(server, connection, reads);
-  registerGetFileInfoTool(server, connection);
-  registerXQueryTool(server, connection);
-  registerObjectTools(server, connection);
+  const api = new WshcmApi(connection.evaluator);
+  registerReadFileTool(server, api);
+  registerWriteFileTool(server, api);
+  registerListDirectoryTool(server, api);
+  registerDeleteFileTool(server, api);
+  registerSearchFilesTool(server, api);
+  registerEditFileTool(server, api);
+  registerCreateDirectoryTool(server, api);
+  registerMoveFileTool(server, api);
+  registerGetFileInfoTool(server, api);
+  registerXQueryTool(server, api);
+  registerObjectTools(server, api);
 
   return server;
 }

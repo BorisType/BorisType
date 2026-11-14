@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
-import { buildScript } from "../build/load.js";
+import { buildScript } from "../build/hcm/load.js";
 
 // These tests check local substitution and JavaScript syntax, not native BS execution.
 for (const value of [

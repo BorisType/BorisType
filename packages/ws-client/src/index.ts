@@ -11,3 +11,9 @@ export { renderRequest, parseResponse } from "./soap-utils.js";
 export { WshcmUploader } from "./uploader.js";
 export type { WshcmClientOptions } from "./types.js";
 export type { WshcmUploaderOptions, UploadProgressCallback } from "./uploader.js";
+
+export { WshcmApi } from "./hcm/api.js";
+export { wshcmSchemas } from "./hcm/schemas.js";
+export { WshcmObjectError } from "./hcm/object-error.js";
+export type { WshcmObjectErrorDetails } from "./hcm/object-error.js";
+export type { WshcmEvaluator } from "./hcm/types.js";

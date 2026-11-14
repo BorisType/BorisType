@@ -46,7 +46,7 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
     ["file-operation.bs"].map((name) => [
       name,
       createHash("sha256")
-        .update(readFileSync(new URL(`../../resources/${name}`, import.meta.url)))
+        .update(readFileSync(new URL(`../../../ws-client/resources/${name}`, import.meta.url)))
         .digest("hex"),
     ]),
   );

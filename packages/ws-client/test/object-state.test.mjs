@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ObjectReadState } from "../build/tools/object-state.js";
+import { ObjectReadState } from "../build/hcm/object-state.js";
 
 const read = (id = "1") => ({ id, formUrl: "x-local://wtv/probe.xmd", xml: "<probe/>", schemaXml: "<probe/>" });
 

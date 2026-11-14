@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { z } from "zod";
-import type { WshcmConnection } from "../connection.js";
-import { buildScript } from "../load.js";
+import type { WshcmEvaluator } from "./types.js";
+import { buildScript } from "./load.js";
 import { fileError, MAX_FILE_JSON_BYTES } from "./file-contract.js";
 
 const template = readFileSync(new URL("../../resources/file-operation.bs", import.meta.url), "utf8");
@@ -9,7 +9,7 @@ type FileMethod = "ReadJson" | "WriteJson" | "ListJson" | "DeleteJson" | "EditJs
 
 /** Call the unique managed ABI method after BS resolves the URL; validate both carrier stages and result. */
 export async function callManagedFile<T>(
-  connection: WshcmConnection,
+  evaluator: WshcmEvaluator,
   method: FileMethod,
   path: string,
   options: object,
@@ -19,7 +19,7 @@ export async function callManagedFile<T>(
   if (Buffer.byteLength(request, "utf8") > MAX_FILE_JSON_BYTES) throw new Error("Request JSON exceeds 8 MiB");
   const destination =
     method === "MoveJson" && "destination" in options && typeof options.destination === "string" ? options.destination : "";
-  const wire = await connection.evaluator.eval(buildScript(template, { path, request, method, destination }));
+  const wire = await evaluator.eval(buildScript(template, { path, request, method, destination }));
   if (typeof wire !== "string") throw new Error("Expected a string file operation carrier from WSHCM");
   if (wire.length > 2 * MAX_FILE_JSON_BYTES + 2) throw new Error("File operation carrier exceeds its limit");
   const json: unknown = JSON.parse(wire);
@@ -32,13 +32,4 @@ export async function callManagedFile<T>(
     throw new Error(`${editIndex === undefined ? "" : `Edit #${editIndex}: `}${code}: ${message}`);
   }
   return schema.parse(body);
-}
-
-/** Convert managed/transport/validation failures to the standard MCP tool error result. */
-export async function fileTool(action: () => Promise<string>) {
-  try {
-    return { content: [{ type: "text" as const, text: await action() }] };
-  } catch (error) {
-    return { content: [{ type: "text" as const, text: error instanceof Error ? error.message : String(error) }], isError: true };
-  }
 }

@@ -7,7 +7,7 @@ export interface ReadRange {
   start: number;
   end: number;
 }
-/** A bounded grant of ranges actually returned by read_file in this server instance. */
+/** A bounded grant of ranges actually returned by read_file in this API instance. */
 export interface ReadSnapshot {
   token: string;
   sha256: string;
@@ -16,7 +16,7 @@ export interface ReadSnapshot {
   readAt: number;
 }
 
-/** Per-createServer read grants; unrelated to a client's conversation lifecycle. */
+/** Per-API read grants; unrelated to a client's conversation lifecycle. */
 export class ReadState {
   private readonly snapshots = new Map<string, ReadSnapshot>();
   private tail: Promise<unknown> = Promise.resolve();
