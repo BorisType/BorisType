@@ -7,7 +7,7 @@ export function registerCreateDirectoryTool(server: McpServer, api: WshcmApi): v
     "wshcm_create_directory",
     {
       description:
-        "Create a directory and missing parents via DLL alpha.4/API 2. Existing directory succeeds with created=false. Files and symlink/junction ancestors are rejected. Creation of a parent chain is not transactional.",
+        "Create a directory and missing parents via automatically managed BorisType.FileSystem/API 2. Existing directory succeeds with created=false. Files and symlink/junction ancestors are rejected. Creation of a parent chain is not transactional.",
       inputSchema: wshcmSchemas.files.mkdir,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },

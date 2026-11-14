@@ -91,4 +91,5 @@ export const wshcmSchemas = {
   files: { read, write, edit, list, delete: deleteInput, mkdir, move, info, search: searchInput },
   objects: { getForm: z.strictObject({ formUrl }), get: z.strictObject({ id: objectId }), save: saveInput },
   xquery,
+  runtimeStatus: z.strictObject({}),
 } as const;

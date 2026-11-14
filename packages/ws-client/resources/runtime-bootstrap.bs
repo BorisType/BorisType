@@ -1,0 +1,27 @@
+// BorisType runtime bootstrap v1: no managed assembly lookup before readback verification.
+var btRuntimeRequest = ParseJson('${request}');
+var btRuntimeRootPath = FilePath(AppDirectoryPath(), btRuntimeRequest.installationName);
+var btRuntimeDirectory = FilePath(FilePath(btRuntimeRootPath, 'bootstrap'), btRuntimeRequest.id);
+ObtainDirectory(btRuntimeDirectory, true);
+var btRuntimeResult = {};
+// C-runtime var declarations execute at runtime; declare loop temporaries only once.
+var btRuntimeFile;
+var btRuntimeDestination;
+var btRuntimeTemporary;
+for (var btRuntimeIndex = 0; btRuntimeIndex < ArrayCount(btRuntimeRequest.files); btRuntimeIndex++) {
+    btRuntimeFile = btRuntimeRequest.files[btRuntimeIndex];
+    btRuntimeDestination = FilePath(btRuntimeDirectory, btRuntimeFile.path);
+    btRuntimeTemporary = FilePath(btRuntimeDirectory, btRuntimeFile.path + '.' + btRuntimeRequest.uploadId + '.tmp');
+    try {
+        if (!FilePathExists(btRuntimeDestination)) {
+            PutFileData(btRuntimeTemporary, Base64Decode(btRuntimeFile.base64));
+            if (!FilePathExists(btRuntimeDestination)) MoveFile(btRuntimeTemporary, btRuntimeDestination);
+        }
+        btRuntimeResult[btRuntimeFile.path] = Base64Encode(LoadFileData(btRuntimeDestination));
+    } catch (btRuntimeError) {
+        throw btRuntimeError;
+    } finally {
+        if (FilePathExists(btRuntimeTemporary)) DeleteFile(btRuntimeTemporary);
+    }
+}
+return EncodeJson(EncodeJson({ schemaVersion: 1, files: btRuntimeResult }));

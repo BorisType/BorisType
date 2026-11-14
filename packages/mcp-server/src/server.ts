@@ -17,6 +17,7 @@ import {
   registerGetFileInfoTool,
   registerXQueryTool,
   registerObjectTools,
+  registerRuntimeStatusTool,
 } from "./tools/index.js";
 
 /**
@@ -36,6 +37,7 @@ export function createServer(connection: WshcmConnection): McpServer {
     {
       instructions: [
         "File tools access physical server files, not database-backed URL blobs. Confirm which storage the application uses.",
+        "File tools automatically prepare packaged runtime dependencies without a separate download. Use wshcm_runtime_status to inspect expected/installed/loaded identities for the answering process. restart_required blocks file operations until that process is restarted; this server never restarts HCM. XQuery and XML object operations remain available independently. A timeout does not cancel server preparation.",
         "Locate files with search/list, then read with wshcm_read_file before edit or overwrite. Search results and dryRun previews do not grant read coverage. Chain the previous readToken when reading additional ranges; use the newest token for the exact URL. Overwrite requires full coverage. Tokens belong to this MCP instance, not an isolated chat; do not reuse tokens from another instance or bypass reads with delete/create.",
         "After a file mutation attempt, reread before another edit. On Conflict/ReadRequired, refresh the relevant reads instead of repeating stale arguments.",
         "wshcm_xquery accepts server-side XQuery including sql:, without a BorisType DLL. Queries can modify data. Row/output limits do not bound database work, and truncated results are incomplete. After a timeout or lost mutation response, establish the actual outcome before retrying; cancellation and rollback are not guaranteed.",
@@ -57,6 +59,7 @@ export function createServer(connection: WshcmConnection): McpServer {
   registerGetFileInfoTool(server, api);
   registerXQueryTool(server, api);
   registerObjectTools(server, api);
+  registerRuntimeStatusTool(server, api);
 
   return server;
 }

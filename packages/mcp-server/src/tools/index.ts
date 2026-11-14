@@ -9,3 +9,4 @@ export { registerMoveFileTool } from "./move-file.js";
 export { registerGetFileInfoTool } from "./get-file-info.js";
 export { registerXQueryTool } from "./xquery.js";
 export { registerObjectTools } from "./objects.js";
+export { registerRuntimeStatusTool } from "./runtime-status.js";

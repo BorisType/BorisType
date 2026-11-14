@@ -1,3 +1,4 @@
+import { withReadyRuntime } from "../../ws-client/test/helpers/runtime-transport.mjs";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
@@ -22,7 +23,7 @@ const slice = (startOffset = 0, endOffset = 8) => ({
 async function connect(t, dispatch) {
   const server = createServer({
     evaluator: {
-      eval: async (script) =>
+      eval: withReadyRuntime(async (script) =>
         runInNewContext(`(function(){${script}})()`, {
           UrlToFilePath: (url) => "/server/" + url.slice(10),
           EncodeJson: JSON.stringify,
@@ -36,6 +37,7 @@ async function connect(t, dispatch) {
             },
           },
         }),
+      ),
     },
   });
   const client = new Client({ name: "guard-test", version: "1" });

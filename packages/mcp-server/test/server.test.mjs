@@ -1,3 +1,4 @@
+import { withReadyRuntime } from "../../ws-client/test/helpers/runtime-transport.mjs";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
@@ -8,7 +9,7 @@ import { createServer } from "../build/index.js";
 async function connect(t, evaluate = () => assert.fail("Unexpected evaluation")) {
   const server = createServer({
     client: { callMethod: () => assert.fail("File tools must use the DLL bridge") },
-    evaluator: { eval: evaluate },
+    evaluator: { eval: withReadyRuntime(evaluate) },
   });
   const client = new Client({ name: "mcp-test", version: "1.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -51,7 +52,7 @@ async function primed(t, evaluate, content = "abc") {
   return { client, readToken: JSON.parse(result.content[0].text).readToken };
 }
 
-test("MCP advertises nine file tools, xquery and three XML object tools", async (t) => {
+test("MCP advertises nine file tools, runtime status, xquery and three XML object tools", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
@@ -64,6 +65,7 @@ test("MCP advertises nine file tools, xquery and three XML object tools", async 
     "wshcm_list_directory",
     "wshcm_move_file",
     "wshcm_read_file",
+    "wshcm_runtime_status",
     "wshcm_save_object",
     "wshcm_search_files",
     "wshcm_write_file",
@@ -72,6 +74,10 @@ test("MCP advertises nine file tools, xquery and three XML object tools", async 
   assert.equal(tools.find(({ name }) => name === "wshcm_edit_file").annotations.idempotentHint, false);
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, "object");
+    if (tool.name === "wshcm_runtime_status") {
+      assert.equal(tool.annotations.readOnlyHint, false);
+      continue;
+    }
     assert.ok(
       tool.inputSchema.required.includes(
         { wshcm_get_form: "formUrl", wshcm_get_object: "id", wshcm_save_object: "xml", wshcm_xquery: "query", wshcm_move_file: "source" }[

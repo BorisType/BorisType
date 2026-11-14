@@ -1,3 +1,4 @@
+import { withReadyRuntime } from "./helpers/runtime-transport.mjs";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as sdk from "../build/index.js";
@@ -16,7 +17,7 @@ const slice = (partial = false) => ({
   endOffset: partial ? 1 : 2,
   totalLength: 2,
 });
-const evaluator = (body) => ({ eval: async () => JSON.stringify(JSON.stringify(body)) });
+const evaluator = (body) => ({ eval: withReadyRuntime(async () => JSON.stringify(JSON.stringify(body))) });
 
 test("SDK overwrite requires a read grant covering the full file", async () => {
   assert.equal(typeof sdk.WshcmApi, "function", "WshcmApi must be exported from the SDK");

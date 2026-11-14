@@ -1,0 +1,10 @@
+// BorisType runtime operation v1: helper bytes have been verified by the SDK before this lookup.
+var btRuntimeRequest = ParseJson('${request}');
+var btRuntimeRootPath = FilePath(AppDirectoryPath(), btRuntimeRequest.installationName);
+var btRuntimeDirectory = FilePath(FilePath(btRuntimeRootPath, 'bootstrap'), btRuntimeRequest.bootstrapId);
+var btRuntimeAssemblyPath = FilePath(btRuntimeDirectory, btRuntimeRequest.bootstrapId + '.dll');
+var btRuntimeAssembly = tools.dotnet_host.Object.GetAssembly(btRuntimeAssemblyPath);
+var btRuntimeArgs = [btRuntimeRootPath, btRuntimeRequest.descriptorJson];
+if (btRuntimeRequest.method == 'EnsureJson') btRuntimeArgs.push(btRuntimeRequest.payloadJson);
+var btRuntimeResult = btRuntimeAssembly.CallClassStaticMethod('BorisType.RuntimeBootstrap.EntryPoint', btRuntimeRequest.method, btRuntimeArgs);
+return EncodeJson(btRuntimeResult);

@@ -17,3 +17,8 @@ export { wshcmSchemas } from "./hcm/schemas.js";
 export { WshcmObjectError } from "./hcm/object-error.js";
 export type { WshcmObjectErrorDetails } from "./hcm/object-error.js";
 export type { WshcmEvaluator } from "./hcm/types.js";
+
+export { WshcmRuntime } from "./hcm/runtime/runtime.js";
+export type { WshcmRuntimeOptions } from "./hcm/runtime/runtime.js";
+export { WshcmRuntimeError } from "./hcm/runtime/contracts.js";
+export type { RuntimeStatus, RuntimeBuildIdentity, RuntimeComponentDescriptor } from "./hcm/runtime/contracts.js";

@@ -1,3 +1,4 @@
+import { withReadyRuntime } from "../../../ws-client/test/helpers/runtime-transport.mjs";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { createServer } from "../../build/index.js";
 
@@ -9,7 +10,7 @@ const server = createServer({
     },
   },
   evaluator: {
-    eval: async () =>
+    eval: withReadyRuntime(async () =>
       JSON.stringify(
         JSON.stringify({
           apiVersion: 2,
@@ -24,6 +25,7 @@ const server = createServer({
           totalLength: 20,
         }),
       ),
+    ),
   },
 });
 

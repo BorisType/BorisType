@@ -1,3 +1,4 @@
+import { withReadyRuntime } from "../../ws-client/test/helpers/runtime-transport.mjs";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
@@ -5,7 +6,7 @@ import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { createServer } from "../build/index.js";
 
 async function connect(t, evaluate) {
-  const server = createServer({ evaluator: { eval: evaluate } });
+  const server = createServer({ evaluator: { eval: withReadyRuntime(evaluate) } });
   const client = new Client({ name: "search-test", version: "1.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   t.after(async () => {

@@ -7,7 +7,7 @@ export function registerDeleteFileTool(server: McpServer, api: WshcmApi): void {
     "wshcm_delete_file",
     {
       description:
-        "Delete one existing file via BorisType.FileSystem.dll 0.1.0-alpha.4/API 2. Missing files, directories, readonly files and links are errors; never deletes recursively.",
+        "Delete one existing file via automatically managed BorisType.FileSystem/API 2. Missing files, directories, readonly files and links are errors; never deletes recursively.",
       inputSchema: wshcmSchemas.files.delete,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },

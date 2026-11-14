@@ -7,7 +7,7 @@ export function registerListDirectoryTool(server: McpServer, api: WshcmApi): voi
     "wshcm_list_directory",
     {
       description:
-        "List immediate entries in ordinal order via BorisType.FileSystem.dll 0.1.0-alpha.4/API 2. Returns a JSON array of name/isDirectory and isSymbolicLink=true for links. At most 10000 entries; overflow is an error. Root links and file roots are rejected.",
+        "List immediate entries in ordinal order via automatically managed BorisType.FileSystem/API 2. Returns a JSON array of name/isDirectory and isSymbolicLink=true for links. At most 10000 entries; overflow is an error. Root links and file roots are rejected.",
       inputSchema: wshcmSchemas.files.list,
       annotations: { readOnlyHint: true, destructiveHint: false },
     },
