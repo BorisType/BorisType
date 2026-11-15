@@ -1,5 +1,6 @@
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -37,6 +38,24 @@ public sealed class RuntimeInstallerTests : IDisposable
     }
 
     private static JsonElement Body(string json) => JsonDocument.Parse(json).RootElement.Clone();
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (RuntimeInstallerTests Scope, WeakReference Context) CreateLoadedScope()
+    {
+        var scope = new RuntimeInstallerTests();
+        var fixture = Fixture("v1");
+        scope.Installer().EnsureJson(fixture.Manifest, fixture.Payload);
+        return (scope, new WeakReference(scope.contexts[0]));
+    }
+
+    [Fact]
+    public void Fixture_cleanup_unloads_collectible_contexts_before_deleting_files()
+    {
+        var (scope, context) = CreateLoadedScope();
+        scope.Dispose();
+        Assert.False(context.IsAlive);
+        Assert.False(Directory.Exists(scope.root));
+    }
 
     [Fact]
     public void Fresh_install_activates_verified_bytes_and_reports_loaded_module_identity()
@@ -250,11 +269,26 @@ public sealed class RuntimeInstallerTests : IDisposable
         finally { Directory.Delete(root); Directory.Delete(destination); }
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private WeakReference[] UnloadContexts()
+    {
+        var references = contexts.Select(context => new WeakReference(context)).ToArray();
+        foreach (var context in contexts) context.Unload();
+        // Unload only requests collection. Neither this list nor the caller's
+        // stack may retain a context while waiting for Windows to release DLLs.
+        contexts.Clear();
+        return references;
+    }
+
     public void Dispose()
     {
-        foreach (var context in contexts) context.Unload();
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
+        var references = UnloadContexts();
+        for (int attempt = 0; attempt < 10 && references.Any(reference => reference.IsAlive); attempt++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+        Assert.All(references, reference => Assert.False(reference.IsAlive, "Fixture assembly context did not unload"));
         if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
     }
 }
