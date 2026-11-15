@@ -182,3 +182,24 @@ Timeout не отменяет server operation; неизвестный mutation 
 [Websoft.Code.dll и несколько линий OmniCode](websoft-code.md). Это статическое
 исследование editor/console backend, включая first-use writes и выполнение кода;
 новые вызовы OmniCode в SDK не добавлены.
+
+## CI перед публикацией, 2026-11-15
+
+После интеграции первый Windows run выявил ошибку teardown managed tests:
+`AssemblyLoadContext.Unload()` только запрашивает выгрузку, а fixture сохраняла
+сильные ссылки в списке contexts. Linux разрешал удаление открытого DLL, Windows
+отказывал. Новая regression проверяет фактическую смерть WeakReference и удаление
+каталога; она воспроизвела проблему и на Linux. Teardown теперь очищает сильные
+ссылки в отдельном NoInlining helper и ограниченно ожидает collection до удаления.
+Это исправление test harness; production runtime и его DLL bytes не изменились.
+
+В jobs, собирающих только framework-only runtime, отключён NuGet cache:
+пакетов может не быть, и post-step setup-dotnet ошибочно завершал успешную сборку
+из-за отсутствующего cache directory. Managed test job сохраняет NuGet cache.
+
+[Повторный .NET CI](https://github.com/BorisType/BorisType/actions/runs/43696957001)
+прошёл полностью на Ubuntu и Windows: build, managed tests, проверка installation
+ZIP и воспроизводимого SDK bundle. Число bootstrap tests выросло с 15 до 16.
+[Релизный PR](https://github.com/BorisType/BorisType/pull/65) с версиями также
+прошёл lint/tests и watcher на обеих ОС. Это расширяет managed/package evidence,
+но не подтверждает Windows HCM или реальный restart recovery HCM.
