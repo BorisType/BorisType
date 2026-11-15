@@ -11,9 +11,11 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "node tools/prepare-runtime.mjs && tsc",
+    "build:runtime": "node tools/prepare-runtime.mjs",
     "test": "node --test test/*.test.mjs",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "prepack": "pnpm build"
   },
   "dependencies": {
     "fast-xml-parser": "^5.11.2",

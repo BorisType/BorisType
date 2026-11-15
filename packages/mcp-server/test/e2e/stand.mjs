@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
@@ -90,6 +91,19 @@ export function localStand() {
       // Drain stderr, but do not copy arbitrary server diagnostics or credentials into test output.
       transport.stderr.resume();
       return { client, transport };
+    },
+    async runtime(client) {
+      const response = await client.callTool({ name: "wshcm_runtime_status", arguments: {} }, { timeout: 35000 });
+      assert.notEqual(response.isError, true, JSON.stringify(response.content));
+      const status = JSON.parse(response.content[0].text);
+      assert.equal(status.status, "ready", JSON.stringify(status));
+      const { component } = JSON.parse(readFileSync(new URL("../../../ws-client/resources/dotnet/manifest.json", import.meta.url), "utf8"));
+      const file = component.files.find((item) => item.path === component.entryAssembly);
+      const installed = `/WebsoftServer/dotnetcore/shared/.boristype-runtime/components/${component.id}/${component.version}-${component.buildId}/${file.path}`;
+      const installedSha256 = exec("sha256sum", installed).toString("utf8").split(/\s/)[0];
+      assert.equal(installedSha256, file.sha256);
+      assert.equal(status.loaded.buildId, component.buildId);
+      return { ...status, installedSha256 };
     },
   };
 }

@@ -4,11 +4,9 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { localStand } from "./stand.mjs";
 
-// Explicit command only: requires an already running stand and separately installed DLL.
+// Explicit command only: requires an already running stand; SDK prepares bundled DLLs.
 test("MCP search → BS path resolver → installed .NET DLL", { timeout: 120_000 }, async (t) => {
   const stand = localStand();
-  const dll = "/WebsoftServer/dotnetcore/shared/BorisType.FileSystem.dll";
-  stand.exec("test", "-f", dll);
   const baseline = new Set(stand.evaluators());
   const { client, transport } = stand.createClient();
   let owned;
@@ -49,7 +47,6 @@ test("MCP search → BS path resolver → installed .NET DLL", { timeout: 120_00
       templateSha256: createHash("sha256")
         .update(readFileSync(new URL("../../../ws-client/resources/search-files.bs", import.meta.url)))
         .digest("hex"),
-      installedDllSha256: stand.exec("sha256sum", dll).toString("utf8").split(/\s/)[0],
     }),
   );
   try {
@@ -59,6 +56,7 @@ test("MCP search → BS path resolver → installed .NET DLL", { timeout: 120_00
     if (added.length === 1) owned = added[0];
   }
   assert.ok(owned, "Exclusive stand required: expected one new evaluator");
+  t.diagnostic(JSON.stringify({ runtime: await stand.runtime(client) }));
   async function search(options) {
     const result = await client.callTool({ name: "wshcm_search_files", arguments: { path: stand.url, ...options } }, { timeout: 20_000 });
     assert.notEqual(result.isError, true, JSON.stringify(result.content));

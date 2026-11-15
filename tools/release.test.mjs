@@ -183,6 +183,7 @@ test("packed dependencies require the intended workspace version, including prer
 });
 
 test("archive inspection rejects missing build output, leaked sources and version mismatch", async (t) => {
+  const target = release.parseReleaseTag("@boristype/mcp-server@0.2.0-alpha.1");
   const root = await fixture(t);
   const dir = join(root, "package");
   await mkdir(join(dir, "build"), { recursive: true });
@@ -204,6 +205,21 @@ test("archive inspection rejects missing build output, leaked sources and versio
   await writeFile(join(dir, "package.json"), JSON.stringify({ ...manifest, version: "9.0.0" }));
   pack();
   await assert.rejects(release.inspectArchive(archive, target), /manifest/i);
+});
+
+test("ws-client archive inspection refuses an omitted managed runtime bundle", async (t) => {
+  const root = await fixture(t);
+  const dir = join(root, "package");
+  await mkdir(join(dir, "build"), { recursive: true });
+  const runtimeTarget = release.parseReleaseTag("@boristype/ws-client@0.1.0-alpha.4");
+  await writeFile(
+    join(dir, "package.json"),
+    JSON.stringify({ name: runtimeTarget.name, version: runtimeTarget.version, main: "build/index.js" }),
+  );
+  await writeFile(join(dir, "build/index.js"), "export {};\n");
+  const archive = join(root, "release.tgz");
+  execFileSync("tar", ["-czf", archive, "package"], { cwd: root });
+  await assert.rejects(release.inspectArchive(archive, runtimeTarget), /runtime bundle/i);
 });
 
 test("the real pnpm publisher accepts a verified tarball from a detached, dirty checkout in dry-run", async (t) => {

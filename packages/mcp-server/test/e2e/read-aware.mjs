@@ -34,13 +34,11 @@ test("read grants, line ranges and nine file tools on the local C runtime", { ti
     }
     if (errors.length) throw new AggregateError(errors, "Native read-aware cleanup failed");
   });
-  const dll = "/WebsoftServer/dotnetcore/shared/BorisType.FileSystem.dll";
   t.diagnostic(
     JSON.stringify({
       image: stand.image,
       imageId: stand.imageId,
       carrier: "CLI/stdio/SOAP/C-runtime/DotNetCoreHost",
-      installedDllSha256: stand.exec("sha256sum", dll).toString().split(/\s/)[0],
       templateSha256: createHash("sha256")
         .update(readFileSync(new URL("../../../ws-client/resources/file-operation.bs", import.meta.url)))
         .digest("hex"),
@@ -48,6 +46,7 @@ test("read grants, line ranges and nine file tools on the local C runtime", { ti
   );
   await first.client.connect(first.transport, { timeout: 35000 });
   await second.client.connect(second.transport, { timeout: 35000 });
+  t.diagnostic(JSON.stringify({ runtime: await stand.runtime(first.client) }));
   const call = (tool, args, client = first.client) => client.callTool({ name: "wshcm_" + tool, arguments: args }, { timeout: 20000 });
   const json = async (tool, args, client) => {
     const result = await call(tool, args, client);

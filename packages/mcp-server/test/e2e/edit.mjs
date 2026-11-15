@@ -4,11 +4,9 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { localStand } from "./stand.mjs";
 
-// Explicit stand/DLL prerequisite, unique bounded fixtures, sequential calls, no native retry.
+// Explicit stand prerequisite, unique bounded fixtures, sequential calls, no native retry.
 test("managed edit preserves bytes and refuses stale or ambiguous patches through real MCP/SOAP", { timeout: 120_000 }, async (t) => {
   const stand = localStand();
-  const dll = "/WebsoftServer/dotnetcore/shared/BorisType.FileSystem.dll";
-  stand.exec("test", "-f", dll);
   const baseline = new Set(stand.evaluators());
   const { client, transport } = stand.createClient();
   let owned;
@@ -39,7 +37,6 @@ test("managed edit preserves bytes and refuses stale or ambiguous patches throug
       templateSha256: createHash("sha256")
         .update(readFileSync(new URL("../../../ws-client/resources/file-operation.bs", import.meta.url)))
         .digest("hex"),
-      installedDllSha256: stand.exec("sha256sum", dll).toString("utf8").split(/\s/)[0],
     }),
   );
   try {
@@ -49,6 +46,7 @@ test("managed edit preserves bytes and refuses stale or ambiguous patches throug
     if (added.length === 1) owned = added[0];
   }
   assert.ok(owned, "Use an exclusive stand; expected exactly one evaluator");
+  t.diagnostic(JSON.stringify({ runtime: await stand.runtime(client) }));
   async function call(tool, name, args = {}) {
     return client.callTool({ name: `wshcm_${tool}`, arguments: { path: stand.url + name, ...args } }, { timeout: 20_000 });
   }

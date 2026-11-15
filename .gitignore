@@ -10,6 +10,8 @@ packages/botest/src/borisscript/main.js
 .npmrc
 **/bin/
 **/obj/
+packages/ws-client/resources/dotnet/
+packages/ws-client/resources/.dotnet-bundle-*/
 
 # VitePress
 docs/.vitepress/dist

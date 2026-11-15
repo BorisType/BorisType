@@ -20,6 +20,20 @@
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
+    },
+    "@boristype/ws-client#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["build/**", "resources/dotnet/**"],
+      "outputLogs": "new-only",
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/global.json",
+        "$TURBO_ROOT$/packages/dotnet/Directory.*.props",
+        "$TURBO_ROOT$/packages/dotnet/src/**",
+        "$TURBO_ROOT$/packages/dotnet/tools/AssemblyIdentity/**",
+        "!$TURBO_ROOT$/packages/dotnet/**/bin/**",
+        "!$TURBO_ROOT$/packages/dotnet/**/obj/**"
+      ]
     }
   }
 }

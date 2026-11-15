@@ -26,6 +26,13 @@ jobs:
         with:
           run_install: false
 
+      - name: Setup .NET SDK for bundled ws-client runtime
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: packages/dotnet/**/packages.lock.json
+
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

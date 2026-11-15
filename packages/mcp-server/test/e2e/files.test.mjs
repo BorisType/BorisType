@@ -6,7 +6,6 @@ import { localStand } from "./stand.mjs";
 
 test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }, async (t) => {
   const stand = localStand();
-  stand.exec("test", "-f", "/WebsoftServer/dotnetcore/shared/BorisType.FileSystem.dll");
   const baseline = new Set(stand.evaluators());
   const { client, transport } = stand.createClient();
   let ownedEvaluator;
@@ -56,10 +55,6 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
       imageId: stand.imageId,
       carrier: "CLI/stdio/SOAP/C-runtime/DotNetCoreHost",
       hashes,
-      installedDllSha256: stand
-        .exec("sha256sum", "/WebsoftServer/dotnetcore/shared/BorisType.FileSystem.dll")
-        .toString("utf8")
-        .split(/\s/)[0],
     }),
   );
   try {
@@ -95,18 +90,29 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
   await check("real CLI initializes and lists only implemented tools", async () => {
     assert.equal(client.getServerVersion().name, "boristype-wshcm");
     const { tools } = await client.listTools({}, { timeout: 5_000 });
-    assert.deepEqual(tools.map(({ name }) => name).sort(), [
-      "wshcm_create_directory",
-      "wshcm_delete_file",
-      "wshcm_edit_file",
-      "wshcm_get_file_info",
-      "wshcm_list_directory",
-      "wshcm_move_file",
-      "wshcm_read_file",
-      "wshcm_search_files",
-      "wshcm_write_file",
-      "wshcm_xquery",
-    ]);
+    assert.deepEqual(
+      tools.map(({ name }) => name).sort(),
+      [
+        "wshcm_create_directory",
+        "wshcm_delete_file",
+        "wshcm_edit_file",
+        "wshcm_get_file_info",
+        "wshcm_list_directory",
+        "wshcm_move_file",
+        "wshcm_read_file",
+        "wshcm_search_files",
+        "wshcm_write_file",
+        "wshcm_xquery",
+        "wshcm_get_form",
+        "wshcm_get_object",
+        "wshcm_save_object",
+        "wshcm_runtime_status",
+      ].sort(),
+    );
+  });
+
+  await check("bundled runtime is installed, loaded and independently hash-verified", async () => {
+    t.diagnostic(JSON.stringify({ runtime: await stand.runtime(client) }));
   });
 
   await check("empty directory lists as an empty JSON array", async () => {

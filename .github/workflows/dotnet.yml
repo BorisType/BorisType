@@ -6,12 +6,14 @@ on:
     paths:
       - "global.json"
       - "packages/dotnet/**"
+      - "packages/ws-client/tools/**"
       - ".github/workflows/dotnet.yml"
   pull_request:
     branches: [main]
     paths:
       - "global.json"
       - "packages/dotnet/**"
+      - "packages/ws-client/tools/**"
       - ".github/workflows/dotnet.yml"
   workflow_dispatch:
 
@@ -56,8 +58,8 @@ jobs:
       - name: Unit tests
         run: dotnet test packages/dotnet/BorisType.DotNet.slnx --configuration Release --no-build --no-restore
 
-      - name: Verify installation ZIP
-        run: node --test packages/dotnet/test/pack.test.mjs
+      - name: Verify installation ZIP and SDK runtime bundle
+        run: node --test --test-concurrency=1 packages/dotnet/test/*.test.mjs
 
       - name: Create installation ZIP
         run: node packages/dotnet/tools/pack.mjs

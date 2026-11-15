@@ -7,6 +7,6 @@
     "build:dotnet": "dotnet build BorisType.DotNet.slnx --configuration Release -p:RestoreLockedMode=true",
     "test:dotnet": "dotnet test BorisType.DotNet.slnx --configuration Release -p:RestoreLockedMode=true",
     "pack:dotnet": "node tools/pack.mjs",
-    "test:dotnet:pack": "node --test test/pack.test.mjs"
+    "test:dotnet:pack": "node --test --test-concurrency=1 test/*.test.mjs"
   }
 }

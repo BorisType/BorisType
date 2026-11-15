@@ -104,7 +104,7 @@ export function internalDependencies(manifest, workspace) {
   return [...result.values()];
 }
 
-export async function inspectArchive(archive, target) {
+export async function inspectArchive(archive, target, { verifyManagedIdentity = false } = {}) {
   const { stdout } = await exec("tar", ["-tzf", archive], { maxBuffer: 16 * 1024 * 1024 });
   const entries = stdout
     .trim()
@@ -124,7 +124,99 @@ export async function inspectArchive(archive, target) {
   for (const entry of [manifest.main, manifest.types, ...bins].filter(Boolean)) {
     if (!entries.includes(`package/${entry.replace(/^\.\//, "")}`)) throw new Error(`Missing package entry point: ${entry}`);
   }
+  if (target.name === "@boristype/ws-client") await inspectRuntimeBundle(archive, entries, verifyManagedIdentity);
   return manifest;
+}
+
+/** Release inspection also runs when lifecycle scripts are deliberately disabled. */
+async function inspectRuntimeBundle(archive, entries, verifyManagedIdentity) {
+  const prefix = "package/resources/dotnet/";
+  const read = async (path, maxBuffer) => (await exec("tar", ["-xOf", archive, path], { encoding: "buffer", maxBuffer })).stdout;
+  const identityDirectory = verifyManagedIdentity ? await mkdtemp(join(tmpdir(), "boristype-archive-reader-")) : null;
+  try {
+    const manifest = JSON.parse(await read(prefix + "manifest.json", 65536));
+    if (manifest.schemaVersion !== 1) throw new Error("Unsupported manifest");
+    const identityReader = identityDirectory ? await buildManagedIdentityReader(identityDirectory) : null;
+    const expected = [prefix + "manifest.json"];
+    for (const kind of ["bootstrap", "component"]) {
+      const descriptor = manifest[kind];
+      if (
+        !(kind === "bootstrap"
+          ? /^BorisType\.RuntimeBootstrap\.B[a-f0-9]{64}$/.test(descriptor.id)
+          : descriptor.id === "BorisType.FileSystem") ||
+        descriptor.apiVersion !== (kind === "bootstrap" ? 1 : 2) ||
+        descriptor.targetFramework !== "net9.0" ||
+        !semver.valid(descriptor.version) ||
+        !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(descriptor.buildId) ||
+        descriptor.buildId === "00000000-0000-0000-0000-000000000000" ||
+        descriptor.entryAssembly !== descriptor.id + ".dll" ||
+        !Array.isArray(descriptor.files) ||
+        descriptor.files.length !== 2
+      )
+        throw new Error("Invalid component descriptor");
+      const names = descriptor.files.map((file) => file.path).sort();
+      if (JSON.stringify(names) !== JSON.stringify([descriptor.id + ".deps.json", descriptor.id + ".dll"].sort()))
+        throw new Error("Unexpected component files");
+      for (const file of descriptor.files) {
+        if (!Number.isInteger(file.bytes) || file.bytes < 1 || file.bytes > 4194304 || !/^[a-f0-9]{64}$/.test(file.sha256))
+          throw new Error("Invalid artifact descriptor");
+        const path = prefix + kind + "/" + file.path;
+        if (entries.filter((entry) => entry === path).length !== 1) throw new Error("Missing or duplicate runtime artifact");
+        const bytes = await read(path, 4194304);
+        if (bytes.length !== file.bytes || createHash("sha256").update(bytes).digest("hex") !== file.sha256)
+          throw new Error("Runtime artifact hash mismatch");
+        if (identityReader && file.path === descriptor.entryAssembly) await inspectManagedIdentity(bytes, descriptor, identityReader);
+        expected.push(path);
+      }
+    }
+    if (JSON.stringify(entries.filter((entry) => entry.startsWith(prefix)).sort()) !== JSON.stringify(expected.sort()))
+      throw new Error("Unexpected runtime files");
+  } catch (error) {
+    throw new Error("Invalid SDK runtime bundle: " + error.message);
+  } finally {
+    if (identityDirectory) await rm(identityDirectory, { recursive: true, force: true });
+  }
+}
+
+/** Only the packaging job needs the SDK. Later jobs attest the same archive digest. */
+async function buildManagedIdentityReader(directory) {
+  const project = fileURLToPath(new URL("../packages/dotnet/tools/AssemblyIdentity/AssemblyIdentity.csproj", import.meta.url));
+  const output = join(directory, "reader");
+  // A cached ws-client build restores bundle assets, not the utility's bin/obj.
+  // Build the trusted reader independently; never require untracked outputs.
+  await exec(
+    "dotnet",
+    [
+      "build",
+      project,
+      "-c",
+      "Release",
+      "-p:RestoreLockedMode=true",
+      "--artifacts-path",
+      join(directory, "build"),
+      "--output",
+      output,
+      "--nologo",
+    ],
+    { cwd: dirname(project), timeout: 120000, maxBuffer: 4 * 1024 * 1024 },
+  );
+  return join(output, "AssemblyIdentity.dll");
+}
+
+async function inspectManagedIdentity(bytes, descriptor, reader) {
+  const directory = await mkdtemp(join(tmpdir(), "boristype-archive-identity-"));
+  try {
+    const path = join(directory, descriptor.entryAssembly);
+    await writeFile(path, bytes);
+    const actual = JSON.parse((await exec("dotnet", [reader, path], { timeout: 30000, maxBuffer: 65536 })).stdout);
+    if (
+      ["id", "version", "apiVersion", "buildId"].some((key) => actual[key] !== descriptor[key]) ||
+      actual.targetFramework !== ".NETCoreApp,Version=v9.0"
+    )
+      throw new Error("Runtime assembly identity mismatch");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 }
 
 async function run(command, args, cwd, { stream = false } = {}) {
@@ -255,7 +347,7 @@ async function main() {
     );
   }
   const archive = join(artifacts, "package.tgz");
-  const manifest = await inspectArchive(archive, target);
+  const manifest = await inspectArchive(archive, target, { verifyManagedIdentity: command === "pack" });
   const bytes = await readFile(archive);
   const digest = createHash("sha512").update(bytes).digest("hex");
   if (command === "pack") {
