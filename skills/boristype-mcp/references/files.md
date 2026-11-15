@@ -3,8 +3,22 @@
 ## Контракт и хранилище
 
 Справочник описывает девять файловых tools прототипа с
-BorisType.FileSystem 0.1.0-alpha.4 / API 2. DLL устанавливается отдельно на HCM;
-npm-пакет MCP её не содержит. Актуальные параметры сверяй со schemas tools.
+BorisType.FileSystem 0.1.0-alpha.4 / API 2. Production DLL входят в dependency
+ws-client и автоматически подготавливаются перед файловой операцией. Отдельное
+скачивание не нужно. Нужен net9 HCM с доступным dotnetcore/shared и правами
+на установку/загрузку code. Актуальные параметры сверяй со schemas tools.
+
+`wshcm_runtime_status({})` может создавать файлы и загружать DLL; это не
+read-only проверка. expected — комплект клиента, installed — проверенные files,
+loaded — code ответившего процесса (MVID из памяти). ready допускает работу;
+restart_required означает подготовленное обновление и старую загруженную
+сборку: сообщи пользователю, затем после его штатного restart повтори проверку.
+blocked требует анализа reason; file gate возвращает runtimeStatus в JSON.
+Не считать файлы на диске доказательством новой загруженной версии и не
+перезаписывать DLL вручную. SDK не делает restart или downgrade.
+XQuery и XML tools остаются доступны независимо от DLL. Status одного процесса
+не подтверждает другие узлы кластера; gate и операция — разные SOAP requests.
+Timeout не отменяет подготовку. [Контракт](https://github.com/BorisType/BorisType/blob/main/docs/guides/dotnet.md).
 
 Tools разрешают `x-local://` в серверный физический путь и выполняют обычный IO.
 ОС агента не определяет синтаксис путей сервера. `x-app://`, `file:`, обычные

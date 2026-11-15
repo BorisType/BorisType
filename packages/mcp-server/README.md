@@ -6,8 +6,10 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Статус: экспериментальный checkpoint девяти файловых tools, `wshcm_xquery` и
 первый XML object MVP (`get_form`, `get_object`, `save_object`).
-Требуется Node.js >=24.22.2. Девять файловых tools требуют отдельно установленную
-`BorisType.FileSystem.dll` **0.1.0-alpha.4 / API 2** на HCM; XQuery и object tools её не используют.
+Требуется Node.js >=24.22.2 и net9 HCM с доступным dotnetcore/shared. Общий API
+`ws-client` включает production DLL и автоматически подготавливает FileSystem
+**0.1.0-alpha.4 / API 2** для девяти файловых tools; XQuery и object tools её не используют.
+MCP остаётся адаптером этого SDK, пригодного также для CLI.
 Файловые операции используют BS URL resolver и managed filesystem API, без Datex
 callbacks. Девять файловых tools и защита чтений прошли native e2e на Linux
 C-runtime `websoft/hcm:2025.2.1333` / CLR 9.0.11. Это evidence одной сборки;
@@ -57,21 +59,22 @@ instructions и skill не добавляют гарантий чтения, и�
 
 ## Tools
 
-| Tool                     | Назначение                                        |
-| ------------------------ | ------------------------------------------------- |
-| `wshcm_read_file`        | UTF-8 текст или диапазон строк, hash и readToken  |
-| `wshcm_write_file`       | Create-only либо перезапись после полного чтения  |
-| `wshcm_edit_file`        | Точные замены внутри прочитанных диапазонов       |
-| `wshcm_list_directory`   | Immediate entries, без recursion                  |
-| `wshcm_search_files`     | Поиск по именам и UTF-8 содержимому               |
-| `wshcm_delete_file`      | Удаление отдельного файла                         |
-| `wshcm_create_directory` | Создание каталога и missing parents               |
-| `wshcm_move_file`        | Rename без overwrite и copy/delete fallback       |
-| `wshcm_get_file_info`    | Metadata файла/каталога без чтения содержимого    |
-| `wshcm_xquery`           | Серверный XQuery, включая прямой SQL через `sql:` |
-| `wshcm_get_form`         | XML раскрытого root загруженной XMD               |
-| `wshcm_get_object`       | Полный экспортируемый XML объекта и readToken     |
-| `wshcm_save_object`      | Create либо полная замена объекта из XML          |
+| Tool                     | Назначение                                              |
+| ------------------------ | ------------------------------------------------------- |
+| `wshcm_read_file`        | UTF-8 текст или диапазон строк, hash и readToken        |
+| `wshcm_write_file`       | Create-only либо перезапись после полного чтения        |
+| `wshcm_edit_file`        | Точные замены внутри прочитанных диапазонов             |
+| `wshcm_list_directory`   | Immediate entries, без recursion                        |
+| `wshcm_search_files`     | Поиск по именам и UTF-8 содержимому                     |
+| `wshcm_delete_file`      | Удаление отдельного файла                               |
+| `wshcm_create_directory` | Создание каталога и missing parents                     |
+| `wshcm_move_file`        | Rename без overwrite и copy/delete fallback             |
+| `wshcm_get_file_info`    | Metadata файла/каталога без чтения содержимого          |
+| `wshcm_runtime_status`   | Автоподготовка DLL и expected/installed/loaded identity |
+| `wshcm_xquery`           | Серверный XQuery, включая прямой SQL через `sql:`       |
+| `wshcm_get_form`         | XML раскрытого root загруженной XMD                     |
+| `wshcm_get_object`       | Полный экспортируемый XML объекта и readToken           |
+| `wshcm_save_object`      | Create либо полная замена объекта из XML                |
 
 Read/list/search/info помечены readOnlyHint. Write/edit/delete/move имеют
 `destructiveHint: true`, `idempotentHint: false`; create_directory —
@@ -81,13 +84,35 @@ XQuery имеет `readOnlyHint: false`, `destructiveHint: true`, `idempotentHin
 запрос передаётся платформе без проверки на чтение.
 
 Отложенные read-multiple/tree не зарегистрированы; их TS stubs и пять старых BS
-stubs удалены. Два файловых BS resources — URL bridges к DLL — и отдельные
-`xquery.bs`/`object-operation.bs` используются зарегистрированными tools.
+stubs удалены. BS bridges и платформенная логика принадлежат ws-client,
+MCP содержит schemas/output adapters к общему API.
 
 Это несовместимое обновление прототипа: read всегда возвращает JSON,
 includeMetadata удалён; edit требует readToken, write по умолчанию create-only.
-Установить DLL alpha.4/API 2 и обновить MCP вместе. Старые ответы API 1 отвергаются.
-Установка — в [.NET README](https://github.com/BorisType/BorisType/blob/main/packages/dotnet/README.md#установка-для-mcp); npm не содержит DLL.
+Старые ответы API 1 отвергаются. Нужный комплект DLL поставляется с ws-client;
+отдельное скачивание не требуется. [Подготовка и перезапуск](https://github.com/BorisType/BorisType/blob/main/docs/guides/dotnet.md).
+
+### Статус runtime
+
+`wshcm_runtime_status({})` проверяет и при необходимости **устанавливает**
+зависимости в `AppDirectoryPath()/dotnetcore/shared/.boristype-runtime/`.
+Tool не read-only: может создавать файлы и загружать code. Тот же gate
+автоматически выполняется перед каждой файловой операцией.
+
+Status schema 1 содержит `status`, `reason`, `expected`, `installed`, `loaded`,
+`changed`, `process` (PID/start/CLR/architecture). Identity содержит
+`id/version/apiVersion/buildId`; buildId — MVID, загруженный из памяти.
+`ready` допускает файловый вызов. `restart_required` означает, что новая сборка
+подготовлена, но процесс использует другую; SDK не перезапускает HCM.
+`blocked` — диагностируемое препятствие: API, права, corrupted bytes,
+BuildConflict и т.п. Локальная/transport ошибка имеет `process:null`.
+
+Ошибки файлового gate возвращают JSON `{error:{code:"RuntimeNotReady",message},
+runtimeStatus:...}`. XQuery/XML не блокируются отсутствующей или старой DLL.
+Подготовка не откатывает новую совместимую версию и не перезаписывает mapped DLL.
+После перезапуска следующий вызов проверяет состояние снова. Status одного
+процесса не подтверждает готовность других узлов; файловый вызов следует за
+проверкой отдельным SOAP request. Timeout не отменяет установку.
 
 ### XML объектов: форма, чтение, сохранение
 
@@ -334,10 +359,9 @@ owner/ACL/inode/hardlinks — без гарантии. Ошибка достав
 
 ### Поиск
 
-`wshcm_search_files` использует ту же отдельно установленную `BorisType.FileSystem.dll`
-версии `0.1.0-alpha.4` / API 2. Installation ZIP собирается
-командой `pnpm pack:dotnet`; установка и версия CLR описаны в
-[.NET README](https://github.com/BorisType/BorisType/blob/main/packages/dotnet/README.md#установка-для-mcp). npm package не содержит DLL.
+`wshcm_search_files` использует ту же автоматически подготавливаемую
+`BorisType.FileSystem.dll` версии `0.1.0-alpha.4` / API 2 из ws-client.
+[Подготовка и версия CLR](https://github.com/BorisType/BorisType/blob/main/docs/guides/dotnet.md).
 BS разрешает `x-local://` через `UrlToFilePath`, C# получает абсолютный физический
 каталог и не вызывает Datex обратно.
 
@@ -497,8 +521,10 @@ pnpm --filter @boristype/mcp-server test:e2e
 Для другого локального стенда передать его credentials через environment.
 E2E использует отдельные `WSHCM_E2E_*` переменные, определяет текущий IP контейнера,
 подключается к порту 80 и отключает Node environment proxy только в дочернем CLI.
-Для всех file e2e требуется установленная alpha.4/API 2 DLL в
-`/WebsoftServer/dotnetcore/shared/`. Пути fixtures ожидаются под `/WebsoftServer/wt`. На Docker Desktop прямой IP
+File e2e вызывают `wshcm_runtime_status`, автоматически подготавливают bundle
+из ws-client и сверяют installed SHA256 и loaded MVID. При `restart_required`
+серия останавливается; HCM автоматически не перезапускается. Пути fixtures
+ожидаются под `/WebsoftServer/wt`. На Docker Desktop прямой IP
 контейнера может быть недоступен; такой маршрут этим запуском не проверялся.
 
 Тесты создают отдельный `x-local://wt/mcp-e2e-<UUID>/`, сравнивают реальные байты
@@ -518,8 +544,8 @@ E2E использует отдельные `WSHCM_E2E_*` переменные, 
 guarded overwrite и mkdir/info/binary rename. Текущие результаты всех серий —
 в [отчёте alpha.4](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/13-read-aware-files-results.md).
 
-Поиск имеет отдельную acceptance-команду, которая дополнительно требует уже
-установленную DLL в `/WebsoftServer/dotnetcore/shared/`:
+Поиск имеет отдельную acceptance-команду с той же автоматической подготовкой
+DLL и проверкой identity:
 
 ```bash
 WSHCM_E2E_CONTAINER=boristype-c-runtime-net9-wt-1 \
@@ -529,7 +555,7 @@ pnpm --filter @boristype/mcp-server test:e2e:search
 
 Она создаёт своё ограниченное дерево, проверяет имена/содержимое/Unicode/newlines,
 exclusions, links, binary, result limit, regex и quoted path/query через настоящий
-CLI/stdio/SOAP/DLL, затем проверяет cleanup. Не запускает стенд и не устанавливает
+CLI/stdio/SOAP/DLL, затем проверяет cleanup. Не запускает стенд; SDK автоматически подготавливает
 DLL. Native test прошёл 2026-11-06 на Linux HCM 2025.2.1333 / CLR 9.0.11;
 Windows, другие версии и полный path/permissions contract требуют своих проверок.
 
@@ -543,7 +569,7 @@ pnpm --filter @boristype/mcp-server test:e2e:edit
 
 Проверены BOM/no-BOM, metadata SHA256, preview/apply, stale hash, ambiguous и
 missing second edit без частичной записи, invalid UTF-8/NUL, link policy и cleanup.
-Ни одна из четырёх native команд не запускает стенд и не устанавливает DLL.
+Native команды не запускают стенд; общий SDK автоматически подготавливает DLL.
 
 XQuery имеет отдельную команду с теми же `WSHCM_E2E_*` переменными:
 

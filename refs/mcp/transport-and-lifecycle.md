@@ -9,9 +9,10 @@
 подключения. Caller владеет connection/transport. CLI `startServer` создаёт
 connection, подключает StdioServerTransport и обслуживает shutdown.
 [server.ts](../../packages/mcp-server/src/server.ts) регистрирует девять файловых
-tools, XQuery и три XML tools. Schemas/handlers — в
+tools, XQuery, три XML tools и runtime status. Общий API и grants принадлежат
+ws-client/WshcmApi; MCP handlers — в
 [tools](../../packages/mcp-server/src/tools/), templates — в
-[resources](../../packages/mcp-server/resources/). Аннотации readOnly/destructive/
+[resources](../../packages/ws-client/resources/). Аннотации readOnly/destructive/
 idempotent — hints клиенту, не механизм авторизации или обязательного UI approval.
 
 ## Что исправили исследования транспорта
@@ -81,7 +82,7 @@ registry install и не HCM connection. InMemoryTransport и subprocess stdio
 с doubled platform/CLR. Ни один из них не доказывает C-runtime поведение.
 
 Native `test:e2e*` требуют отдельного подготовленного Linux Docker stand,
-совместимой установленной DLL для files/search, explicit credentials/container,
+net9 host с правами на автоматическую подготовку DLL для files/search, explicit credentials/container,
 доступного IPv4/HTTP и эксклюзивного fixture scope. Они не разворачивают stand;
 missing env — явная ошибка, не silent skip. Команды и prerequisites — в
 [package README](../../packages/mcp-server/README.md). Для изменения prose
@@ -108,3 +109,7 @@ contract. [ObtainDirectory](https://wshcm-docs.boristype.dev/datex/common/562027
 предпочтён переносу старого root lockfile. Это исправленный исторический дефект,
 а не текущее нарушение. Общий strict SOAP envelope, partial startup и in-flight
 shutdown не объявлены решёнными самим dependency refresh.
+
+[Доставка managed runtime](../dotnet/managed-runtime.md) описывает bundle,
+cache/MVID и scope status. File gate выполняется отдельным SOAP вызовом перед
+операцией: балансировка по процессам не устраняется этим механизмом.

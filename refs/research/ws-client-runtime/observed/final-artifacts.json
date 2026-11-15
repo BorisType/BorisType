@@ -1,0 +1,116 @@
+{
+  "recordedAt": "2026-11-15T08:18:23.408Z",
+  "bundle": {
+    "schemaVersion": 1,
+    "bootstrap": {
+      "id": "BorisType.RuntimeBootstrap.B53a9ea0c1f41b578b4bb88a9389553a72996846f7a15fed29f0c3358e12525a0",
+      "version": "0.1.0-alpha.1",
+      "apiVersion": 1,
+      "targetFramework": "net9.0",
+      "buildId": "29559c79-d1ae-454b-b219-0f1cef85caa9",
+      "entryAssembly": "BorisType.RuntimeBootstrap.B53a9ea0c1f41b578b4bb88a9389553a72996846f7a15fed29f0c3358e12525a0.dll",
+      "files": [
+        {
+          "path": "BorisType.RuntimeBootstrap.B53a9ea0c1f41b578b4bb88a9389553a72996846f7a15fed29f0c3358e12525a0.deps.json",
+          "bytes": 662,
+          "sha256": "2ee0adf459b2612fe88c5ace6d4170ff2120b5961cbc616b8b3dffb4c1371d1c"
+        },
+        {
+          "path": "BorisType.RuntimeBootstrap.B53a9ea0c1f41b578b4bb88a9389553a72996846f7a15fed29f0c3358e12525a0.dll",
+          "bytes": 30208,
+          "sha256": "0840a8f36f2cf6922d56139366848b00dc08e7c8d74993e01e24a0aedf0e3c30"
+        }
+      ]
+    },
+    "component": {
+      "id": "BorisType.FileSystem",
+      "version": "0.1.0-alpha.4",
+      "apiVersion": 2,
+      "targetFramework": "net9.0",
+      "buildId": "646a1a84-313d-4189-8af6-ec2dd4c1234d",
+      "entryAssembly": "BorisType.FileSystem.dll",
+      "files": [
+        {
+          "path": "BorisType.FileSystem.deps.json",
+          "bytes": 446,
+          "sha256": "efb28de7f961ddc66c4cfc51c50961da19f724dd06554470b8dfca3b8140845b"
+        },
+        {
+          "path": "BorisType.FileSystem.dll",
+          "bytes": 68096,
+          "sha256": "d97fffe1a4b66a88688e17b3e0751af50ecbecae0622d524bf6476d093742b5f"
+        }
+      ]
+    }
+  },
+  "sources": {
+    "refs/research/ws-client-runtime/primitives.bs": "18e00473f3b83765f76c5fea0a1661bff03d6f78e77e82e4c340051129b46355",
+    "refs/research/ws-client-runtime/native-runtime-probe.mjs": "641d4fe7b6d3344d879fcd4ed3db451dc258eca91b6ec3584f27b1562d06a040",
+    "packages/ws-client/resources/runtime-bootstrap.bs": "044b65c73ff535e25be11cbf728a5653d346ac1a6205207bd3fc1bf10c219dbd",
+    "packages/ws-client/resources/runtime-operation.bs": "3225c198c21a932d55ba9349cee4fa2a22a8b9813fea77cd1a3d9914e831f847"
+  },
+  "stand": {
+    "name": "boristype-c-runtime-net9-wt-1",
+    "inspection": "stopped-container files only; no code executed",
+    "state": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 255,
+      "Error": "",
+      "StartedAt": "2026-11-14T12:00:33.905111Z",
+      "FinishedAt": "2026-11-15T08:13:04.1082069Z"
+    },
+    "active": {
+      "id": "BorisType.FileSystem",
+      "version": "0.1.0-alpha.4",
+      "apiVersion": 2,
+      "targetFramework": "net9.0",
+      "buildId": "646a1a84-313d-4189-8af6-ec2dd4c1234d",
+      "entryAssembly": "BorisType.FileSystem.dll",
+      "files": [
+        {
+          "path": "BorisType.FileSystem.deps.json",
+          "bytes": 446,
+          "sha256": "efb28de7f961ddc66c4cfc51c50961da19f724dd06554470b8dfca3b8140845b"
+        },
+        {
+          "path": "BorisType.FileSystem.dll",
+          "bytes": 68096,
+          "sha256": "d97fffe1a4b66a88688e17b3e0751af50ecbecae0622d524bf6476d093742b5f"
+        }
+      ],
+      "identity": {
+        "id": "BorisType.FileSystem",
+        "version": "0.1.0-alpha.4",
+        "apiVersion": 2,
+        "buildId": "646a1a84-313d-4189-8af6-ec2dd4c1234d"
+      }
+    },
+    "installedDllSha256": "d97fffe1a4b66a88688e17b3e0751af50ecbecae0622d524bf6476d093742b5f"
+  },
+  "localTests": {
+    "managed": 122,
+    "sdk": 127,
+    "mcp": 168,
+    "release": 33,
+    "dotnetPackaging": 2,
+    "mcpPack": "PASS",
+    "lint": {
+      "errors": 0,
+      "existingCompilerWarnings": 11
+    },
+    "workspaceBuildTasks": 15,
+    "docsTests": 17,
+    "docsIntegrity": "PASS",
+    "docsBuild": "PASS",
+    "format": "PASS",
+    "versionConsistency": "PASS",
+    "strictArchiveWithoutPrebuiltReader": "PASS",
+    "workflowLint": "PASS with unsupported existing concurrency.queue key excluded by older actionlint"
+  }
+}

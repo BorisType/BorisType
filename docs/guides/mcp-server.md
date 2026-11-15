@@ -1,9 +1,9 @@
 # MCP server для WebSoft HCM
 
 `@boristype/mcp-server` — Node.js >=24.22.2, stdio transport, MCP SDK 2.x.
-Его сборка не использует TS → BorisScript compiler. Девять файловых tools требуют
-отдельно установленной BorisType.FileSystem **0.1.0-alpha.4 / API 2**.
-MCP и DLL обновляются вместе: read/edit/write изменили контракт относительно API 1.
+Его сборка не использует TS → BorisScript compiler. Общий SDK ws-client
+поставляет DLL для девяти файловых tools и автоматически подготавливает её
+на HCM. Нужны net9 host и доступ к dotnetcore/shared.
 
 Доступны read_file, write_file, edit_file, list_directory, search_files,
 delete_file, create_directory, move_file и get_file_info с префиксом `wshcm_`.
@@ -14,9 +14,9 @@ delete_file, create_directory, move_file и get_file_info с префиксом 
 
 ## Установка и подключение
 
-Требуются Node.js >=24.22.2 и доступ к серверу HCM. Для файловых tools сначала
-[установите DLL и проверьте её metadata](./dotnet). Для XQuery и XML tools этот
-шаг с DLL не нужен.
+Требуются Node.js >=24.22.2 и доступ к серверу HCM. Для файловых tools DLL
+входит в npm dependency ws-client; [подготовка происходит автоматически](./dotnet).
+XQuery и XML tools не зависят от готовности DLL.
 
 Установите MCP сервер:
 
@@ -48,7 +48,7 @@ npm install -g @boristype/mcp-server@next
 [конфигурации package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#конфигурация).
 
 Запустите сервер средствами MCP-клиента и проверьте список tools: девять
-файловых, `wshcm_xquery` и три XML tools. Затем выполните операцию чтения,
+файловых, `wshcm_xquery`, три XML tools и `wshcm_runtime_status`. Затем выполните операцию чтения,
 например `wshcm_get_form` с формой, существующей на вашей установке:
 
 ```json
@@ -56,7 +56,9 @@ npm install -g @boristype/mcp-server@next
 ```
 
 Успех этого вызова подтверждает соединение и загрузку конкретной формы,
-но не установку DLL. Для файлового маршрута прочитайте известный физический
+но не установку DLL. Вызовите `wshcm_runtime_status` с `{}`: ready разрешает
+файловые операции, restart_required сообщает о подготовленной DLL и старом
+загруженном коде. HCM автоматически не перезапускается. Для файлового маршрута прочитайте известный физический
 UTF-8 файл через `wshcm_read_file`; результат должен содержать content, sha256
 и readToken. Параметры URL и ограничения — в
 [описании tools](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#tools).

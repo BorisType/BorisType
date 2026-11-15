@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-14T14:25:16.822Z",
+  "container": "boristype-c-runtime-net9-wt-1",
+  "roots": [
+    {
+      "path": "/WebsoftServer/dotnetcore/shared/.boristype-runtime-fixture-df5426cb3c9542da9f93822bee94a544",
+      "existed": true,
+      "absent": true
+    },
+    {
+      "path": "/WebsoftServer/dotnetcore/shared/.boristype-runtime-fixture-20261114-b781e94b",
+      "existed": true,
+      "absent": true
+    }
+  ],
+  "previousAppDirRoot": {
+    "path": "/WebsoftServer/.boristype-runtime-fixture-20261114-b781e94b",
+    "absent": true
+  },
+  "productionRootRetained": true
+}

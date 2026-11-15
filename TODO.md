@@ -75,6 +75,12 @@
 
 ## MCP / .NET / платформа
 
+- **Managed runtime: расширить acceptance.** Проверить настоящий restart HCM
+  с prepared update, Windows HCM и deployments с custom DOTNETLIBS-PATH.
+  Gate и файловая операция пока разные SOAP calls: для балансировки нужен
+  отдельный affinity/same-request contract. Определить очистку старых immutable
+  версий без удаления загруженных файлов. [Текущий контракт](refs/dotnet/managed-runtime.md).
+
 - **Внешний atomic compare-and-replace — исследование.** Hash recheck перед rename
   оставляет race с external writer. Нужен согласованный Linux/Windows protocol и
   competing-process tests либо явно ограниченный контракт.

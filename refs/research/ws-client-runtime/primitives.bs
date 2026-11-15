@@ -1,0 +1,30 @@
+var probeRoot = FilePath(AppDirectoryPath(), '.boristype-primitives-20261114-b781e94b');
+var sourcePath = FilePath(probeRoot, 'staging.tmp');
+var targetPath = FilePath(probeRoot, 'target.bin');
+var overwritten = false;
+var result;
+if (FilePathExists(probeRoot)) throw 'Owned probe path already exists';
+ObtainDirectory(probeRoot, true);
+try {
+    PutFileData(sourcePath, Base64Decode('YWJj'));
+    if (Base64Encode(LoadFileData(sourcePath)) != 'YWJj') throw 'Binary base64 round trip failed';
+    MoveFile(sourcePath, targetPath);
+    if (FilePathExists(sourcePath)) throw 'Move did not remove source';
+    if (!FilePathExists(targetPath)) throw 'Move target missing';
+    PutFileData(sourcePath, Base64Decode('eHl6'));
+    try {
+        MoveFile(sourcePath, targetPath);
+        overwritten = true;
+    }
+    catch (moveError) {}
+    result = EncodeJson({appDirectory: AppDirectoryPath(), binaryRoundTrip: true, moveCreates: true, moveOverwrites: overwritten, finalBase64: Base64Encode(LoadFileData(targetPath))});
+    if (FilePathExists(sourcePath)) DeleteFile(sourcePath);
+    DeleteFile(targetPath);
+}
+catch (probeError) {
+    throw probeError;
+}
+finally {
+    DeleteDirectory(probeRoot);
+}
+return result;

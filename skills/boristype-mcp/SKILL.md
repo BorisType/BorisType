@@ -22,8 +22,11 @@ description: Use when working with WebSoft HCM through BorisType MCP tools such 
 
 Точные параметры бери из schemas текущего сервера. Подробные ограничения
 относятся к установленной версии; не подменяй отсутствующий tool придуманным
-вызовом. Файловым tools нужна установленная BorisType.FileSystem DLL;
-`wshcm_xquery` работает через серверный evaluator без этой DLL.
+вызовом. Файловые tools автоматически подготавливают bundled DLL через ws-client.
+`wshcm_runtime_status({})` также запускает подготовку и разделяет expected,
+installed, loaded identity. При restart_required сообщи о необходимом штатном
+перезапуске HCM и повторной проверке; не перезапускай стенд автоматически.
+XQuery/XML работают через серверный evaluator независимо от готовности DLL.
 
 ## Порядок работы
 

@@ -22,7 +22,7 @@ features:
     link: /guides/mcp-server
     linkText: Подключение и использование
   - title: .NET библиотеки
-    details: BorisType.FileSystem для физических файлов. Девять файловых MCP tools требуют отдельно установленную DLL alpha.4 / API 2.
+    details: BorisType.FileSystem для физических файлов. Общий SDK автоматически доставляет DLL для девяти файловых MCP tools.
     link: /guides/dotnet
     linkText: Установка и совместимость
   - title: Agent skills

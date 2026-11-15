@@ -30,3 +30,8 @@ refs/research/mcp/10-object-model/probes/verify-xml-results.mjs -text
 refs/research/mcp/10-object-model/probes/xml-core.bs -text
 refs/research/mcp/10-object-model/probes/xml-crud.bs -text
 refs/research/mcp/10-object-model/xml-evidence-manifest.json -text
+
+# Managed runtime acceptance receipts; preserve the recorded source/artifact hashes.
+refs/research/ws-client-runtime/primitives.bs -text
+refs/research/ws-client-runtime/native-runtime-probe.mjs -text
+refs/research/ws-client-runtime/observed/** -text

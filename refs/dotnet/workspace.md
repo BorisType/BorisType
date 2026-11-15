@@ -9,8 +9,9 @@ SDK выбирается из [global.json](../../global.json), target framework
 [Directory.Build.props](../../packages/dotnet/Directory.Build.props), NuGet
 versions — из [Directory.Packages.props](../../packages/dotnet/Directory.Packages.props).
 SDK разработчика, target framework DLL и CLR работающего HCM — разные параметры.
-Node-only сборка не вызывает .NET workspace: private npm wrapper предоставляет
-отдельные задачи, а C# project graph определяется `ProjectReference`/solution.
+Сборка ws-client теперь готовит managed bundle и требует SDK; npm consumers
+получают готовые bytes. Private npm wrapper предоставляет отдельные solution/ZIP
+задачи, а C# project graph определяется `ProjectReference`/solution.
 
 ## Идентичность установленной библиотеки
 
@@ -72,3 +73,7 @@ Default solution не требует vendor reference. DatexProbe собирае
 CLR 9.0.22; native bridge — на HCM CLR 9.0.11. Она не повторялась при миграции
 документации. Build/pack/lock hashes не решают host ABI, hot replacement или
 совместимость сторонних dependencies: это отдельные проверки целевого HCM.
+
+Автоматическая SDK-доставка использует отдельный production bundle без PDB/XML:
+[managed runtime](managed-runtime.md). Существующий installation ZIP остаётся
+для самостоятельных managed consumers.

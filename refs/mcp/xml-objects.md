@@ -48,7 +48,7 @@ validation запрос handler не вызывает. Локальная object
 
 ## Validate → load → bind → Save → readback
 
-[object-xml.ts](../../packages/mcp-server/src/tools/object-xml.ts) использует
+[object-xml.ts](../../packages/ws-client/src/hcm/object-xml.ts) использует
 строгий saxes: XML 1.0, один root, корректные Unicode/entities, без DTD/entity
 definitions, произвольных PI и атрибутов данных. Разрешены XML declaration,
 CDATA, standard/numeric entities, совпадающий SPXML-FORM. Node собирает bounded

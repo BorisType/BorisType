@@ -2,7 +2,9 @@
 
 Пользовательский вход — [гайд](../../docs/guides/mcp-server.md), точный контракт —
 [README пакета](../../packages/mcp-server/README.md) и schemas tools. Текущий
-сервер предоставляет девять физических file tools, XQuery и три XML tools.
+сервер предоставляет девять физических file tools, XQuery, три XML tools
+и runtime status. Общий [SDK/runtime](../dotnet/managed-runtime.md) владеет
+платформенной логикой; MCP — адаптер.
 Node tsc/BS resources независимы от TS→BS compiler и script/module ABI.
 
 | Вопрос                                                                    | Текущие основания                                       | Датированное evidence                                                                                                                    |
@@ -22,8 +24,8 @@ Node tsc/BS resources независимы от TS→BS compiler и script/modul
 После build `pnpm --filter @boristype/mcp-server test` проверяет локальный
 protocol/state/XML/templates, `test:pack` — настоящий tarball с workspace deps.
 VM doubles не являются C-runtime acceptance. Отдельные `test:e2e*` требуют
-подготовленного эксклюзивного Linux Docker stand, credentials и отдельно
-установленной DLL для files/search; обычный test их не запускает.
+подготовленного эксклюзивного Linux Docker stand, credentials и net9 host с правами
+на автоматическую подготовку DLL для files/search; обычный test их не запускает.
 
 Историческая native acceptance: Linux HCM 2025.2.1333/CLR 9.0.11/PostgreSQL.
 Windows HCM/MSSQL/все типы/полные бизнес-сценарии ею не подтверждаются.

@@ -6,15 +6,15 @@ URL разрешает BorisScript через `UrlToFilePath`; Node не под�
 а unique static method возвращает JSON text. [Решение](../decisions/2026-11-06-dotnet-search-boundary.md).
 
 ```text
-MCP handler → SOAP evaluator → UrlToFilePath(URL)
+MCP adapter → WshcmApi → runtime gate → SOAP evaluator → UrlToFilePath(URL)
                             → GetAssembly("BorisType.FileSystem.dll")
                             → CallClassStaticMethod(class, uniqueName, [path, json])
                             → EncodeJson(JSON text) → Node validates both carriers
 ```
 
-[managed-files.ts](../../packages/mcp-server/src/tools/managed-files.ts) допускает
-фиксированный union методов, а [BS bridge](../../packages/mcp-server/resources/file-operation.bs)
-разрешает оба URL move. У search [отдельный template](../../packages/mcp-server/resources/search-files.bs)
+[managed-files.ts](../../packages/ws-client/src/hcm/managed-files.ts) допускает
+фиксированный union методов, а [BS bridge](../../packages/ws-client/resources/file-operation.bs)
+разрешает оба URL move. У search [отдельный template](../../packages/ws-client/resources/search-files.bs)
 с `Search.FindJson`. JSON защищает строки от SOAP/XML преобразований;
 non-string, malformed/version-mismatched и oversized ответы отвергаются.
 
@@ -52,9 +52,10 @@ exit 139, `OOMKilled=false`. Второй диагностический payload
 `unsafe-platform-encode.bs` сохранён, но standalone не запускался и исключён
 из стандартной smoke серии. Ненулевой context не доказывает исправность callbacks.
 
-Первая загрузка собственной DLL без restart проверялась; hot replacement уже
-загруженной assembly, отдельный AssemblyLoadContext, runtimeconfig и lifetime
-памяти этим опытом не установлены. Для обновления планируется restart.
+Первая загрузка собственной DLL без restart проверялась. Текущий
+[managed runtime installer](managed-runtime.md) проверяет memory MVID и
+подготавливает обновление рядом; при несовпадении сообщает restart_required.
+Hot replacement и unload работающей FileSystem не заявляются.
 Успешная DLL не решает BS reference-counting cycles и не размораживает compiler
 script/module.
 

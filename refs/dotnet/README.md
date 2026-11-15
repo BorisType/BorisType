@@ -16,10 +16,14 @@ acceptance новой ревизии после переноса Markdown.
 - [Platform paths/storage](../platform/paths-and-storage.md): почему physical
   System.IO и logical URL/blob не равнозначны.
 - [Датированные исследования и native results](../research/dotnet/README.md).
+- [Websoft.Code и варианты OmniCode](../research/ws-client-runtime/websoft-code.md):
+  поставляемый backend редактора/консоли, его side effects и отличие от provisioning.
 
 Текущая FileSystem — **0.1.0-alpha.4/API 2**. Alpha.1 metadata-only,
 alpha.2 search/API 1 и alpha.3 files/edit/API 1 — завершённые промежуточные этапы.
-MCP и DLL обновляются согласованно; Node package не включает серверные DLL.
+Общий SDK ws-client включает production DLL и автоматически подготавливает их
+для MCP/будущего CLI. [Managed runtime](managed-runtime.md) описывает lifecycle,
+различие installed/loaded и restart_required.
 XQuery/XML object tools используют native BS API без этой DLL.
 
 Managed tests проверяют actual temporary files, pack tests — installation artifact,

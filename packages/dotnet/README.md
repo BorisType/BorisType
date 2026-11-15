@@ -10,7 +10,7 @@ BS URL resolver. Есть managed tests и installation ZIP.
 
 ## Требования и команды
 
-- Для обычного Node workspace SDK не нужен. Для .NET-команд требуется SDK из
+- Сборка ws-client из исходников готовит bundled DLL, поэтому требует SDK из
   корневого `global.json`: **9.0.320**, с разрешёнными более новыми patch этой feature band.
 - Target framework библиотек — **net9.0**, без RID/AOT и self-contained CLR.
   SDK машины сборки и CLR внутри HCM — разные установки.
@@ -27,7 +27,7 @@ pnpm test:dotnet:pack
 ```
 
 Private npm wrapper `@boristype/dotnet-workspace` содержит только эти команды.
-Default Turbo build их не вызывает. C# зависимости задаются `ProjectReference`,
+Turbo build ws-client вызывает отдельную подготовку runtime bundle. C# зависимости задаются `ProjectReference`,
 а версии NuGet packages — в `Directory.Packages.props`. Wrapper не публикуется
 и исключён из Changesets; версию каждой C# библиотеки задаёт её `.csproj`.
 
@@ -52,9 +52,12 @@ packages/dotnet/
   Directory.Build.props
   Directory.Packages.props
   src/BorisType.FileSystem/
+  src/BorisType.RuntimeBootstrap/
   tests/BorisType.FileSystem.Tests/
+  tests/BorisType.RuntimeBootstrap.Tests/
   probes/PlainProbe/
   probes/DatexProbe/                   # отдельная manual сборка, вне solution
+  tools/AssemblyIdentity/              # execution-free PE metadata reader
   tools/pack.mjs
   tools/Archive.proj
   test/pack.test.mjs
@@ -179,18 +182,26 @@ CancellationToken. Отдельное имя сохраняет однознач
 
 ### Установка для MCP
 
-Распаковать ZIP в каталог из `DOTNETLIBS-PATH` целевого HCM, например
-`dotnetcore/shared` в исследованном Linux стенде. SDK/CLR на сервер не копировать.
-MCP package не устанавливает DLL автоматически. При обновлении уже загруженной
-DLL пока планировать перезапуск HCM: первая загрузка без рестарта проверена,
-hot replacement — нет.
+MCP использует общий SDK ws-client: его npm archive содержит production
+FileSystem и RuntimeBootstrap DLL с deps.json и manifest. Первая файловая
+операция или wshcm_runtime_status автоматически проверяет bytes, подготавливает
+immutable component и определяет loaded MVID. При старой сборке требуется
+штатный restart; инструментарий его не выполняет. ZIP вручную для MCP не нужен.
+[Статусы и требования](https://github.com/BorisType/BorisType/blob/main/docs/guides/dotnet.md).
+
+`pnpm --filter @boristype/ws-client build` автоматически собирает bundle в
+resources/dotnet; `build:runtime` готовит только assets. В bundle нет PDB/XML,
+vendor/test/probe assemblies, source или CLR. Helper получает content-specific
+assembly name; manifest строится из actual PE metadata. Две публикации helper
+(seed и окончательное имя) предотвращают коллизии by-name cache загрузчика.
+[Основания](https://github.com/BorisType/BorisType/blob/main/refs/dotnet/managed-runtime.md).
 
 Managed tests и MCP adapter/VM tests проходят вне HCM. Отдельный native e2e
 подтвердил resolver и поиск через CLI/stdio/SOAP/BS/DLL на Linux HCM 2025.2.1333 /
 CLR 9.0.11: имена, содержимое, Unicode/BOM/newlines, exclusions/links, binary,
 result limit, regex и quoted path/query. [Evidence и hashes](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/06-search-results.md).
 Windows и другие версии HCM этим запуском не проверены.
-Команда MCP `test:e2e:search` не запускает стенд, не устанавливает DLL и сканирует
+Команда MCP `test:e2e:search` не запускает стенд; SDK готовит DLL. Поиск сканирует
 только свой temp fixture.
 
 ## Файловое API 2 и учёт чтений в MCP

@@ -1,58 +1,54 @@
 # .NET библиотеки
 
 `BorisType.FileSystem` — самостоятельная C# библиотека для физических файлов
-на сервере WebSoft HCM. Девять файловых MCP tools требуют
-**BorisType.FileSystem 0.1.0-alpha.4 / API 2**. Обновляйте MCP и DLL вместе:
-API 2 несовместим с alpha.3 / API 1.
+на сервере WebSoft HCM. Девять файловых MCP tools используют
+**BorisType.FileSystem 0.1.0-alpha.4 / API 2** через общий SDK.
+API 2 несовместим с alpha.3 / API 1; комплект поставляется автоматически.
 
 Серверный `wshcm_xquery` и XML tools `wshcm_get_form`, `wshcm_get_object`,
 `wshcm_save_object` **не используют эту DLL**.
 
-## Установка для MCP
+## Автоматическая подготовка для MCP и SDK
 
-1. Получите installation ZIP `BorisType.FileSystem-0.1.0-alpha.4.zip` из
-   artifact workflow `.NET workspace` соответствующей сборки либо соберите его
-   по [инструкции сборки и упаковки](https://github.com/BorisType/BorisType/blob/main/packages/dotnet/README.md#требования-и-команды).
-   Пакет MCP не устанавливает DLL автоматически.
-2. Проверьте в `manifest.json` значения `id`, `version`, `apiVersion`,
-   `targetFramework`, а также размер и SHA256 файлов архива. Для этого комплекта
-   ожидаются `BorisType.FileSystem`, `0.1.0-alpha.4`, `2` и `net9.0`.
-3. Распакуйте содержимое ZIP в каталог из `DOTNETLIBS-PATH` целевого HCM.
-   В исследованном Linux стенде использовался `dotnetcore/shared`; путь вашего
-   сервера определяется его конфигурацией. Архив содержит production DLL и
-   сопроводительные файлы, без CLR, SDK и vendor assemblies.
-4. При обновлении уже загруженной DLL планируйте перезапуск HCM. Первая загрузка
-   без рестарта проверена; горячая замена — нет.
-5. Проверьте metadata загруженной DLL и затем настройте
-   [подключение MCP](./mcp-server#установка-и-подключение).
+Установки npm-пакета достаточно для доставки DLL: production assemblies,
+manifest и hashes включены в ws-client. При первом файловом вызове SDK
+проверяет пакет, доставляет helper через BS file primitives и проверяет
+серверный readback перед GetAssembly. Установщик подготавливает компонент
+в неизменяемом каталоге и определяет загруженную assembly по MVID из памяти.
+Отдельно скачивать или распаковывать DLL не нужно.
 
-Target framework — **net9.0**. SDK машины сборки и CLR внутри HCM — разные
-установки: сборка библиотеки не обновляет CLR сервера. Успех managed tests
-не подтверждает совместимость с конкретным HCM.
+Требуются net9 HCM, настроенный managed search root `dotnetcore/shared` и
+права серверного аккаунта на запись/загрузку managed code. Собственный корень —
+`<AppDirectoryPath>/dotnetcore/shared/.boristype-runtime/`. SDK не меняет
+конфигурацию и не устанавливает CLR. Нестандартная конфигурация без shared
+может привести к ошибке bootstrap. Установка из npm не требует .NET SDK;
+сборка ws-client из исходников требует SDK из global.json.
 
-## Проверка версии на сервере
+В MCP вызовите `wshcm_runtime_status` с `{}` или просто файловый tool.
+Этот status tool может устанавливать файлы и загружать managed code.
 
-В существующем BS evaluator целевого HCM вызовите metadata API:
+| Статус           | Значение и действие                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| ready            | Загружен требуемый build или более новый совместимый API; файловые операции доступны                          |
+| restart_required | Новая DLL подготовлена рядом, но процесс использует другую. После штатного перезапуска HCM повторить проверку |
+| blocked          | Проверить reason: несовместимый API, hash/metadata mismatch, BuildConflict, права или transport/host error    |
 
-```javascript
-var assembly = tools.dotnet_host.Object.GetAssembly("BorisType.FileSystem.dll");
-return assembly.CallClassStaticMethod("BorisType.FileSystem.LibraryInfo", "GetMetadataJson", []);
-```
+Status schema 1 разделяет `expected`, `installed`, `loaded` identity:
+`id/version/apiVersion/buildId`. buildId — MVID; hash файла на диске не
+определяет уже загруженный code. `process` обозначает ответивший PID/start/CLR,
+а при локальной или неизвестной transport ошибке равен null.
+Файловые ошибки сохраняют runtimeStatus как JSON; XQuery/XML остаются доступны.
 
-Метод возвращает **JSON string**. Для текущей DLL ожидаются:
+Установщик не откатывает новую совместимую версию, не перезаписывает loaded DLL
+и не перезапускает HCM. Разные builds одного version могут дать BuildConflict;
+повторная публикация с тем же номером не считается обычным обновлением.
+Следующий вызов после restart проверяет состояние заново. Gate и операция —
+разные SOAP calls: один status не аттестует весь кластер. Timeout не отменяет
+работу сервера. Старые installation directories автоматически не удаляются.
 
-```json
-{
-  "id": "BorisType.FileSystem",
-  "version": "0.1.0-alpha.4",
-  "apiVersion": 2,
-  "capabilities": ["search", "files", "edit", "read-ranges", "read-preconditions", "mkdir", "info", "move"]
-}
-```
-
-Наличие файла DLL на диске не заменяет эту проверку: она показывает metadata
-assembly, которую загрузил HCM. Успех metadata-вызова также не заменяет проверку
-нужной файловой операции на целевой установке.
+Для самостоятельных managed consumers installation ZIP остаётся отдельным
+build artifact; это не обязательный этап установки MCP.
+[Сборка и состав архивов](https://github.com/BorisType/BorisType/blob/main/packages/dotnet/README.md).
 
 ## Использование через MCP
 
