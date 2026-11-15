@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>BorisType.RuntimeFixture</AssemblyName><Version>1.0.0</Version></PropertyGroup>
+  <ItemGroup><AssemblyMetadata Include="BorisType.ApiVersion" Value="2" /></ItemGroup>
+</Project>

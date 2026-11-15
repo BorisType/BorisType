@@ -4,8 +4,19 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/BorisType.FileSystem/BorisType.FileSystem.csproj" />
+    <Project Path="src/BorisType.RuntimeBootstrap/BorisType.RuntimeBootstrap.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/BorisType.FileSystem.Tests/BorisType.FileSystem.Tests.csproj" />
+    <Project Path="tests/BorisType.RuntimeBootstrap.Tests/BorisType.RuntimeBootstrap.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/AssemblyIdentity/AssemblyIdentity.csproj" />
+  </Folder>
+  <Folder Name="/tests/fixtures/">
+    <Project Path="tests/BorisType.RuntimeBootstrap.Tests/Fixtures/V1/V1.csproj" />
+    <Project Path="tests/BorisType.RuntimeBootstrap.Tests/Fixtures/V2/V2.csproj" />
+    <Project Path="tests/BorisType.RuntimeBootstrap.Tests/Fixtures/V1Alt/V1Alt.csproj" />
+    <Project Path="tests/BorisType.RuntimeBootstrap.Tests/Fixtures/UnknownApi/UnknownApi.csproj" />
   </Folder>
 </Solution>

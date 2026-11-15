@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>BorisType.RuntimeFixture</AssemblyName><Version>1.0.0</Version></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../V1/Marker.cs" Link="Marker.cs" />
+    <AssemblyMetadata Include="BorisType.ApiVersion" Value="-1" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Fixtures/**/*.cs" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <ProjectReference Include="../../src/BorisType.RuntimeBootstrap/BorisType.RuntimeBootstrap.csproj" />
+    <ProjectReference Include="Fixtures/V1/V1.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="Fixtures/V2/V2.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="Fixtures/V1Alt/V1Alt.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="Fixtures/UnknownApi/UnknownApi.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Target Name="CopyRuntimeFixtures" AfterTargets="Build">
+    <Copy SourceFiles="Fixtures/V1/bin/$(Configuration)/net9.0/BorisType.RuntimeFixture.dll" DestinationFolder="$(OutDir)fixtures/v1" />
+    <Copy SourceFiles="Fixtures/V2/bin/$(Configuration)/net9.0/BorisType.RuntimeFixture.dll" DestinationFolder="$(OutDir)fixtures/v2" />
+    <Copy SourceFiles="Fixtures/V1Alt/bin/$(Configuration)/net9.0/BorisType.RuntimeFixture.dll" DestinationFolder="$(OutDir)fixtures/v1-alt" />
+    <Copy SourceFiles="Fixtures/UnknownApi/bin/$(Configuration)/net9.0/BorisType.RuntimeFixture.dll" DestinationFolder="$(OutDir)fixtures/unknown-api" />
+  </Target>
+</Project>

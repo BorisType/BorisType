@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/BorisType.RuntimeBootstrap/ModuleIdentity.cs" Link="ModuleIdentity.cs" />
+  </ItemGroup>
+</Project>
