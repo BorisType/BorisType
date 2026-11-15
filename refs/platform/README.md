@@ -5,6 +5,8 @@
 [Правила evidence](../development.md) различают documentation, declarations,
 static source, JS/mock, managed tests и native C-runtime.
 
+- [Установить локальный стенд с нуля](../../docs/guides/local-hcm-stand.md):
+  WebSoft HCM 2025.2.1333, PostgreSQL 16, полные конфиги и проверки HTTP/SQL/SOAP.
 - [Карта хранения: БД и файлы сервера](storage-layout.md): документы, каталоги,
   служебные таблицы, директории, форматы и отдельный полнотекстовый индекс;
   [срез 2026-11-11](../research/platform-storage/README.md) сохраняет evidence.
