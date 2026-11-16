@@ -9,9 +9,9 @@
 
 - [x] Сохранить исходную реализацию коммитом06391e5 и перенести поверх origin/main.
 - [x] Создать issue70 и отдельный [план SQL→XML](../sql-xml-mapping.md).
-- [ ] Разрешить интеграцию с WshcmApi: единый typed XQueryResult в SDK, JSON presentation в MCP.
-- [ ] Обновить актуальные docs/refs и ссылки, не выдавая прежние проверки за acceptance нового head.
-- [ ] Проверить workspace, unit/pack, docs checker, native SOAP/query/files на обновлённом коде; получить review.
+- [x] Разрешить интеграцию с WshcmApi: единый typed XQueryResult в SDK, JSON presentation в MCP.
+- [x] Обновить актуальные docs/refs и ссылки, не выдавая прежние проверки за acceptance нового head.
+- [x] Проверить workspace, unit/pack, docs checker, native SOAP/query/files на обновлённом коде; получить review.
 - [ ] Push feature PR, дождаться CI, merge в main; fixes66–69.
 - [ ] Запустить prepare-release(alpha), проверить release PR и merge после CI.
 - [ ] Отправить отдельный тег ws-client и дождаться package/publish/verify; затем тег MCP и дождаться verify.

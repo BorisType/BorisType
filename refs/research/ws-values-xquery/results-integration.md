@@ -33,6 +33,18 @@ loaded99c65b91-9577-4c25-aa9b-cf5907682580, status restart_required.
 Для повторного acceptance требуется штатный перезапуск тестового HCM, без
 пересоздания контейнера/БД/volumes, затем новая проверка ready и файловых операций.
 
-Результаты после перезапуска и ссылки на CI/публикации добавляются при завершении
-[плана выпуска](integration-release.md). Не считать этот промежуточный результат
-успешной полной файловой acceptance.
+После штатного `docker restart` существующего HCM-контейнера gate вернул ready:
+expected/installed/loaded build646a1a84-313d-4189-8af6-ec2dd4c1234d.
+Независимая проверка установленной DLL подтвердила SHA256
+`d97fffe1a4b66a88688e17b3e0751af50ecbecae0622d524bf6476d093742b5f`.
+Native files29/29, edit1/1, read-aware1/1 и search1/1 прошли, fixtures/evaluator
+очищены независимо. Контейнер, PostgreSQL и volumes не пересоздавались.
+
+Дополнительная XML object серия сначала остановилась до upload/eval на GET
+авторизации: родительский Node наследовал NODE_USE_ENV_PROXY=1, тогда как CLI
+runner отключает proxy. Явный NODE_USE_ENV_PROXY=0 нужен и для независимого
+parent-клиента; это изменение окружения теста, не исправление SOAP или runtime.
+После явного отключения proxy object серия8/8 прошла: owned запись удалена,
+независимые проверки rows=0/trash=0/opened=false и evaluator cleanup успешны.
+
+Ссылки на CI и публикации отслеживаются в [плане выпуска](integration-release.md).
