@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { runInNewContext } from "node:vm";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { createServer } from "../build/index.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import { registerXQueryTool } from "../build/tools/xquery.js";
 
-async function connect(t, evaluate = () => assert.fail("Unexpected evaluation")) {
-  const server = createServer({ evaluator: { eval: evaluate } });
+async function connect(t, xquery = () => assert.fail("Unexpected query"), evaluator) {
+  // Presentation tests stub the shared typed SDK boundary. Carrier regressions
+  // below use createServer and the real WshcmApi -> executeXQuery adapter.
+  const server = evaluator ? createServer({ evaluator }) : new McpServer({ name: "query-test", version: "1" });
+  if (!evaluator) registerXQueryTool(server, { xquery: ({ query, maxRows }) => xquery(query, { maxRows }) });
   const client = new Client({ name: "xquery-test", version: "1.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   t.after(async () => {
@@ -17,42 +21,7 @@ async function connect(t, evaluate = () => assert.fail("Unexpected evaluation"))
   return client;
 }
 
-// The platform boundary is a local double: these are protocol/JS checks, not C-runtime evidence.
-function platform(query, rows, serialize = JSON.stringify, countChars = (value) => value.length) {
-  return (script) =>
-    runInNewContext(`(function () { ${script} })()`, {
-      XQuery(actual) {
-        assert.equal(actual, query);
-        return rows;
-      },
-      ArrayRange(source, start, count) {
-        assert.equal(start, 0);
-        assert.ok(count >= 2 && count <= 1001);
-        return (function* () {
-          let index = 0;
-          for (const row of source) {
-            yield row;
-            if (++index === count) break;
-          }
-        })();
-      },
-      ArraySelectAll: (source) => Array.from(source),
-      ArrayCount(source) {
-        assert.ok(Array.isArray(source), "Must not count the original lazy query result");
-        return source.length;
-      },
-      StrCharCount: countChars,
-      EncodeJson: JSON.stringify,
-      tools: {
-        object_to_text(row, format, depth) {
-          assert.equal(format, "json");
-          assert.equal(depth, 5);
-          return serialize(row);
-        },
-      },
-    });
-}
-
+const complete = (rows = []) => ({ rows, returnedRows: rows.length, truncated: false, limitReason: null });
 async function call(client, query, extra = {}) {
   const result = await client.callTool({ name: "wshcm_xquery", arguments: { query, ...extra } });
   assert.notEqual(result.isError, true, JSON.stringify(result));
@@ -77,94 +46,100 @@ for (const query of [
   "sql: UPDATE example SET value = 1 RETURNING value",
   "sql: SELECT '\\'; throw 'must remain query text'; //",
 ]) {
-  test(`query text reaches XQuery unchanged: ${JSON.stringify(query)}`, async (t) => {
-    const client = await connect(t, platform(query, [{ id: "9007199254740993", label: "Привет", empty: "", missing: null }]));
-    const { body } = await call(client, query);
-    assert.deepEqual(body, {
-      rows: [{ id: "9007199254740993", label: "Привет", empty: "", missing: null }],
-      returnedRows: 1,
-      truncated: false,
-      limitReason: null,
+  test(`query text reaches shared SDK unchanged: ${JSON.stringify(query)}`, async (t) => {
+    let calls = 0;
+    const client = await connect(t, (actual, options) => {
+      assert.equal(++calls, 1);
+      assert.equal(actual, query);
+      assert.deepEqual(options, { maxRows: 100 });
+      return complete([{ id: 9007199254740993n, label: "Привет", empty: "", missing: null }]);
     });
+    assert.deepEqual((await call(client, query)).body, complete([{ id: "9007199254740993", label: "Привет", empty: "", missing: null }]));
+    assert.equal(calls, 1);
   });
 }
 
 test("empty query results remain a complete empty array", async (t) => {
-  const client = await connect(t, platform("empty", []));
-  assert.deepEqual((await call(client, "empty")).body, { rows: [], returnedRows: 0, truncated: false, limitReason: null });
+  const client = await connect(t, () => complete());
+  assert.deepEqual((await call(client, "empty")).body, complete());
 });
 
-test("row limit consumes at most one extra row without counting the original query", async (t) => {
-  let consumed = 0;
-  const rows = (function* () {
-    for (let i = 0; i < 4; i++) {
-      consumed++;
-      if (i === 3) assert.fail("Read beyond limit + 1");
-      yield { n: i };
-    }
-  })();
-  const client = await connect(t, platform("bounded", rows));
+test("explicit maxRows and row truncation metadata come from the adapter", async (t) => {
+  const client = await connect(t, (query, options) => {
+    assert.equal(query, "bounded");
+    assert.deepEqual(options, { maxRows: 2 });
+    return { rows: [{ n: 0n }, { n: 1n }], returnedRows: 2, truncated: true, limitReason: "rows" };
+  });
   assert.deepEqual((await call(client, "bounded", { maxRows: 2 })).body, {
     rows: [{ n: 0 }, { n: 1 }],
     returnedRows: 2,
     truncated: true,
     limitReason: "rows",
   });
-  assert.equal(consumed, 3);
 });
 
-test("exactly maxRows is complete, and the default returns at most 100 rows", async (t) => {
-  const client = await connect(t, platform("exact", [{ n: 1 }, { n: 2 }]));
-  assert.equal((await call(client, "exact", { maxRows: 2 })).body.truncated, false);
-  const defaultClient = await connect(
-    t,
-    platform(
-      "default",
-      Array.from({ length: 101 }, (_, n) => ({ n })),
-    ),
+test("MCP presents safe bigint as JSON numbers and other bigint as exact decimal strings recursively", async (t) => {
+  const row = {
+    zero: 0n,
+    small: 42n,
+    negative: -7n,
+    maxSafe: 9007199254740991n,
+    minSafe: -9007199254740991n,
+    large: 9007199254740992n,
+    negativeLarge: -9007199254740993n,
+    int64: [9223372036854775807n, -9223372036854775808n],
+    score: 1,
+    fractional: 1.25,
+    nested: [{ enabled: true, empty: "", missing: null, omitted: undefined }],
+    array: [undefined, null, "42"],
+  };
+  const client = await connect(t, () => complete([row]));
+  assert.deepEqual(
+    (await call(client, "numbers")).body,
+    complete([
+      {
+        zero: 0,
+        small: 42,
+        negative: -7,
+        maxSafe: 9007199254740991,
+        minSafe: -9007199254740991,
+        large: "9007199254740992",
+        negativeLarge: "-9007199254740993",
+        int64: ["9223372036854775807", "-9223372036854775808"],
+        score: 1,
+        fractional: 1.25,
+        nested: [{ enabled: true, empty: "", missing: null }],
+        array: [null, null, "42"],
+      },
+    ]),
   );
-  const { body } = await call(defaultClient, "default");
-  assert.equal(body.returnedRows, 100);
-  assert.equal(body.limitReason, "rows");
 });
 
-test("output limit keeps whole rows and reports an omitted oversized first row", async (t) => {
-  const row = { text: "中".repeat(40000) };
-  const client = await connect(t, platform("large", [row, row]));
-  const { result, body } = await call(client, "large");
-  assert.deepEqual(body.rows, [row]);
-  assert.equal(body.returnedRows, 1);
-  assert.equal(body.limitReason, "output");
-  assert.equal(body.truncated, true);
-  assert.ok(Buffer.byteLength(result.content[0].text, "utf8") <= 262144);
-  const oversized = await connect(t, platform("oversized", [{ text: "x".repeat(70000) }]));
-  assert.deepEqual((await call(oversized, "oversized")).body, {
-    rows: [],
-    returnedRows: 0,
-    truncated: true,
-    limitReason: "output",
+test("MCP output preserves own prototype-sensitive field names", async (t) => {
+  const row = JSON.parse('{"__proto__":{"value":"kept"},"constructor":"own","prototype":null}');
+  const client = await connect(t, () => complete([row]));
+  assert.deepEqual((await call(client, "keys")).body, complete([row]));
+  assert.equal({}.value, undefined);
+});
+
+for (const number of [NaN, Infinity, -Infinity]) {
+  test(`nonfinite real ${number} causes an explicit JSON presentation error`, async (t) => {
+    const client = await connect(t, () => complete([{ nested: [number] }]));
+    const result = await client.callTool({ name: "wshcm_xquery", arguments: { query: "nonfinite" } });
+    assert.equal(result.isError, true);
+    assert.match(result.content[0].text, /non.?finite/i);
   });
-});
+}
 
-test("output budget leaves envelope space even when the platform counts astral code points", async (t) => {
-  // StrCharCount's native counting unit is unverified. The bound must work for either counting convention.
-  const client = await connect(
-    t,
-    platform("astral", [{ text: "👋".repeat(65525) }], JSON.stringify, (value) => Array.from(value).length),
-  );
-  const { result, body } = await call(client, "astral");
-  assert.deepEqual(body, { rows: [], returnedRows: 0, truncated: true, limitReason: "output" });
+test("output truncation keeps whole rows and bounds the final JSON envelope", async (t) => {
+  const row = { text: "中".repeat(40000) };
+  const expected = { rows: [row], returnedRows: 1, truncated: true, limitReason: "output" };
+  const client = await connect(t, () => expected);
+  const { result, body } = await call(client, "large");
+  assert.deepEqual(body, expected);
   assert.ok(Buffer.byteLength(result.content[0].text, "utf8") <= 262144);
-});
-
-test("platform JSON numeric tokens are returned without Node parse/stringify rounding", async (t) => {
-  const client = await connect(
-    t,
-    platform("numbers", [{}], () => '{"negative":-9007199254740993,"decimal":0.1234567890123456789}'),
-  );
-  const { result } = await call(client, "numbers");
-  assert.match(result.content[0].text, /"negative":-9007199254740993/);
-  assert.match(result.content[0].text, /"decimal":0\.1234567890123456789/);
+  const oversized = await connect(t, () => ({ rows: [], returnedRows: 0, truncated: true, limitReason: "output" }));
+  assert.deepEqual((await call(oversized, "oversized")).body, { rows: [], returnedRows: 0, truncated: true, limitReason: "output" });
 });
 
 for (const args of [
@@ -188,50 +163,75 @@ for (const args of [
   });
 }
 
-for (const stage of ["query", "enumeration", "serialization", "timeout"]) {
+for (const stage of ["query", "enumeration", "projection", "timeout"]) {
   test(`${stage} failures become tool errors without retry`, async (t) => {
     let calls = 0;
-    const query = "fail";
-    const client = await connect(t, (script) => {
+    const client = await connect(t, () => {
       assert.equal(++calls, 1, "Must not retry a query with unknown side effects");
-      if (stage === "query" || stage === "timeout") throw new Error(stage + " failed");
-      const rows =
-        stage === "enumeration"
-          ? {
-              *[Symbol.iterator]() {
-                throw new Error("enumeration failed");
-              },
-            }
-          : [{}];
-      return platform(query, rows, () => {
-        throw new Error("serialization failed");
-      })(script);
+      throw new Error(stage + " failed");
     });
-    const result = await client.callTool({ name: "wshcm_xquery", arguments: { query } });
+    const result = await client.callTool({ name: "wshcm_xquery", arguments: { query: "fail" } });
     assert.equal(result.isError, true);
     assert.match(result.content[0].text, new RegExp(stage + " failed"));
     assert.equal(calls, 1);
   });
 }
 
-const wire = (body) => JSON.stringify(typeof body === "string" ? body : JSON.stringify(body));
 for (const payload of [
   undefined,
   123,
   "not json",
-  "null",
-  "{}",
-  JSON.stringify({ rows: [] }),
-  wire("not json"),
-  wire("null"),
-  wire({ rows: [], returnedRows: 1, truncated: false, limitReason: null }),
-  wire({ rows: [], returnedRows: 0, truncated: false, limitReason: "rows" }),
-  wire({ rows: [{}, {}], returnedRows: 2, truncated: true, limitReason: "rows" }),
-  wire({ rows: [{ value: "x".repeat(262144) }], returnedRows: 1, truncated: false, limitReason: null }),
+  null,
+  {},
+  { rows: [] },
+  { rows: [], returnedRows: 1n, truncated: false, limitReason: null },
+  { rows: [], returnedRows: 0n, truncated: false, limitReason: "rows" },
+  { rows: [{ entries: [] }, { entries: [] }], returnedRows: 2n, truncated: true, limitReason: "rows" },
+  { rows: [], returnedRows: 0n, truncated: true, limitReason: "rows" },
+  { rows: [{ entries: [['"value"', JSON.stringify("x".repeat(262144))]] }], returnedRows: 1n, truncated: false, limitReason: null },
 ]) {
   test(`malformed or out-of-budget query response is rejected: ${String(payload).slice(0, 90)}`, async (t) => {
-    const client = await connect(t, () => payload);
+    let calls = 0;
+    const client = await connect(t, undefined, {
+      async eval() {
+        calls++;
+        return payload;
+      },
+    });
     const result = await client.callTool({ name: "wshcm_xquery", arguments: { query: "q", maxRows: 1 } });
     assert.equal(result.isError, true);
+    assert.equal(calls, 1);
   });
 }
+
+test("MCP presents the shared SDK typed projection without requiring evaluator.xquery", async (t) => {
+  let calls = 0;
+  const client = await connect(t, undefined, {
+    async eval() {
+      calls++;
+      return {
+        rows: [
+          {
+            entries: [
+              ['"id"', 9007199254740993n],
+              ['"score"', 1],
+              ['"text"', '"Я中👋\\r\\n"'],
+            ],
+          },
+        ],
+        returnedRows: 1n,
+        truncated: false,
+        limitReason: null,
+      };
+    },
+  });
+  assert.deepEqual((await call(client, "sql: SELECT id")).body, complete([{ id: "9007199254740993", score: 1, text: "Я中👋\r\n" }]));
+  assert.equal(calls, 1);
+});
+
+test("JSON presentation enforces its final UTF-8 envelope bound", async (t) => {
+  const client = await connect(t, () => complete([{ value: "中".repeat(90000) }]));
+  const result = await client.callTool({ name: "wshcm_xquery", arguments: { query: "big" } });
+  assert.equal(result.isError, true);
+  assert.match(result.content[0].text, /256 KiB/);
+});

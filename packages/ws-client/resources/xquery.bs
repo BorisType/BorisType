@@ -1,30 +1,100 @@
-// Query is an escaped string value, never executable BS source. sql: is intentionally allowed.
-// Materialize only a bounded range; never ArrayCount the original lazy query result.
+// Query text is a string literal. This adapter imposes no read-only guarantee.
+var _xqValues = 0;
+function _xqCheck(depth) {
+    if (depth > 32) throw 'XQuery projection exceeds depth limit (32)';
+    _xqValues++;
+    if (_xqValues > 10000) throw 'XQuery projection exceeds values limit (10000)';
+}
+function _xqScalar(value) {
+    var kind = DataType(value);
+    // JSON-string transport protects CR/LF from SOAP XML normalization.
+    // Dates are an explicit ISO-string projection, not generic SOAP date support.
+    if ((kind == 'string') || (kind == 'date')) return EncodeJson(value);
+    if ((kind == 'integer') || (kind == 'real') || (kind == 'bool') || (kind == 'null') || (kind == 'undefined')) return value;
+    throw 'XQuery projection encountered an unsupported scalar';
+}
+function _xqProject(value, depth) {
+    _xqCheck(depth);
+    if (DataType(value) != 'object') return _xqScalar(value);
+    var kind = ObjectType(value);
+    var entries = [];
+    var repeated = [];
+    var result;
+    var child;
+    var name;
+    var key;
+    var projected;
+    var multi;
+    var index;
+    var slot;
+    var search;
+    if (kind == 'XmElem') {
+        // Complex schema nodes have Type == '', including empty structures.
+        // Dynamic parents can have Type == 'string' with real children.
+        if ((value.ChildNum == 0) && (value.Type != '')) return _xqScalar(value.Value);
+        if (value.ChildNum > 10000) throw 'XQuery projection exceeds values limit (10000)';
+        for (index = 0; index < value.ChildNum; index++) {
+            child = value[index];
+            name = child.Name;
+            key = EncodeJson(name);
+            multi = child.IsMultiElem;
+            // Indexed XmlElem instances are not XmlMultiElem collections.
+            // Name collisions with native XML properties must not prevent traversal.
+            try { multi = (multi || GetObjectProperty(value, name).IsMultiElem); } catch (err) { }
+            slot = -1;
+            for (search = 0; search < ArrayCount(entries); search++) {
+                if (entries[search][0] == key) { slot = search; break; }
+            }
+            projected = _xqProject(child, depth + 1);
+            if (slot < 0) {
+                if (multi) {
+                    _xqCheck(depth + 1);
+                    entries.push([key, [projected]]);
+                } else {
+                    entries.push([key, projected]);
+                }
+                repeated.push(multi);
+            } else {
+                if (!repeated[slot]) {
+                    _xqCheck(depth + 1);
+                    entries[slot][1] = [entries[slot][1]];
+                    repeated[slot] = true;
+                }
+                entries[slot][1].push(projected);
+            }
+        }
+        return { entries: entries };
+    }
+    if (kind == 'JsArray') {
+        result = [];
+        if (ArrayCount(value) > 10000) throw 'XQuery projection exceeds values limit (10000)';
+        for (index = 0; index < ArrayCount(value); index++) result.push(_xqProject(value[index], depth + 1));
+        return result;
+    }
+    if (kind == 'JsObject') {
+        for (name in value) entries.push([EncodeJson(name), _xqProject(GetObjectProperty(value, name), depth + 1)]);
+        return { entries: entries };
+    }
+    throw 'XQuery projection encountered an unsupported object';
+}
 var _xqMaxRows = ${maxRows};
-var _xqItems = ArraySelectAll(ArrayRange(XQuery('${query}'), 0, _xqMaxRows + 1));
-var _xqRows = '';
-var _xqCount = 0;
+// Count only this materialized range, never the unbounded lazy source.
+var _xqItems = ArraySelectAll(ArrayRange(XQuery(${queryLiteral}), 0, _xqMaxRows + 1));
+var _xqRows = [];
+var _xqChars = 0;
 var _xqReason = null;
 var _xqIndex;
 var _xqRow;
-var _xqSeparator;
+var _xqSize;
 for (_xqIndex = 0; _xqIndex < ArrayCount(_xqItems); _xqIndex++) {
-    if (_xqCount >= _xqMaxRows) {
-        _xqReason = 'rows';
-        break;
-    }
-    _xqRow = tools.object_to_text(_xqItems[_xqIndex], 'json', 5);
-    _xqSeparator = (_xqCount == 0 ? '' : ',');
-    // At most four UTF-8 bytes per counted character, plus room for the JSON envelope.
-    // A single row is serialized before its size is known; this is not a server memory limit.
-    if (StrCharCount(_xqRows) + StrCharCount(_xqRow) + StrCharCount(_xqSeparator) > 65000) {
-        _xqReason = 'output';
-        break;
-    }
-    _xqRows = _xqRows + _xqSeparator + _xqRow;
-    _xqCount++;
+    if (ArrayCount(_xqRows) >= _xqMaxRows) { _xqReason = 'rows'; break; }
+    _xqRow = _xqProject(_xqItems[_xqIndex], 0);
+    _xqSize = StrCharCount(EncodeJson(_xqRow)) + 1;
+    // At most four UTF-8 bytes per character, plus room for the envelope.
+    // A complete row is projected before checking its size: no memory/work bound.
+    if ((_xqChars + _xqSize) > 65000) { _xqReason = 'output'; break; }
+    _xqRows.push(_xqRow);
+    _xqChars = _xqChars + _xqSize;
 }
-// Preserve platform numeric tokens by composing the envelope around serialized rows.
-var _xqJson = '{"rows":[' + _xqRows + '],"returnedRows":' + _xqCount +
-    ',"truncated":' + (_xqReason == null ? 'false' : 'true') + ',"limitReason":' + EncodeJson(_xqReason) + '}';
-return EncodeJson(_xqJson);
+var _xqTruncated = (_xqReason != null);
+return { rows: _xqRows, returnedRows: ArrayCount(_xqRows), truncated: _xqTruncated, limitReason: _xqReason };

@@ -1,4 +1,5 @@
 import { WshcmClient } from "./client.js";
+import { executeXQuery, type XQueryOptions, type XQueryResult } from "./xquery.js";
 
 /**
  * Evaluator для выполнения произвольного BorisScript-кода на сервере
@@ -53,6 +54,16 @@ export class Evaluator {
       await this.initialize();
     }
     return this.client.callMethod(this.libUrl, "execute", [code]);
+  }
+
+  /**
+   * Execute XQuery once and project server XML fields to bounded ordinary data.
+   * Integers remain bigint; native dates become ISO strings. Defaults to 100
+   * complete rows, at most 1000 rows and 256 KiB of JSON-compatible data.
+   * Row limits do not bound database work and failures are never retried.
+   */
+  async xquery(query: string, options: XQueryOptions = {}): Promise<XQueryResult> {
+    return executeXQuery(this, query, options);
   }
 
   async evalCode(code: string): Promise<any> {

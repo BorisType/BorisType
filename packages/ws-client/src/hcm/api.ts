@@ -4,6 +4,7 @@ import type { z } from "zod";
 import { WshcmFiles } from "./files.js";
 import { WshcmObjects } from "./objects.js";
 import { executeXQuery } from "./xquery.js";
+import type { XQueryResult } from "../xquery.js";
 import type { wshcmSchemas } from "./schemas.js";
 import type { WshcmEvaluator } from "./types.js";
 
@@ -30,8 +31,8 @@ export class WshcmApi {
     this.objects = new WshcmObjects(evaluator);
   }
 
-  /** Return original JSON text to preserve large IDs and decimal tokens. */
-  xquery(input: z.input<typeof wshcmSchemas.xquery>): Promise<string> {
+  /** Return bounded typed rows: integers are bigint, reals number, native dates ISO strings. */
+  xquery(input: z.input<typeof wshcmSchemas.xquery>): Promise<XQueryResult> {
     return executeXQuery(this.evaluator, input);
   }
 }

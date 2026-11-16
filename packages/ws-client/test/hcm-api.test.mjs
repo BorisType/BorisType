@@ -62,11 +62,52 @@ for (const [method, input] of [
   });
 }
 
-test("SDK xquery preserves original large integer and decimal JSON tokens", async () => {
-  const json = '{"rows":[{"id":7349577710243911718,"n":0.1234567890123456789}],"returnedRows":1,"truncated":false,"limitReason":null}';
-  const api = new sdk.WshcmApi({ eval: async () => JSON.stringify(json) });
-  assert.equal(await api.xquery({ query: "sql: SELECT id" }), json);
+test("SDK xquery returns typed recursive rows with exact bigint and whole real", async () => {
+  const carrier = {
+    rows: [
+      {
+        entries: [
+          ['"id"', 7349577710243911718n],
+          ['"score"', 1],
+          ['"nested"', [{ entries: [['"text"', '"Я中👋\\r\\n"']] }]],
+        ],
+      },
+    ],
+    returnedRows: 1n,
+    truncated: false,
+    limitReason: null,
+  };
+  let calls = 0;
+  const api = new sdk.WshcmApi({
+    eval: async () => {
+      calls++;
+      return carrier;
+    },
+  });
+  assert.deepEqual(await api.xquery({ query: "sql: SELECT id" }), {
+    rows: [{ id: 7349577710243911718n, score: 1, nested: [{ text: "Я中👋\r\n" }] }],
+    returnedRows: 1,
+    truncated: false,
+    limitReason: null,
+  });
+  assert.equal(calls, 1);
 });
+
+for (const input of [
+  {},
+  { query: " " },
+  { query: "\0" },
+  { query: "\ud800" },
+  { query: "中".repeat(22000) },
+  { query: "valid", maxRows: 0 },
+  { query: "valid", maxRows: 1001 },
+  { query: "valid", extra: true },
+]) {
+  test(`SDK xquery uses strict shared input schema: ${JSON.stringify(input).slice(0, 80)}`, async () => {
+    const api = new sdk.WshcmApi({ eval: async () => assert.fail("Invalid query input reached evaluator") });
+    await assert.rejects(api.xquery(input));
+  });
+}
 
 test("SDK xquery rejects invalid input and incompatible response without retry", async () => {
   let calls = 0;

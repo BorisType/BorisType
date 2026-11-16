@@ -6,10 +6,12 @@
 
 export { WshcmClient } from "./client.js";
 export { Evaluator } from "./evaluator.js";
+export { executeXQuery } from "./xquery.js";
+export type { XQueryOptions, XQueryResult } from "./xquery.js";
 export { WshcmException, UnauthorizedError } from "./exceptions.js";
 export { renderRequest, parseResponse } from "./soap-utils.js";
 export { WshcmUploader } from "./uploader.js";
-export type { WshcmClientOptions } from "./types.js";
+export type { WshcmClientOptions, WshcmValue } from "./types.js";
 export type { WshcmUploaderOptions, UploadProgressCallback } from "./uploader.js";
 
 export { WshcmApi } from "./hcm/api.js";

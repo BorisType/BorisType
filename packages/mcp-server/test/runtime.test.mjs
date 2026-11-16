@@ -39,7 +39,7 @@ test("file runtime failures preserve expected, installed, loaded identity and pr
   const transport = runtimeTransport(
     () => {
       ordinaryCalls++;
-      return JSON.stringify('{"rows":[],"returnedRows":0,"truncated":false,"limitReason":null}');
+      return { rows: [], returnedRows: 0n, truncated: false, limitReason: null };
     },
     {
       status: ({ status }) => ({

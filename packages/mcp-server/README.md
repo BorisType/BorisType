@@ -84,8 +84,9 @@ XQuery имеет `readOnlyHint: false`, `destructiveHint: true`, `idempotentHin
 запрос передаётся платформе без проверки на чтение.
 
 Отложенные read-multiple/tree не зарегистрированы; их TS stubs и пять старых BS
-stubs удалены. BS bridges и платформенная логика принадлежат ws-client,
-MCP содержит schemas/output adapters к общему API.
+stubs удалены. BS resources живут в ws-client: файловые bridges и runtime
+manager принадлежат общему SDK; typed `xquery.bs` используется `Evaluator.xquery`
+и `WshcmApi.xquery`. MCP не содержит собственной копии ресурсов.
 
 Это несовместимое обновление прототипа: read всегда возвращает JSON,
 includeMetadata удалён; edit требует readToken, write по умолчанию create-only.
@@ -236,36 +237,43 @@ Save/hooks могут иметь частичные эффекты. Rollback, ca
 Ответ — JSON с `rows`, `returnedRows`, `truncated` и `limitReason` (`null`, `rows`
 или `output`). Число строк относится к выданному ответу, не ко всему результату.
 Читается диапазон до `maxRows + 1`, без подсчёта исходного результата. Для ограничения
-вывода сериализованные строки суммарно ограничены 65000 символами; выдаются только
+вывода внутренний carrier строк суммарно ограничен 65000 символами; выдаются только
 целые строки. Весь текст ответа ограничен 256 KiB UTF-8. Первая слишком большая
 строка даёт пустой `rows`, `truncated: true`, `limitReason: "output"`.
 
-Строки сериализуются платформенным `tools.object_to_text(row, "json", 5)`.
-Типы, даты, SQL NULL, XML-вложенность и повторяющиеся имена полей следуют этому
-сериализатору; канонический или полностью lossless SQL/JSON контракт не обещается.
+MCP использует общий `Evaluator.xquery` из ws-client. XML проецируется на сервере
+в обычные записи/массивы по фактическим типам полей. Integer-поля проходят через
+SOAP как `bigint`, real как `number`; строковые CR/LF защищены. Даты становятся
+ISO-строками через native `EncodeJson`; дубликаты имён становятся массивами,
+schema multi сохраняет singleton-массив. Глубина до 32 и 10000 projected values;
+превышение этих пределов даёт ошибку.
+
+JSON-политика MCP: integer в диапазоне `[-9007199254740991, 9007199254740991]`
+выдаётся JSON number, больший по модулю — точной decimal string. Обычный
+`JSON.parse` сохраняет такие ID. Nonfinite real (`NaN`, `Infinity`, `-Infinity`)
+даёт явную ошибку; `-0` становится `0`. Undefined-поля пропускаются, элементы
+массива undefined становятся null по правилам JSON. Native SOAP-форматирование
+real может округлять: `1.2345678901234567` → `1.2345678901` на проверенном runtime.
+Прямой ws-client сохраняет единый bigint-контракт независимо от размера integer.
 На проверенном Linux C/PG runtime отрицательные SQL integer, включая `-7`, уже
 пусты в XML-результате и выдаются как `null`; приведение к тексту в самом SQL
 сохраняет знак, например `CAST(-9007199254740993 AS VARCHAR(32))`.
 SQL `NULL` без явного типа и `''` оба получены как `""`. Эти потери происходят
 до MCP и не устраняются выбором JSON encoder.
-MCP проверяет envelope, но возвращает исходный JSON без повторной сериализации
-чисел в Node. Потребитель, разбирающий JSON в JS, всё ещё может округлить большие
-числа. Запрос ограничен 64 KiB UTF-8, должен быть непустым, без NUL и lone surrogates;
+Запрос ограничен 64 KiB UTF-8, должен быть непустым, без NUL и lone surrogates;
 произвольные platform options вроде `lds-server` не принимаются.
 
 Лимиты строк/вывода **не ограничивают стоимость запроса или память сервера**:
-материализуется ограниченный диапазон, а отдельная строка сериализуется до проверки
+материализуется ограниченный диапазон, а отдельная строка проецируется до проверки
 размера. HTTP timeout только прекращает ожидание; отмена работы в БД не гарантируется.
 SQL использует диалект и права текущей БД платформы. Серверный вызов не требует
 включать клиентский `ALLOW-SQL-REMOTE-QUERIES`; инструмент не меняет конфигурацию
 WebSoft. Ограничения клиентского LDS-вызова не переносятся на наш серверный evaluator.
 
-Источники API: [XQuery](https://wshcm-docs.boristype.dev/news/platform/7143925311248265325.html),
-[object_to_text](https://wshcm-docs.boristype.dev/news/platform/7163334555835046783.html),
+Источники API и сверка declarations с native:
+[матрица и границы ws-client](../../docs/reference/ws-client-values.md),
+[XQuery](https://wshcm-docs.boristype.dev/news/platform/7143925311248265325.html),
 [клиентское ограничение SQL](https://wshcm-docs.boristype.dev/news/monolith/7203696059885836448.html).
-Декларации сверены с `wshcmx/types` revision `a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b`:
-[core/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/core/index.d.ts#L2613),
-[tools/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/tools/index.d.ts#L5104).
 Поддержка серверного `sql:` без дополнительных клиентских флагов — уточнение
 пользователя. Native acceptance прошёл 2026-11-07 на Linux HCM 2025.2.1333 /
 CLR 9.0.11 / PostgreSQL 16 без изменения настроек SQL. Это проверка текущего
@@ -582,7 +590,8 @@ pnpm --filter @boristype/mcp-server test:e2e:xquery
 row/output limit, большие CJK/emoji ответы, ошибки и cleanup evaluator.
 Output acceptance использует PostgreSQL `repeat`/`generate_series`. Команда требует
 уже запущенный эксклюзивный локальный стенд. На Linux HCM 2025.2.1333 / CLR 9.0.11
-прошли 10/10 Node tests (9 сценариев и parent), без skips. Большие ответы выявили
+после перехода на общий typed adapter прошли 12/12 Node tests (11 сценариев и parent),
+включая safe integer/real, необычные aliases и nonfinite errors, без skips. Большие ответы выявили
 и помогли исправить UTF-8 decoding на границах HTTP chunks в ws-client.
 Windows HCM, MSSQL, другие версии и полный контракт типов требуют отдельных проверок.
 [Native отчёт](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/09-xquery-native.md).

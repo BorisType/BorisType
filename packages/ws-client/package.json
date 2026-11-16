@@ -15,7 +15,9 @@
     "build:runtime": "node tools/prepare-runtime.mjs",
     "test": "node --test test/*.test.mjs",
     "prepublishOnly": "pnpm build",
-    "prepack": "pnpm build"
+    "prepack": "pnpm build",
+    "test:e2e:values": "node --test --test-concurrency=1 test/e2e/values.mjs",
+    "test:e2e:xquery": "node --test --test-concurrency=1 test/e2e/xquery.mjs"
   },
   "dependencies": {
     "fast-xml-parser": "^5.11.2",

@@ -261,7 +261,7 @@ test("file API gates stale assemblies while XQuery and XML remain available", as
   const transport = runtimeTransport(
     (script) => {
       independentCalls++;
-      if (script.includes("XQuery(")) return JSON.stringify('{"rows":[],"returnedRows":0,"truncated":false,"limitReason":null}');
+      if (script.includes("XQuery(")) return { rows: [], returnedRows: 0n, truncated: false, limitReason: null };
       return JSON.stringify(
         JSON.stringify({ ok: true, formUrl: "x-local://wtv/wtv_cost_center.xmd", root: "cost_center", xml: "<cost_center/>" }),
       );
@@ -279,7 +279,7 @@ test("file API gates stale assemblies while XQuery and XML remain available", as
   await assert.rejects(api.files.info({ path: "x-local://wt/data.bs" }), (error) => error.status.status === "restart_required");
   assert.equal(independentCalls, 0);
   const handshakeCalls = transport.calls.length;
-  assert.equal(await api.xquery({ query: "query" }), '{"rows":[],"returnedRows":0,"truncated":false,"limitReason":null}');
+  assert.deepEqual(await api.xquery({ query: "query" }), { rows: [], returnedRows: 0, truncated: false, limitReason: null });
   assert.equal((await api.objects.getForm({ formUrl: "x-local://wtv/wtv_cost_center.xmd" })).root, "cost_center");
   assert.equal(independentCalls, 2);
   assert.equal(transport.calls.length, handshakeCalls);
@@ -293,9 +293,9 @@ test("invalid file input does not trigger a handshake even when bundled assets a
     { bundleDirectory: fixture.directory },
   );
   await assert.rejects(api.files.read({ path: "file:///tmp" }), (error) => !(error instanceof sdk.WshcmRuntimeError));
-  const json = '{"rows":[],"returnedRows":0,"truncated":false,"limitReason":null}';
-  const independent = new sdk.WshcmApi({ eval: async () => JSON.stringify(json) }, { bundleDirectory: fixture.directory });
-  assert.equal(await independent.xquery({ query: "query" }), json);
+  const carrier = { rows: [], returnedRows: 0n, truncated: false, limitReason: null };
+  const independent = new sdk.WshcmApi({ eval: async () => carrier }, { bundleDirectory: fixture.directory });
+  assert.deepEqual(await independent.xquery({ query: "query" }), { rows: [], returnedRows: 0, truncated: false, limitReason: null });
 });
 
 test("runtime identities accept canonical MVID GUIDs without imposing UUID version bits", async (t) => {

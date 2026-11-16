@@ -70,6 +70,21 @@ test("XQuery passthrough through CLI/stdio/SOAP on the existing local stand", { 
     assert.equal(body.rows[0].label, "Привет 'quoted' ${maxRows}");
     assert.equal(body.rows[0].negative_text, "-9007199254740993");
   });
+  await check("typed numeric presentation and unusual SQL aliases survive the private carrier", async () => {
+    const { body } = await query(
+      "sql: SELECT 42 AS small, 1::float8 AS score, 9007199254740993::bigint AS \"__proto__\", 'kept' AS \"bad alias\", 'value' AS entries",
+    );
+    assert.deepEqual(body.rows, [JSON.parse('{"small":42,"score":1,"__proto__":"9007199254740993","bad alias":"kept","entries":"value"}')]);
+    assert.equal(Object.getPrototypeOf(body.rows[0]), Object.prototype);
+  });
+  await check("nonfinite SQL real gives an explicit MCP JSON error", async () => {
+    const result = await client.callTool(
+      { name: "wshcm_xquery", arguments: { query: "sql: SELECT 'NaN'::float8 AS value" } },
+      { timeout: 35000 },
+    );
+    assert.equal(result.isError, true);
+    assert.match(result.content[0].text, /nonfinite/i);
+  });
   await check("query string escapes survive the BS parser and SQL literal", async () => {
     const value = "'quoted' \"double\" \\ \r\n\t\u2028\u2029 $& ${query} Привет 👋";
     const { body } = await query("sql: SELECT '" + value.replaceAll("'", "''") + "' AS label");

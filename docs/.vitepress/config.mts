@@ -36,6 +36,7 @@ export default defineConfig({
         items: [
           { text: "Что такое BorisType?", link: "/guides/what-is-boristype" },
           { text: "Подключить MCP", link: "/guides/mcp-server" },
+          { text: "SOAP и XQuery: типы значений", link: "/reference/ws-client-values" },
           { text: "Установить .NET DLL", link: "/guides/dotnet" },
           { text: "Установить agent skills", link: "/guides/agent-skills" },
         ],
