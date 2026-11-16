@@ -31,8 +31,12 @@ Query ограничен 64 KiB UTF-8, должен быть непустым, �
 Ответ ограничен 256 KiB UTF-8 и выдаётся целыми строками; слишком большая
 первая строка даёт пустые rows с `truncated: true`, `limitReason: "output"`.
 Лимиты не ограничивают объём обработки в БД, память сервера или время выполнения.
-Строки проходят `tools.object_to_text(row, "json", 5)`; сохранение decimal,
-дат, вложенности, NULL и повторяющихся aliases не гарантируется.
+Общий ws-client `Evaluator.xquery` проецирует XML на сервере по фактическим
+типам полей; integer/real проходят SOAP как bigint/number, строки защищают CR/LF.
+Дубликаты имён группируются в массивы, schema multi сохраняет singleton-массив.
+Даты превращаются в ISO-строки через native `EncodeJson`.
+Проекция ограничена глубиной 32 и 10000 значений; превышение даёт ошибку.
+XML attributes/mixed text не входят в эту data-проекцию.
 
 ## Потери SQL→XML и точные ID
 
@@ -63,11 +67,23 @@ authenticated eval во временной BS-библиотеке, 2026-11-07.
 вычисляй явный marker в SQL, например CASE/IS NULL; это приём, а не проверенный
 контракт всех SQL типов и платформ.
 
-MCP возвращает исходный JSON text без повторной сериализации чисел в Node.
-Если в нём есть numeric token вне safe integer range, обычный `JSON.parse`
-в JavaScript может округлить цифры. Используй SQL text projection или lossless
-JSON parser/tokenizer; преобразование уже округлённого Number в String/BigInt
-не вернёт потерянные цифры. Не исправляй произвольный JSON regex-заменами.
+Текущая JSON-политика MCP: integer в диапазоне
+`[-9007199254740991, 9007199254740991]` выдаётся JSON number, остальные — точной
+decimal string. Поэтому `9007199254740993` приходит как `"9007199254740993"`;
+обычный `JSON.parse` сохраняет цифры. Если по контракту поля это integer/ID,
+`BigInt(value)` позволяет работать с ним точно. Real становится JSON number;
+native SOAP-форматирование уже может терять точность, например
+`1.2345678901234567` → `1.2345678901` на Linux C 2025.2.1333. Nonfinite real
+(`NaN`, `Infinity`, `-Infinity`) даёт явную ошибку, `-0` отображается как `0`.
+Undefined-поля пропускаются, undefined в массивах превращается в null по JSON.
+
+Прямой `@boristype/ws-client` всегда возвращает integer как `bigint`, даже `42n`.
+Для повторной передачи integer в `callMethod` используй bigint (`-7n`, `42n`),
+любой JS number передаётся как real. Диапазон — signed int64. Прямой
+`evaluator.xquery` возвращает typed rows с bigint/number; `JSON.stringify`
+результата с bigint требует явного replacer. Это отдельный слой от MCP presentation.
+SQL-to-XML потерю отрицательного integer клиент не восстанавливает; CAST выше
+остаётся обходом на проверенной сборке. Не исправляй произвольный JSON regex-заменами.
 
 Windows HCM, supplied JS runtime, MSSQL и все SQL типы этим evidence не покрыты.
 
@@ -83,11 +99,12 @@ Windows HCM, supplied JS runtime, MSSQL и все SQL типы этим evidence
 ## Источники
 
 - [XQuery](https://wshcm-docs.boristype.dev/news/platform/7143925311248265325.html)
-  и [object_to_text](https://wshcm-docs.boristype.dev/news/platform/7163334555835046783.html).
+  и [XmlElem](https://wshcm-docs.boristype.dev/datex/common/5607317807203771901.html).
   Datex/news и declarations сами по себе не доказывают runtime semantics.
-- [wshcmx/types, lib/core/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/core/index.d.ts#L2613)
-  и [lib/tools/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/tools/index.d.ts#L5104),
-  revision `a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b`.
+- [wshcmx/types, lib/core/index.d.ts](https://github.com/wshcmx/types/blob/1d76d40c87ad6a9c249bd16f1bfea035dd815940/lib/core/index.d.ts)
+  и [lib/xmlelem/index.d.ts](https://github.com/wshcmx/types/blob/1d76d40c87ad6a9c249bd16f1bfea035dd815940/lib/xmlelem/index.d.ts),
+  revision `1d76d40c87ad6a9c249bd16f1bfea035dd815940`.
+- [Текущий контракт ws-client/MCP, матрица и ограничения](https://github.com/BorisType/BorisType/blob/main/docs/reference/ws-client-values.md).
 - [Native query acceptance и диагностика](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/09-xquery-native.md):
   самостоятельный справочник выше сохраняет существенные результаты без
   обязательного доступа к checkout, стенду или другому skill.

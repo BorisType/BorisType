@@ -13,8 +13,9 @@ Row/output limits ограничивают **ответ**, а не работу/
 rows/returnedRows/truncated/limitReason (`rows|output|null`). Ответ ≤256 KiB,
 целая oversized строка не обрезается в середине. Пустой rows при output limit
 не доказывает отсутствие данных. Carrier и согласованность envelope проверяются;
-исходный JSON text возвращается без пересериализации, которая могла бы округлить
-large integer/decimal через Node Number.
+общий `WshcmApi.xquery` и `Evaluator.xquery` возвращают typed результат.
+MCP выдаёт safe integer как JSON number, остальные integer как точную decimal
+string; nonfinite real даёт ошибку. [Матрица и API](../../docs/reference/ws-client-values.md).
 
 ## Где теряются значения
 
@@ -29,9 +30,10 @@ PostgreSQL value → XML/BS → JSON → SOAP → Node. Прямой psql contro
 В той же выборке SQL NULL без явного типа и empty string стали одинаковым
 `""`; positive 9007199254740993 сохранялся строкой. Для точного обмена задавать
 явный SQL representation и, когда важно, отдельный NULL marker. Это не обещание
-универсального serializer всех SQL/Datex типов. Клиент сохраняет большие
-integer tokens как text либо использует lossless parser: JSON Number не
-гарантирует exact int64.
+универсального serializer всех SQL/Datex типов. Новый SOAP-кодек сохраняет
+integer как bigint и не восстанавливает уже потерянные SQL значения.
+Текущий долг: [issue #70](https://github.com/BorisType/BorisType/issues/70),
+[план локализации SQL→XML](../research/sql-xml-mapping.md).
 
 Отдельно direct BS `-1` имел верную знаковую арифметику (`n<0`, `n+1==0`), но
 String/concat/StrInt/alert показывали `18446744073709551615`. EncodeJson(-1)
@@ -61,3 +63,17 @@ JS runtime, все decimal/date/duplicate aliases, transactions и cancellation
 а saved observation verifier проверяет только сохранённые данные. Документация
 Datex и [types revision a3b1e43](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/core/index.d.ts#L252)
 задают reference сигнатур, не runtime acceptance.
+
+## Typed SOAP/XQuery после #66–69
+
+Все SOAP integer, включая небольшие значения, представлены bigint; JS number
+всегда real. Native date/XML не получают неявного fallback общего кодека.
+Query template проецирует XML на сервере по фактическим `.Value`/type/child metadata;
+string leaves и имена защищены JSON-string carrier, integer/real остаются typed.
+Дубликаты группируются в массивы, schema multi сохраняет singleton; dates — ISO strings.
+Проекция ограничена depth32, 10000 values, whole rows и256KiB результата.
+
+Это меняет прежний путь object_to_text/raw JSON; прежняя native серия выше
+остаётся историческим evidence. [Новое решение](../decisions/2026-11-16-ws-values-xquery.md),
+[исходная acceptance](../research/ws-values-xquery/results-preintegration.md),
+[интеграция и выпуск](../research/ws-values-xquery/integration-release.md).

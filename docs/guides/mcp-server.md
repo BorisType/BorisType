@@ -131,17 +131,20 @@ readback не удался. Известный ID сохраняется в ош
 
 Ответ: `rows`, `returnedRows`, `truncated`, `limitReason` (`null`/`rows`/`output`).
 Ограниченный диапазон содержит до maxRows + 1 строк для lookahead; размер
-сериализованных строк ограничен 65000 символами, весь ответ — 256 KiB UTF-8.
-Типы/вложенность следуют `tools.object_to_text(row, "json", 5)`; каноническое
-сохранение SQL NULL, decimal, дат и дубликатов колонок не гарантируется.
-Числовые JSON tokens возвращаются без повторной сериализации в Node.
+внутреннего carrier строк ограничен 65000 символами, весь ответ — 256 KiB UTF-8.
+Общий `Evaluator.xquery` из ws-client проецирует XML на сервере по фактическим
+типам полей в records/arrays; dates становятся ISO-строками. MCP выдаёт safe integer
+как JSON number, остальные integer как точные decimal strings. Nonfinite real
+даёт ошибку. Форматирование real в SOAP может терять точность. Глубина до 32,
+10000 значений; превышение этих пределов даёт ошибку.
+[Матрица типов и API](../reference/ws-client-values.md).
 На проверенной Linux C/PG сборке отрицательные SQL integer становятся пустыми
 XML-полями и выдаются как `null`, даже `-7`. Приведение integer к тексту в SQL
 сохраняет знак; SQL `NULL` без явного типа и `''` оба получены как `""`.
 
 Эти лимиты не ограничивают работу БД и память сервера. Transport timeout не
 гарантирует отмену запроса; автоматических повторов нет. Запрос может изменить
-данные до ошибки или потери ответа. `test:e2e:xquery` прошёл 10/10 на Linux HCM
+данные до ошибки или потери ответа. `test:e2e:xquery` прошёл 12/12 на Linux HCM
 2025.2.1333 / CLR 9.0.11 / PostgreSQL 16 без BorisType DLL в query path. Проверены
 каталог, SQL, quotes/control escapes, row/output limit и большие Unicode-ответы.
 Команда требует запущенный локальный стенд; output fixtures используют PostgreSQL.

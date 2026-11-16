@@ -48,9 +48,14 @@ test("real npm archive carries verified runtime assets and resolves them from th
       }
     }
     const sdk = await import(pathToFileURL(join(extracted, "build/index.js")));
-    const json = '{"rows":[{"id":7349577710243911718}],"returnedRows":1,"truncated":false,"limitReason":null}';
-    const api = new sdk.WshcmApi({ eval: async () => JSON.stringify(json) });
-    assert.equal(await api.xquery({ query: "sql: SELECT id" }), json);
+    const carrier = { rows: [{ entries: [['"id"', 7349577710243911718n]] }], returnedRows: 1n, truncated: false, limitReason: null };
+    const api = new sdk.WshcmApi({ eval: async () => carrier });
+    assert.deepEqual(await api.xquery({ query: "sql: SELECT id" }), {
+      rows: [{ id: 7349577710243911718n }],
+      returnedRows: 1,
+      truncated: false,
+      limitReason: null,
+    });
     const deps = manifest.component.files.find((file) => file.path.endsWith(".deps.json"));
     const { appendFile } = await import("node:fs/promises");
     await appendFile(join(bundle, "component", deps.path), " ");

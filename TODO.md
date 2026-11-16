@@ -75,6 +75,9 @@
 
 ## MCP / .NET / платформа
 
+- [#70: потери отрицательных integer и NULL/empty при SQL→XML](https://github.com/BorisType/BorisType/issues/70).
+  Подтверждены до SOAP на Linux C/PG; [границы и план локализации](refs/research/sql-xml-mapping.md).
+
 - **Managed runtime: расширить acceptance.** Проверить настоящий restart HCM
   с prepared update, Windows HCM и deployments с custom DOTNETLIBS-PATH.
   Gate и файловая операция пока разные SOAP calls: для балансировки нужен

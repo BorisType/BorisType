@@ -4,7 +4,8 @@
 input/response validation и read grants. `WshcmApi(evaluator)` не владеет
 инициализацией/закрытием evaluator. MCP содержит адаптеры формата и регистрации;
 тот же API доступен другим Node consumers, включая CLI. XML остаётся XML,
-XQuery возвращает исходный проверенный JSON text без повторной кодировки чисел.
+XQuery возвращает typed данные: integer как bigint, real как number.
+MCP выбирает JSON-представление отдельно; [контракт](../../docs/reference/ws-client-values.md).
 
 ## Bundle и build
 

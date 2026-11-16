@@ -67,7 +67,9 @@ export class WshcmClient {
 
   /**
    * Вызывает метод через SP-XML API
-   * @template T - тип возвращаемого значения
+   * SOAP integer возвращается как bigint, real — как number. Параметр T только
+   * утверждает тип в TypeScript; он не преобразует и не проверяет результат.
+   * @template T - ожидаемый вызывающим кодом тип возвращаемого значения
    * @param lib - библиотека/модуль (например, "tools", или URL модуля)
    * @param method - имя метода
    * @param methodArgs - массив аргументов метода
