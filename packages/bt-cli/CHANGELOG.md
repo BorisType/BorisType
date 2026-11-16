@@ -1,5 +1,12 @@
 # @boristype/bt-cli
 
+## 0.1.0-alpha.10
+
+### Patch Changes
+
+- Updated dependencies [0264f3a]
+  - @boristype/ws-client@0.1.0-alpha.6
+
 ## 0.1.0-alpha.9
 
 ### Patch Changes
