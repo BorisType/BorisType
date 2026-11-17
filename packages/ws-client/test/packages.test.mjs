@@ -203,7 +203,7 @@ test("lost native acknowledgement exposes durable receipt identity and never rep
   assert.equal(receipt.status, "completed");
   assert.equal(p.saves, 1);
 });
-import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm, mkdir, chmod, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
@@ -302,11 +302,8 @@ test("immutable inspection rejects outside selection, repeat/version/type confli
     await writeFile(path, objectPackage());
     const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") });
     const preview = await service.inspectPackage({ localPath: path, limit: 1 });
-    await assert.rejects(service.importPackage({ inspectionId: preview.inspectionId, objectIds: ["9007199254740993"] }), /Selection/);
-    const nextPage = await service.inspectPackage({ inspectionId: preview.inspectionId, offset: 1 });
     await writeFile(path, "changed source");
     assert.equal(preview.total, 2);
-    assert.equal(nextPage.items[0].id, "9007199254740993");
     await assert.rejects(service.importPackage({ inspectionId: preview.inspectionId, objectIds: ["1"] }), /Selection/);
     assert.equal(applied, 0);
     existsType = "collaborator";
@@ -492,3 +489,194 @@ test("local transfer failure after dispatch retains the queryable operation ID",
   );
   assert.equal((await new sdk.WshcmPackages(p.evaluator).getOperation({ operationId })).status, "running");
 });
+
+test("inspection pagination does not restrict default or explicit native import selection", async () => {
+  const { zip } = await import("./helpers/package-fixtures.mjs");
+  const dir = await mkdtemp(join(tmpdir(), "bt-full-inspection-"));
+  const groups = [
+    Array.from({ length: 1000 }, (_, i) => ({ id: String(9007199254740993n + BigInt(i)), type: "cost_center", name: "fixture" })),
+    [{ id: "18446744073709551615", type: "cost_center", name: "last-package" }],
+  ];
+  const calls = [];
+  let p;
+  p = platform({
+    FileSize: (path) => Buffer.byteLength(p.files.get(path)),
+    Base64Encode: (b) => Buffer.from(b).toString("base64"),
+    Base64Decode: (b) => Buffer.from(b, "base64"),
+    LoadFileDataRange: (path, a, b) => Buffer.from(p.files.get(path)).subarray(a, b),
+    PutFileDataRange: (path, a, b, value) => p.files.set(path, Buffer.concat([Buffer.from(p.files.get(path)), value])),
+    DeleteDirectory: () => {},
+    CodeLiteral: JSON.stringify,
+    XQuery: () => [],
+    UrlFromDocID: String,
+    OpenDoc: () => ({ TopElem: { Name: "cost_center", basic: { server_version: "2025.2.1333" } } }),
+    tools: {
+      get_version: () => "2025.2.1333",
+      get_package_log: () => ({
+        error: 0,
+        temp_package_url: "file:///tmp/owned-pagination",
+        GetXml: () => "<view_package/>",
+        download_packages: groups.map((objects, i) => ({
+          id: `pkg-${i}`,
+          type: "objects",
+          url: `part-${i}.zip`,
+          temp_package_url: `file:///tmp/owned-pagination-${i}`,
+          objects: objects.map((o) => ({ ...o })),
+        })),
+      }),
+      uni_process_package: (_url, form) => {
+        calls.push(
+          form.download_packages.map((part) => ({
+            id: part.id,
+            selected: part.selected,
+            selectedIds: part.objects.filter((o) => o.selected).map((o) => String(o.id)),
+          })),
+        );
+        return { error: 0, error_text: "", progress_count: 2, list_count: 2 };
+      },
+    },
+  });
+  try {
+    const path = join(dir, "input.zip");
+    await writeFile(
+      path,
+      zip([
+        {
+          name: "desc.xml",
+          data: `<download_packages>${groups.map((_, i) => `<download_package><id>pkg-${i}</id><type>objects</type><url>part-${i}.zip</url></download_package>`).join("")}</download_packages>`,
+        },
+        ...groups.map((objects, i) => ({
+          name: `part-${i}.zip`,
+          data: zip([
+            {
+              name: "update.xml",
+              data: `<data><basic><id>pkg-${i}</id><server_version>2025.2.1333</server_version></basic><cost_centers>${objects.map((o) => `<cost_center><id>${o.id}</id><name>${o.name}</name></cost_center>`).join("")}</cost_centers></data>`,
+            },
+          ]),
+        })),
+      ]),
+    );
+    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") });
+    const preview = await service.inspectPackage({ localPath: path });
+    assert.equal(preview.items.length, 100);
+    assert.equal(preview.total, 1003);
+    await service.importPackage({ inspectionId: preview.inspectionId });
+    assert.deepEqual(
+      calls[0],
+      groups.map((objects, i) => ({ id: `pkg-${i}`, selected: true, selectedIds: objects.map((o) => o.id) })),
+    );
+    const beyondPage = groups[0][999].id;
+    await service.importPackage({ inspectionId: preview.inspectionId, objectIds: [beyondPage], allowReimport: true });
+    assert.deepEqual(calls[1][0].selectedIds, [beyondPage]);
+    assert.deepEqual(calls[1][1].selectedIds, []);
+    await service.importPackage({ inspectionId: preview.inspectionId, packageIds: ["pkg-1"], allowReimport: true });
+    assert.equal(calls[2][0].selected, false);
+    assert.deepEqual(calls[2][1], { id: "pkg-1", selected: true, selectedIds: [groups[1][0].id] });
+    await assert.rejects(service.importPackage({ inspectionId: preview.inspectionId, objectIds: ["1"], allowReimport: true }), /Selection/);
+    await assert.rejects(
+      service.importPackage({ inspectionId: preview.inspectionId, packageIds: ["outside"], allowReimport: true }),
+      /Selection/,
+    );
+    assert.equal(calls.length, 3);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+function exportingPlatform() {
+  let p;
+  p = platform({
+    XQuery: () => [],
+    CodeLiteral: JSON.stringify,
+    FileSize: (path) => Buffer.byteLength(p.files.get(path)),
+    Base64Encode: (b) => Buffer.from(b).toString("base64"),
+    LoadFileDataRange: (path, a, b) => Buffer.from(p.files.get(path)).subarray(a, b),
+    tools: {
+      create_list_package: (url) => {
+        p.files.set(url, objectPackage());
+        return { error: 0, error_text: "", counter: 1 };
+      },
+    },
+  });
+  return p;
+}
+test("unavailable temporary directory after native export preserves generated operation ID and acknowledgement", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "bt-missing-temp-"));
+  const old = process.env.TMPDIR;
+  const p = exportingPlatform();
+  const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") });
+  try {
+    process.env.TMPDIR = join(dir, "missing-parent");
+    let failure;
+    try {
+      await service.exportPackage({ objectIds: ["9007199254740993"] });
+    } catch (error) {
+      failure = error;
+    }
+    assert.ok(failure instanceof sdk.WshcmPackageError);
+    assert.match(failure.message, /ENOENT/);
+    assert.equal(failure.details.lastKnownOperation.status, "completed");
+    assert.equal((await service.getOperation({ operationId: failure.details.operationId })).phase, "exported");
+  } finally {
+    if (old === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = old;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+for (const loseAck of [false, true])
+  test(
+    `real temporary cleanup failure preserves ${loseAck ? "primary structured failure" : "successful export result"}`,
+    { skip: process.platform === "win32" || process.getuid?.() === 0 },
+    async () => {
+      const dir = await mkdtemp(join(tmpdir(), "bt-cleanup-failure-"));
+      const taskTmp = join(dir, "temp");
+      await mkdir(taskTmp);
+      const old = process.env.TMPDIR;
+      const p = exportingPlatform();
+      let restricted;
+      const service = new sdk.WshcmPackages(
+        {
+          eval: async (code) => {
+            const wire = await p.evaluator.eval(code);
+            const body = JSON.parse(JSON.parse(wire)).body;
+            if (body?.phase === "downloaded" && restricted === undefined) {
+              const [entry] = await readdir(taskTmp);
+              restricted = join(taskTmp, entry);
+              await chmod(restricted, 0o500);
+              if (loseAck) throw Error("lost export finalization acknowledgement");
+            }
+            return wire;
+          },
+        },
+        { artifactDirectory: join(dir, "artifacts") },
+      );
+      try {
+        process.env.TMPDIR = taskTmp;
+        if (loseAck) {
+          let failure;
+          try {
+            await service.exportPackage({ objectIds: ["9007199254740993"] });
+          } catch (error) {
+            failure = error;
+          }
+          assert.ok(failure instanceof sdk.WshcmPackageError);
+          assert.equal(failure.details.code, "TransportError");
+          assert.equal(failure.details.status, "unknown");
+          assert.equal(failure.details.lastKnownOperation.phase, "exported");
+          assert.match(failure.message, /lost export finalization/);
+          assert.match(failure.details.cleanupError, /EACCES|EPERM/);
+          assert.equal((await service.getOperation({ operationId: failure.details.operationId })).status, "completed");
+        } else {
+          const result = await service.exportPackage({ objectIds: ["9007199254740993"] });
+          assert.equal(result.status, "completed");
+          assert.match(result.cleanupError, /EACCES|EPERM/);
+          assert.ok((await readFile(result.artifact.localPath)).length);
+          assert.equal((await service.getOperation({ operationId: result.operationId })).phase, "downloaded");
+        }
+      } finally {
+        if (old === undefined) delete process.env.TMPDIR;
+        else process.env.TMPDIR = old;
+        if (restricted) await chmod(restricted, 0o700);
+        await rm(dir, { recursive: true, force: true });
+      }
+    },
+  );

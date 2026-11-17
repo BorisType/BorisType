@@ -40,6 +40,10 @@ export interface PackagePage<T> {
   total: number;
 }
 export interface PackageErrorDetails {
+  /** Last acknowledged server receipt; subsequent dispatch may have an unknown outcome. */
+  lastKnownOperation?: PackageOperation;
+  /** Secondary local cleanup failure; never replaces the primary operation error. */
+  cleanupError?: string;
   operationId?: string;
   phase: string;
   status: "not_attempted" | "unknown" | "failed";

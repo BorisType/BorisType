@@ -64,8 +64,6 @@ interface Inspection {
   items: PackageInspectionItem[];
   operation: z.infer<typeof operationResult>;
   attempted: boolean;
-  viewedObjects: Set<string>;
-  viewedPackages: Set<string>;
 }
 export class WshcmPackages {
   private tail: Promise<unknown> = Promise.resolve();
@@ -192,8 +190,18 @@ export class WshcmPackages {
           operation: operationResult,
         }),
       );
-      const directory = await mkdtemp(join(tmpdir(), "boristype-package-"));
+      let directory: string | undefined;
+      async function cleanup(): Promise<string | undefined> {
+        if (directory === undefined) return;
+        try {
+          await rm(directory, { recursive: true, force: true });
+          directory = undefined;
+        } catch (error) {
+          return String(error).slice(0, 2000);
+        }
+      }
       try {
+        directory = await mkdtemp(join(tmpdir(), "boristype-package-"));
         const downloaded = await downloadPackage(this.evaluator, operationId, result.sizeBytes, directory);
         const artifact = await this.artifacts.capture(downloaded);
         this.operationArtifacts.set(operationId, artifact);
@@ -208,9 +216,11 @@ export class WshcmPackages {
           { operation: "finish_export", operationId, partial: missing.length > 0 || result.errors.length > 0 },
           operationResult,
         );
+        const cleanupError = await cleanup();
         return {
           operationId,
           artifact,
+          ...(cleanupError ? { cleanupError } : {}),
           status:
             missing.length || result.errors.length || result.operation.status === "partial" ? ("partial" as const) : ("completed" as const),
           verification: "archive_membership" as const,
@@ -221,16 +231,20 @@ export class WshcmPackages {
           operation: result.operation,
         };
       } catch (error) {
-        if (error instanceof WshcmPackageError) throw error;
-        throw new WshcmPackageError({
-          operationId,
-          code: "ArchiveError",
-          message: String(error).slice(0, 2000),
-          phase: "archive",
-          status: "unknown",
-        });
-      } finally {
-        await rm(directory, { recursive: true, force: true });
+        const failure =
+          error instanceof WshcmPackageError
+            ? error
+            : new WshcmPackageError({
+                operationId,
+                code: "ArchiveError",
+                message: String(error).slice(0, 2000),
+                phase: "archive",
+                status: "unknown",
+              });
+        failure.details.lastKnownOperation ??= structuredClone(result.operation);
+        const cleanupError = await cleanup();
+        if (cleanupError) failure.details.cleanupError = cleanupError;
+        throw failure;
       }
     });
   }
@@ -267,14 +281,7 @@ export class WshcmPackages {
     inspection: Omit<Inspection, "operation" | "items" | "attempted">,
     args?: z.output<typeof packageSchemas.importPackage>,
   ) {
-    const packageIds = args ? (args.packageIds ?? [...inspection.viewedPackages]) : inspection.archive.packages.map((p) => p.id);
-    if (args && packageIds.some((id) => !inspection.viewedPackages.has(id)))
-      throw new WshcmPackageError({
-        code: "InvalidSelection",
-        message: "Package was not returned in inspection pages",
-        phase: "input",
-        status: "not_attempted",
-      });
+    const packageIds = args?.packageIds ?? inspection.archive.packages.map((p) => p.id);
     const parts = inspection.archive.packages.filter((p) => packageIds.includes(p.id));
     if (parts.length !== new Set(packageIds).size)
       throw new WshcmPackageError({
@@ -283,7 +290,7 @@ export class WshcmPackages {
         phase: "input",
         status: "not_attempted",
       });
-    const allowed = new Set(parts.flatMap((p) => p.objects.map((o) => o.id)).filter((id) => !args || inspection.viewedObjects.has(id)));
+    const allowed = new Set(parts.flatMap((p) => p.objects.map((o) => o.id)));
     const objectIds = args?.objectIds ?? [...allowed];
     if (objectIds.some((id) => !allowed.has(id)))
       throw new WshcmPackageError({
@@ -312,7 +319,7 @@ export class WshcmPackages {
     )
       throw new WshcmPackageError({
         code: "InvalidSelection",
-        message: "No viewed objects or explicit extras selected",
+        message: "No inspected objects or explicit extras selected",
         phase: "input",
         status: "not_attempted",
       });
@@ -368,8 +375,6 @@ export class WshcmPackages {
           artifact,
           archive,
           sourceId,
-          viewedObjects: new Set<string>(),
-          viewedPackages: new Set<string>(),
         };
         await uploadPackage(this.evaluator, sourceId, artifact);
         const preview = await packageNative(
@@ -410,10 +415,6 @@ export class WshcmPackages {
         this.operationArtifacts.set(inspectionId, artifact);
       }
       const items = state.items.slice(args.offset, args.offset + args.limit);
-      for (const item of items) {
-        state.viewedPackages.add(item.packageId);
-        if (item.kind === "object") state.viewedObjects.add(item.id!);
-      }
       return {
         inspectionId,
         artifact: { ...state.artifact },
