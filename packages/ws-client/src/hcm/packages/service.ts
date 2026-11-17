@@ -220,6 +220,15 @@ export class WshcmPackages {
           errors: result.errors.slice(0, 100),
           operation: result.operation,
         };
+      } catch (error) {
+        if (error instanceof WshcmPackageError) throw error;
+        throw new WshcmPackageError({
+          operationId,
+          code: "ArchiveError",
+          message: String(error).slice(0, 2000),
+          phase: "archive",
+          status: "unknown",
+        });
       } finally {
         await rm(directory, { recursive: true, force: true });
       }

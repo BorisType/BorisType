@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { WshcmEvaluator } from "../types.js";
 import type { PackageArtifact } from "./artifacts.js";
 import { packageNative } from "./native.js";
-import { operationResult } from "./contracts.js";
+import { WshcmPackageError, operationResult } from "./contracts.js";
 const chunkBytes = 262144;
 const chunk = z.strictObject({
   data: z
@@ -30,30 +30,41 @@ export async function uploadPackage(
   operationId: string,
   artifact: Pick<PackageArtifact, "localPath" | "sizeBytes" | "sha256">,
 ): Promise<void> {
-  await packageNative(e, { operation: "upload", operationId }, operationResult);
-  const file = await open(artifact.localPath, "r");
   try {
-    for (let start = 0; start < artifact.sizeBytes; start += chunkBytes) {
-      const end = Math.min(start + chunkBytes, artifact.sizeBytes);
-      const data = Buffer.alloc(end - start);
-      const { bytesRead } = await file.read(data, 0, data.length, start);
-      if (bytesRead !== data.length) throw new Error("Package source changed");
-      const result = await packageNative(
-        e,
-        { operation: "write_chunk", operationId, start, end, data: data.toString("base64") },
-        z.strictObject({ sizeBytes: z.number().int().min(0).max(134217728) }),
-      );
-      if (result.sizeBytes !== end) throw new Error("Package upload size mismatch");
+    await packageNative(e, { operation: "upload", operationId }, operationResult);
+    const file = await open(artifact.localPath, "r");
+    try {
+      for (let start = 0; start < artifact.sizeBytes; start += chunkBytes) {
+        const end = Math.min(start + chunkBytes, artifact.sizeBytes);
+        const data = Buffer.alloc(end - start);
+        const { bytesRead } = await file.read(data, 0, data.length, start);
+        if (bytesRead !== data.length) throw new Error("Package source changed");
+        const result = await packageNative(
+          e,
+          { operation: "write_chunk", operationId, start, end, data: data.toString("base64") },
+          z.strictObject({ sizeBytes: z.number().int().min(0).max(134217728) }),
+        );
+        if (result.sizeBytes !== end) throw new Error("Package upload size mismatch");
+      }
+    } finally {
+      await file.close();
     }
-  } finally {
-    await file.close();
+    if ((await hashRemotePackage(e, operationId, artifact.sizeBytes)) !== artifact.sha256) throw new Error("Package upload hash mismatch");
+    await packageNative(
+      e,
+      { operation: "seal_upload", operationId, sizeBytes: artifact.sizeBytes, sha256: artifact.sha256 },
+      operationResult,
+    );
+  } catch (error) {
+    if (error instanceof WshcmPackageError) throw error;
+    throw new WshcmPackageError({
+      operationId,
+      code: "TransferError",
+      message: String(error).slice(0, 2000),
+      phase: "transfer",
+      status: "unknown",
+    });
   }
-  if ((await hashRemotePackage(e, operationId, artifact.sizeBytes)) !== artifact.sha256) throw new Error("Package upload hash mismatch");
-  await packageNative(
-    e,
-    { operation: "seal_upload", operationId, sizeBytes: artifact.sizeBytes, sha256: artifact.sha256 },
-    operationResult,
-  );
 }
 export async function downloadPackage(e: WshcmEvaluator, operationId: string, sizeBytes: number, directory: string): Promise<string> {
   if (!Number.isSafeInteger(sizeBytes) || sizeBytes < 0 || sizeBytes > 134217728) throw new Error("Package download exceeds 128 MiB");

@@ -478,3 +478,17 @@ test("package input schemas serialize for MCP without transform failures", async
   const { z } = await import("zod");
   for (const schema of Object.values(sdk.packageSchemas)) assert.doesNotThrow(() => z.toJSONSchema(schema));
 });
+test("local transfer failure after dispatch retains the queryable operation ID", async () => {
+  const { uploadPackage } = await import("../build/hcm/packages/transfer.js");
+  const p = platform();
+  const operationId = randomUUID();
+  await assert.rejects(
+    uploadPackage(p.evaluator, operationId, {
+      localPath: "/nonexistent/boristype-package-fixture.zip",
+      sizeBytes: 1,
+      sha256: "0".repeat(64),
+    }),
+    (error) => error instanceof sdk.WshcmPackageError && error.details.operationId === operationId && error.details.status === "unknown",
+  );
+  assert.equal((await new sdk.WshcmPackages(p.evaluator).getOperation({ operationId })).status, "running");
+});
