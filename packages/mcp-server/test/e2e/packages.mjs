@@ -1,0 +1,226 @@
+// Opt-in acceptance against an existing stand. Never installs/restarts/reconfigures it.
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { createHash, randomUUID } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { readFile, writeFile, rm, access } from "node:fs/promises";
+import { dirname, basename, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { WshcmClient, WshcmPackages } from "@boristype/ws-client";
+import { cleanupPackageFixtures } from "../../../ws-client/test/helpers/package-native-cleanup.mjs";
+
+const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
+
+test(
+  "native package lifecycle through actual CLI/stdio preserves baseline and cleans exact owned fixtures",
+  { timeout: 240000 },
+  async (t) => {
+    assert.ok(process.env.WSHCM_USERNAME && process.env.WSHCM_PASSWORD, "WSHCM_USERNAME and WSHCM_PASSWORD required");
+    const container = process.env.WSHCM_PACKAGE_CONTAINER;
+    assert.ok(container, "WSHCM_PACKAGE_CONTAINER required for evaluator cleanup verification");
+    const docker = (...args) => execFileSync("docker", args, { encoding: "utf8", timeout: 10000, maxBuffer: 1024 * 1024 });
+    const evaluators = () =>
+      docker("exec", container, "find", "/WebsoftServer/wt", "-maxdepth", "1", "-type", "f", "-name", "unsafe_eval_*.bs", "-printf", "%f\n")
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .sort();
+    const baselineEvaluators = evaluators();
+    const options = {
+      host: process.env.WSHCM_HOST ?? "localhost",
+      port: Number(process.env.WSHCM_PORT ?? 80),
+      overHttps: process.env.WSHCM_HTTPS === "true",
+      username: process.env.WSHCM_USERNAME,
+      password: process.env.WSHCM_PASSWORD,
+      requestTimeout: 60000,
+    };
+    const soap = new WshcmClient(options);
+    const e = soap.createEvaluator();
+    const ev = async (code) => JSON.parse(await e.eval(code));
+    const client = new Client({ name: "package-native-acceptance", version: "1" }, { supportedProtocolVersions: ["2025-11-25"] });
+    const transport = new StdioClientTransport({
+      command: process.execPath,
+      args: [fileURLToPath(new URL("../../build/cli.js", import.meta.url))],
+      env: {
+        ...process.env,
+        NODE_USE_ENV_PROXY: "0",
+        WSHCM_HOST: options.host,
+        WSHCM_PORT: String(options.port),
+        WSHCM_HTTPS: String(options.overHttps),
+      },
+      stderr: "pipe",
+    });
+    let stderrBytes = 0;
+    transport.stderr.on("data", (chunk) => {
+      stderrBytes += chunk.length;
+    });
+    const marker = "bt-packages-" + randomUUID();
+    const receipt = { marker, carrier: "CLI/stdio/SOAP; no BorisType DLL", operations: [], artifacts: [], fixtureIds: [] };
+    const packageIds = [];
+    let schemaId;
+    let cliEvaluator;
+    let baseline;
+    async function call(name, args = {}) {
+      const result = await client.callTool({ name: "wshcm_" + name, arguments: args }, { timeout: 60000 });
+      assert.notEqual(result.isError, true, JSON.stringify(result).slice(0, 3000));
+      assert.equal(result.content.length, 1);
+      assert.ok(Buffer.byteLength(result.content[0].text) <= 262144);
+      const body = JSON.parse(result.content[0].text);
+      if (body.artifact && !receipt.artifacts.some((a) => a.artifactId === body.artifact.artifactId)) receipt.artifacts.push(body.artifact);
+      return body;
+    }
+    const operationId = () => {
+      const id = randomUUID();
+      receipt.operations.push(id);
+      return id;
+    };
+    try {
+      await soap.initialize();
+      await e.initialize();
+      receipt.identity = await ev(
+        "return EncodeJson({version:String(tools.get_version('wtv')),accountId:StrInt(tools.get_cur_user_id())});",
+      );
+      receipt.image = JSON.parse(docker("inspect", "--format", '{"image":{{json .Config.Image}},"imageId":{{json .Image}}}', container));
+      receipt.code = { revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), files: {} };
+      for (const file of [
+        "packages/mcp-server/src/tools/packages.ts",
+        "packages/mcp-server/src/server.ts",
+        "packages/ws-client/src/hcm/packages/service.ts",
+        "packages/ws-client/resources/package-operation.bs",
+        "packages/mcp-server/test/e2e/packages.mjs",
+        "packages/ws-client/test/helpers/package-native-cleanup.mjs",
+      ])
+        receipt.code.files[file] = hash(await readFile(fileURLToPath(new URL("../../../../" + file, import.meta.url))));
+      baseline = await e.eval("return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();");
+      receipt.baselineSha256 = hash(baseline);
+      const beforeCLI = evaluators();
+      await client.connect(transport, { timeout: 35000 });
+      const added = evaluators().filter((name) => !beforeCLI.includes(name));
+      assert.equal(added.length, 1);
+      cliEvaluator = added[0];
+      receipt.cliEvaluator = cliEvaluator;
+      receipt.toolCount = (await client.listTools()).tools.length;
+      assert.equal(receipt.toolCount, 26);
+      const schemas = await call("list_package_schemas", { limit: 1 });
+      receipt.baselineSchemas = schemas.items.map(({ schemaId, name, objectCount }) => ({ schemaId, name, objectCount }));
+      const created = await call("save_package_schema", { name: marker, operationId: operationId() });
+      schemaId = created.schemaId;
+      receipt.schemaId = schemaId;
+      receipt.fixtureIds = await ev(
+        `var out=[];var i;var d;for(i=0;i<2;i++){d=OpenNewDoc('x-local://wtv/wtv_cost_center.xmd');d.TopElem.code='${marker}';d.TopElem.name='archive-'+i;d.BindToDb(DefaultDb);d.Save();out.push(StrInt(d.DocID));}return EncodeJson(out);`,
+      );
+      let schema = await call("get_package_schema", { schemaId });
+      await call("add_package_objects", { schemaId, revision: schema.revision, objectIds: receipt.fixtureIds, operationId: operationId() });
+      schema = await call("get_package_schema", { schemaId, limit: 1 });
+      assert.equal(schema.objectCount, 2);
+      assert.equal((await call("get_package_schema", { schemaId, offset: 1, limit: 1 })).objects.length, 1);
+      await call("remove_package_objects", {
+        schemaId,
+        revision: schema.revision,
+        objectIds: [receipt.fixtureIds[1]],
+        operationId: operationId(),
+      });
+      schema = await call("get_package_schema", { schemaId });
+      assert.equal(schema.objectCount, 1);
+      await call("save_package_schema", { schemaId, revision: schema.revision, name: marker + "-renamed", operationId: operationId() });
+      schema = await call("get_package_schema", { schemaId });
+      assert.equal(schema.name, marker + "-renamed");
+      await call("delete_package_schema", { schemaId, revision: schema.revision, operationId: operationId() });
+      schemaId = undefined;
+      assert.equal(await e.eval("return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();"), baseline);
+      const exported = await call("export_package", { objectIds: receipt.fixtureIds, operationId: operationId() });
+      assert.equal(exported.status, "completed");
+      assert.equal(exported.objects.total, 2);
+      const bytes = await readFile(exported.artifact.localPath);
+      assert.equal(bytes.length, exported.artifact.sizeBytes);
+      assert.equal(hash(bytes), exported.artifact.sha256);
+      assert.ok(!JSON.stringify(exported).includes(bytes.toString("base64")));
+      receipt.export = exported;
+      const preview = await call("inspect_package", { artifactId: exported.artifact.artifactId, limit: 1, operationId: operationId() });
+      assert.equal(preview.total, 3);
+      assert.equal(preview.items.length, 1);
+      packageIds.push(preview.items[0].packageId);
+      receipt.inspection = preview;
+      const page = await call("inspect_package", { inspectionId: preview.inspectionId, offset: 1, limit: 2 });
+      assert.deepEqual(page.items.map((item) => item.id).sort(), [...receipt.fixtureIds].sort());
+      await e.eval(
+        `var ids=ParseJson('${JSON.stringify(receipt.fixtureIds)}');var i;var d;for(i=0;i<ArrayCount(ids);i++){d=OpenDoc(UrlFromDocID(Int(ids[i])));d.TopElem.name='local-change';d.Save();}return;`,
+      );
+      // Default import covers both objects although the initial response showed only the package row.
+      const applied = await call("import_package", { inspectionId: preview.inspectionId, operationId: operationId() });
+      assert.equal(applied.status, "completed");
+      assert.equal(applied.verification, "platform_report_only");
+      assert.ok(applied.reportIds.length && applied.downloadIds.length);
+      receipt.import = applied;
+      receipt.readback = await ev(
+        `var ids=ParseJson('${JSON.stringify(receipt.fixtureIds)}');var out=[];var i;var d;for(i=0;i<ArrayCount(ids);i++){d=OpenDoc(UrlFromDocID(Int(ids[i])));out.push({id:ids[i],name:String(d.TopElem.name)});}return EncodeJson(out);`,
+      );
+      assert.deepEqual(
+        receipt.readback.map((row) => row.name),
+        ["archive-0", "archive-1"],
+      );
+      receipt.status = await call("get_package_operation", { operationId: applied.operationId });
+      assert.equal(receipt.status.status, "completed");
+      receipt.schemaUnchanged =
+        (await e.eval("return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();")) === baseline;
+      assert.equal(receipt.schemaUnchanged, true);
+    } catch (error) {
+      receipt.error = String(error);
+      throw error;
+    } finally {
+      try {
+        if (schemaId) {
+          const api = new WshcmPackages(e);
+          const schema = await api.getSchema({ schemaId });
+          assert.ok(schema.name.startsWith(marker));
+          await api.deleteSchema({ schemaId, revision: schema.revision, operationId: operationId() });
+        }
+        Object.assign(
+          receipt,
+          await cleanupPackageFixtures(e, { marker, ids: receipt.fixtureIds, packageIds, operations: receipt.operations }),
+        );
+        receipt.schemaUnchangedAfterCleanup =
+          (await e.eval("return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();")) === baseline;
+        assert.equal(receipt.schemaUnchangedAfterCleanup, true);
+      } finally {
+        await client.close();
+        const deadline = Date.now() + 5000;
+        while (cliEvaluator && evaluators().includes(cliEvaluator) && Date.now() < deadline) await delay(100);
+        receipt.cliEvaluatorRemoved = !cliEvaluator || !evaluators().includes(cliEvaluator);
+        receipt.helperEvaluatorClosed = await e.close();
+        for (const artifact of receipt.artifacts) {
+          assert.equal(basename(artifact.localPath), artifact.artifactId + ".zip");
+          await rm(artifact.localPath, { force: true });
+          const sidecar = join(dirname(artifact.localPath), artifact.artifactId + ".json");
+          await rm(sidecar, { force: true });
+          await assert.rejects(access(artifact.localPath));
+          await assert.rejects(access(sidecar));
+        }
+        receipt.localArtifactsRemoved = receipt.artifacts.map((a) => a.artifactId);
+        receipt.evaluatorsAfter = evaluators();
+        receipt.evaluatorsBefore = baselineEvaluators;
+        receipt.stderrBytes = stderrBytes;
+        await writeFile(
+          process.env.WSHCM_MCP_PACKAGE_RECEIPT ?? "/tmp/boristype-mcp-packages-acceptance.json",
+          JSON.stringify(receipt, null, 2),
+        );
+      }
+      assert.equal(receipt.cliEvaluatorRemoved, true);
+      assert.equal(receipt.helperEvaluatorClosed, true);
+      assert.deepEqual(receipt.evaluatorsAfter, baselineEvaluators);
+      t.diagnostic(
+        JSON.stringify({
+          marker,
+          fixtureIds: receipt.fixtureIds,
+          cleanup: receipt.cleanup,
+          schemaUnchanged: receipt.schemaUnchangedAfterCleanup,
+          artifactHashes: receipt.artifacts.map((a) => a.sha256),
+          stderrBytes,
+        }),
+      );
+    }
+  },
+);

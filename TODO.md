@@ -75,12 +75,15 @@
 
 ## MCP / .NET / платформа
 
-- **Пакеты объектов: реализовать согласованный полный цикл.** Исследованы штатные
-  схемы, серверный export и preview; созданный ZIP открыт в UI. Требуются утверждение
-  контракта и реализация схем/артефактов/inspect/import/status и прямого экспорта
-  по IDs без сохранения схемы, native acceptance собственного импорта, массовой
-  выгрузки и ошибок/timeout. Файлы, custom fields/roles, concurrency и
-  очистка требуют отдельных проверок. [Предлагаемый дизайн и evidence](refs/mcp/object-packages.md).
+- **Пакеты объектов: расширить native acceptance и lifecycle.** SDK и десять MCP
+  tools реализуют схемы/export/immutable inspect/import/status. Проверен объектный
+  cost_center путь на Linux C/PostgreSQL; остаются courses/web/custom_file,
+  custom templates/access roles/files/lists/deletions, related traversal,
+  cross-client concurrency, разные аккаунты, native timeout receipt, максимальные
+  размеры и Windows/MSSQL. Нужны политика уборки expired artifacts и серверных
+  receipt/temp/report; полноценный remap IDs не реализован. Public UUID schema
+  пока принимает uppercase, native validation требует lowercase; до согласования
+  используйте lowercase UUID. [Контракт и точные границы evidence](refs/mcp/object-packages.md).
 
 - **Пакеты: прикладные зависимости сверх штатного XMD-обхода.** Отдельная opt-in
   стратегия для известных ссылок в `wvars` (`custom_web_template` /

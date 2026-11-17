@@ -25,7 +25,8 @@
     "prepublishOnly": "pnpm build",
     "inspector": "mcp-inspector node build/cli.js",
     "test:e2e:edit": "node --test --test-concurrency=1 test/e2e/edit.mjs",
-    "test:e2e:read-aware": "node --test --test-concurrency=1 test/e2e/read-aware.mjs"
+    "test:e2e:read-aware": "node --test --test-concurrency=1 test/e2e/read-aware.mjs",
+    "test:e2e:packages": "node --test --test-concurrency=1 test/e2e/packages.mjs"
   },
   "author": "punkhomov",
   "license": "MIT",

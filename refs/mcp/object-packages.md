@@ -1,9 +1,9 @@
-# Пакеты объектов: исследование и предлагаемый контракт
+# Пакеты объектов: контракт и основания
 
-Статус на 2026-11-17: исследование штатного сценария и проект API. Пользователь
-выбрал **полный цикл**: сохранённая схема или явные IDs → ZIP → просмотр → импорт. Tools и
-SDK API ещё не реализованы. Реализация не должна зависеть от открытого браузера.
-Маршруты сохраняются в [журнале администратора](../platform/admin-journal.md).
+Статус на 2026-11-17: SDK и десять MCP tools реализуют схемы → ZIP → immutable
+preview → import/status без браузера. Объектный путь принят на Linux C/PostgreSQL;
+дополнительные типы, flags и ограничения evidence перечислены ниже. Исходные
+маршруты исследования сохраняются в [журнале администратора](../platform/admin-journal.md).
 
 ## Что находится на клиенте и сервере
 
@@ -79,14 +79,14 @@ SDK API ещё не реализованы. Реализация не должн
   некоторые каталоги на этом стенде; причина не локализована. Удалять можно только
   однозначно принадлежащие операции пути, проверяя фактическую очистку.
 
-## Предлагаемый API первой версии
+## Выбор API первой версии
 
 Выбор — работать со штатными схемами через серверные функции и возвращать локальные
 артефакты MCP. Альтернативы: автоматизация браузера привязана к текущему окну и
 сеансу; отдельный собственный формат схем не виден в админке и дублирует модель.
 
-Логика платформы располагается в `ws-client`, MCP предоставляет schemas, хранение
-локальных архивов и resources. Предварительные названия операций:
+Логика платформы и хранение локальных архивов располагаются в `ws-client`; MCP
+регистрирует те же schemas и сериализует результаты. Названия операций:
 
 | Операция                 | Смысл и результат                                                                  |
 | ------------------------ | ---------------------------------------------------------------------------------- |
@@ -98,10 +98,10 @@ SDK API ещё не реализованы. Реализация не должн
 | `delete_package_schema`  | Удалить явно указанную прочитанную схему                                           |
 | `export_package`         | schemaId или objectIds → штатный ZIP → локальный artifact и отчёт сборки           |
 | `inspect_package`        | artifactId/localPath → неизменяемая копия ZIP → состав, конфликты, inspectionId    |
-| `import_package`         | inspectionId + явный выбор → импорт объектов и отчёт                               |
+| `import_package`         | inspectionId + optional subset → импорт объектов и отчёт                           |
 | `get_package_operation`  | Состояние операции, известные этапы, native ids/reports, артефакт                  |
 
-У MCP имена получают префикс `wshcm_`; окончательные schemas ещё не утверждены.
+У MCP имена получают префикс `wshcm_`; strict schemas экспортированы SDK.
 «Открыть сохранённую схему» означает получить её по id. MCP не меняет выбор в
 чужом окне; UI сможет выбрать ту же сохранённую схему после обновления.
 
@@ -171,79 +171,106 @@ SDK API ещё не реализованы. Реализация не должн
 Полный цикл первой версии относится к пакетам, формируемым «Содержимым пакета».
 Это не универсальный установщик обновлений платформы, приложений и компонентов.
 Неподдерживаемый тип вложенного пакета нужно назвать и отклонить до применения,
-не пропускать молча. Объекты, custom templates, access roles и файловые вложения
-требуют собственной acceptance-проверки; исходный ZIP сохраняется целиком.
+не пропускать молча. Объектный путь принят отдельно; custom templates, access roles и файловые
+вложения ещё требуют своей acceptance; исходный ZIP сохраняется целиком.
 
-## ZIP и MCP
+## Реализованный контракт SDK/MCP
 
-Текущий MCP сервер использует **stdio**. Для такого запуска практичен локальный
-файл в каталоге артефактов на машине MCP. Экспорт возвращает, например:
+Статус 2026-11-17: полный объектный цикл реализован в `WshcmApi.packages` /
+`WshcmPackages`, strict inputs экспортированы как `packageSchemas`. MCP содержит
+тонкие JSON adapters к тем же десяти методам; native BS, ZIP validation/transfer,
+artifact store и политика выбора принадлежат ws-client. Точный публичный inventory,
+inputs и примеры — в [README MCP](../../packages/mcp-server/README.md#пакеты-объектов)
+и [README SDK](../../packages/ws-client/README.md#пакеты-объектов).
 
-```json
-{
-  "artifactId": "opaque-id",
-  "uri": "boristype-artifact://opaque-id/objects.zip",
-  "localPath": "/absolute/path/on-mcp-host/objects.zip",
-  "mimeType": "application/zip",
-  "sizeBytes": 959,
-  "sha256": "5ed8a402992f67b40c143db7291b198f7efd76f85e035e399aacd668bb2fadec"
-}
-```
+Схемы явно адресуются schemaId; list/get регистрируют hash всего общего XML.
+Save/delete/add/remove recheck этот XML и сохраняют соседние схемы. Текущий UI
+package_id не переключается. Экспорт из IDs строит несохранённую схему; экспорт
+из schemaId требует revision. Сериализация внутри SDK instance плюс recheck
+не являются external atomic CAS или распределённой блокировкой.
 
-Это пример предлагаемого контракта, не результат уже существующего tool.
-В `content` можно добавить стандартный `resource_link`. MCP поддерживает бинарный
-`resources/read` с base64 `blob`; утверждение «MCP не умеет передавать архив» неверно.
-Однако протокол не гарантирует сохранение resource клиентом в доступный агенту
-файл. Не включать весь ZIP в текст tool response. Реализацию чтения resource и
-поддержку конкретных клиентов надо проверять отдельно.
+ZIP находится на машине SDK/MCP в отдельном persistent artifact directory,
+по умолчанию `~/.boristype/package-artifacts`. Ответ возвращает artifactId,
+localPath, MIME, sizeBytes, sha256 и expiresAt; JSON не содержит archive base64.
+Handle действует 24 часа; файлы переживают завершение MCP. Очистка expired
+файлов и native receipt/temp/report пока не автоматизирована. Resources и upload
+attachments не зарегистрированы. Прочтение существующего source не даёт права
+его перезаписи. Path другой среды/удалённого клиента автоматически недоступен.
 
-Для обратного пути `inspect_package` принимает существующий artifactId либо
-абсолютный `localPath` **на машине MCP** и копирует байты в собственное неизменяемое
-хранилище. Файл в иной изолированной среде агента/удалённого клиента по одному пути
-недоступен. Обычный MCP `resources/read` не предоставляет симметричный upload;
-удалённая загрузка/attachment-интеграции остаются отдельной задачей. Произвольный
-base64 ZIP в аргументах модели не нужен для первого stdio-сценария.
+Inspect копирует архив в immutable snapshot, проверяет ZIP и загружает его для
+native preview. inspectionId связывает **весь** нормализованный состав, hash,
+target/account; pagination служит представлению. Default import выбирает все
+объекты snapshot (либо все объекты явно выбранных packages); явные objectIds могут
+быть на любой странице, внешние IDs отклоняются. Прежняя идея ограничения выбором
+возвращённой страницы отклонена. Binding хранится в памяти SDK instance; после
+restart требуется новый inspect существующего artifactId. Перед apply повторяются
+hash/context/version/type/reimport checks; исходный path не перечитывается.
 
-Артефакт имеет hash, размер и явно описанный срок хранения. Завершение MCP-сеанса
-не должно неожиданно удалять уже выданный файл; очистка не затрагивает пользовательский
-оригинал. Перед распаковкой нужны пределы размера/числа записей/распакованных байт
-и проверка путей всех уровней ZIP. Вложенные descriptor URLs должны указывать
-внутрь пакета. Конкретные значения лимитов выбираются и проверяются при реализации.
+Поддерживаются objects/courses/web/custom_file, другие типы отклоняются до native
+распаковки/apply. Custom templates/access roles/files/lists/deletions требуют явных
+opt-ins. custom_file destination допускается только ниже x-local://custom/.
+Native дополнительные типы/extra содержимое не приняты реальными fixtures.
+includeRelatedObjects остаётся XMD/foreign обходом; прикладные wvars/mode связи
+не реализованы и не замаскированы дополнительными flags.
 
-## Просмотр, применение и ошибки
+Лимиты: ZIP 128 MiB, expanded total 512 MiB, 10000 entries, depth 2, XML 32 MiB,
+input IDs 10000, страницы 1–1000/default 100, chunk 256 KiB. Проверки ZIP не
+являются доказательством принятия max-size нагрузки. MCP text ≤256 KiB; wrapper
+сохраняет SDK pages и при необходимости уменьшает страницу с nextPage/truncated.
+Diagnostics/settings могут сокращаться с truncatedFields. Standard Schema wrapper
+делегирует SDK validation и JSON Schema, ограничивая также Zod/ generic errors;
+отдельных бизнес-правил в MCP нет.
 
-`inspect_package` включает передачу ZIP на HCM для штатного серверного просмотра;
-эта загрузка ещё не создаёт и не обновляет целевые объекты. `import_package` — стадия
-импорта, которая применяет выбранные данные из уже просмотренного архива:
-новые объекты создаются, существующие могут обновляться по правилам платформы и
-явному выбору вызова. Это не только размещение ZIP на сервере. Удаления и другие
-виды содержимого нужно показывать при просмотре и включать отдельно. Название
-`import_package` выбрано пользователем как более понятное; предварительный просмотр
-`inspect_package` остаётся отдельной операцией.
+OperationId можно выбрать до dispatch; используйте lowercase UUID (несогласованная
+uppercase schema/native validation остаётся minor TODO). Серверные receipts связаны
+с tools.get_cur_user_id() и persistent target identity marker. getOperation доступен
+после потери SDK/evaluator. Нет retries/cancellation/rollback/exactly-once.
+WshcmPackageError.details сохраняется в MCP, включая operationId/status,
+lastKnownOperation/cleanupError. Export проверяет архивный состав и может сообщить
+partial; import completed с platform_report_only — завершение native вызова,
+а не per-object success. Для делового результата требуются отчёты/readback.
 
-`inspectionId` связывает точные ZIP bytes/hash, целевой стенд, учётную запись и
-нормализованный состав. Просмотр показывает package id/version, выбранные объекты,
-существующие id/type, custom fields/roles/files, несовместимость и повторную установку.
-Применение использует сохранённый ZIP, а не перечитывает изменившийся исходный path.
-Выбор проверяется по просмотренному составу; конфликты проверяются снова перед запуском.
+## Product acceptance и границы
 
-Другая версия и повторная установка требуют явных параметров вызова. Конфликт типа
-по существующему id не разрешается неявно: объект можно пропустить либо остановить
-операцию. Полноценный remap id/ссылок пока вне первой версии.
+[Свежий native CLI/stdio receipt](../research/mcp/object-packages-mcp-2026-11-17.json)
+содержит code hashes, stand identity, операции и результаты cleanup. Runner:
+[packages.mjs](../../packages/mcp-server/test/e2e/packages.mjs), запускается через
+`pnpm --filter @boristype/mcp-server test:e2e:packages`; нужны существующий stand,
+WSHCM_HOST/PORT/USERNAME/PASSWORD и WSHCM_PACKAGE_CONTAINER для контроля evaluators.
+Ничего не устанавливает и не перезапускает. SDK runner:
+[packages.mjs](../../packages/ws-client/test/e2e/packages.mjs), script
+`pnpm --filter @boristype/ws-client test:e2e:packages`.
 
-До отправки серверного вызова выделяется operationId. Состояние этапов нужно хранить
-так, чтобы после timeout можно было свериться с серверным состоянием и native reports.
-Жизнеспособность такого server receipt требует native-проверки; общий job engine
-и фоновая очередь не являются обязательной частью пакетов.
+MCP проверяет реальные CLI/stdio/listTools/callTool и SOAP: schema CRUD с сохранением
+baseline, direct-ID export, local artifact bytes/size/hash, paged immutable inspect,
+default import двух cost_centers после изменения и точный readback, durable status.
+Исходный документ baseline irsd/novyy/0 objects сохранён byte-for-byte. Удалены
+только exact own fixture IDs, связанные report/download записи, известные operation
+и native extraction directories, две own ZIP/sidecar пары и own evaluators. Общий
+artifact directory/чужие записи не удаляются. Stderr измеряется отдельно от stdout.
 
-Различаются not_started/running/completed/partial/failed/unknown и подтверждённые
-этапы загрузки/применения. `completed` означает завершённый вызов, а отдельное поле
-верификации показывает, подтверждён ли результат для всех выбранных объектов.
-Если штатный API даёт лишь суммарный текстовый отчёт, нельзя выдумывать успешные
-per-object статусы. Timeout/обрыв соединения не отменяет применение, не доказывает
-ошибку или rollback и не запускает автоматический повтор.
+[SDK native receipt](../research/mcp/object-packages-sdk-2026-11-17.json)
+дополнительно покрывает 32 cost_centers, import create/update/
+selection skip, version/type/reimport negatives, standalone update ZIP и chunk boundary
+524307 bytes/valid ZIP 525074 bytes. Это Linux C HCM 2025.2.1333/PostgreSQL 16,
+не Windows/MSSQL, не проверка maximum limits. VM/Node suite исполняет shipped BS
+resource с doubles и отдельно проверяет unsafe ZIP negatives, full-snapshot default
+на 1001 объектах вне первой страницы и unknown/cleanup correlation. Эти проверки
+не считаются native доказательством тех же сценариев.
 
-## Основания и выполненная проба
+После native delete/reimport SDK fixture может остаться deleted cost_center catalog
+projection при отсутствующем OpenDoc. Общий test-only cleanup helper допускает
+opt-in `WSHCM_PACKAGE_DB_CONTAINER` для PostgreSQL fallback: exact allocated ID,
+exact run marker, OpenDoc missing и metadata is_deleted=1 обязательны. Удаляется
+только этот projection, tombstone сохраняется и указывается в receipt. Product SDK
+SQL cleanup не выполняет; MCP acceptance с обновлением не нуждается в этом fallback.
+
+Остаются native acceptance courses/web/custom_file/templates/roles/files/lists/
+deletions/related traversal, cross-client lost update, другие аккаунты, native
+package timeout, большие нагрузки и иные платформы. Нет доказательства полного
+замыкания зависимостей, UI permission equivalence или каждой бизнес-валидации.
+
+## Историческое основание: preview-проба до реализации
 
 Браузерное наблюдение и native-проба выполнены на Linux C HCM 2025.2.1333,
 PostgreSQL 16, CLR 9, образе из [журнала](../platform/admin-journal.md).
@@ -297,11 +324,11 @@ XML-элементу в поставке. Наличие declaration не док
 `DeleteDirectory` не удалил URL storage bytes; это согласуется с известным
 [разделением physical/URL storage](../platform/paths-and-storage.md).
 
-Оставшиеся acceptance-проверки: именованные create/edit/delete с обновлением UI,
+На момент этой исторической preview-пробы оставались проверки: именованные create/edit/delete с обновлением UI,
 видимость для другого пользователя, lost update, фактический import/apply своего
 fixture (new/update/skip/conflict/partial), timeout receipt, files/custom fields/roles,
 отсутствующие объекты и зависимости, malformed/oversized ZIP, resource lifecycle,
-Windows/MSSQL и другие HCM. Успех export/preview не считается доказательством apply.
+Windows/MSSQL и другие HCM. Часть закрыта product acceptance выше; историческая проба сама не доказывает apply.
 
 Источники документации:
 

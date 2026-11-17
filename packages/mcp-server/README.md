@@ -4,11 +4,11 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Использует [@boristype/ws-client](https://github.com/BorisType/BorisType/tree/main/packages/ws-client) для соединения с WSHCM сервером.
 
-Статус: экспериментальный checkpoint девяти файловых tools, `wshcm_xquery`,
+Статус: экспериментальный checkpoint 26 tools: десяти package tools, девяти файловых, `wshcm_xquery`,
 `wshcm_get_system_info`, `wshcm_execute` и первого XML object MVP (`get_form`, `get_object`, `save_object`).
 Требуется Node.js >=24.22.2; для файловых tools — net9 HCM с доступным dotnetcore/shared. Общий API
 `ws-client` включает production DLL и автоматически подготавливает FileSystem
-**0.1.0-alpha.4 / API 2** для девяти файловых tools; execute, XQuery, system info и object tools её не используют.
+**0.1.0-alpha.4 / API 2** для девяти файловых tools; execute, XQuery, system info, object и package tools её не используют.
 MCP остаётся адаптером этого SDK, пригодного также для CLI.
 Файловые операции используют BS URL resolver и managed filesystem API, без Datex
 callbacks. Девять файловых tools и защита чтений прошли native e2e на Linux
@@ -59,24 +59,34 @@ instructions и skill не добавляют гарантий чтения, и�
 
 ## Tools
 
-| Tool                     | Назначение                                              |
-| ------------------------ | ------------------------------------------------------- |
-| `wshcm_read_file`        | UTF-8 текст или диапазон строк, hash и readToken        |
-| `wshcm_write_file`       | Create-only либо перезапись после полного чтения        |
-| `wshcm_edit_file`        | Точные замены внутри прочитанных диапазонов             |
-| `wshcm_list_directory`   | Immediate entries, без recursion                        |
-| `wshcm_search_files`     | Поиск по именам и UTF-8 содержимому                     |
-| `wshcm_delete_file`      | Удаление отдельного файла                               |
-| `wshcm_create_directory` | Создание каталога и missing parents                     |
-| `wshcm_move_file`        | Rename без overwrite и copy/delete fallback             |
-| `wshcm_get_file_info`    | Metadata файла/каталога без чтения содержимого          |
-| `wshcm_runtime_status`   | Автоподготовка DLL и expected/installed/loaded identity |
-| `wshcm_xquery`           | Серверный XQuery, включая прямой SQL через `sql:`       |
-| `wshcm_get_system_info`  | Сводка стенда и опциональный штатный системный отчёт    |
-| `wshcm_execute`          | Серверный BorisScript: результат, диагностика и ошибки  |
-| `wshcm_get_form`         | XML раскрытого root загруженной XMD                     |
-| `wshcm_get_object`       | Полный экспортируемый XML объекта и readToken           |
-| `wshcm_save_object`      | Create либо полная замена объекта из XML                |
+| Tool                           | Назначение                                                |
+| ------------------------------ | --------------------------------------------------------- |
+| `wshcm_read_file`              | UTF-8 текст или диапазон строк, hash и readToken          |
+| `wshcm_write_file`             | Create-only либо перезапись после полного чтения          |
+| `wshcm_edit_file`              | Точные замены внутри прочитанных диапазонов               |
+| `wshcm_list_directory`         | Immediate entries, без recursion                          |
+| `wshcm_search_files`           | Поиск по именам и UTF-8 содержимому                       |
+| `wshcm_delete_file`            | Удаление отдельного файла                                 |
+| `wshcm_create_directory`       | Создание каталога и missing parents                       |
+| `wshcm_move_file`              | Rename без overwrite и copy/delete fallback               |
+| `wshcm_get_file_info`          | Metadata файла/каталога без чтения содержимого            |
+| `wshcm_runtime_status`         | Автоподготовка DLL и expected/installed/loaded identity   |
+| `wshcm_xquery`                 | Серверный XQuery, включая прямой SQL через `sql:`         |
+| `wshcm_get_system_info`        | Сводка стенда и опциональный штатный системный отчёт      |
+| `wshcm_execute`                | Серверный BorisScript: результат, диагностика и ошибки    |
+| `wshcm_get_form`               | XML раскрытого root загруженной XMD                       |
+| `wshcm_get_object`             | Полный экспортируемый XML объекта и readToken             |
+| `wshcm_save_object`            | Create либо полная замена объекта из XML                  |
+| `wshcm_list_package_schemas`   | Страница сохранённых схем и общая revision                |
+| `wshcm_get_package_schema`     | Схема по id, настройки и страница объектов                |
+| `wshcm_save_package_schema`    | Создание схемы или изменение имени/settings/editable      |
+| `wshcm_delete_package_schema`  | Удаление одной схемы, без удаления объектов               |
+| `wshcm_add_package_objects`    | Добавление IDs и явно выбранных зависимостей в схему      |
+| `wshcm_remove_package_objects` | Исключение IDs из схемы, без удаления объектов            |
+| `wshcm_export_package`         | ZIP из одной схемы либо точных IDs                        |
+| `wshcm_inspect_package`        | Неизменяемая копия ZIP, native preview и страницы состава |
+| `wshcm_import_package`         | Применение просмотренного пакета с явными опциями         |
+| `wshcm_get_package_operation`  | Сохранённое серверное состояние операции                  |
 
 Read/list/search/info помечены readOnlyHint. Write/edit/delete/move имеют
 `destructiveHint: true`, `idempotentHint: false`; create_directory —
@@ -94,6 +104,100 @@ manager принадлежат общему SDK; typed `xquery.bs` исполь�
 includeMetadata удалён; edit требует readToken, write по умолчанию create-only.
 Старые ответы API 1 отвергаются. Нужный комплект DLL поставляется с ws-client;
 отдельное скачивание не требуется. [Подготовка и перезапуск](https://github.com/BorisType/BorisType/blob/main/docs/guides/dotnet.md).
+
+### Пакеты объектов
+
+Десять package tools используют общий SDK `api.packages` и штатные серверные
+функции HCM, без BorisType DLL и браузера. Схема выбирается только по `schemaId`;
+текущая схема администратора не переключается. Все object IDs — точные десятичные
+строки, например `"9007199254740993"`; передавать их через JavaScript Number нельзя.
+
+Для прямого экспорта вызовите `wshcm_export_package`:
+
+```json
+{ "objectIds": ["9007199254740993"], "operationId": "11111111-1111-4111-8111-111111111111" }
+```
+
+Альтернатива — `{schemaId, revision}` из чтения схемы в этом MCP instance.
+Нужно передать ровно один источник: schemaId/revision или objectIds.
+Ответ содержит `artifact: {artifactId,localPath,mimeType,sizeBytes,sha256,expiresAt}`,
+`operationId`, `status`, `verification: "archive_membership"`, страницу `objects`,
+`missingIds/missingCount`, diagnostics и native `operation`. Частичный состав
+возвращает `partial`, даже если штатная сборка сообщила успех. ZIP/base64 в текст
+tool response не помещается; export не создаёт `upload_package` в базе.
+
+`localPath` — абсолютный путь **на машине процесса MCP**, а не на HCM или
+удалённом клиенте. Файлы находятся в `~/.boristype/package-artifacts`, переживают
+закрытие сеанса, handle действует 24 часа. Автоматическая уборка серверных receipt,
+native report/temp и старых локальных файлов пока не реализована. Исходный
+пользовательский ZIP не перезаписывается; чтение не разрешает его перезапись.
+Resources/attachment upload на этом шаге не зарегистрированы.
+
+Просмотр и применение разделены:
+
+```json
+{ "artifactId": "<artifactId из export>", "limit": 100 }
+```
+
+Этот input для `wshcm_inspect_package` можно заменить на
+`{"localPath":"/absolute/path/on-mcp-host/input.zip"}`. SDK копирует ZIP в собственный
+артефакт и передаёт его для native preview. Ответ содержит `inspectionId`, `artifact`,
+страницу `items`, `offset/limit/total` и receipt. Следующая страница:
+`{inspectionId,offset:100,limit:100}`. Просмотр может создавать временные файлы и
+отчёты; целевые объекты ещё не применяются.
+
+`wshcm_import_package({inspectionId,operationId})` по умолчанию применяет **весь
+неизменяемый просмотренный состав**. Страницы — способ представления; импорт не
+ограничен первой возвращённой страницей. Явные `packageIds`/`objectIds` выбирают
+подмножество из любого места этого снимка; внешние IDs отклоняются. Изменение
+исходного path после inspect не меняет импорт. Inspection binding принадлежит
+этому MCP instance; после перезапуска архив нужно просмотреть снова. Перед
+применением снова проверяются target/account, hash и конфликты.
+
+По умолчанию выключены `skipConflictingIds`, `allowVersionMismatch`, `allowReimport`,
+`includeCustomTemplates`, `includeAccessRoles`, `includeFiles`, `includeDeletions`,
+`includeLists`. Конфликт типа останавливает применение либо явно пропускается через
+`skipConflictingIds`; remap IDs отсутствует. Первый релиз допускает типы пакета
+`objects`, `courses`, `web`, `custom_file`, остальные отклоняет до native применения.
+Для `custom_file` требуется безопасный destination ниже `x-local://custom/`.
+Реальная native acceptance дополнительных типов/шаблонов/ролей/файлов/списков/удалений
+ещё не выполнена; подтверждён объектный путь cost_center на Linux C/PostgreSQL.
+
+Схемы: `list_package_schemas({offset?,limit?})` → `items/offset/limit/total`;
+`get_package_schema({schemaId,offset?,limit?})` → name/settings/revision/objectCount/objects.
+Для создания: `save_package_schema({name})`; для изменения:
+`{schemaId,revision,name?,settings?,editable?:[{id,editable}]}`.
+Settings: `customTemplates`, `processCustomTemplates`, `processAccessRoles`,
+`files:[{code,type,url,baseUrl?}]`. Добавление/исключение:
+`add_package_objects` / `remove_package_objects` с `{schemaId,revision,objectIds}`;
+удаление схемы: `delete_package_schema({schemaId,revision})`. Во всех именах tools
+нужен префикс `wshcm_`. Общий документ перечитывается перед Save; это не atomic CAS
+между клиентами. После изменения перечитайте схему для свежей revision.
+
+Добавление и экспорт принимают opt-in `includeCategories`, `includeRelatedObjects`,
+`includeFiles`, `includeAssessmentItems`. `includeRelatedObjects` использует штатный
+XMD/foreign обход; полной транзитивности нет. Ссылки в `wvars` и строковая связь
+`mode` → `web_mode` пока не разрешаются; специальных флагов для них нет.
+
+Лимиты: ZIP 128 MiB, суммарный expanded ZIP 512 MiB, 10000 ZIP entries, depth 2,
+XML 32 MiB, до 10000 input objectIds; страницы 1–1000, default 100; transfer chunk
+256 KiB. Проверяются пути/descriptor URLs, symlinks, CRC/размеры и вложенные архивы;
+ZIP64/encryption и неподдерживаемый формат отклоняются. Это ограничения, не результат
+нагрузочной acceptance на максимумах. MCP text ограничен 256 KiB: при сокращении
+возвращаются `truncated`, `truncatedFields` и `nextPage` для страниц. Длинные
+settings/diagnostics могут сокращаться; полный результат доступен через SDK и
+native reports по `reportIds`/`downloadIds`.
+
+Save/delete/add/remove/import имеют mutation annotations; export/inspect —
+`readOnlyHint:false, destructiveHint:false` из-за временных побочных эффектов.
+Задайте собственный lowercase UUID `operationId` до долгого/изменяющего вызова.
+При timeout запросите `wshcm_get_package_operation({operationId})` на том же target
+и аккаунте. SDK errors сохраняют `code/message/phase/status/operationId`, а при
+наличии — `lastKnownOperation` и `cleanupError`; generic/validation ошибки тоже
+ограничены. `unknown` не означает отсутствие изменений. Автоматических retries,
+server cancellation, rollback и distributed exactly-once нет. `completed` с
+`verification:"platform_report_only"` сообщает завершение штатного вызова, но не
+подтверждает успех каждого объекта; проверяйте отчёты и нужный readback.
 
 ### Сведения о стенде
 
@@ -691,6 +795,8 @@ XML objects имеют отдельную acceptance-команду с теми 
 
 ```bash
 pnpm --filter @boristype/mcp-server test:e2e:objects
+# Existing stand only; WSHCM_HOST/PORT/USERNAME/PASSWORD + WSHCM_PACKAGE_CONTAINER
+pnpm --filter @boristype/mcp-server test:e2e:packages
 ```
 
 BorisType DLL не требуется. Команда создаёт собственный `cost_center`, проверяет

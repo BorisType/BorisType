@@ -79,10 +79,91 @@ Evaluator создаёт временный `.bs` файл на сервере �
 - `execute({code})` выполняет серверный BorisScript один раз. Возвращает
   `ExecutionResult` с результатом, сообщениями `print(value)` и native ошибкой.
   DLL не требуется; выполнение имеет права подключённого аккаунта.
+- `packages.listSchemas/getSchema/saveSchema/deleteSchema/addObjects/removeObjects/exportPackage/inspectPackage/importPackage/getOperation(input)` — штатные схемы, ZIP-артефакты, preview/import и серверные receipts, без DLL. Контракт и примеры — ниже.
 - `runtime.ensure()` автоматически подготавливает зависимости и возвращает
   статус; локальная ошибка или потеря transport-ответа выбрасывает
   `WshcmRuntimeError` с `.status`. `runtime.requireReady()` дополнительно
   выбрасывает эту ошибку при любом статусе кроме ready.
+
+## Пакеты объектов
+
+```js
+import { randomUUID } from "node:crypto";
+import { WshcmApi, WshcmPackageError, packageSchemas } from "@boristype/ws-client";
+
+const api = new WshcmApi(evaluator); // evaluator initialized by caller
+const exported = await api.packages.exportPackage({
+  objectIds: ["9007199254740993"],
+  operationId: randomUUID(),
+});
+const preview = await api.packages.inspectPackage({ artifactId: exported.artifact.artifactId });
+// Or inspectPackage({ localPath: "/absolute/path/on-sdk-host/input.zip" })
+const operationId = randomUUID(); // retain before dispatch
+try {
+  const applied = await api.packages.importPackage({ inspectionId: preview.inspectionId, operationId });
+  console.log(applied.status, applied.verification, applied.reportIds);
+} catch (error) {
+  if (error instanceof WshcmPackageError) console.error(error.details);
+  // After a timeout: query getOperation({ operationId }); never automatically retry.
+  throw error;
+}
+```
+
+`packageSchemas` — экспортируемые strict Zod input schemas. Методы используют один
+контракт с десятью MCP tools (`wshcm_list_package_schemas`, `wshcm_get_package_schema`,
+`wshcm_save_package_schema`, `wshcm_delete_package_schema`, `wshcm_add_package_objects`,
+`wshcm_remove_package_objects`, `wshcm_export_package`, `wshcm_inspect_package`,
+`wshcm_import_package`, `wshcm_get_package_operation`).
+
+Схемы явно адресуются по id, UI current schema не переключается. `listSchemas({})`
+и `getSchema({schemaId})` возвращают общую revision; `saveSchema({name})` создаёт
+схему. Для изменения используйте `{schemaId,revision,name?,settings?,editable?}`;
+для `addObjects/removeObjects` — `{schemaId,revision,objectIds}`; для удаления —
+`deleteSchema({schemaId,revision})`. `editable` — `[{id,editable}]`.
+Settings поддерживают `customTemplates`, `processCustomTemplates`,
+`processAccessRoles`, `files:[{code,type,url,baseUrl?}]`. После мутации перечитайте
+revision. Снимок и recheck общего XML не дают atomic CAS между клиентами.
+
+Экспорт требует ровно один источник: `{schemaId,revision}` или `{objectIds}`.
+Object IDs всегда десятичные строки. `includeCategories`, `includeRelatedObjects`,
+`includeFiles`, `includeAssessmentItems` выключены по умолчанию. Related использует
+только native XMD/foreign связи: `wvars`/`mode` resolvers отсутствуют; полное
+транзитивное замыкание не обещается.
+
+Результат экспорта содержит status, проверку `archive_membership`, страницу objects,
+missingIds/missingCount и artifact с artifactId/localPath/mimeType/sizeBytes/sha256/expiresAt.
+Файлы живут на **машине SDK**, в `~/.boristype/package-artifacts`, переживают сеанс;
+handle действует 24 часа. `new WshcmPackages(evaluator,{artifactDirectory})` позволяет
+выделить абсолютный каталог. Удаление expired файлов и native receipt/temp/report
+автоматически не выполняется. Чтение localPath не разрешает перезапись оригинала.
+
+Inspect создаёт неизменяемую копию ZIP и native preview. `inspectionId` связывает
+весь состав; default import выбирает все его объекты, независимо от страниц.
+Явные packageIds/objectIds выбирают любое подмножество этого снимка, внешние IDs
+отклоняются. Исходный файл после inspect не перечитывается. Binding хранится в
+памяти экземпляра; после restart требуется новый inspect, сохранившийся artifactId
+можно использовать снова. Конфликты/hash/account/target проверяются перед apply.
+
+Import флаги `skipConflictingIds`, `allowVersionMismatch`, `allowReimport`,
+`includeCustomTemplates`, `includeAccessRoles`, `includeFiles`, `includeDeletions`,
+`includeLists` по умолчанию false. Поддерживаются objects/courses/web/custom_file;
+остальные типы отклоняются до применения. custom_file требует destination ниже
+`x-local://custom/`. Дополнительные типы и extras ещё не прошли native acceptance.
+
+ZIP ≤128 MiB; expanded bytes ≤512 MiB; ≤10000 entries; ZIP depth ≤2; XML ≤32 MiB;
+input objectIds ≤10000; страницы default 100, limit 1–1000; chunk 256 KiB.
+SDK не возвращает ZIP/base64 в JSON. MCP дополнительно ограничивает text 256 KiB
+и добавляет truncated/nextPage; SDK выдаёт полные разрешённые страницы.
+
+Ошибка `WshcmPackageError.details` сохраняет phase/status/code/message/operationId,
+при наличии — lastKnownOperation/cleanupError. Native receipts переживают потерю
+клиента и доступны через getOperation на том же target/account; автоматического
+retry/rollback/cancellation/exactly-once нет. Timeout не останавливает HCM.
+`completed` + `platform_report_only` не доказывает per-object success.
+
+Native objects acceptance выполнена на Linux C HCM 2025.2.1333/PostgreSQL;
+Windows/MSSQL, максимальные размеры и прикладные зависимости не подтверждены.
+[Полный сценарий MCP](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#пакеты-объектов).
 
 ## Сведения о стенде
 
@@ -282,6 +363,8 @@ pnpm --filter @boristype/ws-client test
 # optional WSHCM_PORT (80), WSHCM_HTTPS (false).
 pnpm --filter @boristype/ws-client test:e2e:values
 pnpm --filter @boristype/ws-client test:e2e:xquery
+# Existing stand; WSHCM_USERNAME/WSHCM_PASSWORD and optional WSHCM_HOST/PORT
+pnpm --filter @boristype/ws-client test:e2e:packages
 ```
 
 Native серии создают и удаляют собственные временные BS-модули, не меняя бизнес-записи.

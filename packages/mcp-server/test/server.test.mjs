@@ -52,23 +52,33 @@ async function primed(t, evaluate, content = "abc") {
   return { client, readToken: JSON.parse(result.content[0].text).readToken };
 }
 
-test("MCP advertises nine file tools, runtime status, system info, execute, xquery and three XML object tools", async (t) => {
+test("MCP advertises nine file tools, runtime status, system info, execute, xquery and three XML object tools and ten package tools", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
+    "wshcm_add_package_objects",
     "wshcm_create_directory",
     "wshcm_delete_file",
+    "wshcm_delete_package_schema",
     "wshcm_edit_file",
     "wshcm_execute",
+    "wshcm_export_package",
     "wshcm_get_file_info",
     "wshcm_get_form",
     "wshcm_get_object",
+    "wshcm_get_package_operation",
+    "wshcm_get_package_schema",
     "wshcm_get_system_info",
+    "wshcm_import_package",
+    "wshcm_inspect_package",
     "wshcm_list_directory",
+    "wshcm_list_package_schemas",
     "wshcm_move_file",
     "wshcm_read_file",
+    "wshcm_remove_package_objects",
     "wshcm_runtime_status",
     "wshcm_save_object",
+    "wshcm_save_package_schema",
     "wshcm_search_files",
     "wshcm_write_file",
     "wshcm_xquery",
@@ -84,6 +94,7 @@ test("MCP advertises nine file tools, runtime status, system info, execute, xque
       assert.equal(tool.annotations.readOnlyHint, true);
       continue;
     }
+    if (tool.name.includes("package")) continue;
     assert.ok(
       tool.inputSchema.required.includes(
         {
