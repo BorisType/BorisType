@@ -1,5 +1,16 @@
 # @boristype/ws-client
 
+## 0.1.0-alpha.7
+
+### Minor Changes
+
+- 191595c: Добавлены `WshcmApi.execute({code})` и MCP tool `wshcm_execute` для серверного BorisScript: возвращаемое значение, сообщения `print(value)` и native ошибки с сохранением вывода. Transport/response failures отмечают неизвестный исход без автоматического retry; timeout клиента не останавливает серверный код. XML/date/typed values используют общую проекцию с XQuery. DLL не требуется; штатные alert/логи не перехватываются.
+
+  `print(value)` оставлен экспериментальным кандидатом: практическую полезность ещё предстоит оценить, после чего функция может быть изменена или удалена.
+
+- 191595c: Add native object package workflows: explicitly addressed saved schemas, direct-ID or schema ZIP export, persistent local artifacts, immutable inspection and selected import, and durable operation receipts. The MCP server exposes ten matching package tools with bounded text and pagination. Exact IDs remain decimal strings; imports recheck conflicts, require explicit extras/version/reimport flags, and never retry automatically after timeout. Native acceptance currently covers objects on Linux C/PostgreSQL; additional package types and dependency resolvers remain limited.
+- 191595c: Добавлены `WshcmApi.systemInfo()` и MCP tool `wshcm_get_system_info`: сводка версий и настроек стенда, а с `includeReport: true` — полный штатный текст системного отчёта без дополнительной очистки. DLL не требуется; отчёты больше 256 KiB UTF-8 отклоняются целиком. Формализованный JSON подробных конфигураций оставлен в TODO.
+
 ## 0.1.0-alpha.6
 
 ### Minor Changes
