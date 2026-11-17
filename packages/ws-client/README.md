@@ -10,16 +10,16 @@ npm install @boristype/ws-client@next
 
 Публичные exports:
 
-| Export                                  | Назначение                                                         |
-| --------------------------------------- | ------------------------------------------------------------------ |
-| `WshcmClient`                           | Подключение и `callMethod(object, method, args)` через SP-XML SOAP |
-| `WshcmApi`                              | Общие файловые операции, XML объекты, XQuery и управление runtime  |
-| `WshcmRuntimeError`, `WshcmObjectError` | Ошибки с `.status` / `.details`                                    |
-| `wshcmSchemas`                          | Входные schemas общего SDK                                         |
-| `Evaluator`                             | Временный серверный модуль для выполнения BorisScript              |
-| `WshcmUploader`                         | Пакетная загрузка файлов через серверные BS resources              |
-| `WshcmException`, `UnauthorizedError`   | Ошибки SOAP/аутентификации                                         |
-| `renderRequest`, `parseResponse`        | Низкоуровневая сериализация SOAP                                   |
+| Export                                  | Назначение                                                          |
+| --------------------------------------- | ------------------------------------------------------------------- |
+| `WshcmClient`                           | Подключение и `callMethod(object, method, args)` через SP-XML SOAP  |
+| `WshcmApi`                              | Файловые операции, XML объекты, XQuery, сведения о стенде и runtime |
+| `WshcmRuntimeError`, `WshcmObjectError` | Ошибки с `.status` / `.details`                                     |
+| `wshcmSchemas`                          | Входные schemas общего SDK                                          |
+| `Evaluator`                             | Временный серверный модуль для выполнения BorisScript               |
+| `WshcmUploader`                         | Пакетная загрузка файлов через серверные BS resources               |
+| `WshcmException`, `UnauthorizedError`   | Ошибки SOAP/аутентификации                                          |
+| `renderRequest`, `parseResponse`        | Низкоуровневая сериализация SOAP                                    |
 
 Типы опций экспортируются вместе с JavaScript declarations. Минимальный пример
 для доверенного тестового стенда, с реквизитами из environment:
@@ -73,10 +73,91 @@ Evaluator создаёт временный `.bs` файл на сервере �
 - `xquery({query,maxRows?})` возвращает typed `XQueryResult`: integer как bigint,
   real как number, XML-поля проецируются на сервере. SQL префикс передаётся без
   read-only проверки. XML/XQuery не требуют подготовки DLL.
+- `systemInfo({includeReport?})` возвращает `SystemInfoResult`: сводку версий
+  и настроек стенда, при `includeReport: true` — также полный штатный отчёт.
+  Параметр по умолчанию `{}`, DLL не требуется. Контракт описан ниже.
+- `execute({code})` выполняет серверный BorisScript один раз. Возвращает
+  `ExecutionResult` с результатом, сообщениями `print(value)` и native ошибкой.
+  DLL не требуется; выполнение имеет права подключённого аккаунта.
 - `runtime.ensure()` автоматически подготавливает зависимости и возвращает
   статус; локальная ошибка или потеря transport-ответа выбрасывает
   `WshcmRuntimeError` с `.status`. `runtime.requireReady()` дополнительно
   выбрасывает эту ошибку при любом статусе кроме ready.
+
+## Сведения о стенде
+
+```js
+const { summary } = await api.systemInfo();
+const { report } = await api.systemInfo({ includeReport: true });
+```
+
+Один вызов штатного `tools_report.gather_system_info()` собирает тот же отчёт,
+что «О программе → Информация о системе» веб-администратора. `summary` содержит
+`hcmVersion`, `osVersion`, `database: { type, version }`, `unibridgeVersion`,
+`runMode` (строки или `null`) и `cluster`, `fullTextIndex`, `personalData`
+(boolean или `null`). Отсутствующие поля и неизвестные значения флагов — `null`.
+Сводка извлекается только из заголовка, до первой секции конфигурации.
+Типы `SystemInfoSummary` и `SystemInfoResult` экспортируются из пакета.
+
+По умолчанию `report` отсутствует. При `includeReport: true` он содержит исходный
+текст без дополнительной очистки, включая конфигурации INI/XML/Global Settings;
+это ещё не формализованный JSON конфигураций. CRLF/CR/LF защищены JSON carrier.
+Отчёт ограничен 256 KiB UTF-8 и отклоняется целиком при превышении, в том числе
+при запросе одной сводки. Неподдерживаемый SOAP carrier даёт ошибку.
+Лимит проверяется после сбора отчёта и не ограничивает работу самого сборщика.
+DLL не подготавливается, автоматических повторов нет; это сведения ответившего
+процесса, без гарантии единого снимка всего кластера.
+
+Проверено на Linux C HCM 2025.2.1333 / PostgreSQL 16; другие версии, локализации
+заголовка и ОС требуют проверки. Настройки стенда не изменяются.
+
+## Выполнение BorisScript
+
+```js
+const result = await api.execute({
+  code: 'print("Checking version"); return tools.get_version("wtv", false);',
+});
+// { ok: true, value: "2025.2.1333", output: ["Checking version"], outputTruncated: false }
+```
+
+Передаётся именно серверный BorisScript, без компиляции TypeScript/JavaScript.
+Используйте `return` для результата; переменные и вспомогательные функции можно
+объявлять внутри скрипта. `print(value)` добавляет сообщение в вывод этого вызова
+и возвращает свой аргумент. Строки сохраняются точно, остальные значения
+форматируются штатным `EncodeJson` (`undefined` — текстом `undefined`).
+Штатные `alert`/логи вызываемых библиотек остаются в журнале HCM; перехвата нет.
+
+`print(value)` — экспериментальный кандидат: его практическую полезность ещё
+предстоит оценить относительно возврата результата и чтения штатных логов.
+По результатам оценки он может быть изменён или удалён.
+
+Успех: `{ok:true,value,output,outputTruncated}`. Значение проецируется тем же
+кодом, что XQuery: integer → bigint, real → number, XML → records/arrays,
+date → ISO string; строки сохраняют CRLF/CR/LF. Поддерживаемые обычные значения
+сохраняют null/undefined. Идентичность объектов и XML API не сохраняются.
+Неподдерживаемый SOAP carrier даёт ошибку.
+
+При native ошибке возвращается `{ok:false,error:{phase,message},output,outputTruncated}`:
+`execution` — разбор/выполнение, `result` — преобразование уже полученного
+результата. Сохраняются сообщения, записанные до ошибки, и native контекст
+исключения (до 2000 символов). Это не подтверждение отсутствия побочных эффектов.
+Transport/невалидный ответ вместо результата выбрасывает экспортируемый
+`WshcmExecutionError`: `.details.phase` = `transport`/`response`,
+`.details.executionStatus` = `unknown`. Вывод при потерянном ответе не гарантирован.
+Невалидный input отклоняется до обращения к evaluator.
+
+Код — до 64 KiB UTF-8; проекция результата — depth 32, 10000 значений и
+48000 символов внутреннего carrier. Диагностика сохраняет целые сообщения
+до 256 сообщений/16000 символов JSON-кодированного текста, затем выставляет
+`outputTruncated: true` и пропускает последующие сообщения, продолжая скрипт.
+Итоговый ответ ограничен 256 KiB UTF-8. Лимиты проверяются после формирования
+значения/сообщения, не ограничивают работу или память пользовательского кода.
+
+Выполнение не изолировано от серверных API и не ограничено политикой файловых
+readToken. DLL не подготавливается. Нет rollback, server cancellation и retry:
+**timeout клиента не означает остановку кода**. Перед повтором неизвестного
+исхода нужно установить фактические эффекты. Возврат ошибки результата также
+не отменяет уже выполненные изменения.
 
 ## Автоматическая подготовка DLL
 
@@ -95,7 +176,7 @@ DOTNETLIBS-PATH, не устанавливает CLR и не перезапус�
 `restart_required`: файловые вызовы блокируются до проверки после перезапуска.
 `blocked` сообщает, например, несовместимый API, повреждение immutable файлов
 или конфликт разных builds одного version. Более новая совместимая версия
-не откатывается. XQuery/XML остаются доступны.
+не откатывается. Execute/system info/XQuery/XML остаются доступны.
 
 Concurrent ensure одного экземпляра объединяются, последующие вызовы проверяют
 процесс снова. Status относится к ответившему процессу; gate и файловая операция

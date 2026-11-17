@@ -3,11 +3,11 @@
 `@boristype/mcp-server` — Node.js >=24.22.2, stdio transport, MCP SDK 2.x.
 Его сборка не использует TS → BorisScript compiler. Общий SDK ws-client
 поставляет DLL для девяти файловых tools и автоматически подготавливает её
-на HCM. Нужны net9 host и доступ к dotnetcore/shared.
+на HCM. Для файловых tools нужны net9 host и доступ к dotnetcore/shared.
 
 Доступны read_file, write_file, edit_file, list_directory, search_files,
 delete_file, create_directory, move_file и get_file_info с префиксом `wshcm_`.
-Также доступны `wshcm_xquery` и XML object tools `wshcm_get_form`,
+Также доступны `wshcm_execute`, `wshcm_get_system_info`, `wshcm_xquery` и XML object tools `wshcm_get_form`,
 `wshcm_get_object`, `wshcm_save_object`, которым BorisType DLL не нужна.
 Конфигурация CLI/env и клиента, installation и точные options — в
 [package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
@@ -16,7 +16,7 @@ delete_file, create_directory, move_file и get_file_info с префиксом 
 
 Требуются Node.js >=24.22.2 и доступ к серверу HCM. Для файловых tools DLL
 входит в npm dependency ws-client; [подготовка происходит автоматически](./dotnet).
-XQuery и XML tools не зависят от готовности DLL.
+Execute, system info, XQuery и XML tools не зависят от готовности DLL.
 
 Установите MCP сервер:
 
@@ -48,7 +48,7 @@ npm install -g @boristype/mcp-server@next
 [конфигурации package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#конфигурация).
 
 Запустите сервер средствами MCP-клиента и проверьте список tools: девять
-файловых, `wshcm_xquery`, три XML tools и `wshcm_runtime_status`. Затем выполните операцию чтения,
+файловых, `wshcm_execute`, `wshcm_get_system_info`, `wshcm_xquery`, три XML tools и `wshcm_runtime_status`. Затем выполните операцию чтения,
 например `wshcm_get_form` с формой, существующей на вашей установке:
 
 ```json
@@ -71,6 +71,21 @@ skill `boristype-mcp`: чтение/правка с readToken, хранилищ�
 потери типов и обработка неизвестного исхода. Установка и границы доставки
 инструкций клиентом — в [руководстве по skills](agent-skills.md).
 Skill не устанавливает сервер или DLL и не добавляет новых гарантий.
+
+## Сведения о стенде
+
+Вызовите `wshcm_get_system_info` с `{}` для сводки: версии HCM, ОС, БД,
+Unibridge, режим запуска и флаги cluster/full-text index/personal data.
+Ответ — `{ "summary": { ... } }`; отсутствующие поля и неизвестные значения
+флагов равны `null`. Настройки стенда не меняются, DLL не требуется.
+
+Вход `{ "includeReport": true }` добавляет строку `report` с полным штатным
+отчётом «О программе → Информация о системе», без дополнительной очистки.
+Секции INI/XML/Global Settings пока остаются текстом. Отчёт больше 256 KiB UTF-8
+отклоняется целиком, в том числе при запросе только сводки. Лимит не ограничивает
+стоимость сбора; автоматических повторов нет. Сведения относятся к ответившему
+процессу, единого снимка кластера не гарантируют.
+[Контракт и пример ответа](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#сведения-о-стенде).
 
 ## XML объектов
 
@@ -115,6 +130,40 @@ integer lexical/range. Остальные scalar conversions и бизнес-п�
 readback не удался. Известный ID сохраняется в ошибке. Нет гарантии rollback или
 отмены по timeout; автоматически повторять create/replace нельзя.
 [Полный контракт и примеры](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#xml-объектов-форма-чтение-сохранение).
+
+## Выполнение BorisScript
+
+`wshcm_execute` выполняет серверный BorisScript с правами подключённого аккаунта,
+без BorisType DLL. Например:
+
+```json
+{ "code": "print('Checking version'); return tools.get_version('wtv', false);" }
+```
+
+Успех: `{ok:true,value,output,outputTruncated}`. `print(value)` собирает сообщения
+этого вызова, `return` задаёт результат. Штатные `alert`/логи библиотек остаются
+в журналах HCM; в доступном Docker-окружении агент может посмотреть их отдельно.
+Это не требует перехвата или изменения общего логирования.
+
+`print(value)` — экспериментальный кандидат с пока не подтверждённой практической
+полезностью; по результатам оценки он может быть изменён или удалён.
+
+Ошибка имеет `error.phase`: `execution` — разбор/выполнение, `result` — подготовка
+результата, `presentation` — представление в JSON. Уже собранный вывод сохраняется.
+При сбое транспорта/ответа возвращается `executionStatus:"unknown"`;
+вывод в таком случае не гарантирован. Ошибки помечены MCP `isError: true`.
+
+Safe integer выдаётся как JSON number, остальные integer — decimal strings,
+undefined — null, XML/date — проекция XQuery. Код ограничен 64 KiB UTF-8,
+ответ — 256 KiB; у проекции и диагностики есть отдельные лимиты.
+Усечение сообщений обозначается `outputTruncated`, скрипт при этом продолжается.
+Лимиты не ограничивают работу или память кода.
+
+Вызов может менять данные, не ограничен файловыми readToken и не гарантирует
+rollback. **Timeout клиента не означает остановку серверного кода**;
+автоматических повторов нет. Сначала установить фактические эффекты, затем
+решать, нужен ли повтор.
+[Контракт, ошибки и лимиты](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#выполнение-серверного-borisscript).
 
 ## Серверные запросы
 

@@ -73,6 +73,11 @@ string leaves и имена защищены JSON-string carrier, integer/real �
 Дубликаты группируются в массивы, schema multi сохраняет singleton; dates — ISO strings.
 Проекция ограничена depth32, 10000 values, whole rows и256KiB результата.
 
+С добавлением [execute](execution.md) value projector и decoder вынесены в общие
+`packages/ws-client/resources/value-projection.bs` и `src/value-projection.ts`.
+XQuery сохраняет свой envelope, whole-row budgets и JSON presentation; отдельный
+execution adapter использует ту же проекцию без копии XML/type mapping.
+
 Это меняет прежний путь object_to_text/raw JSON; прежняя native серия выше
 остаётся историческим evidence. [Новое решение](../decisions/2026-11-16-ws-values-xquery.md),
 [исходная acceptance](../research/ws-values-xquery/results-preintegration.md),

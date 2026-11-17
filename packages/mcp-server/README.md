@@ -4,11 +4,11 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Использует [@boristype/ws-client](https://github.com/BorisType/BorisType/tree/main/packages/ws-client) для соединения с WSHCM сервером.
 
-Статус: экспериментальный checkpoint девяти файловых tools, `wshcm_xquery` и
-первый XML object MVP (`get_form`, `get_object`, `save_object`).
-Требуется Node.js >=24.22.2 и net9 HCM с доступным dotnetcore/shared. Общий API
+Статус: экспериментальный checkpoint девяти файловых tools, `wshcm_xquery`,
+`wshcm_get_system_info`, `wshcm_execute` и первого XML object MVP (`get_form`, `get_object`, `save_object`).
+Требуется Node.js >=24.22.2; для файловых tools — net9 HCM с доступным dotnetcore/shared. Общий API
 `ws-client` включает production DLL и автоматически подготавливает FileSystem
-**0.1.0-alpha.4 / API 2** для девяти файловых tools; XQuery и object tools её не используют.
+**0.1.0-alpha.4 / API 2** для девяти файловых tools; execute, XQuery, system info и object tools её не используют.
 MCP остаётся адаптером этого SDK, пригодного также для CLI.
 Файловые операции используют BS URL resolver и managed filesystem API, без Datex
 callbacks. Девять файловых tools и защита чтений прошли native e2e на Linux
@@ -72,6 +72,8 @@ instructions и skill не добавляют гарантий чтения, и�
 | `wshcm_get_file_info`    | Metadata файла/каталога без чтения содержимого          |
 | `wshcm_runtime_status`   | Автоподготовка DLL и expected/installed/loaded identity |
 | `wshcm_xquery`           | Серверный XQuery, включая прямой SQL через `sql:`       |
+| `wshcm_get_system_info`  | Сводка стенда и опциональный штатный системный отчёт    |
+| `wshcm_execute`          | Серверный BorisScript: результат, диагностика и ошибки  |
 | `wshcm_get_form`         | XML раскрытого root загруженной XMD                     |
 | `wshcm_get_object`       | Полный экспортируемый XML объекта и readToken           |
 | `wshcm_save_object`      | Create либо полная замена объекта из XML                |
@@ -92,6 +94,95 @@ manager принадлежат общему SDK; typed `xquery.bs` исполь�
 includeMetadata удалён; edit требует readToken, write по умолчанию create-only.
 Старые ответы API 1 отвергаются. Нужный комплект DLL поставляется с ws-client;
 отдельное скачивание не требуется. [Подготовка и перезапуск](https://github.com/BorisType/BorisType/blob/main/docs/guides/dotnet.md).
+
+### Сведения о стенде
+
+`wshcm_get_system_info({})` возвращает JSON с `summary`:
+
+```json
+{
+  "summary": {
+    "hcmVersion": "2025.2.1333",
+    "osVersion": "Ubuntu 24.04.3 LTS",
+    "database": { "type": "PostgreSQL", "version": "16.16 (Debian 16.16-1.pgdg13+1)" },
+    "unibridgeVersion": "2.25.10.8",
+    "runMode": "XHTTP",
+    "cluster": false,
+    "fullTextIndex": true,
+    "personalData": false
+  }
+}
+```
+
+Это пример, не фиксированные значения. Строковые поля nullable; флаги — boolean
+или `null`. Отсутствующие поля и неизвестные значения флагов дают `null`.
+Вход `{ "includeReport": true }` добавляет `report`: полный исходный текст
+из «О программе → Информация о системе», включая INI/XML/Global Settings,
+без дополнительной очистки. По умолчанию `includeReport: false`, ключа `report` нет.
+Подробные конфигурации пока не преобразуются в формализованный JSON.
+
+Общий SDK один раз вызывает `tools_report.gather_system_info()`; DLL не нужна.
+Сводка берётся из заголовка перед первой секцией, CRLF/CR/LF текста защищены
+JSON carrier. Отчёт больше 256 KiB UTF-8 отклоняется целиком даже при запросе
+сводки. Неподдерживаемый SOAP carrier даёт ошибку. Лимит проверяется после сбора
+и не ограничивает стоимость сборщика; автоматических повторов нет.
+Это сведения ответившего процесса, без гарантии снимка всего кластера.
+Tool помечен readOnly/idempotent; настройки стенда не изменяет.
+Native acceptance: Linux C HCM 2025.2.1333 / PostgreSQL 16; другие ОС, версии
+и локализации требуют проверки.
+
+### Выполнение серверного BorisScript
+
+`wshcm_execute` принимает `{code}` — библиотечные вызовы, небольшие диагностические
+скрипты и проверки поведения платформы. Код — серверный BorisScript, без TS compilation:
+
+```json
+{ "code": "print('Checking version'); return tools.get_version('wtv', false);" }
+```
+
+Пример ответа:
+
+```json
+{
+  "ok": true,
+  "value": "2025.2.1333",
+  "output": ["Checking version"],
+  "outputTruncated": false
+}
+```
+
+`return` задаёт возвращаемое значение. `print(value)` сохраняет строку точно,
+для прочих значений использует native `EncodeJson` (`undefined` — текстом),
+и возвращает аргумент. Это вывод одного вызова; штатные `alert`/логи библиотек
+продолжают писать в журналы HCM. Перехвата общих логов нет.
+
+`print(value)` оставлен как экспериментальный кандидат. Его полезность относительно
+возврата результата и чтения штатных логов ещё предстоит проверить на реальных
+сценариях; по результатам функция может быть изменена или удалена.
+
+Integer в JSON: безопасный — number, большой — точная decimal string;
+real — number с известным ограничением точности платформы. `undefined` на любой
+глубине становится `null`. Nonfinite real даёт ошибку `presentation`, сохраняя
+собранный вывод. XML/date используют общую проекцию XQuery, без полноценного XML API.
+
+Ошибка разбора/выполнения: `{ok:false,error:{phase:"execution",message},output,outputTruncated}`.
+Ошибка преобразования результата имеет phase `result`: код уже выполнился.
+Native сообщение сохраняет контекст, насколько его предоставляет платформа,
+до 2000 символов. Эти ответы имеют MCP `isError: true` и сохраняют прежний вывод.
+Transport/невалидный ответ: `{ok:false,phase:"transport"|"response",executionStatus:"unknown",error:{code,message}}`;
+получить диагностику при потерянном ответе не гарантируется. Input schema
+отклоняет невалидный запрос до выполнения.
+
+Код — до 64 KiB UTF-8, проекция — depth 32/10000 значений/48000 символов carrier,
+диагностика — до 256 целых сообщений/16000 символов JSON-кодированного текста.
+При переполнении вывода `outputTruncated: true`, скрипт продолжает работу.
+Итоговый JSON — до 256 KiB UTF-8. Эти пределы не ограничивают работу/память кода.
+
+Вызов имеет права подключённого аккаунта, может изменять данные и не ограничен
+файловыми readToken; readOnly/idempotent hints равны false, destructive — true.
+DLL не требуется. Нет rollback, остановки кода по timeout или автоматического
+retry. **Timeout клиента не означает остановку серверного кода.** Перед повтором
+проверить фактические эффекты; ошибка результата тоже не отменяет изменений.
 
 ### Статус runtime
 
@@ -609,6 +700,28 @@ form/create/read/full replace, плохие XML без изменения объ
 CLR 9.0.11 / PostgreSQL 16 прошли **8/8** tests (семь сценариев и parent), без skips.
 Это ограниченная вертикаль одного типа; остальные типы/hooks/провайдеры требуют
 отдельных native проверок. [Evidence](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/10-object-model/first-implementation.md).
+
+Системный отчёт проверяется отдельно с теми же `WSHCM_E2E_*`:
+
+```bash
+pnpm --filter @boristype/mcp-server test:e2e:system-info
+```
+
+Команда не подготавливает DLL и не меняет бизнес-записи. Она проверяет сводку,
+полный отчёт относительно прямого SOAP-вызова, CRLF/CR/Unicode carrier и очистку
+собственного evaluator. В диагностике выводятся только сводка, размер и hash.
+
+Выполнение BorisScript имеет отдельную команду с теми же `WSHCM_E2E_*`:
+
+```bash
+pnpm --filter @boristype/mcp-server test:e2e:execute
+```
+
+Проверяются library call, typed result/Unicode, native ошибки с выводом, limits,
+XML/date, nonfinite JSON и продолжение после короткого client timeout. Последняя
+проба пишет два маркера только в собственный временный каталог и независимо
+проверяет завершение перед cleanup. Бизнес-записи и конфигурация не меняются,
+DLL не подготавливается. Linux C HCM 2025.2.1333: 10/10 tests без skips.
 
 ### Что остаётся проверить
 

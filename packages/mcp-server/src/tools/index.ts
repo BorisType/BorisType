@@ -10,3 +10,5 @@ export { registerGetFileInfoTool } from "./get-file-info.js";
 export { registerXQueryTool } from "./xquery.js";
 export { registerObjectTools } from "./objects.js";
 export { registerRuntimeStatusTool } from "./runtime-status.js";
+export { registerSystemInfoTool } from "./system-info.js";
+export { registerExecuteTool } from "./execute.js";

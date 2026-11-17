@@ -1,0 +1,40 @@
+${projectionSource}
+var _execSource = ${codeLiteral};
+var _execOutput = [];
+var _execChars = 0;
+var _execTruncated = false;
+// Experimental call-local diagnostics; practical usefulness remains to be evaluated.
+function print(value) {
+    if (_execTruncated) return value;
+    var text;
+    if (DataType(value) == 'string') text = value;
+    else if (DataType(value) == 'undefined') text = 'undefined';
+    else text = EncodeJson(value);
+    var encoded = EncodeJson(text);
+    var size = StrCharCount(encoded);
+    if ((ArrayCount(_execOutput) >= 256) || ((_execChars + size) > 16000)) {
+        _execTruncated = true;
+        return value;
+    }
+    _execOutput.push(encoded);
+    _execChars = _execChars + size;
+    return value;
+}
+function _execRun() {
+    return eval(_execSource);
+}
+var _execPhase = 'execution';
+try {
+    var _execValue = _execRun();
+    _execPhase = 'result';
+    var _execProjected = _btValueProject(_execValue, 0);
+    // Bounds the response after execution; it never stops or rolls back the script.
+    if (StrCharCount(EncodeJson(_execProjected)) > 48000) throw 'Execution result exceeds output limit (48000 carrier characters)';
+    return {ok:true,value:_execProjected,output:_execOutput,outputTruncated:_execTruncated,error:null};
+} catch (_execError) {
+    var _execMessage;
+    try { _execMessage = String(_execError); }
+    catch (_execFormatError) { _execMessage = 'Unable to format native exception'; }
+    if (StrCharCount(_execMessage) > 2000) _execMessage = StrLeftCharRange(_execMessage, 2000);
+    return {ok:false,value:null,output:_execOutput,outputTruncated:_execTruncated,error:{phase:_execPhase,message:EncodeJson(_execMessage)}};
+}

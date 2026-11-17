@@ -3,7 +3,7 @@
 Пользовательский вход — [гайд](../../docs/guides/mcp-server.md), точный контракт —
 [README пакета](../../packages/mcp-server/README.md) и schemas tools. Текущий
 сервер предоставляет девять физических file tools, XQuery, три XML tools
-и runtime status. Общий [SDK/runtime](../dotnet/managed-runtime.md) владеет
+и execute/system info/runtime status. Общий [SDK/runtime](../dotnet/managed-runtime.md) владеет
 платформенной логикой; MCP — адаптер.
 Node tsc/BS resources независимы от TS→BS compiler и script/module ABI.
 
@@ -15,8 +15,12 @@ Node tsc/BS resources независимы от TS→BS compiler и script/modul
 | Что означает пустая/усечённая search выдача                               | [Bounded search](../dotnet/search.md)                   | [First search](../research/dotnet/06-search-results.md)                                                                                  |
 | Почему disk edit не меняет SQL blob                                       | [Paths/storage](../platform/paths-and-storage.md)       | [Routing/hydration](../research/dotnet/15-url-storage-routing-research.md)                                                               |
 | Где теряются SQL signed/NULL значения и exact ID                          | [XQuery и typed SOAP](xquery.md)                        | [Linux C/PostgreSQL observations](../research/mcp/09-xquery-native.md)                                                                   |
+| Откуда берутся сведения о стенде и почему конфигурации пока текстом       | [System info](system-info.md)                           | [Native UI/SOAP и acceptance](system-info.md#native-проверка-2026-11-17)                                                                 |
 | Почему XML whole replace и какие negatives проверяются до Save            | [XML object tools](xml-objects.md)                      | [Product checkpoint](../research/mcp/10-object-model/first-implementation.md), [probe bundle](../research/mcp/10-object-model/README.md) |
 | Что Save делает относительно XMD/XMS/UI/claims                            | [Object model/lifecycle](../platform/object-model.md)   | [XMS source audit](../research/mcp/10-object-model/xms-and-business-logic.md)                                                            |
+
+Серверный BorisScript: [execution, диагностика и неизвестный исход](execution.md),
+включая [native timeout acceptance](execution.md#native-проверка-2026-11-17).
 
 ## Проверять изменённый слой
 

@@ -15,6 +15,9 @@ export type { WshcmClientOptions, WshcmValue } from "./types.js";
 export type { WshcmUploaderOptions, UploadProgressCallback } from "./uploader.js";
 
 export { WshcmApi } from "./hcm/api.js";
+export type { SystemInfoResult, SystemInfoSummary } from "./hcm/system-info.js";
+export { WshcmExecutionError } from "./hcm/execute.js";
+export type { ExecutionResult, ExecutionErrorDetails } from "./hcm/execute.js";
 export { wshcmSchemas } from "./hcm/schemas.js";
 export { WshcmObjectError } from "./hcm/object-error.js";
 export type { WshcmObjectErrorDetails } from "./hcm/object-error.js";

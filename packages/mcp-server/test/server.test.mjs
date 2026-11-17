@@ -52,16 +52,18 @@ async function primed(t, evaluate, content = "abc") {
   return { client, readToken: JSON.parse(result.content[0].text).readToken };
 }
 
-test("MCP advertises nine file tools, runtime status, xquery and three XML object tools", async (t) => {
+test("MCP advertises nine file tools, runtime status, system info, execute, xquery and three XML object tools", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
     "wshcm_create_directory",
     "wshcm_delete_file",
     "wshcm_edit_file",
+    "wshcm_execute",
     "wshcm_get_file_info",
     "wshcm_get_form",
     "wshcm_get_object",
+    "wshcm_get_system_info",
     "wshcm_list_directory",
     "wshcm_move_file",
     "wshcm_read_file",
@@ -78,11 +80,20 @@ test("MCP advertises nine file tools, runtime status, xquery and three XML objec
       assert.equal(tool.annotations.readOnlyHint, false);
       continue;
     }
+    if (tool.name === "wshcm_get_system_info") {
+      assert.equal(tool.annotations.readOnlyHint, true);
+      continue;
+    }
     assert.ok(
       tool.inputSchema.required.includes(
-        { wshcm_get_form: "formUrl", wshcm_get_object: "id", wshcm_save_object: "xml", wshcm_xquery: "query", wshcm_move_file: "source" }[
-          tool.name
-        ] ?? "path",
+        {
+          wshcm_get_form: "formUrl",
+          wshcm_get_object: "id",
+          wshcm_save_object: "xml",
+          wshcm_xquery: "query",
+          wshcm_move_file: "source",
+          wshcm_execute: "code",
+        }[tool.name] ?? "path",
       ),
     );
   }
