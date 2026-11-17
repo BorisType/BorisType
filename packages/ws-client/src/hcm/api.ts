@@ -2,6 +2,7 @@ import { WshcmRuntimeError } from "./runtime/contracts.js";
 import { WshcmRuntime, type WshcmRuntimeOptions } from "./runtime/runtime.js";
 import type { z } from "zod";
 import { WshcmFiles } from "./files.js";
+import { WshcmPackages } from "./packages/service.js";
 import { WshcmObjects } from "./objects.js";
 import { executeXQuery } from "./xquery.js";
 import { getSystemInfo, type SystemInfoResult } from "./system-info.js";
@@ -14,6 +15,7 @@ import type { WshcmEvaluator } from "./types.js";
 export class WshcmApi {
   readonly files: WshcmFiles;
   readonly objects: WshcmObjects;
+  readonly packages: WshcmPackages;
   readonly runtime: WshcmRuntime;
 
   constructor(
@@ -31,6 +33,7 @@ export class WshcmApi {
       },
     });
     this.objects = new WshcmObjects(evaluator);
+    this.packages = new WshcmPackages(evaluator);
   }
 
   /** Return bounded typed rows: integers are bigint, reals number, native dates ISO strings. */

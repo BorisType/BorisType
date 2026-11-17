@@ -1,3 +1,4 @@
+import { packageSchemas } from "./packages/schemas.js";
 import { z } from "zod";
 import { fileUrl, fileText } from "./file-contract.js";
 import { searchInput } from "./search-contract.js";
@@ -88,6 +89,7 @@ const xquery = z.strictObject({
 
 /** Shared SDK and MCP input contracts; defaults are applied by every SDK operation. */
 export const wshcmSchemas = {
+  packages: packageSchemas,
   files: { read, write, edit, list, delete: deleteInput, mkdir, move, info, search: searchInput },
   objects: { getForm: z.strictObject({ formUrl }), get: z.strictObject({ id: objectId }), save: saveInput },
   xquery,
