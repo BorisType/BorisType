@@ -1,82 +1,4 @@
-// Query text is a string literal. This adapter imposes no read-only guarantee.
-var _xqValues = 0;
-function _xqCheck(depth) {
-    if (depth > 32) throw 'XQuery projection exceeds depth limit (32)';
-    _xqValues++;
-    if (_xqValues > 10000) throw 'XQuery projection exceeds values limit (10000)';
-}
-function _xqScalar(value) {
-    var kind = DataType(value);
-    // JSON-string transport protects CR/LF from SOAP XML normalization.
-    // Dates are an explicit ISO-string projection, not generic SOAP date support.
-    if ((kind == 'string') || (kind == 'date')) return EncodeJson(value);
-    if ((kind == 'integer') || (kind == 'real') || (kind == 'bool') || (kind == 'null') || (kind == 'undefined')) return value;
-    throw 'XQuery projection encountered an unsupported scalar';
-}
-function _xqProject(value, depth) {
-    _xqCheck(depth);
-    if (DataType(value) != 'object') return _xqScalar(value);
-    var kind = ObjectType(value);
-    var entries = [];
-    var repeated = [];
-    var result;
-    var child;
-    var name;
-    var key;
-    var projected;
-    var multi;
-    var index;
-    var slot;
-    var search;
-    if (kind == 'XmElem') {
-        // Complex schema nodes have Type == '', including empty structures.
-        // Dynamic parents can have Type == 'string' with real children.
-        if ((value.ChildNum == 0) && (value.Type != '')) return _xqScalar(value.Value);
-        if (value.ChildNum > 10000) throw 'XQuery projection exceeds values limit (10000)';
-        for (index = 0; index < value.ChildNum; index++) {
-            child = value[index];
-            name = child.Name;
-            key = EncodeJson(name);
-            multi = child.IsMultiElem;
-            // Indexed XmlElem instances are not XmlMultiElem collections.
-            // Name collisions with native XML properties must not prevent traversal.
-            try { multi = (multi || GetObjectProperty(value, name).IsMultiElem); } catch (err) { }
-            slot = -1;
-            for (search = 0; search < ArrayCount(entries); search++) {
-                if (entries[search][0] == key) { slot = search; break; }
-            }
-            projected = _xqProject(child, depth + 1);
-            if (slot < 0) {
-                if (multi) {
-                    _xqCheck(depth + 1);
-                    entries.push([key, [projected]]);
-                } else {
-                    entries.push([key, projected]);
-                }
-                repeated.push(multi);
-            } else {
-                if (!repeated[slot]) {
-                    _xqCheck(depth + 1);
-                    entries[slot][1] = [entries[slot][1]];
-                    repeated[slot] = true;
-                }
-                entries[slot][1].push(projected);
-            }
-        }
-        return { entries: entries };
-    }
-    if (kind == 'JsArray') {
-        result = [];
-        if (ArrayCount(value) > 10000) throw 'XQuery projection exceeds values limit (10000)';
-        for (index = 0; index < ArrayCount(value); index++) result.push(_xqProject(value[index], depth + 1));
-        return result;
-    }
-    if (kind == 'JsObject') {
-        for (name in value) entries.push([EncodeJson(name), _xqProject(GetObjectProperty(value, name), depth + 1)]);
-        return { entries: entries };
-    }
-    throw 'XQuery projection encountered an unsupported object';
-}
+${projectionSource}
 var _xqMaxRows = ${maxRows};
 // Count only this materialized range, never the unbounded lazy source.
 var _xqItems = ArraySelectAll(ArrayRange(XQuery(${queryLiteral}), 0, _xqMaxRows + 1));
@@ -88,7 +10,7 @@ var _xqRow;
 var _xqSize;
 for (_xqIndex = 0; _xqIndex < ArrayCount(_xqItems); _xqIndex++) {
     if (ArrayCount(_xqRows) >= _xqMaxRows) { _xqReason = 'rows'; break; }
-    _xqRow = _xqProject(_xqItems[_xqIndex], 0);
+    _xqRow = _btValueProject(_xqItems[_xqIndex], 0);
     _xqSize = StrCharCount(EncodeJson(_xqRow)) + 1;
     // At most four UTF-8 bytes per character, plus room for the envelope.
     // A complete row is projected before checking its size: no memory/work bound.

@@ -1,0 +1,36 @@
+// Synthetic platform report; no stand configuration or real credentials.
+export const systemReport = [
+  "Database type: PostgreSQL",
+  "DB version: 16.16 (fixture: build)",
+  "OS version: Ubuntu 24.04.3 LTS",
+  "Cluster: No",
+  "FT Index: Yes",
+  "Personal Data: Off",
+  "Run mode: XHTTP",
+  "Unibridge version: 2.25.10.8",
+  "WT version: 2025.2.1333",
+  "",
+  "///////////// xHTTP.ini /////////////////",
+  "REAL-PRECISION: 10",
+  "DESIGN-DB: wtv",
+  "DESIGN-DB: custom",
+  "WT version: must-not-override-overview",
+  "",
+  "///////////// spxml_unibridge_config.xml /////////////////",
+  '<add key="Password" value="**classified**"/>',
+  "",
+  "///////////// Global Settings /////////////////",
+  "<global_settings><fixture_password>test-only</fixture_password><label>Я中👋</label></global_settings>",
+  "",
+].join("\r\n");
+
+export const systemSummary = {
+  hcmVersion: "2025.2.1333",
+  osVersion: "Ubuntu 24.04.3 LTS",
+  database: { type: "PostgreSQL", version: "16.16 (fixture: build)" },
+  unibridgeVersion: "2.25.10.8",
+  runMode: "XHTTP",
+  cluster: false,
+  fullTextIndex: true,
+  personalData: false,
+};

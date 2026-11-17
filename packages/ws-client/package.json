@@ -17,15 +17,18 @@
     "prepublishOnly": "pnpm build",
     "prepack": "pnpm build",
     "test:e2e:values": "node --test --test-concurrency=1 test/e2e/values.mjs",
-    "test:e2e:xquery": "node --test --test-concurrency=1 test/e2e/xquery.mjs"
+    "test:e2e:xquery": "node --test --test-concurrency=1 test/e2e/xquery.mjs",
+    "test:e2e:packages": "node test/e2e/packages.mjs"
   },
   "dependencies": {
     "fast-xml-parser": "^5.11.2",
     "saxes": "^6.0.0",
+    "yauzl": "3.4.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@types/yauzl": "3.4.0",
     "typescript": "^6.0.3"
   },
   "keywords": [

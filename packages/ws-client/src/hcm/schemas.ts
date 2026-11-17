@@ -1,3 +1,4 @@
+import { packageSchemas } from "./packages/schemas.js";
 import { z } from "zod";
 import { fileUrl, fileText } from "./file-contract.js";
 import { searchInput } from "./search-contract.js";
@@ -88,8 +89,30 @@ const xquery = z.strictObject({
 
 /** Shared SDK and MCP input contracts; defaults are applied by every SDK operation. */
 export const wshcmSchemas = {
+  packages: packageSchemas,
   files: { read, write, edit, list, delete: deleteInput, mkdir, move, info, search: searchInput },
   objects: { getForm: z.strictObject({ formUrl }), get: z.strictObject({ id: objectId }), save: saveInput },
   xquery,
+  execute: z.strictObject({
+    code: z
+      .string()
+      .max(65536)
+      .refine(
+        (code) =>
+          code.trim().length > 0 &&
+          code.isWellFormed() &&
+          !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/.test(code) &&
+          Buffer.byteLength(code, "utf8") <= 65536,
+      )
+      .describe(
+        "Server BorisScript; use return for the result and experimental print(value) for call-local diagnostics; its usefulness is under evaluation. May modify data; no cancellation or rollback guarantee.",
+      ),
+  }),
+  systemInfo: z.strictObject({
+    includeReport: z
+      .boolean()
+      .default(false)
+      .describe("Include the complete native system information report, without additional redaction. Defaults to summary only."),
+  }),
   runtimeStatus: z.strictObject({}),
 } as const;

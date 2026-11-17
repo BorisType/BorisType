@@ -439,6 +439,9 @@ importers:
       saxes:
         specifier: ^6.0.0
         version: 6.0.0(patch_hash=b8c3aefb35c8d63a4c5fb8bdfde3444f841cb4e6fc10990f49de6396d30abb01)
+      yauzl:
+        specifier: 3.4.0
+        version: 3.4.0
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -446,6 +449,9 @@ importers:
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
+      '@types/yauzl':
+        specifier: 3.4.0
+        version: 3.4.0
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -1580,6 +1586,9 @@ packages:
   '@types/web-bluetooth@0.0.21':
     resolution: {integrity: sha512-oIQLCGWtcFZy2JW77j9k8nHzAOpqMHLQejDA48XXMWH6tjCQHz5RCFz1bzsmROyL6PUm+LLnUiI4BCn221inxA==}
 
+  '@types/yauzl@3.4.0':
+    resolution: {integrity: sha512-NRPn5w6h8dhcnmx3YIRQcqMywY/+nND/uOkJessedcrowO3C0AssHp3tMJpxKAwOhFOo0OV1y9VtsC5hbKKBAw==}
+
   '@typescript-eslint/eslint-plugin@8.72.0':
     resolution: {integrity: sha512-aysKgysPX9XOv/dk95UkvUDe++Q3n3dJPG9CEWT3RUccxfkPJ+Qn6nhKPDhZXU6Ofo9kgwGWwKyQCnZIXTgngg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -2563,6 +2572,9 @@ packages:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
 
+  pend@1.2.0:
+    resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
+
   perfect-debounce@1.0.0:
     resolution: {integrity: sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA==}
 
@@ -3121,6 +3133,10 @@ packages:
     resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
     engines: {node: '>= 14.6'}
     hasBin: true
+
+  yauzl@3.4.0:
+    resolution: {integrity: sha512-jIH9yLR9wqr0wOS0TpBvo/g/2UgZH5qePVbjgRliiF0BYvOZyaBknKsF+x9Iht0O6sqgnB93rCICdOZFecJuDw==}
+    engines: {node: '>=12'}
 
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
@@ -4054,6 +4070,10 @@ snapshots:
   '@types/unist@3.0.3': {}
 
   '@types/web-bluetooth@0.0.21': {}
+
+  '@types/yauzl@3.4.0':
+    dependencies:
+      '@types/node': 24.19.2
 
   '@typescript-eslint/eslint-plugin@8.72.0(@typescript-eslint/parser@8.72.0(eslint@10.13.0)(typescript@6.0.3))(eslint@10.13.0)(typescript@6.0.3)':
     dependencies:
@@ -5057,6 +5077,8 @@ snapshots:
 
   path-key@3.1.1: {}
 
+  pend@1.2.0: {}
+
   perfect-debounce@1.0.0: {}
 
   picocolors@1.1.1: {}
@@ -5632,6 +5654,10 @@ snapshots:
   xmlchars@2.2.0: {}
 
   yaml@2.9.1: {}
+
+  yauzl@3.4.0:
+    dependencies:
+      pend: 1.2.0
 
   yocto-queue@0.1.0: {}
 

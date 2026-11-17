@@ -75,6 +75,41 @@
 
 ## MCP / .NET / платформа
 
+- **После удаления импортированного объекта остаётся строка каталога.** Native
+  SDK e2e на Linux C/PG обнаружил cost_center: OpenDoc не открывается, metadata
+  `is_deleted=1`, но строка видна через XQuery. Нужен минимальный repro с разделением
+  import/reimport, BindToDb/Save/DeleteDoc и cache/очередей; установить штатный
+  cleanup либо подтвердить дефект. PostgreSQL fallback ограничен тестовыми
+  fixtures и не объясняет причину. [Наблюдение, evidence и критерий закрытия](refs/platform/object-model.md#открытая-находка-строка-каталога-после-удаления-импортированного-объекта).
+
+- **Пакеты объектов: расширить native acceptance и lifecycle.** SDK и десять MCP
+  tools реализуют схемы/export/immutable inspect/import/status. Проверен объектный
+  cost_center путь на Linux C/PostgreSQL; остаются courses/web/custom_file,
+  custom templates/access roles/files/lists/deletions, related traversal,
+  cross-client concurrency, разные аккаунты, native timeout receipt, максимальные
+  размеры и Windows/MSSQL. Нужны политика уборки expired artifacts и серверных
+  receipt/temp/report; полноценный remap IDs не реализован. [Контракт и точные границы evidence](refs/mcp/object-packages.md).
+
+- **Пакеты: прикладные зависимости сверх штатного XMD-обхода.** Отдельная opt-in
+  стратегия для известных ссылок в `wvars` (`custom_web_template` /
+  `override_web_template`) и текстовой связи `mode` с `web_mode`. Нужны проверенные
+  правила по типу/полю, объяснимый состав, пределы/циклы и точные IDs; произвольную
+  hex-строку не считать ссылкой. Штатный `includeRelatedObjects` сохраняет своё
+  значение и ограничения. [Границы и источники](refs/mcp/object-packages.md).
+
+- **Оценить полезность экспериментального `print(value)`.** Пока оставить в
+  `execute` как кандидата для диагностики отдельного вызова. На реальных
+  сценариях сравнить с возвратом структурированного результата и чтением
+  штатных логов HCM; по результатам решить, оставить, изменить или удалить.
+  [Статус и основания](refs/mcp/execution.md#статус-print).
+
+- **Формализованный JSON подробного системного отчёта.** `systemInfo` /
+  `wshcm_get_system_info` пока структурируют только сводку; подробности доступны
+  исходным текстом. Определить JSON-контракт секций INI/XML/Global Settings:
+  сохранять повторяющиеся ключи и порядок INI, семантику XML и неизвестные секции,
+  оставив доступ к исходному тексту. Проверить на версиях/ОС целевых стендов.
+  [Текущий формат и основания](refs/mcp/system-info.md).
+
 - [#70: потери отрицательных integer и NULL/empty при SQL→XML](https://github.com/BorisType/BorisType/issues/70).
   Подтверждены до SOAP на Linux C/PG; [границы и план локализации](refs/research/sql-xml-mapping.md).
 
@@ -112,6 +147,14 @@
   [Модель и неподтверждённые границы](refs/platform/object-model.md).
 
 ## Зависимости
+
+- **Убрать временное CI-исключение picomatch GHSA-fc5q-39xc-vjpf.** На 2026-11-17
+  исправленная версия не опубликована; dev-tool ReDoS явно исключён в workspace
+  audit по одному GHSA, остальные high/critical остаются блокирующими. Повторно оценить не
+  позднее 2026-12-01, раньше при появлении исправления или production цепочки
+  SDK/MCP. Закрытие: совместимое обновление с соблюдением minimumReleaseAge,
+  проверка потребителей и успешный audit без исключения.
+  [Основание, область риска и проверка](refs/cli/release-and-maintenance.md#временное-исключение-picomatch-в-ci).
 
 Read-only audit от 2026-11-11: 0 high/critical, но остаются moderate
 GHSA-g3hv-75wg-m249 (minimatch 10.2.6) и low GHSA-474x-hrwr-fgx4

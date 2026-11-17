@@ -1,0 +1,290 @@
+{
+  "marker": "bt-packages-379836d1-aade-4739-a781-4c1f9a544a73",
+  "operations": [
+    "4a92963d-f303-4f0d-a83a-6198c726f641",
+    "de2b1ffe-e31e-4d53-85b5-e31d47dc75a0",
+    "6be29be6-46bb-4d6c-b511-778ef40e9a72",
+    "4d6e5f0e-a80a-443e-a3ca-9dbdec98e51c",
+    "83408e4c-8f21-4c48-a6a3-6a9223770c74",
+    "6c3781f2-94e4-4ce2-8038-4afee484478c",
+    "35e1cc0d-1003-4744-ad72-291d3503d8d2",
+    "495c1c95-f0f4-4187-8523-630c42b01ced",
+    "871d94d3-cc26-448f-97c1-f326b7e6912f",
+    "5f267fba-9a07-42bf-b49e-35e16223b81f",
+    "fade2d7a-626a-4979-81ec-19e5abafa526",
+    "bde03688-b9be-48f1-b3b2-9adfcd803824",
+    "67841901-b760-40cb-87f4-3d617aa4ae91",
+    "f5d39713-4e3b-4061-975b-2f92ff29fa97",
+    "084ed150-27a1-48c5-ad32-fec7cc51c8a9",
+    "c1359496-3501-4988-9e5e-6f82d1fcc411",
+    "70948f01-3730-4b3c-8fcc-77243661c6ea",
+    "bdfc63ff-1cb3-4a54-b684-6dcb6f915788"
+  ],
+  "stages": [
+    {
+      "action": "add",
+      "count": 32,
+      "name": "bt-packages-379836d1-aade-4739-a781-4c1f9a544a73"
+    },
+    {
+      "action": "remove",
+      "count": 31,
+      "name": "bt-packages-379836d1-aade-4739-a781-4c1f9a544a73"
+    },
+    {
+      "action": "rename",
+      "count": 31,
+      "name": "bt-packages-379836d1-aade-4739-a781-4c1f9a544a73-renamed"
+    },
+    {
+      "action": "create",
+      "operation": {
+        "operationId": "495c1c95-f0f4-4187-8523-630c42b01ced",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352056319286671194"],
+        "downloadIds": ["7352056318870912953"]
+      }
+    },
+    {
+      "action": "create",
+      "operation": {
+        "operationId": "495c1c95-f0f4-4187-8523-630c42b01ced",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352056319286671194"],
+        "downloadIds": ["7352056318870912953"]
+      },
+      "name": "archive-value-0"
+    },
+    {
+      "action": "update",
+      "operation": {
+        "operationId": "871d94d3-cc26-448f-97c1-f326b7e6912f",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352056320309558761"],
+        "downloadIds": ["7352056321404829346"]
+      }
+    },
+    {
+      "action": "update",
+      "operation": {
+        "operationId": "871d94d3-cc26-448f-97c1-f326b7e6912f",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352056320309558761"],
+        "downloadIds": ["7352056321404829346"]
+      },
+      "name": "archive-value-0"
+    },
+    {
+      "action": "skip",
+      "operation": {
+        "operationId": "5f267fba-9a07-42bf-b49e-35e16223b81f",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352056322773119106"],
+        "downloadIds": ["7352056322826557445"]
+      }
+    },
+    {
+      "action": "skip",
+      "operation": {
+        "operationId": "5f267fba-9a07-42bf-b49e-35e16223b81f",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352056322773119106"],
+        "downloadIds": ["7352056322826557445"]
+      },
+      "name": "local-skip"
+    },
+    {
+      "action": "version-rejected"
+    },
+    {
+      "action": "type-rejected"
+    },
+    {
+      "action": "standalone-import",
+      "operation": {
+        "operationId": "c1359496-3501-4988-9e5e-6f82d1fcc411",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352056325662560672"],
+        "downloadIds": ["7352056325111357526"]
+      }
+    }
+  ],
+  "identity": {
+    "version": "2025.2.1333 (2025-12-26)",
+    "accountId": "6148914691236517121"
+  },
+  "revision": "418a40696ce89c7fff7266a3d81a5f3bcc90461a",
+  "fixtureIds": [
+    "7352056316941431045",
+    "7352056317137630135",
+    "7352056316937886230",
+    "7352056316941941582",
+    "7352056317129586834",
+    "7352056317137975517",
+    "7352056317007065972",
+    "7352056316958867026",
+    "7352056317139073157",
+    "7352056317107072728",
+    "7352056317125955118",
+    "7352056316965158168",
+    "7352056317108403255",
+    "7352056316974563884",
+    "7352056317141203767",
+    "7352056317104970132",
+    "7352056316975334449",
+    "7352056317143117210",
+    "7352056317130833399",
+    "7352056317115086580",
+    "7352056317000802553",
+    "7352056317126441476",
+    "7352056317141057140",
+    "7352056317125328048",
+    "7352056317136203004",
+    "7352056317130700222",
+    "7352056316998712850",
+    "7352056317134987313",
+    "7352056317142105366",
+    "7352056317005508354",
+    "7352056317141831998",
+    "7352056317056769563"
+  ],
+  "schemaUnchanged": true,
+  "export": {
+    "sizeBytes": 1380,
+    "sha256": "c7453e74b5eb081ee7df915bf71debf5a4a00867613af9a11b8a857f6487b2f9",
+    "operation": {
+      "operationId": "6c3781f2-94e4-4ce2-8038-4afee484478c",
+      "accountId": "6148914691236517121",
+      "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+      "operation": "export",
+      "phase": "downloaded",
+      "status": "completed",
+      "verification": "archive_membership",
+      "error": "",
+      "reportIds": ["7352056317863483161"],
+      "downloadIds": []
+    }
+  },
+  "inspection": {
+    "operation": {
+      "operationId": "35e1cc0d-1003-4744-ad72-291d3503d8d2",
+      "accountId": "6148914691236517121",
+      "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+      "operation": "preview",
+      "phase": "inspected",
+      "status": "completed",
+      "verification": "platform_report_only",
+      "error": "",
+      "reportIds": [],
+      "downloadIds": []
+    },
+    "total": 33
+  },
+  "unsignedIds": [
+    {
+      "input": "9223372036854775808",
+      "actual": "9223372036854775808"
+    },
+    {
+      "input": "18446744073709551615",
+      "actual": "18446744073709551615"
+    }
+  ],
+  "largeArchive": {
+    "sizeBytes": 525074,
+    "sha256": "8bb38d0490a812eddc4d3821788a83778259c4f52c1e792e1f26a0fc663ede77",
+    "total": 2
+  },
+  "chunk": {
+    "sizeBytes": 524307,
+    "sha256": "adf56b76069edaf3381ee2d7b82d550a77f2f2da2b9ae09de1c509bcd525d119",
+    "identical": true
+  },
+  "cleanup": {
+    "operationDirectoriesRemaining": [],
+    "extractionDirectoriesRemaining": [],
+    "reportRecordsRemaining": [],
+    "downloadRecordsRemaining": [],
+    "objectsRemaining": 0,
+    "reportsDeleted": ["7352056319286671194", "7352056320309558761", "7352056322773119106", "7352056325662560672", "7352056317863483161"],
+    "downloadsDeleted": ["7352056318870912953", "7352056321404829346", "7352056322826557445", "7352056325111357526"],
+    "operationsDeleted": [
+      "4a92963d-f303-4f0d-a83a-6198c726f641",
+      "de2b1ffe-e31e-4d53-85b5-e31d47dc75a0",
+      "6be29be6-46bb-4d6c-b511-778ef40e9a72",
+      "4d6e5f0e-a80a-443e-a3ca-9dbdec98e51c",
+      "83408e4c-8f21-4c48-a6a3-6a9223770c74",
+      "6c3781f2-94e4-4ce2-8038-4afee484478c",
+      "35e1cc0d-1003-4744-ad72-291d3503d8d2",
+      "495c1c95-f0f4-4187-8523-630c42b01ced",
+      "871d94d3-cc26-448f-97c1-f326b7e6912f",
+      "5f267fba-9a07-42bf-b49e-35e16223b81f",
+      "fade2d7a-626a-4979-81ec-19e5abafa526",
+      "bde03688-b9be-48f1-b3b2-9adfcd803824",
+      "67841901-b760-40cb-87f4-3d617aa4ae91",
+      "f5d39713-4e3b-4061-975b-2f92ff29fa97",
+      "084ed150-27a1-48c5-ad32-fec7cc51c8a9",
+      "c1359496-3501-4988-9e5e-6f82d1fcc411",
+      "70948f01-3730-4b3c-8fcc-77243661c6ea",
+      "bdfc63ff-1cb3-4a54-b684-6dcb6f915788"
+    ],
+    "errors": []
+  },
+  "projectionCleanup": [
+    {
+      "id": "7352056316941431045",
+      "deletedCatalogProjection": true,
+      "nativeTombstoneRetained": true
+    }
+  ],
+  "closed": true,
+  "baselineSha256": "71e04cb359b8766d9b3d699c5ecb45af9d3ab422e73cac648a50e19101070b5f",
+  "codeFiles": {
+    "packages/ws-client/src/hcm/packages/service.ts": "2e31301e6ddef9354b2a3a7b98b0b7602fb98bbdb8add3c04690e4772780e5e9",
+    "packages/ws-client/resources/package-operation.bs": "4bf51412d7209ecd247d29ceb672c2700d040f608f63f30f971523b9079de996",
+    "packages/ws-client/test/e2e/packages.mjs": "0d12eef08c726a98444bd45833599ed5502c8ae0a6641af3ddc356e384fd03ab",
+    "packages/ws-client/test/helpers/package-native-cleanup.mjs": "ce17776b9817a8f4a0228e211c8d9f118611931b94977a3f651fd2449da00604"
+  }
+}

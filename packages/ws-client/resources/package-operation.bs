@@ -1,0 +1,318 @@
+function BtPackageUuid(v) {
+        if (StrCharCount(v) != 36) return false;
+        var k;
+        for (k = 0; k < 36; k++) {
+            if (k == 8 || k == 13 || k == 18 || k == 23) { if (String(v).charAt(k) != '-') return false; }
+            else if (!StrContains('0123456789abcdef', String(v).charAt(k))) return false;
+        }
+        return true;
+    }
+
+// Native package operations: physical owned transfer/receipt files, logical schema document.
+function BtPackageOperation(r) {
+    var phase = 'validate';
+    var status = 'not_attempted';
+    var code = 'InvalidInput';
+    var receipt = null;
+    var root = '';
+    var accountId = ''; var targetId = '';
+    function owned(value) { if (value.accountId != accountId || value.targetId != targetId) fail('ContextMismatch','Receipt belongs to another target/account'); return value; }
+    var receiptPath = '';
+    var i; var j; var p; var o; var d; var result; var snapshot; var items; var settings;
+    function opt(obj, key) { try { return obj[key]; } catch(missing) { return undefined; } }
+    function fail(c, m) { code = c; throw m; }
+    function persist() { PutFileData(receiptPath, EncodeJson(receipt)); }
+    function advance(v) { phase = v; receipt.phase = v; persist(); }
+    function xml(doc) {
+        var s = doc.TopElem.GetXml();
+        if (StrCharCount(s) > 33554432) fail('OutputLimit', 'Schema XML exceeds 32 MiB');
+        return s;
+    }
+    function summary(v) { return {schemaId:String(v.id), name:String(v.name), objectCount:ArrayCount(v.objects)}; }
+    function details(v, offset, limit) {
+        var x = summary(v); var k; var f; var entry;
+        x.objects = []; x.offset = offset; x.limit = limit;
+        for (k = offset; k < ArrayCount(v.objects) && k < offset + limit; k++) {
+            f = v.objects[k]; x.objects.push({id:StrInt(f.id),type:String(f.type),name:String(f.name),editable:f.modify == true});
+        }
+        x.settings = {processCustomTemplates:v.process_custom_templates == true,processAccessRoles:v.process_access_roles == true,customTemplates:[],files:[]};
+        if (ArrayCount(v.custom_templates) > 1000 || ArrayCount(v.files) > 1000) fail('OutputLimit','Schema settings exceed limit');
+        for(k = 0; k < ArrayCount(v.custom_templates); k++) x.settings.customTemplates.push(String(v.custom_templates[k].catalog_name));
+        for(k = 0; k < ArrayCount(v.files); k++) {
+            f = v.files[k];
+            entry = {code:String(f.code),type:String(f.type),url:String(f.url)};
+            if(String(f.base_url) != '') entry.baseUrl = String(f.base_url);
+            x.settings.files.push(entry);
+        }
+        return x;
+    }
+    function add(v) {
+        var k; var res;
+        for(k = 0; k < ArrayCount(r.objectIds); k++) {
+            try {
+                res = tools.add_object_to_package(null,Int(r.objectIds[k]),null,v,{apply_to_all:true,add_files:r.includeFiles,add_roles:r.includeCategories,add_sections:r.includeAssessmentItems,add_foreign_elem_objects:r.includeRelatedObjects});
+                if(res.error != 0) errors.push(String(r.objectIds[k]) + ': ' + String(res.message));
+            } catch(e) { errors.push(String(r.objectIds[k]) + ': ' + StrLeftRange(String(e),500)); }
+        }
+    }
+    var errors = [];
+    try {
+        if (!BtPackageUuid(r.operationId)) fail('InvalidInput','Invalid operation UUID');
+        // Missing evidence cannot establish that a historical mutation was never attempted.
+        if (r.operation == 'status') {phase = 'receipt';status = 'unknown';code = 'ReceiptUnavailable';}
+        accountId = StrInt(tools.get_cur_user_id());
+        if(accountId == '' || accountId == '0') fail('ContextUnavailable','Authenticated account identity required');
+        if (!IsDirectory('x-local://trash/boristype_packages')) CreateDirectory('x-local://trash/boristype_packages');
+        var identityPath = UrlToFilePath('x-local://trash/boristype_packages/identity.txt');
+        if (!FilePathExists(identityPath)) PutFileData(identityPath,tools.random_string(32));
+        targetId = String(LoadFileData(identityPath));
+        root = 'x-local://trash/boristype_packages/' + r.operationId;
+        receiptPath = UrlToFilePath(root + '/receipt.json');
+        if (r.operation == 'status') {
+            result = owned(ParseJson(LoadFileData(receiptPath)));
+            return {ok:true,body:result};
+        }
+        if (r.operation == 'read_chunk') {
+            owned(ParseJson(LoadFileData(receiptPath)));
+            if (r.start < 0 || r.end < r.start || r.end - r.start > 262144 || r.end > 134217728) fail('InvalidInput','Invalid chunk range');
+            return {ok:true,body:{data:Base64Encode(LoadFileDataRange(UrlToFilePath(root + '/archive.zip'),r.start,r.end))}};
+        }
+        if (r.operation == 'finish_export') {
+            receipt = owned(ParseJson(LoadFileData(receiptPath)));
+            if(receipt.operation != 'export' || receipt.phase != 'exported') fail('Conflict','Export already finalized');
+            receipt.status = r.partial ? 'partial' : receipt.status;
+            receipt.verification = 'archive_membership';receipt.phase = 'downloaded';persist();
+            return {ok:true,body:receipt};
+        }
+        if (r.operation == 'seal_upload') {
+            receipt = owned(ParseJson(LoadFileData(receiptPath)));
+            if (receipt.operation != 'upload' || receipt.status != 'running') fail('Conflict','Upload is not writable');
+            if (FileSize(UrlToFilePath(root + '/archive.zip')) != r.sizeBytes) fail('Conflict','Upload size changed');
+            PutFileData(UrlToFilePath(root + '/binding.json'),EncodeJson({sha256:r.sha256,sizeBytes:r.sizeBytes}));
+            receipt.phase = 'uploaded';receipt.status = 'completed';persist();
+            return {ok:true,body:receipt};
+        }
+        if (r.operation == 'write_chunk') {
+            receipt = owned(ParseJson(LoadFileData(receiptPath)));
+            if (receipt.operation != 'upload' || receipt.status != 'running') fail('Conflict','Upload is not writable');
+            if (r.start < 0 || r.end <= r.start || r.end - r.start > 262144 || r.end > 134217728 || StrCharCount(r.data) > 349528) fail('InvalidInput','Invalid chunk range');
+            if (FileSize(UrlToFilePath(root + '/archive.zip')) != r.start) fail('Conflict','Nonsequential upload');
+            PutFileDataRange(UrlToFilePath(root + '/archive.zip'),r.start,r.end,Base64Decode(r.data));
+            return {ok:true,body:{sizeBytes:FileSize(UrlToFilePath(root + '/archive.zip'))}};
+        }
+        if (r.operation == 'list' || r.operation == 'get') {
+            d = OpenDoc('x-local://' + DefaultDb + '/lists/wtv_package_objects.xml');
+            snapshot = xml(d);
+            if (r.operation == 'get') result = details(d.TopElem.GetChildByKey(r.schemaId),r.offset,r.limit);
+            else {
+                items = [];
+                for (i = r.offset; i < ArrayCount(d.TopElem) && i < r.offset + r.limit; i++) items.push(summary(d.TopElem[i]));
+                result = {items:items,total:ArrayCount(d.TopElem),offset:r.offset,limit:r.limit};
+            }
+            return {ok:true,body:{snapshot:snapshot,result:result}};
+        }
+        if (r.operation != 'save' && r.operation != 'delete' && r.operation != 'add' && r.operation != 'remove' && r.operation != 'export' && r.operation != 'upload' && r.operation != 'preview' && r.operation != 'import') fail('InvalidInput','Unknown operation');
+        var continuingUpload = false;
+        if (FilePathExists(receiptPath)) {
+            var previous = owned(ParseJson(LoadFileData(receiptPath)));
+            continuingUpload = r.operation == 'preview' && opt(r,'sourceId') == r.operationId && previous.operation == 'upload' && previous.phase == 'uploaded';
+            if(!continuingUpload) fail('Conflict','Operation already dispatched; query its receipt');
+        }
+        if (!IsDirectory('x-local://trash/boristype_packages')) CreateDirectory('x-local://trash/boristype_packages');
+        if(!continuingUpload) CreateDirectory(root);
+        receipt = {accountId:accountId,targetId:targetId,operationId:r.operationId,operation:r.operation,phase:'prepared',status:'running',verification:'platform_report_only',error:'',reportIds:[],downloadIds:[]};
+        persist();
+        if (r.operation == 'upload') {
+            PutFileData(UrlToFilePath(root + '/archive.zip'),'');
+            return {ok:true,body:receipt};
+        }
+        if (r.operation == 'preview' || r.operation == 'import') {
+            result = BtPackagePreview(r,root,receipt,receiptPath);
+            if(opt(result,'nativeFailure') == true) return {ok:false,code:result.code,message:result.message,phase:result.phase,status:result.status};
+            return {ok:true,body:result};
+        }
+        phase = 'read';
+        if (opt(r,'schemaId') != undefined || r.operation != 'export') {
+            d = OpenDoc('x-local://' + DefaultDb + '/lists/wtv_package_objects.xml');
+            snapshot = xml(d);
+            if (opt(r,'schemaId') != undefined && snapshot != r.expected) fail('Conflict','Common schema document changed; read again');
+            if (opt(r,'schemaId') != undefined) p = d.TopElem.GetChildByKey(r.schemaId);
+            else {p = d.TopElem.AddChild();p.id = r.operationId;}
+        } else p = OpenNewDoc('x-local://wtv/wtv_package_objects.xmd').TopElem.AddChild();
+        if (r.operation == 'save') {
+            if(opt(r,'name') != undefined) p.name = r.name;
+            if(opt(r,'settings') != undefined) {
+                settings = r.settings;
+                if(opt(settings,'processCustomTemplates') != undefined) p.process_custom_templates = settings.processCustomTemplates;
+                if(opt(settings,'processAccessRoles') != undefined) p.process_access_roles = settings.processAccessRoles;
+                if(opt(settings,'customTemplates') != undefined) {p.custom_templates.Clear();for(i = 0; i < ArrayCount(settings.customTemplates); i++) p.custom_templates.AddChild().catalog_name = settings.customTemplates[i];}
+                if(opt(settings,'files') != undefined) {
+                    p.files.Clear();for(i = 0; i < ArrayCount(settings.files); i++) {
+                        o = p.files.AddChild();o.code = settings.files[i].code;o.type = settings.files[i].type;o.url = settings.files[i].url;
+                        if(opt(settings.files[i],'baseUrl') != undefined) o.base_url = settings.files[i].baseUrl;
+                    }
+                }
+            }
+            if(opt(r,'editable') != undefined) for(i = 0; i < ArrayCount(r.editable); i++) p.objects.GetChildByKey(Int(r.editable[i].id)).modify = r.editable[i].editable;
+        }
+        if(r.operation == 'add' || (r.operation == 'export' && opt(r,'objectIds') != undefined)) add(p);
+        if(r.operation == 'remove') for(i = 0; i < ArrayCount(r.objectIds); i++) p.objects.DeleteChildByKey(Int(r.objectIds[i]));
+        if(r.operation == 'delete') d.TopElem.DeleteChildByKey(r.schemaId);
+        if(r.operation == 'export') {
+            advance('export'); status = 'unknown';
+            var wanted = [];
+            if(ArrayCount(p.objects) > 10000) fail('OutputLimit','Export exceeds 10000 objects');
+            for(i = 0; i < ArrayCount(p.objects); i++) wanted.push(StrInt(p.objects[i].id));
+            result = tools.create_list_package(root + '/archive.zip',p);
+            var size = FileSize(UrlToFilePath(root + '/archive.zip'));
+            if(size > 134217728) fail('OutputLimit','Archive exceeds 128 MiB');
+            receipt.status = result.error == 0 && ArrayCount(errors) == 0 ? 'completed' : 'partial';
+            receipt.error = StrLeftRange(String(result.error_text),2000);
+            var exportReports = ArraySelectAll(XQuery('for $r in action_reports where $r/type = "create_package" and $r/data_file_url = ' + CodeLiteral(root + '/archive.zip') + ' return $r'));
+            for(i = 0; i < ArrayCount(exportReports) && i < 1000; i++) receipt.reportIds.push(StrInt(exportReports[i].id));
+            receipt.phase = 'exported';persist();
+            return {ok:true,body:{sizeBytes:size,requestedIds:wanted,errors:errors,operation:receipt}};
+        }
+        advance('recheck');
+        if(xml(OpenDoc('x-local://' + DefaultDb + '/lists/wtv_package_objects.xml')) != snapshot) fail('Conflict','Common schema document changed before Save');
+        advance('save');status = 'unknown';d.Save();
+        receipt.phase = 'saved';receipt.status = ArrayCount(errors) == 0 ? 'completed' : 'partial';persist();
+        return {ok:true,body:{schemaId:(r.operation == 'delete' ? r.schemaId : String(p.id)),operation:receipt,errors:errors}};
+    } catch(e) {
+        var message = StrLeftRange(String(e),2000);
+        if(receipt != null && receipt.operation == r.operation) {
+            receipt.phase = phase;receipt.status = status == 'unknown' ? 'unknown' : 'failed';receipt.error = message;
+            try { persist(); } catch(ignore) {}
+        }
+        return {ok:false,code:(code == 'InvalidInput' && phase != 'validate' ? 'PlatformError' : code),message:message,phase:phase,status:(status == 'unknown' ? 'unknown' : 'not_attempted')};
+    }
+}
+
+
+// Rebuild the native preview immediately before apply. The saved form is evidence,
+// never permission to skip fresh conflict/version/reimport checks.
+function BtPackagePreview(r,root,receipt,receiptPath) {
+    var form = null; var paths = []; var i; var j; var k; var p; var o; var known; var current;
+    var code = 'PlatformError'; var phase = 'preview'; var applied = false;
+    var parts = []; var before = []; var selectedCount = 0; var reportUrls = [];
+    function persist() { PutFileData(receiptPath,EncodeJson(receipt)); }
+    function fail(c,m) { code = c; throw m; }
+    function has(values,key) { try { return values[key] == true; } catch(missing) {return false;} }
+    function cleanup() {
+        var n;
+        PutFileData(UrlToFilePath(root + '/owned-paths.json'),EncodeJson(paths));
+        for(n = ArrayCount(paths) - 1; n >= 0; n--) { if(paths[n] != '') {try {DeleteDirectory(paths[n]);} catch(ignore) {}} }
+    }
+    try {
+        if(!BtPackageUuid(r.sourceId)) fail('InvalidInput','Invalid source UUID');
+        var source = 'x-local://trash/boristype_packages/' + r.sourceId;
+        var owner = ParseJson(LoadFileData(UrlToFilePath(source + '/receipt.json')));
+        if(owner.targetId != receipt.targetId || owner.accountId != receipt.accountId) fail('ContextMismatch','Archive belongs to another target/account');
+        var binding = ParseJson(LoadFileData(UrlToFilePath(source + '/binding.json')));
+        if(binding.sha256 != r.sha256 || (owner.phase != 'inspected' && !(r.operation == 'preview' && r.sourceId == r.operationId && owner.phase == 'prepared')) || FileSize(UrlToFilePath(source + '/archive.zip')) != binding.sizeBytes) fail('Conflict','Uploaded archive binding changed');
+        var url = source + '/archive.zip';
+        form = tools.get_package_log(url,{bDeleteTempDir:false,bCheckVersion:false});
+        paths.push(String(form.temp_package_url));
+        for(i = 0; i < ArrayCount(form.download_packages); i++) paths.push(String(form.download_packages[i].temp_package_url));
+        PutFileData(UrlToFilePath(root + '/owned-paths.json'),EncodeJson(paths));
+        if(form.error != 0) fail('PreviewError',StrLeftRange(String(form.error_text),1800));
+        if(ArrayCount(form.download_packages) != ArrayCount(r.manifest)) fail('ManifestMismatch','Native package count differs from inspected archive');
+        // get_package_log assigns a random ID for a standalone update.xml ZIP.
+        // Build a descriptor only in its owned extraction directory; archive bytes stay unchanged.
+        if(ArrayCount(r.manifest) == 1 && r.manifest[0].url == 'update.xml' && String(form.download_packages[0].url) == '') {
+            p = form.download_packages[0];
+            if(String(p.type) != 'objects') fail('ManifestMismatch','Standalone package is not objects');
+            p.id = r.manifest[0].id;p.url = 'update.xml';
+            var descriptor = OpenNewDoc('x-local://wtv/wtv_form_download_packages.xmd');
+            var descriptorPart = descriptor.TopElem.AddChild();
+            descriptorPart.id = p.id;descriptorPart.type = 'objects';descriptorPart.url = 'update.xml';
+            descriptor.Save(String(form.temp_package_url) + '/desc.xml');
+        }
+        var serverVersion = String(tools.get_version('wtv'));
+        var info; var found; var manifest; var version; var type; var row; var rows; var downloads; var existing;
+        for(i = 0; i < ArrayCount(form.download_packages); i++) {
+            p = form.download_packages[i]; manifest = null;
+            for(k = 0; k < ArrayCount(r.manifest); k++) if(r.manifest[k].id == String(p.id)) manifest = r.manifest[k];
+            if(manifest == null || manifest.type != String(p.type)) fail('ManifestMismatch','Native package identity differs from inspected archive');
+            type = String(p.type);
+            if(type != 'objects' && type != 'courses' && type != 'web' && type != 'custom_file') fail('UnsupportedPackageType',type);
+            if(type == 'custom_file' && (!StrBegins(String(p.base_url),'x-local://custom/') || StrContains(String(p.base_url),'..') || StrContains(String(p.base_url),'%') || StrContains(String(p.base_url),'\\'))) fail('UnsafeDestination','custom_file destination must be below x-local://custom/');
+            version = '';
+            if(type == 'objects') {
+                if(String(p.temp_package_url) != '') current = OpenDoc(String(p.temp_package_url) + '/update.xml').TopElem;
+                else current = OpenDoc(String(form.temp_package_url) + '/' + String(p.url)).TopElem;
+                version = String(current.basic.server_version);
+            }
+            downloads = ArraySelectAll(XQuery('for $d in download_packages where $d/package_id = ' + CodeLiteral(String(p.id)) + ' return $d'));
+            existing = ArrayCount(downloads) > 0;
+            for(j = 0; j < ArrayCount(downloads); j++) before.push(StrInt(downloads[j].id));
+            info = {id:String(p.id),type:type,versionMismatch:(version != '' && version != serverVersion),alreadyImported:existing,objects:[]};
+            p.selected = has(r.selectedPackages,String(p.id)) && (type == 'objects' || r.includeFiles);
+            if(p.selected && r.operation == 'import') {
+                selectedCount++;
+                if(info.versionMismatch && !r.allowVersionMismatch) fail('VersionMismatch','Package version differs from target');
+                if(existing && !r.allowReimport) fail('Reimport','Package was already imported');
+            }
+            p.selected_custom_templates = r.includeCustomTemplates; p.selected_roles = r.includeAccessRoles;
+            p.selected_lists = r.includeLists; p.selected_deleted_objects = r.includeDeletions; p.selected_objects = true;
+            if(ArrayCount(p.objects) != manifest.objectCount) fail('ManifestMismatch','Native object count differs from archive');
+            for(j = 0; j < ArrayCount(p.objects); j++) {
+                o = p.objects[j]; known = null;
+                try {known = manifest.objectTypes[StrInt(o.id)];} catch(missing) {}
+                if(known == null || known != String(o.type)) fail('ManifestMismatch','Native object identity/type differs from archive');
+                current = null;
+                try {current = OpenDoc(UrlFromDocID(o.id)).TopElem.Name;} catch(absent) {}
+                found = current != null && current != String(o.type);
+                info.objects.push({id:StrInt(o.id),conflict:found});
+                o.selected = has(r.selectedObjects,StrInt(o.id));
+                o.id_exists_type = 'valid';
+                if(found && p.selected && o.selected && r.operation == 'import') {
+                    if(!r.skipConflictingIds) fail('TypeConflict','An object ID exists with a different type');
+                    o.selected = false; o.id_exists_type = 'skip';
+                }
+            }
+            parts.push(info);
+        }
+        var formXml = form.GetXml();
+        if(StrCharCount(formXml) > 33554432) fail('OutputLimit','Native preview exceeds XML limit');
+        PutFileData(UrlToFilePath(root + '/view.xml'),formXml);
+        PutFileData(UrlToFilePath(root + '/source.json'),EncodeJson({sourceId:r.sourceId,sha256:r.sha256,targetId:receipt.targetId,accountId:receipt.accountId}));
+        if(r.operation == 'preview') {
+            cleanup();receipt.phase = 'inspected';receipt.status = 'completed';persist();
+            return {serverVersion:serverVersion,parts:parts,operation:receipt};
+        }
+        phase = 'import';receipt.phase = phase;persist();applied = true;
+        var outcome = tools.uni_process_package(url,form);
+        receipt.status = outcome.error == 0 && outcome.progress_count >= selectedCount ? 'completed' : 'partial';
+        receipt.error = StrLeftRange(String(outcome.error_text),2000);
+        phase = 'reports';receipt.phase = phase;persist();
+        var id; var wasBefore; var doc; var rowsReports; var report;
+        for(i = 0; i < ArrayCount(parts); i++) {
+            rows = ArraySelectAll(XQuery('for $d in download_packages where $d/package_id = ' + CodeLiteral(parts[i].id) + ' return $d'));
+            for(j = 0; j < ArrayCount(rows); j++) {
+                id = StrInt(rows[j].id);wasBefore = false;
+                for(k = 0; k < ArrayCount(before); k++) if(before[k] == id) wasBefore = true;
+                if(!wasBefore) {
+                    if(ArrayCount(receipt.downloadIds) >= 1000) fail('OutputLimit','Download report count exceeds limit');
+                    receipt.downloadIds.push(id);doc = OpenDoc(UrlFromDocID(rows[j].id));reportUrls.push(String(doc.TopElem.local_file_url));
+                }
+            }
+        }
+        PutFileData(UrlToFilePath(root + '/download-urls.json'),EncodeJson(reportUrls));persist();
+        for(i = 0; i < ArrayCount(reportUrls); i++) {
+            rowsReports = ArraySelectAll(XQuery('for $r in action_reports where $r/type = "download_package" and $r/data_file_url = ' + CodeLiteral(reportUrls[i]) + ' return $r'));
+            for(j = 0; j < ArrayCount(rowsReports); j++) {
+                if(ArrayCount(receipt.reportIds) >= 1000) fail('OutputLimit','Action report count exceeds limit');
+                receipt.reportIds.push(StrInt(rowsReports[j].id));
+            }
+        }
+        cleanup();receipt.phase = 'finished';persist();return receipt;
+    } catch(error) {
+        try {cleanup();} catch(cleanupError) {}
+        receipt.phase = phase;receipt.error = StrLeftRange(String(error),2000);receipt.status = applied ? 'unknown' : 'failed';
+        try {persist();} catch(receiptError) {}
+        // Outer operation preserves a structured native error instead of losing the operation ID.
+        return {nativeFailure:true,code:code,message:receipt.error,phase:phase,status:(applied ? 'unknown' : 'not_attempted')};
+    }
+}
+return EncodeJson(EncodeJson(BtPackageOperation(ParseJson('${request}'))));

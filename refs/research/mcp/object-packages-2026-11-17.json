@@ -1,0 +1,98 @@
+{
+  "date": "2026-11-17",
+  "platform": {
+    "hcm": "2025.2.1333",
+    "os": "Linux",
+    "runtime": "C",
+    "database": "PostgreSQL 16",
+    "clr": "9",
+    "imageId": "sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab"
+  },
+  "carrier": "SOAP/evaluator/native C-runtime",
+  "scope": "Own cost_center fixture; ad hoc package schema; export and preview only, no import apply",
+  "marker": "bt-package-probe-8c515b19-93d3-4bf7-86fe-7ee3b3b5ef38",
+  "objectId": "7352020795861724853",
+  "baselineSchema": {
+    "id": "irsd",
+    "name": "novyy",
+    "objects": 0
+  },
+  "export": {
+    "addError": 0,
+    "objects": 1,
+    "counter": 1,
+    "exportError": 0,
+    "sizeBytes": 959
+  },
+  "archiveSha256": "5ed8a402992f67b40c143db7291b198f7efd76f85e035e399aacd668bb2fadec",
+  "preview": {
+    "error": 0,
+    "packageType": "desc",
+    "packages": [
+      {
+        "id": "acjpyybsft",
+        "type": "objects",
+        "objects": [
+          {
+            "id": "7352020795861724853",
+            "type": "cost_center",
+            "selected": true
+          }
+        ]
+      }
+    ],
+    "tempUrlRemaining": "file:///tmp/DatexTemp/10217320054372331613"
+  },
+  "ui": {
+    "route": "BlockSwitcher_prop -> Обработка пакетов -> Обработать пакет",
+    "uploaded": "hcm-fixture-package.zip",
+    "packageId": "acjpyybsft",
+    "objects": 1,
+    "cancelledBeforeApply": true
+  },
+  "cleanup": {
+    "objectsRemaining": 0,
+    "reportsDeleted": ["7352020797426096550"],
+    "archiveRemaining": false,
+    "knownOwnedPhysicalDirectoriesRemoved": true,
+    "schemaUnchanged": true,
+    "allProbeEvaluatorsClosed": true
+  },
+  "failedAuxiliaryAttempts": [
+    {
+      "step": "download",
+      "expression": "LoadFileData(logicalUrl)",
+      "error": "File not found",
+      "correction": "LoadUrlData(logicalUrl), then Base64Encode; received 959 bytes"
+    },
+    {
+      "step": "cleanup query",
+      "expression": "for (var item in array)",
+      "error": "BorisScript syntax error",
+      "correction": "Declare variable separately before for-in"
+    },
+    {
+      "step": "preview projection",
+      "expression": "Bool(object.selected)",
+      "error": "Bool() not defined",
+      "correction": "object.selected.Value"
+    },
+    {
+      "step": "cleanup",
+      "expression": "DeleteDirectory(ownedDirectory)",
+      "observation": "Logical URL remained readable after physical directory deletion",
+      "correction": "DeleteUrl(ownedArchiveUrl); final URL existence false"
+    },
+    {
+      "step": "preview temporary cleanup",
+      "observation": "Some own temporary directories remained after native cleanup flag and UI cancel",
+      "correction": "Removed only the known owned directories; root cause not localized"
+    }
+  ],
+  "limits": [
+    "No apply was performed.",
+    "No named schema mutation was performed.",
+    "No files/custom fields/access roles export or apply was attested.",
+    "No cross-account/concurrency/Windows/MSSQL guarantee."
+  ]
+}

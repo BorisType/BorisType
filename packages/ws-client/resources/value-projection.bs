@@ -1,0 +1,79 @@
+// Shared bounded native XML/date/ordinary-value projection.
+var _btValueValues = 0;
+function _btValueCheck(depth) {
+    if (depth > 32) throw 'Value projection exceeds depth limit (32)';
+    _btValueValues++;
+    if (_btValueValues > 10000) throw 'Value projection exceeds values limit (10000)';
+}
+function _btValueScalar(value) {
+    var kind = DataType(value);
+    // JSON-string transport protects CR/LF from SOAP XML normalization.
+    // Dates are an explicit ISO-string projection, not generic SOAP date support.
+    if ((kind == 'string') || (kind == 'date')) return EncodeJson(value);
+    if ((kind == 'integer') || (kind == 'real') || (kind == 'bool') || (kind == 'null') || (kind == 'undefined')) return value;
+    throw 'Value projection encountered an unsupported scalar';
+}
+function _btValueProject(value, depth) {
+    _btValueCheck(depth);
+    if (DataType(value) != 'object') return _btValueScalar(value);
+    var kind = ObjectType(value);
+    var entries = [];
+    var repeated = [];
+    var result;
+    var child;
+    var name;
+    var key;
+    var projected;
+    var multi;
+    var index;
+    var slot;
+    var search;
+    if (kind == 'XmElem') {
+        // Complex schema nodes have Type == '', including empty structures.
+        // Dynamic parents can have Type == 'string' with real children.
+        if ((value.ChildNum == 0) && (value.Type != '')) return _btValueScalar(value.Value);
+        if (value.ChildNum > 10000) throw 'Value projection exceeds values limit (10000)';
+        for (index = 0; index < value.ChildNum; index++) {
+            child = value[index];
+            name = child.Name;
+            key = EncodeJson(name);
+            multi = child.IsMultiElem;
+            // Indexed XmlElem instances are not XmlMultiElem collections.
+            // Name collisions with native XML properties must not prevent traversal.
+            try { multi = (multi || GetObjectProperty(value, name).IsMultiElem); } catch (err) { }
+            slot = -1;
+            for (search = 0; search < ArrayCount(entries); search++) {
+                if (entries[search][0] == key) { slot = search; break; }
+            }
+            projected = _btValueProject(child, depth + 1);
+            if (slot < 0) {
+                if (multi) {
+                    _btValueCheck(depth + 1);
+                    entries.push([key, [projected]]);
+                } else {
+                    entries.push([key, projected]);
+                }
+                repeated.push(multi);
+            } else {
+                if (!repeated[slot]) {
+                    _btValueCheck(depth + 1);
+                    entries[slot][1] = [entries[slot][1]];
+                    repeated[slot] = true;
+                }
+                entries[slot][1].push(projected);
+            }
+        }
+        return { entries: entries };
+    }
+    if (kind == 'JsArray') {
+        result = [];
+        if (ArrayCount(value) > 10000) throw 'Value projection exceeds values limit (10000)';
+        for (index = 0; index < ArrayCount(value); index++) result.push(_btValueProject(value[index], depth + 1));
+        return result;
+    }
+    if (kind == 'JsObject') {
+        for (name in value) entries.push([EncodeJson(name), _btValueProject(GetObjectProperty(value, name), depth + 1)]);
+        return { entries: entries };
+    }
+    throw 'Value projection encountered an unsupported object';
+}

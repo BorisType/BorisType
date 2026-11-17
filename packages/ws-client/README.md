@@ -10,16 +10,16 @@ npm install @boristype/ws-client@next
 
 Публичные exports:
 
-| Export                                  | Назначение                                                         |
-| --------------------------------------- | ------------------------------------------------------------------ |
-| `WshcmClient`                           | Подключение и `callMethod(object, method, args)` через SP-XML SOAP |
-| `WshcmApi`                              | Общие файловые операции, XML объекты, XQuery и управление runtime  |
-| `WshcmRuntimeError`, `WshcmObjectError` | Ошибки с `.status` / `.details`                                    |
-| `wshcmSchemas`                          | Входные schemas общего SDK                                         |
-| `Evaluator`                             | Временный серверный модуль для выполнения BorisScript              |
-| `WshcmUploader`                         | Пакетная загрузка файлов через серверные BS resources              |
-| `WshcmException`, `UnauthorizedError`   | Ошибки SOAP/аутентификации                                         |
-| `renderRequest`, `parseResponse`        | Низкоуровневая сериализация SOAP                                   |
+| Export                                  | Назначение                                                          |
+| --------------------------------------- | ------------------------------------------------------------------- |
+| `WshcmClient`                           | Подключение и `callMethod(object, method, args)` через SP-XML SOAP  |
+| `WshcmApi`                              | Файловые операции, XML объекты, XQuery, сведения о стенде и runtime |
+| `WshcmRuntimeError`, `WshcmObjectError` | Ошибки с `.status` / `.details`                                     |
+| `wshcmSchemas`                          | Входные schemas общего SDK                                          |
+| `Evaluator`                             | Временный серверный модуль для выполнения BorisScript               |
+| `WshcmUploader`                         | Пакетная загрузка файлов через серверные BS resources               |
+| `WshcmException`, `UnauthorizedError`   | Ошибки SOAP/аутентификации                                          |
+| `renderRequest`, `parseResponse`        | Низкоуровневая сериализация SOAP                                    |
 
 Типы опций экспортируются вместе с JavaScript declarations. Минимальный пример
 для доверенного тестового стенда, с реквизитами из environment:
@@ -73,10 +73,177 @@ Evaluator создаёт временный `.bs` файл на сервере �
 - `xquery({query,maxRows?})` возвращает typed `XQueryResult`: integer как bigint,
   real как number, XML-поля проецируются на сервере. SQL префикс передаётся без
   read-only проверки. XML/XQuery не требуют подготовки DLL.
+- `systemInfo({includeReport?})` возвращает `SystemInfoResult`: сводку версий
+  и настроек стенда, при `includeReport: true` — также полный штатный отчёт.
+  Параметр по умолчанию `{}`, DLL не требуется. Контракт описан ниже.
+- `execute({code})` выполняет серверный BorisScript один раз. Возвращает
+  `ExecutionResult` с результатом, сообщениями `print(value)` и native ошибкой.
+  DLL не требуется; выполнение имеет права подключённого аккаунта.
+- `packages.listSchemas/getSchema/saveSchema/deleteSchema/addObjects/removeObjects/exportPackage/inspectPackage/importPackage/getOperation(input)` — штатные схемы, ZIP-артефакты, preview/import и серверные receipts, без DLL. Контракт и примеры — ниже.
 - `runtime.ensure()` автоматически подготавливает зависимости и возвращает
   статус; локальная ошибка или потеря transport-ответа выбрасывает
   `WshcmRuntimeError` с `.status`. `runtime.requireReady()` дополнительно
   выбрасывает эту ошибку при любом статусе кроме ready.
+
+## Пакеты объектов
+
+```js
+import { randomUUID } from "node:crypto";
+import { WshcmApi, WshcmPackageError, packageSchemas } from "@boristype/ws-client";
+
+const api = new WshcmApi(evaluator); // evaluator initialized by caller
+const exported = await api.packages.exportPackage({
+  objectIds: ["9007199254740993"],
+  operationId: randomUUID(),
+});
+const preview = await api.packages.inspectPackage({ artifactId: exported.artifact.artifactId });
+// Or inspectPackage({ localPath: "/absolute/path/on-sdk-host/input.zip" })
+const operationId = randomUUID(); // retain before dispatch
+try {
+  const applied = await api.packages.importPackage({ inspectionId: preview.inspectionId, operationId });
+  console.log(applied.status, applied.verification, applied.reportIds);
+} catch (error) {
+  if (error instanceof WshcmPackageError) console.error(error.details);
+  // After a timeout: query getOperation({ operationId }); never automatically retry.
+  throw error;
+}
+```
+
+`packageSchemas` — экспортируемые strict Zod input schemas. Методы используют один
+контракт с десятью MCP tools (`wshcm_list_package_schemas`, `wshcm_get_package_schema`,
+`wshcm_save_package_schema`, `wshcm_delete_package_schema`, `wshcm_add_package_objects`,
+`wshcm_remove_package_objects`, `wshcm_export_package`, `wshcm_inspect_package`,
+`wshcm_import_package`, `wshcm_get_package_operation`).
+
+Схемы явно адресуются по id, UI current schema не переключается. `listSchemas({})`
+и `getSchema({schemaId})` возвращают общую revision; `saveSchema({name})` создаёт
+схему. Для изменения используйте `{schemaId,revision,name?,settings?,editable?}`;
+для `addObjects/removeObjects` — `{schemaId,revision,objectIds}`; для удаления —
+`deleteSchema({schemaId,revision})`. `editable` — `[{id,editable}]`.
+Settings поддерживают `customTemplates`, `processCustomTemplates`,
+`processAccessRoles`, `files:[{code,type,url,baseUrl?}]`. После мутации перечитайте
+revision. Снимок и recheck общего XML не дают atomic CAS между клиентами.
+
+Экспорт требует ровно один источник: `{schemaId,revision}` или `{objectIds}`.
+Object IDs всегда десятичные строки. `includeCategories`, `includeRelatedObjects`,
+`includeFiles`, `includeAssessmentItems` выключены по умолчанию. Related использует
+только native XMD/foreign связи: `wvars`/`mode` resolvers отсутствуют; полное
+транзитивное замыкание не обещается.
+
+Результат экспорта содержит status, проверку `archive_membership`, страницу objects,
+missingIds/missingCount и artifact с artifactId/localPath/mimeType/sizeBytes/sha256/expiresAt.
+Файлы живут на **машине SDK**, в `~/.boristype/package-artifacts`, переживают сеанс;
+handle действует 24 часа. `new WshcmPackages(evaluator,{artifactDirectory})` позволяет
+выделить абсолютный каталог. Удаление expired файлов и native receipt/temp/report
+автоматически не выполняется. Чтение localPath не разрешает перезапись оригинала.
+
+Inspect создаёт неизменяемую копию ZIP и native preview. `inspectionId` связывает
+весь состав; default import выбирает все его объекты, независимо от страниц.
+Явные packageIds/objectIds выбирают любое подмножество этого снимка, внешние IDs
+отклоняются. Исходный файл после inspect не перечитывается. Binding хранится в
+памяти экземпляра; после restart требуется новый inspect, сохранившийся artifactId
+можно использовать снова. Конфликты/hash/account/target проверяются перед apply.
+
+Import флаги `skipConflictingIds`, `allowVersionMismatch`, `allowReimport`,
+`includeCustomTemplates`, `includeAccessRoles`, `includeFiles`, `includeDeletions`,
+`includeLists` по умолчанию false. Поддерживаются objects/courses/web/custom_file;
+остальные типы отклоняются до применения. custom_file требует destination ниже
+`x-local://custom/`. Дополнительные типы и extras ещё не прошли native acceptance.
+
+ZIP ≤128 MiB; expanded bytes ≤512 MiB; ≤10000 entries; ZIP depth ≤2; XML ≤32 MiB;
+input objectIds ≤10000; страницы default 100, limit 1–1000; chunk 256 KiB.
+SDK не возвращает ZIP/base64 в JSON. MCP дополнительно ограничивает text 256 KiB
+и добавляет truncated/nextPage; SDK выдаёт полные разрешённые страницы.
+
+Ошибка `WshcmPackageError.details` сохраняет phase/status/code/message/operationId,
+при наличии — lastKnownOperation/cleanupError. Public UUID handles operationId,
+artifactId и inspectionId принимаются в любом регистре и приводятся к lowercase
+перед lookup/dispatch; результаты используют lowercase. Native schemaId/packageId
+сохраняют регистр. Native receipts переживают потерю
+клиента и доступны через getOperation на том же target/account; автоматического
+retry/rollback/cancellation/exactly-once нет. Отсутствующий, недоступный или
+повреждённый receipt даёт ReceiptUnavailable/receipt/unknown с тем же operationId,
+без восстановления receipt или повторной мутации. Timeout не останавливает HCM.
+`completed` + `platform_report_only` не доказывает per-object success.
+
+Native objects acceptance выполнена на Linux C HCM 2025.2.1333/PostgreSQL;
+Windows/MSSQL, максимальные размеры и прикладные зависимости не подтверждены.
+[Полный сценарий MCP](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#пакеты-объектов).
+
+## Сведения о стенде
+
+```js
+const { summary } = await api.systemInfo();
+const { report } = await api.systemInfo({ includeReport: true });
+```
+
+Один вызов штатного `tools_report.gather_system_info()` собирает тот же отчёт,
+что «О программе → Информация о системе» веб-администратора. `summary` содержит
+`hcmVersion`, `osVersion`, `database: { type, version }`, `unibridgeVersion`,
+`runMode` (строки или `null`) и `cluster`, `fullTextIndex`, `personalData`
+(boolean или `null`). Отсутствующие поля и неизвестные значения флагов — `null`.
+Сводка извлекается только из заголовка, до первой секции конфигурации.
+Типы `SystemInfoSummary` и `SystemInfoResult` экспортируются из пакета.
+
+По умолчанию `report` отсутствует. При `includeReport: true` он содержит исходный
+текст без дополнительной очистки, включая конфигурации INI/XML/Global Settings;
+это ещё не формализованный JSON конфигураций. CRLF/CR/LF защищены JSON carrier.
+Отчёт ограничен 256 KiB UTF-8 и отклоняется целиком при превышении, в том числе
+при запросе одной сводки. Неподдерживаемый SOAP carrier даёт ошибку.
+Лимит проверяется после сбора отчёта и не ограничивает работу самого сборщика.
+DLL не подготавливается, автоматических повторов нет; это сведения ответившего
+процесса, без гарантии единого снимка всего кластера.
+
+Проверено на Linux C HCM 2025.2.1333 / PostgreSQL 16; другие версии, локализации
+заголовка и ОС требуют проверки. Настройки стенда не изменяются.
+
+## Выполнение BorisScript
+
+```js
+const result = await api.execute({
+  code: 'print("Checking version"); return tools.get_version("wtv", false);',
+});
+// { ok: true, value: "2025.2.1333", output: ["Checking version"], outputTruncated: false }
+```
+
+Передаётся именно серверный BorisScript, без компиляции TypeScript/JavaScript.
+Используйте `return` для результата; переменные и вспомогательные функции можно
+объявлять внутри скрипта. `print(value)` добавляет сообщение в вывод этого вызова
+и возвращает свой аргумент. Строки сохраняются точно, остальные значения
+форматируются штатным `EncodeJson` (`undefined` — текстом `undefined`).
+Штатные `alert`/логи вызываемых библиотек остаются в журнале HCM; перехвата нет.
+
+`print(value)` — экспериментальный кандидат: его практическую полезность ещё
+предстоит оценить относительно возврата результата и чтения штатных логов.
+По результатам оценки он может быть изменён или удалён.
+
+Успех: `{ok:true,value,output,outputTruncated}`. Значение проецируется тем же
+кодом, что XQuery: integer → bigint, real → number, XML → records/arrays,
+date → ISO string; строки сохраняют CRLF/CR/LF. Поддерживаемые обычные значения
+сохраняют null/undefined. Идентичность объектов и XML API не сохраняются.
+Неподдерживаемый SOAP carrier даёт ошибку.
+
+При native ошибке возвращается `{ok:false,error:{phase,message},output,outputTruncated}`:
+`execution` — разбор/выполнение, `result` — преобразование уже полученного
+результата. Сохраняются сообщения, записанные до ошибки, и native контекст
+исключения (до 2000 символов). Это не подтверждение отсутствия побочных эффектов.
+Transport/невалидный ответ вместо результата выбрасывает экспортируемый
+`WshcmExecutionError`: `.details.phase` = `transport`/`response`,
+`.details.executionStatus` = `unknown`. Вывод при потерянном ответе не гарантирован.
+Невалидный input отклоняется до обращения к evaluator.
+
+Код — до 64 KiB UTF-8; проекция результата — depth 32, 10000 значений и
+48000 символов внутреннего carrier. Диагностика сохраняет целые сообщения
+до 256 сообщений/16000 символов JSON-кодированного текста, затем выставляет
+`outputTruncated: true` и пропускает последующие сообщения, продолжая скрипт.
+Итоговый ответ ограничен 256 KiB UTF-8. Лимиты проверяются после формирования
+значения/сообщения, не ограничивают работу или память пользовательского кода.
+
+Выполнение не изолировано от серверных API и не ограничено политикой файловых
+readToken. DLL не подготавливается. Нет rollback, server cancellation и retry:
+**timeout клиента не означает остановку кода**. Перед повтором неизвестного
+исхода нужно установить фактические эффекты. Возврат ошибки результата также
+не отменяет уже выполненные изменения.
 
 ## Автоматическая подготовка DLL
 
@@ -95,7 +262,7 @@ DOTNETLIBS-PATH, не устанавливает CLR и не перезапус�
 `restart_required`: файловые вызовы блокируются до проверки после перезапуска.
 `blocked` сообщает, например, несовместимый API, повреждение immutable файлов
 или конфликт разных builds одного version. Более новая совместимая версия
-не откатывается. XQuery/XML остаются доступны.
+не откатывается. Execute/system info/XQuery/XML остаются доступны.
 
 Concurrent ensure одного экземпляра объединяются, последующие вызовы проверяют
 процесс снова. Status относится к ответившему процессу; gate и файловая операция
@@ -201,8 +368,15 @@ pnpm --filter @boristype/ws-client test
 # optional WSHCM_PORT (80), WSHCM_HTTPS (false).
 pnpm --filter @boristype/ws-client test:e2e:values
 pnpm --filter @boristype/ws-client test:e2e:xquery
+# Existing stand; WSHCM_USERNAME/WSHCM_PASSWORD and optional WSHCM_HOST/PORT
+pnpm --filter @boristype/ws-client test:e2e:packages
 ```
 
-Native серии создают и удаляют собственные временные BS-модули, не меняя бизнес-записи.
+`test:e2e:values` и `test:e2e:xquery` создают и удаляют собственные временные
+BS-модули, не меняя бизнес-записи. `test:e2e:packages` также создаёт, импортирует,
+обновляет и удаляет собственные cost_center fixtures и схемы пакетов; очищает
+свои ZIP, receipts, reports и временные каталоги. Его опциональная guarded
+PostgreSQL cleanup удаляет только проверенные собственные catalog projections
+и относится к тестам. Это проверка с изменениями данных выбранного стенда.
 `test:e2e:values` фиксирует наблюдаемое форматирование real на Linux C 2025.2.1333;
 другие runtime требуют своей проверки.

@@ -9,7 +9,7 @@
 подключения. Caller владеет connection/transport. CLI `startServer` создаёт
 connection, подключает StdioServerTransport и обслуживает shutdown.
 [server.ts](../../packages/mcp-server/src/server.ts) регистрирует девять файловых
-tools, XQuery, три XML tools и runtime status. Общий API и grants принадлежат
+tools, XQuery, три XML tools, execute, system info и runtime status. Общий API и grants принадлежат
 ws-client/WshcmApi; MCP handlers — в
 [tools](../../packages/mcp-server/src/tools/), templates — в
 [resources](../../packages/ws-client/resources/). Аннотации readOnly/destructive/

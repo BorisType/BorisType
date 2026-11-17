@@ -1,0 +1,236 @@
+{
+  "marker": "bt-packages-4d413a16-5f20-4daf-9066-bc73653b498e",
+  "carrier": "CLI/stdio/SOAP; no BorisType DLL",
+  "operations": [
+    "1fdd91d0-9c4d-4921-b8d5-11431efa5043",
+    "c35cd58d-30c4-4fb6-bd50-58a3c699c981",
+    "da363f65-242d-4d49-be70-ad5138160a33",
+    "d62fe3fa-36e3-4a72-90c7-035bce76b159",
+    "c2f3d6bb-ed0f-4b88-a998-40ada2db228e",
+    "dbb29985-c26f-4f3b-886e-343841e91cce",
+    "eaaaf785-c999-4dfe-82e6-61d5f0942510",
+    "1ea9d0c8-8320-4d0c-9564-7972725f12fe"
+  ],
+  "artifacts": [
+    {
+      "artifactId": "6bb4a9f6-f8df-47b1-b0ba-8a2a5898c1a0",
+      "localPath": "/home/agent/.boristype/package-artifacts/6bb4a9f6-f8df-47b1-b0ba-8a2a5898c1a0.zip",
+      "mimeType": "application/zip",
+      "sizeBytes": 979,
+      "sha256": "429d46d3f7b26e0023292ec6fc0f92072ccbafdd3c933d8561cd7ab380a8e99b",
+      "expiresAt": "2026-11-18T17:28:31.343Z"
+    },
+    {
+      "artifactId": "ab9550d0-70e2-4a72-93e0-a1786e337613",
+      "localPath": "/home/agent/.boristype/package-artifacts/ab9550d0-70e2-4a72-93e0-a1786e337613.zip",
+      "mimeType": "application/zip",
+      "sizeBytes": 979,
+      "sha256": "429d46d3f7b26e0023292ec6fc0f92072ccbafdd3c933d8561cd7ab380a8e99b",
+      "expiresAt": "2026-11-18T17:28:31.363Z"
+    }
+  ],
+  "fixtureIds": ["7352059950684173716", "7352059950638544661"],
+  "identity": {
+    "version": "2025.2.1333 (2025-12-26)",
+    "accountId": "6148914691236517121"
+  },
+  "image": {
+    "image": "websoft/hcm:2025.2.1333",
+    "imageId": "sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab"
+  },
+  "code": {
+    "revision": "24a6d68cc708c0828497b8fdc54a38f0dd3c94a6",
+    "files": {
+      "packages/mcp-server/src/tools/packages.ts": "69c54971c43a839b2f628c91037a4059a33e4930b5e4df993ca2bb03119ecc3a",
+      "packages/mcp-server/src/server.ts": "96442c3fb3231c6966274ca8eaac11277ba16ecc88f019616aa0a8570923cb1c",
+      "packages/ws-client/src/hcm/packages/service.ts": "2e31301e6ddef9354b2a3a7b98b0b7602fb98bbdb8add3c04690e4772780e5e9",
+      "packages/ws-client/resources/package-operation.bs": "4bf51412d7209ecd247d29ceb672c2700d040f608f63f30f971523b9079de996",
+      "packages/mcp-server/test/e2e/packages.mjs": "3b48c922f3e2a6e347e91f2797a0361004012424eb210f3df7de3df390332e49",
+      "packages/ws-client/test/helpers/package-native-cleanup.mjs": "ce17776b9817a8f4a0228e211c8d9f118611931b94977a3f651fd2449da00604"
+    }
+  },
+  "baselineSha256": "71e04cb359b8766d9b3d699c5ecb45af9d3ab422e73cac648a50e19101070b5f",
+  "cliEvaluator": "unsafe_eval_6W4i6xvJ1ZPSGzq9t14wkoQhLFsoyfVb.bs",
+  "toolCount": 26,
+  "baselineSchemas": [
+    {
+      "schemaId": "irsd",
+      "name": "novyy",
+      "objectCount": 0
+    }
+  ],
+  "schemaId": "1fdd91d0-9c4d-4921-b8d5-11431efa5043",
+  "export": {
+    "operationId": "dbb29985-c26f-4f3b-886e-343841e91cce",
+    "artifact": {
+      "artifactId": "6bb4a9f6-f8df-47b1-b0ba-8a2a5898c1a0",
+      "localPath": "/home/agent/.boristype/package-artifacts/6bb4a9f6-f8df-47b1-b0ba-8a2a5898c1a0.zip",
+      "mimeType": "application/zip",
+      "sizeBytes": 979,
+      "sha256": "429d46d3f7b26e0023292ec6fc0f92072ccbafdd3c933d8561cd7ab380a8e99b",
+      "expiresAt": "2026-11-18T17:28:31.343Z"
+    },
+    "status": "completed",
+    "verification": "archive_membership",
+    "objects": {
+      "items": [
+        {
+          "id": "7352059950684173716",
+          "type": "cost_center",
+          "name": "archive-0",
+          "nameTruncated": false
+        },
+        {
+          "id": "7352059950638544661",
+          "type": "cost_center",
+          "name": "archive-1",
+          "nameTruncated": false
+        }
+      ],
+      "offset": 0,
+      "limit": 100,
+      "total": 2
+    },
+    "missingIds": [],
+    "missingCount": 0,
+    "errors": [],
+    "operation": {
+      "operationId": "dbb29985-c26f-4f3b-886e-343841e91cce",
+      "accountId": "6148914691236517121",
+      "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+      "operation": "export",
+      "phase": "downloaded",
+      "status": "completed",
+      "verification": "archive_membership",
+      "error": "",
+      "reportIds": ["7352059950666342554"],
+      "downloadIds": []
+    }
+  },
+  "inspection": {
+    "inspectionId": "eaaaf785-c999-4dfe-82e6-61d5f0942510",
+    "artifact": {
+      "artifactId": "ab9550d0-70e2-4a72-93e0-a1786e337613",
+      "localPath": "/home/agent/.boristype/package-artifacts/ab9550d0-70e2-4a72-93e0-a1786e337613.zip",
+      "mimeType": "application/zip",
+      "sizeBytes": 979,
+      "sha256": "429d46d3f7b26e0023292ec6fc0f92072ccbafdd3c933d8561cd7ab380a8e99b",
+      "expiresAt": "2026-11-18T17:28:31.363Z"
+    },
+    "operation": {
+      "operationId": "eaaaf785-c999-4dfe-82e6-61d5f0942510",
+      "accountId": "6148914691236517121",
+      "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+      "operation": "preview",
+      "phase": "inspected",
+      "status": "completed",
+      "verification": "platform_report_only",
+      "error": "",
+      "reportIds": [],
+      "downloadIds": []
+    },
+    "items": [
+      {
+        "kind": "package",
+        "packageId": "2syl0a0vdi",
+        "type": "objects",
+        "versionMismatch": false,
+        "alreadyImported": false,
+        "serverVersion": "2025.2.1333 (2025-12-26)",
+        "hasCustomTemplates": false,
+        "hasAccessRoles": false,
+        "hasLists": false,
+        "deletionCount": 0
+      }
+    ],
+    "offset": 0,
+    "limit": 1,
+    "total": 3,
+    "truncated": true,
+    "nextPage": {
+      "tool": "wshcm_inspect_package",
+      "offset": 1,
+      "arguments": {
+        "inspectionId": "eaaaf785-c999-4dfe-82e6-61d5f0942510",
+        "offset": 1,
+        "limit": 1
+      }
+    }
+  },
+  "import": {
+    "operationId": "1ea9d0c8-8320-4d0c-9564-7972725f12fe",
+    "accountId": "6148914691236517121",
+    "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+    "operation": "import",
+    "phase": "finished",
+    "status": "completed",
+    "verification": "platform_report_only",
+    "error": "",
+    "reportIds": ["7352059951893440508"],
+    "downloadIds": ["7352059951054841806"]
+  },
+  "readback": [
+    {
+      "id": "7352059950684173716",
+      "name": "archive-0"
+    },
+    {
+      "id": "7352059950638544661",
+      "name": "archive-1"
+    }
+  ],
+  "status": {
+    "operationId": "1ea9d0c8-8320-4d0c-9564-7972725f12fe",
+    "accountId": "6148914691236517121",
+    "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+    "operation": "import",
+    "phase": "finished",
+    "status": "completed",
+    "verification": "platform_report_only",
+    "error": "",
+    "reportIds": ["7352059951893440508"],
+    "downloadIds": ["7352059951054841806"]
+  },
+  "schemaUnchanged": true,
+  "cleanup": {
+    "operationDirectoriesRemaining": [],
+    "extractionDirectoriesRemaining": [],
+    "reportRecordsRemaining": [],
+    "downloadRecordsRemaining": [],
+    "objectsRemaining": 0,
+    "reportsDeleted": ["7352059951893440508", "7352059950666342554"],
+    "downloadsDeleted": ["7352059951054841806"],
+    "operationsDeleted": [
+      "1fdd91d0-9c4d-4921-b8d5-11431efa5043",
+      "c35cd58d-30c4-4fb6-bd50-58a3c699c981",
+      "da363f65-242d-4d49-be70-ad5138160a33",
+      "d62fe3fa-36e3-4a72-90c7-035bce76b159",
+      "c2f3d6bb-ed0f-4b88-a998-40ada2db228e",
+      "dbb29985-c26f-4f3b-886e-343841e91cce",
+      "eaaaf785-c999-4dfe-82e6-61d5f0942510",
+      "1ea9d0c8-8320-4d0c-9564-7972725f12fe"
+    ],
+    "errors": []
+  },
+  "schemaUnchangedAfterCleanup": true,
+  "cliEvaluatorRemoved": true,
+  "helperEvaluatorClosed": true,
+  "localArtifactsRemoved": ["6bb4a9f6-f8df-47b1-b0ba-8a2a5898c1a0", "ab9550d0-70e2-4a72-93e0-a1786e337613"],
+  "evaluatorsAfter": [
+    "unsafe_eval_9OOsfgcDx9QmqyoRq7HBKw84aV0Nqymd.bs",
+    "unsafe_eval_9eco5amp1NMkji8prJkOUpIr7GVh006i.bs",
+    "unsafe_eval_fdaex5a0foX5Z9Sv6Zdc24y4gcLwZnlr.bs",
+    "unsafe_eval_fzcaIhmgW1H6uj5i6s2xs1dOzNP1DQDD.bs",
+    "unsafe_eval_olCMshFATC3t23m9ogErt9vjm855tO7G.bs",
+    "unsafe_eval_rwA7uClHV2Xmc0KYwwgMm2BtaW3Tytm3.bs"
+  ],
+  "evaluatorsBefore": [
+    "unsafe_eval_9OOsfgcDx9QmqyoRq7HBKw84aV0Nqymd.bs",
+    "unsafe_eval_9eco5amp1NMkji8prJkOUpIr7GVh006i.bs",
+    "unsafe_eval_fdaex5a0foX5Z9Sv6Zdc24y4gcLwZnlr.bs",
+    "unsafe_eval_fzcaIhmgW1H6uj5i6s2xs1dOzNP1DQDD.bs",
+    "unsafe_eval_olCMshFATC3t23m9ogErt9vjm855tO7G.bs",
+    "unsafe_eval_rwA7uClHV2Xmc0KYwwgMm2BtaW3Tytm3.bs"
+  ],
+  "stderrBytes": 0
+}

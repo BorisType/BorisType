@@ -1,0 +1,320 @@
+{
+  "marker": "bt-packages-0aaafdda-6ad2-4e62-aa36-3d0a95c87695",
+  "operations": [
+    "b6c31409-0184-4079-964c-4c2e3be26358",
+    "c150399a-8fdb-45cf-bd6e-bb275342af44",
+    "258d1330-1548-480c-b73d-9a1860fc0d34",
+    "6805e808-088f-4e7d-bfd6-1104ae1bc7c6",
+    "62a59477-ac5c-4efa-ac9d-1360f94ad6a6",
+    "b1eed425-2267-4f1f-b759-5aca9506d7b7",
+    "f3455541-50d7-434e-a5bd-5fa594f64266",
+    "597212ce-465f-4173-8358-ed82400443ad",
+    "5b968148-23d3-4d77-b181-fb11a26b97f9",
+    "b3312207-17a4-4987-a9fd-8e51128ac1b0",
+    "7215a0ac-8a82-4938-b066-8c11e67094a3",
+    "86d55982-5c24-423f-9ec2-4f331dd2e396",
+    "2fed254b-0246-4c44-8032-0a428ddc4c5f",
+    "6830cc27-f4e3-4f6d-908d-4af15a536548",
+    "b935fc74-8dbe-4db9-a381-b64ae37471fa",
+    "04fb317b-aebe-4a03-9d5f-c2d74ab920c3",
+    "843d462f-955f-48c4-a322-e89125e12f14",
+    "138f4c35-49af-455f-a154-85b97d67379a"
+  ],
+  "stages": [
+    {
+      "action": "add",
+      "count": 32,
+      "name": "bt-packages-0aaafdda-6ad2-4e62-aa36-3d0a95c87695"
+    },
+    {
+      "action": "remove",
+      "count": 31,
+      "name": "bt-packages-0aaafdda-6ad2-4e62-aa36-3d0a95c87695"
+    },
+    {
+      "action": "rename",
+      "count": 31,
+      "name": "bt-packages-0aaafdda-6ad2-4e62-aa36-3d0a95c87695-renamed"
+    },
+    {
+      "action": "create",
+      "operation": {
+        "operationId": "597212ce-465f-4173-8358-ed82400443ad",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352064354637181361"],
+        "downloadIds": ["7352064354635506493"]
+      }
+    },
+    {
+      "action": "create",
+      "operation": {
+        "operationId": "597212ce-465f-4173-8358-ed82400443ad",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352064354637181361"],
+        "downloadIds": ["7352064354635506493"]
+      },
+      "name": "archive-value-0"
+    },
+    {
+      "action": "update",
+      "operation": {
+        "operationId": "5b968148-23d3-4d77-b181-fb11a26b97f9",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352064355685786256"],
+        "downloadIds": ["7352064355575756508"]
+      }
+    },
+    {
+      "action": "update",
+      "operation": {
+        "operationId": "5b968148-23d3-4d77-b181-fb11a26b97f9",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352064355685786256"],
+        "downloadIds": ["7352064355575756508"]
+      },
+      "name": "archive-value-0"
+    },
+    {
+      "action": "skip",
+      "operation": {
+        "operationId": "b3312207-17a4-4987-a9fd-8e51128ac1b0",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352064359064640774"],
+        "downloadIds": ["7352064358221599688"]
+      }
+    },
+    {
+      "action": "skip",
+      "operation": {
+        "operationId": "b3312207-17a4-4987-a9fd-8e51128ac1b0",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352064359064640774"],
+        "downloadIds": ["7352064358221599688"]
+      },
+      "name": "local-skip"
+    },
+    {
+      "action": "version-rejected"
+    },
+    {
+      "action": "type-rejected"
+    },
+    {
+      "action": "standalone-import",
+      "operation": {
+        "operationId": "04fb317b-aebe-4a03-9d5f-c2d74ab920c3",
+        "accountId": "6148914691236517121",
+        "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+        "operation": "import",
+        "phase": "finished",
+        "status": "completed",
+        "verification": "platform_report_only",
+        "error": "",
+        "reportIds": ["7352064361606570068"],
+        "downloadIds": ["7352064361603321278"]
+      }
+    }
+  ],
+  "identity": {
+    "version": "2025.2.1333 (2025-12-26)",
+    "accountId": "6148914691236517121"
+  },
+  "codeFiles": {
+    "packages/ws-client/src/hcm/packages/service.ts": "3caada1a74a5abbdfafb9240c311c44a4ac436a68026a3a9f85b6ccb6bb5a8b2",
+    "packages/ws-client/src/hcm/packages/schemas.ts": "d1a7840c6f7c29d3ad27c90c7b864854153730228bcf553e3c4d080080bc33dd",
+    "packages/ws-client/resources/package-operation.bs": "a97abffa86d45126731f4be0c6362e9c0a872bf0f9aa8b3b2177dab234a5d019",
+    "packages/ws-client/test/e2e/packages.mjs": "25f3c67c58b957ee5f27120f56a2fac70ae52c498a31ad91846c19610564ba18",
+    "packages/ws-client/test/helpers/package-native-recovery.mjs": "fa8d6daaca9682732beb89ba956408e1347d4049cb0e2bd67f75d5adc12d5960",
+    "packages/ws-client/test/helpers/package-native-cleanup.mjs": "ce17776b9817a8f4a0228e211c8d9f118611931b94977a3f651fd2449da00604"
+  },
+  "revision": "86dd746232e9f4826c60f8cfb191b7209857cea4",
+  "baseline": "<package_objects>\n\t<package_object>\n\t\t<id>irsd</id>\n\t\t<name>novyy</name>\n\t\t<add_deleted_objects>0</add_deleted_objects>\n\t\t<process_custom_templates>0</process_custom_templates>\n\t\t<process_access_roles>0</process_access_roles>\n\t</package_object>\n</package_objects>\n",
+  "recovery": [
+    {
+      "storage": "missing",
+      "details": {
+        "ok": false,
+        "code": "ReceiptUnavailable",
+        "message": "Файл не найден\r\n(LoadFileData(),  Unknown source,   line 72)\r\n(LoadFileData,  Unknown source,   line 72)",
+        "phase": "receipt",
+        "status": "unknown",
+        "operationId": "b6c31409-0184-4079-964c-4c2e3be26358"
+      },
+      "receiptUnchanged": true,
+      "schemaEffectUnchanged": true
+    },
+    {
+      "storage": "corrupt",
+      "details": {
+        "ok": false,
+        "code": "ReceiptUnavailable",
+        "message": "Invalid JSON.\nOffset: 9\r\n(ParseJson(),  Unknown source,   line 72)\r\n(ParseJson,  Unknown source,   line 72)\r\n---\r\n':' expected",
+        "phase": "receipt",
+        "status": "unknown",
+        "operationId": "b6c31409-0184-4079-964c-4c2e3be26358"
+      },
+      "receiptUnchanged": true,
+      "schemaEffectUnchanged": true
+    }
+  ],
+  "fixtureIds": [
+    "7352064352451507695",
+    "7352064353018246734",
+    "7352064352464794257",
+    "7352064353018565986",
+    "7352064353024859131",
+    "7352064352486162164",
+    "7352064352490330993",
+    "7352064353010185625",
+    "7352064353023947266",
+    "7352064353018827343",
+    "7352064352486150587",
+    "7352064353018670228",
+    "7352064352484974497",
+    "7352064352489039226",
+    "7352064352490075477",
+    "7352064352489995553",
+    "7352064352945927034",
+    "7352064353005468419",
+    "7352064352591002333",
+    "7352064352991397774",
+    "7352064352791799669",
+    "7352064352538571996",
+    "7352064352909206248",
+    "7352064352623358819",
+    "7352064352910604457",
+    "7352064352817267870",
+    "7352064352578418851",
+    "7352064352647508103",
+    "7352064353018497368",
+    "7352064352924464229",
+    "7352064352653932750",
+    "7352064352654982984"
+  ],
+  "schemaUnchanged": true,
+  "export": {
+    "sizeBytes": 1385,
+    "sha256": "e6c151c19a9ac08a541e0dec7739ec4a7875faf4f78a83c42769252be9b55815",
+    "operation": {
+      "operationId": "b1eed425-2267-4f1f-b759-5aca9506d7b7",
+      "accountId": "6148914691236517121",
+      "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+      "operation": "export",
+      "phase": "downloaded",
+      "status": "completed",
+      "verification": "archive_membership",
+      "error": "",
+      "reportIds": ["7352064352941735181"],
+      "downloadIds": []
+    }
+  },
+  "inspection": {
+    "operation": {
+      "operationId": "f3455541-50d7-434e-a5bd-5fa594f64266",
+      "accountId": "6148914691236517121",
+      "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
+      "operation": "preview",
+      "phase": "inspected",
+      "status": "completed",
+      "verification": "platform_report_only",
+      "error": "",
+      "reportIds": [],
+      "downloadIds": []
+    },
+    "total": 33
+  },
+  "unsignedIds": [
+    {
+      "input": "9223372036854775808",
+      "actual": "9223372036854775808"
+    },
+    {
+      "input": "18446744073709551615",
+      "actual": "18446744073709551615"
+    }
+  ],
+  "largeArchive": {
+    "sizeBytes": 525074,
+    "sha256": "403f7daf94824e6587944de60652c2d3fdb01c4677b63e8788bfbf9cbe56660c",
+    "total": 2
+  },
+  "chunk": {
+    "sizeBytes": 524307,
+    "sha256": "adf56b76069edaf3381ee2d7b82d550a77f2f2da2b9ae09de1c509bcd525d119",
+    "identical": true
+  },
+  "cleanup": {
+    "operationDirectoriesRemaining": [],
+    "extractionDirectoriesRemaining": [],
+    "reportRecordsRemaining": [],
+    "downloadRecordsRemaining": [],
+    "objectsRemaining": 0,
+    "reportsDeleted": ["7352064354637181361", "7352064355685786256", "7352064359064640774", "7352064361606570068", "7352064352941735181"],
+    "downloadsDeleted": ["7352064354635506493", "7352064355575756508", "7352064358221599688", "7352064361603321278"],
+    "operationsDeleted": [
+      "b6c31409-0184-4079-964c-4c2e3be26358",
+      "c150399a-8fdb-45cf-bd6e-bb275342af44",
+      "258d1330-1548-480c-b73d-9a1860fc0d34",
+      "6805e808-088f-4e7d-bfd6-1104ae1bc7c6",
+      "62a59477-ac5c-4efa-ac9d-1360f94ad6a6",
+      "b1eed425-2267-4f1f-b759-5aca9506d7b7",
+      "f3455541-50d7-434e-a5bd-5fa594f64266",
+      "597212ce-465f-4173-8358-ed82400443ad",
+      "5b968148-23d3-4d77-b181-fb11a26b97f9",
+      "b3312207-17a4-4987-a9fd-8e51128ac1b0",
+      "7215a0ac-8a82-4938-b066-8c11e67094a3",
+      "86d55982-5c24-423f-9ec2-4f331dd2e396",
+      "2fed254b-0246-4c44-8032-0a428ddc4c5f",
+      "6830cc27-f4e3-4f6d-908d-4af15a536548",
+      "b935fc74-8dbe-4db9-a381-b64ae37471fa",
+      "04fb317b-aebe-4a03-9d5f-c2d74ab920c3",
+      "843d462f-955f-48c4-a322-e89125e12f14",
+      "138f4c35-49af-455f-a154-85b97d67379a"
+    ],
+    "errors": []
+  },
+  "projectionCleanup": [
+    {
+      "id": "7352064352451507695",
+      "deletedCatalogProjection": true,
+      "nativeTombstoneRetained": true
+    }
+  ],
+  "closed": true
+}

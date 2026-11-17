@@ -17,7 +17,10 @@ import {
   registerGetFileInfoTool,
   registerXQueryTool,
   registerObjectTools,
+  registerPackageTools,
   registerRuntimeStatusTool,
+  registerSystemInfoTool,
+  registerExecuteTool,
 } from "./tools/index.js";
 
 /**
@@ -41,7 +44,9 @@ export function createServer(connection: WshcmConnection): McpServer {
         "Locate files with search/list, then read with wshcm_read_file before edit or overwrite. Search results and dryRun previews do not grant read coverage. Chain the previous readToken when reading additional ranges; use the newest token for the exact URL. Overwrite requires full coverage. Tokens belong to this MCP instance, not an isolated chat; do not reuse tokens from another instance or bypass reads with delete/create.",
         "After a file mutation attempt, reread before another edit. On Conflict/ReadRequired, refresh the relevant reads instead of repeating stale arguments.",
         "wshcm_xquery accepts server-side XQuery including sql:, without a BorisType DLL. Queries can modify data. Row/output limits do not bound database work, and truncated results are incomplete. After a timeout or lost mutation response, establish the actual outcome before retrying; cancellation and rollback are not guaranteed.",
+        "wshcm_execute runs server BorisScript with the connected account's privileges. Use return for the result and experimental print(value) for call-local diagnostics; its usefulness remains under evaluation; platform alert/logs remain in HCM logs. It can modify data without file readToken checks. Script/result errors retain earlier output; transport/response failures have an unknown execution outcome. A timeout does not stop the script or imply rollback. Establish effects before any retry.",
         "On the tested Linux C/PostgreSQL path, negative SQL integers can become null before SOAP; CAST them to text in SQL to preserve the value. SQL NULL and empty text may be indistinguishable. Preserve exact IDs as text or with lossless JSON parsing; JavaScript Number can round large integer tokens.",
+        "Package tools manage explicitly addressed schemas and immutable ZIP snapshots on the MCP host. IDs remain decimal strings; includeRelatedObjects follows native XMD/foreign links only, without wvars/mode resolution. Inspect before import; pagination does not limit the default full-snapshot import. Export/inspect write temporary files/reports, import can modify data. Select a UUID operationId before long calls (public UUID handles are canonicalized to lowercase), use get_package_operation after timeout, and never retry automatically; timeout does not cancel native work. No atomic CAS or rollback guarantee.",
         "Object tools use native XML strings: get_form returns expanded schema, get_object returns a full document and readToken, save_object explicitly creates or fully replaces it. Omitted fields are removed on replace. Read the complete object in this MCP instance before replacing, reread after every replace attempt, and preserve exact IDs as decimal strings. XML validation is partial; platform types/defaults/hooks still apply. Form loading may execute code. Save errors/timeouts can leave persisted changes; no atomic CAS, rollback, UI permission equivalence or blind retry guarantee.",
       ].join("\n"),
     },
@@ -59,7 +64,10 @@ export function createServer(connection: WshcmConnection): McpServer {
   registerGetFileInfoTool(server, api);
   registerXQueryTool(server, api);
   registerObjectTools(server, api);
+  registerPackageTools(server, api);
   registerRuntimeStatusTool(server, api);
+  registerSystemInfoTool(server, api);
+  registerExecuteTool(server, api);
 
   return server;
 }
