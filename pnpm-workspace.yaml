@@ -40,3 +40,8 @@ overrides:
   "source-map-js": "^1.2.2"
   # GHSA-pqg4-j6r4-53mv: patched command quoting for Changesets' editor launcher.
   "launch-editor>shell-quote": "^1.12.0"
+auditConfig:
+  ignoreGhsas:
+    # Temporary dev-tool ReDoS exception; review by 2026-12-01.
+    # Remove after a compatible fix; see refs/cli/release-and-maintenance.md.
+    - GHSA-fc5q-39xc-vjpf

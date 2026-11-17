@@ -148,6 +148,14 @@
 
 ## Зависимости
 
+- **Убрать временное CI-исключение picomatch GHSA-fc5q-39xc-vjpf.** На 2026-11-17
+  исправленная версия не опубликована; dev-tool ReDoS явно исключён в workspace
+  audit по одному GHSA, остальные high/critical остаются блокирующими. Повторно оценить не
+  позднее 2026-12-01, раньше при появлении исправления или production цепочки
+  SDK/MCP. Закрытие: совместимое обновление с соблюдением minimumReleaseAge,
+  проверка потребителей и успешный audit без исключения.
+  [Основание, область риска и проверка](refs/cli/release-and-maintenance.md#временное-исключение-picomatch-в-ci).
+
 Read-only audit от 2026-11-11: 0 high/critical, но остаются moderate
 GHSA-g3hv-75wg-m249 (minimatch 10.2.6) и low GHSA-474x-hrwr-fgx4
 (fast-xml-parser 5.11.2). Для minimatch 11.0.1 cooldown уже истёк;

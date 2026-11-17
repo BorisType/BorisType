@@ -87,3 +87,44 @@ Minimatch присутствует в ESLint и CLI/archiver graph; fxp — ws-c
 реальный parser/consumer contract, install/lock diff и suites. Наличие advisory
 не даёт полномочий отключать supply-chain policy. NuGet/advisory inventory
 2026-11-07 остаётся историческим: новый .NET restore/audit здесь не выполнялся.
+
+### Временное исключение picomatch в CI
+
+2026-11-17 по запросу пользователя добавлено исключение для
+[GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf),
+чтобы не блокировать релиз до появления исправления. Актуальный audit обнаружил
+high ReDoS в picomatch 4.0.7; advisory охватывает `<=4.0.7`, first patched version
+не указана, npm latest — 4.0.7. Специально составленные повторяющиеся extglob
+шаблоны могут вызвать экспоненциальный regex backtracking и блокировать Node event
+loop. Это принятие ограниченного риска, не исправление зависимости.
+
+picomatch уже присутствовал в main до реализации пакетов объектов. В текущем
+workspace он приходит через dev tooling: typescript-eslint/tinyglobby,
+VitePress/Vite, MCP Inspector/Vite и Changesets. `pnpm --filter @boristype/ws-client
+--prod why picomatch` и аналогичная проверка mcp-server не показали production
+цепочек. Это не доказывает недостижимость атаки в dev/CI: её условия зависят от
+источника glob-шаблонов, и новые зависимости могут изменить область риска.
+
+Исключение задаётся штатным `auditConfig.ignoreGhsas` в
+[pnpm-workspace.yaml](../../pnpm-workspace.yaml) и действует для workspace audit
+локально и в CI. Команда
+[Lint & Format](../../.github/workflows/lint.yml) остаётся прежней:
+
+```sh
+pnpm audit --audit-level=high
+```
+
+Другие high/critical продолжают блокировать CI; `--prod`, `--ignore-unfixable` и
+понижение порога не используются. На том же lockfile audit с порогом high без
+исключения завершился с code 1, с исключением — code 0; сравнение полных JSON
+отчётов показало удаление только этого GHSA с сохранением остальных девяти
+advisories. pnpm 12 `audit --ignore <GHSA>` записывает исключение в workspace
+вместо выполнения audit; этот флаг нельзя использовать вместо проверки в CI.
+Для полной повторной оценки временно удалить запись ignoreGhsas и выполнить
+`pnpm audit --json`; accepted finding продолжает отслеживаться через TODO.
+
+Удалить исключение после доступного совместимого исправления с соблюдением
+minimumReleaseAge, обновлением lockfile и проверкой потребителей. Повторная ручная
+оценка — не позднее **2026-12-01**, раньше при появлении исправления или production
+цепочки SDK/MCP. Автоматического истечения у ignoreGhsas нет; задача и критерий
+закрытия записаны в [TODO](../../TODO.md).
