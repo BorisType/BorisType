@@ -6,6 +6,17 @@ import { test } from "node:test";
 import { crc32, deflateRawSync } from "node:zlib";
 import { inspectPackageArchive } from "../build/hcm/packages/archive.js";
 
+function unicodePathExtra(name, value) {
+  const unicodeName = Buffer.from(value);
+  const extra = Buffer.alloc(9 + unicodeName.length);
+  extra.writeUInt16LE(0x7075, 0);
+  extra.writeUInt16LE(5 + unicodeName.length, 2);
+  extra.writeUInt8(1, 4);
+  extra.writeUInt32LE(crc32(Buffer.from(name)), 5);
+  unicodeName.copy(extra, 9);
+  return extra;
+}
+
 // Actual ZIP headers, including deliberately inconsistent/unsafe metadata.
 function zip(entries) {
   const locals = [];
@@ -13,15 +24,9 @@ function zip(entries) {
   let offset = 0;
   for (const entry of entries) {
     const name = Buffer.from(entry.name);
-    const unicodeName = entry.unicodeName ? Buffer.from(entry.unicodeName) : undefined;
-    const extra = unicodeName ? Buffer.alloc(9 + unicodeName.length) : Buffer.alloc(0);
-    if (unicodeName) {
-      extra.writeUInt16LE(0x7075, 0);
-      extra.writeUInt16LE(5 + unicodeName.length, 2);
-      extra.writeUInt8(1, 4);
-      extra.writeUInt32LE(crc32(name), 5);
-      unicodeName.copy(extra, 9);
-    }
+    const extra = entry.unicodeName ? unicodePathExtra(name, entry.unicodeName) : Buffer.alloc(0);
+    const localExtra = entry.localExtra ?? extra;
+    const centralExtra = entry.centralExtra ?? extra;
     const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(entry.data ?? "");
     const compressed = entry.deflate ? deflateRawSync(data) : data;
     const checksum = entry.crc ?? crc32(data);
@@ -34,7 +39,7 @@ function zip(entries) {
     local.writeUInt32LE(compressed.length, 18);
     local.writeUInt32LE(entry.declaredSize ?? data.length, 22);
     local.writeUInt16LE(name.length, 26);
-    local.writeUInt16LE(extra.length, 28);
+    local.writeUInt16LE(localExtra.length, 28);
     const central = Buffer.alloc(46);
     central.writeUInt32LE(0x02014b50);
     central.writeUInt16LE(0x0314, 4);
@@ -45,12 +50,12 @@ function zip(entries) {
     central.writeUInt32LE(compressed.length, 20);
     central.writeUInt32LE(entry.declaredSize ?? data.length, 24);
     central.writeUInt16LE(name.length, 28);
-    central.writeUInt16LE(extra.length, 30);
+    central.writeUInt16LE(centralExtra.length, 30);
     central.writeUInt32LE(((entry.mode ?? 0o100600) << 16) >>> 0, 38);
     central.writeUInt32LE(offset, 42);
-    locals.push(local, name, extra, compressed);
-    centrals.push(central, name, extra);
-    offset += local.length + name.length + extra.length + compressed.length;
+    locals.push(local, name, localExtra, compressed);
+    centrals.push(central, name, centralExtra);
+    offset += local.length + name.length + localExtra.length + compressed.length;
   }
   const end = Buffer.alloc(22);
   end.writeUInt32LE(0x06054b50);
@@ -269,4 +274,33 @@ test("rejects Unicode filename overrides hiding duplicate legacy extraction path
       ]),
     ),
   );
+});
+
+for (const [label, localExtra] of [
+  ["traversal", unicodePathExtra("safe.txt", "../escape.txt")],
+  ["safe alias colliding with another entry", unicodePathExtra("safe.txt", "collision.txt")],
+  ["truncated extra-field header", Buffer.from([0x75])],
+  ["extra-field length overflow", Buffer.from([0x75, 0x70, 0x05, 0x00, 0x01])],
+  [
+    "second Unicode field hiding traversal",
+    Buffer.concat([unicodePathExtra("safe.txt", "safe.txt"), unicodePathExtra("safe.txt", "../escape.txt")]),
+  ],
+]) {
+  for (const level of ["outer", "nested"]) {
+    test(`rejects local ZIP ${label} at ${level} level`, async (t) => {
+      const entries = [
+        { name: "safe.txt", data: "data", localExtra },
+        { name: "collision.txt", data: "other" },
+      ];
+      const bytes = level === "outer" ? outer(desc(), inner(), entries) : outer(desc(), inner(update(), entries));
+      await assert.rejects(inspect(t, bytes));
+    });
+  }
+}
+
+test("allows local Unicode metadata that agrees with the central filename", async (t) => {
+  const bytes = outer(desc(), inner(update(), [{ name: "safe.txt", data: "data", localExtra: unicodePathExtra("safe.txt", "safe.txt") }]));
+  const result = await inspect(t, bytes);
+  assert.equal(result.packages[0].objects[0].id, "9007199254740993");
+  assert.equal(result.totalEntries, 4);
 });

@@ -3,7 +3,7 @@ import { lstat, open } from "node:fs/promises";
 import { isAbsolute, posix } from "node:path";
 import { crc32 } from "node:zlib";
 import { SaxesParser } from "saxes";
-import { fromBufferPromise, getFileNameLowLevel, type ZipFile } from "yauzl";
+import { fromBufferPromise, getFileNameLowLevel, parseExtraFields, type ZipFile } from "yauzl";
 import type { PackageArchiveInspection, PackageArchivePart } from "./archive-types.js";
 
 export type { PackageArchiveInspection, PackageArchivePart, PackageObjectEntry } from "./archive-types.js";
@@ -57,6 +57,30 @@ function archivePath(value: string): string {
     path = decoded;
   }
   throw new Error("Excessively encoded package archive path");
+}
+
+function validateExtraFields(bytes: Buffer, rawName: Buffer, expectedName: string): void {
+  // yauzl tolerates a trailing partial extra-field header; native extractors may disagree.
+  let offset = 0;
+  while (offset < bytes.length) {
+    if (offset + 4 > bytes.length) throw new Error("Truncated package ZIP extra-field header");
+    offset += 4 + bytes.readUInt16LE(offset + 2);
+    if (offset > bytes.length) throw new Error("Package ZIP extra-field length exceeds header");
+  }
+  // Inspect every Unicode field, since extractors can choose a different occurrence.
+  for (const field of parseExtraFields(bytes)) {
+    if (field.id !== 0x7075) continue;
+    if (field.data.length < 6 || field.data[0] !== 1 || field.data.readUInt32LE(1) !== crc32(rawName))
+      throw new Error("Invalid package ZIP Unicode filename metadata");
+    let name: string;
+    try {
+      name = new TextDecoder("utf-8", { fatal: true }).decode(field.data.subarray(5));
+    } catch {
+      throw new Error("Invalid package ZIP Unicode filename encoding");
+    }
+    archivePath(name);
+    if (name !== expectedName) throw new Error("Ambiguous package ZIP Unicode filename override");
+  }
 }
 
 function xmlDocument(bytes: Buffer): XmlNode {
@@ -158,6 +182,7 @@ async function readArchive(bytes: Buffer, depth: number, budget: Budget): Promis
       archivePath(entry.fileNameRaw.toString("latin1"));
       if (getFileNameLowLevel(entry.generalPurposeBitFlag, entry.fileNameRaw, [], true) !== entry.fileName)
         throw new Error("Ambiguous package ZIP Unicode filename override");
+      validateExtraFields(entry.extraFieldRaw, entry.fileNameRaw, entry.fileName);
       const portableName = name.replace(/\/$/, "").toLowerCase();
       if (portableNames.has(portableName)) throw new Error("Duplicate package ZIP entry");
       portableNames.set(portableName, name.endsWith("/"));
@@ -174,6 +199,7 @@ async function readArchive(bytes: Buffer, depth: number, budget: Budget): Promis
       ) {
         throw new Error("Inconsistent package ZIP local header");
       }
+      validateExtraFields(header.extraField, header.fileName, entry.fileName);
       if (
         !(entry.generalPurposeBitFlag & 8) &&
         (header.crc32 !== entry.crc32 ||
