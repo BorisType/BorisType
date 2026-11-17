@@ -279,6 +279,9 @@ opt-in `WSHCM_PACKAGE_DB_CONTAINER` для PostgreSQL fallback: exact allocated 
 exact run marker, OpenDoc missing и metadata is_deleted=1 обязательны. Удаляется
 только этот projection, tombstone сохраняется и указывается в receipt. Product SDK
 SQL cleanup не выполняет; MCP acceptance с обновлением не нуждается в этом fallback.
+Причина не установлена; отдельное исследование зарегистрировано в
+[общих наблюдениях платформы](../platform/object-model.md#открытая-находка-строка-каталога-после-удаления-импортированного-объекта)
+и корневом TODO.
 
 Остаются native acceptance courses/web/custom_file/templates/roles/files/lists/
 deletions/related traversal, cross-client lost update, другие аккаунты, native

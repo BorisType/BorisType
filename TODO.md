@@ -75,6 +75,13 @@
 
 ## MCP / .NET / платформа
 
+- **После удаления импортированного объекта остаётся строка каталога.** Native
+  SDK e2e на Linux C/PG обнаружил cost_center: OpenDoc не открывается, metadata
+  `is_deleted=1`, но строка видна через XQuery. Нужен минимальный repro с разделением
+  import/reimport, BindToDb/Save/DeleteDoc и cache/очередей; установить штатный
+  cleanup либо подтвердить дефект. PostgreSQL fallback ограничен тестовыми
+  fixtures и не объясняет причину. [Наблюдение, evidence и критерий закрытия](refs/platform/object-model.md#открытая-находка-строка-каталога-после-удаления-импортированного-объекта).
+
 - **Пакеты объектов: расширить native acceptance и lifecycle.** SDK и десять MCP
   tools реализуют схемы/export/immutable inspect/import/status. Проверен объектный
   cost_center путь на Linux C/PostgreSQL; остаются courses/web/custom_file,

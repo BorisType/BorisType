@@ -122,3 +122,31 @@ Owned trash→restore→permanent-delete проверены только для 
 cleanup receipts — в [research entry](../research/mcp/10-object-model/README.md).
 Provider transactions, new model, Windows/MSSQL/cluster, business adapters и
 binary cleanup остаются отдельными измеримыми проверками.
+
+## Открытая находка: строка каталога после удаления импортированного объекта
+
+Наблюдение от 2026-11-17, native Linux C HCM 2025.2.1333 / PostgreSQL 16 / CLR 9:
+при очистке собственного cost_center после импорта пакета документ уже не
+открывался через OpenDoc, metadata `(spxml_objects).is_deleted` была равна 1,
+но строка `cost_centers` оставалась доступна через XQuery. В
+[SDK final-fix receipt](../research/mcp/object-packages-sdk-final-fix-2026-11-17.json)
+это отражено в `projectionCleanup`: удалена одна остаточная строка каталога,
+native tombstone сохранён. Receipt содержит source hashes и версию стенда.
+
+Минимальный reproducer и причина пока не установлены. Полный e2e включает
+import/create/update/reimport, а [тестовый cleanup](../../packages/ws-client/test/helpers/package-native-cleanup.mjs)
+пытается удалить собственные объекты через BindToDb/Save/DeleteDoc(url, true).
+Наблюдение не доказывает дефект любого DeleteDoc: влияние импорта, повторного
+использования ID, самого cleanup, cache и очередей ещё нужно разделить.
+
+Временный test-only обход включается явно через `WSHCM_PACKAGE_DB_CONTAINER`:
+SQL удаляет только строку с выделенным тестом ID и уникальным run marker,
+после проверки недоступности OpenDoc и metadata `is_deleted=1`. Product SDK/MCP
+такую очистку не выполняет; это не общий способ удаления объектов.
+
+Разобрать отдельно: сравнить обычный Create/Save/Delete с import нового объекта
+и delete/reimport того же ID, выделить влияние BindToDb/Save в cleanup, проверить
+OpenDoc/XQuery/SQL до и после штатной обработки очередей/cache. Критерий закрытия —
+ограниченный минимальный native repro и объяснённый штатный lifecycle/cleanup
+либо подтверждённый дефект с обозначенными версиями и обходом. Исследование
+не запускалось повторно ради этой записи; задача остаётся в [TODO](../../TODO.md).
