@@ -50,17 +50,42 @@ type RecordValue = Record<string, unknown>;
 /** Presentation only: never changes SDK selection, native work or stored artifacts. */
 function present(value: unknown, method: string, input: RecordValue): RecordValue {
   const truncatedFields = new Set<string>();
-  function copy(value: unknown, path: string, arrayLimit: number): unknown {
-    if (typeof value === "string" && value.length > 4096) {
+  const identityFields = new Set([
+    "operationId",
+    "inspectionId",
+    "artifactId",
+    "schemaId",
+    "id",
+    "packageId",
+    "reportIds",
+    "downloadIds",
+    "missingIds",
+    "revision",
+    "type",
+    "accountId",
+    "targetId",
+    "phase",
+    "status",
+    "code",
+    "verification",
+    "sha256",
+    "expiresAt",
+    "mimeType",
+  ]);
+  function copy(value: unknown, path: string, arrayLimit: number, stringLimit = 4096): unknown {
+    const field = path.slice(path.lastIndexOf(".") + 1).replace(/\[\d+\]$/, "");
+    // Valid identities fit 256 characters; artifact paths retain their full input bound.
+    const limit = Math.max(stringLimit, identityFields.has(field) ? 256 : field === "localPath" ? 4096 : 0);
+    if (typeof value === "string" && value.length > limit) {
       truncatedFields.add(path);
-      return value.slice(0, 4096);
+      return value.slice(0, limit);
     }
     if (Array.isArray(value)) {
       if (value.length > arrayLimit) truncatedFields.add(path);
-      return value.slice(0, arrayLimit).map((v, i) => copy(v, `${path}[${i}]`, arrayLimit));
+      return value.slice(0, arrayLimit).map((v, i) => copy(v, `${path}[${i}]`, arrayLimit, stringLimit));
     }
     if (value && typeof value === "object")
-      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, copy(v, path ? `${path}.${k}` : k, arrayLimit)]));
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, copy(v, path ? `${path}.${k}` : k, arrayLimit, stringLimit)]));
     return value;
   }
   let body = copy(value, "", 1000) as RecordValue;
@@ -72,42 +97,60 @@ function present(value: unknown, method: string, input: RecordValue): RecordValu
       items.splice(Math.ceil(items.length / 2));
       truncatedFields.add(method === "exportPackage" ? "objects.items" : field);
     }
-    const total = Number(page[method === "getSchema" ? "objectCount" : "total"]);
-    const offset = Number(page["offset"]);
-    if (offset + items.length < total) {
-      page["limit"] = items.length;
-      body["truncated"] = true;
-      const nextOffset = offset + items.length;
-      body["nextPage"] =
-        method === "exportPackage"
-          ? {
-              tool: "wshcm_inspect_package",
-              offset: 0,
-              arguments: { artifactId: (body["artifact"] as RecordValue)["artifactId"], limit: 100 },
-            }
-          : {
-              tool: {
-                listSchemas: "wshcm_list_package_schemas",
-                getSchema: "wshcm_get_package_schema",
-                inspectPackage: "wshcm_inspect_package",
-              }[method],
-              offset: nextOffset,
-              arguments: {
-                ...(method === "getSchema" ? { schemaId: input["schemaId"] } : {}),
-                ...(method === "inspectPackage" ? { inspectionId: body["inspectionId"] } : {}),
+  }
+  function decorate() {
+    const page = method === "exportPackage" ? (body["objects"] as RecordValue) : body;
+    const items = page?.[field];
+    if (Array.isArray(items)) {
+      const total = Number(page[method === "getSchema" ? "objectCount" : "total"]);
+      const offset = Number(page["offset"]);
+      if (offset + items.length < total) {
+        page["limit"] = items.length;
+        body["truncated"] = true;
+        const nextOffset = offset + items.length;
+        body["nextPage"] =
+          method === "exportPackage"
+            ? {
+                tool: "wshcm_inspect_package",
+                offset: 0,
+                arguments: { artifactId: (body["artifact"] as RecordValue)["artifactId"], limit: 100 },
+              }
+            : {
+                tool: {
+                  listSchemas: "wshcm_list_package_schemas",
+                  getSchema: "wshcm_get_package_schema",
+                  inspectPackage: "wshcm_inspect_package",
+                }[method],
                 offset: nextOffset,
-                limit: Math.max(1, items.length),
-              },
-            };
+                arguments: {
+                  ...(method === "getSchema" ? { schemaId: input["schemaId"] } : {}),
+                  ...(method === "inspectPackage" ? { inspectionId: body["inspectionId"] } : {}),
+                  offset: nextOffset,
+                  limit: Math.max(1, items.length),
+                },
+              };
+      }
+    }
+    if (truncatedFields.size) {
+      body["truncated"] = true;
+      body["truncatedFields"] = [...truncatedFields].slice(0, 32);
+      body["diagnosticsHint"] =
+        "Use nextPage for remaining rows. Diagnostics/settings may be abbreviated; consult native reportIds/downloadIds and the SDK for full details. Never retry an unknown mutation automatically.";
     }
   }
   if (Buffer.byteLength(JSON.stringify(body)) > MAX_TEXT_BYTES - 8192) body = copy(body, "", 16) as RecordValue;
-  if (truncatedFields.size) {
-    body["truncated"] = true;
-    body["truncatedFields"] = [...truncatedFields].slice(0, 32);
-    body["diagnosticsHint"] =
-      "Use nextPage for remaining rows. Diagnostics/settings may be abbreviated; consult native reportIds/downloadIds and the SDK for full details. Never retry an unknown mutation automatically.";
+  decorate();
+  // JSON escaping and the markers count toward the limit. Rebuild continuation
+  // after every reduction so it starts after the rows actually returned.
+  let arrayLimit = 8;
+  let stringLimit = 4096;
+  while (Buffer.byteLength(JSON.stringify(body)) > MAX_TEXT_BYTES) {
+    body = copy(body, "", arrayLimit, stringLimit) as RecordValue;
+    decorate();
+    if (arrayLimit > 1) arrayLimit = Math.floor(arrayLimit / 2);
+    else stringLimit = Math.max(1, Math.floor(stringLimit / 2));
   }
+
   return body;
 }
 

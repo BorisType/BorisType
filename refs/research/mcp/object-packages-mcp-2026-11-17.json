@@ -1,35 +1,35 @@
 {
-  "marker": "bt-packages-6df2e8c0-192e-4775-b36f-99f3b5519fc7",
+  "marker": "bt-packages-4d413a16-5f20-4daf-9066-bc73653b498e",
   "carrier": "CLI/stdio/SOAP; no BorisType DLL",
   "operations": [
-    "5a083232-0d96-4c33-a7d3-359d5ce6637a",
-    "3155c710-ff94-4d81-a569-0008a856b273",
-    "bbd1a68c-b1e9-4137-a95e-437643890cfa",
-    "95f303c6-a511-4ad3-b097-63858e22da5c",
-    "3dbd2f87-5b26-4326-a7ac-40bcb36cca7c",
-    "37aa737b-1e4d-436f-8d40-fdc03352b7c8",
-    "c30c39fc-9d5b-400e-b744-762dd8e77eee",
-    "2b557932-694e-440c-aaa6-5714b316ce87"
+    "1fdd91d0-9c4d-4921-b8d5-11431efa5043",
+    "c35cd58d-30c4-4fb6-bd50-58a3c699c981",
+    "da363f65-242d-4d49-be70-ad5138160a33",
+    "d62fe3fa-36e3-4a72-90c7-035bce76b159",
+    "c2f3d6bb-ed0f-4b88-a998-40ada2db228e",
+    "dbb29985-c26f-4f3b-886e-343841e91cce",
+    "eaaaf785-c999-4dfe-82e6-61d5f0942510",
+    "1ea9d0c8-8320-4d0c-9564-7972725f12fe"
   ],
   "artifacts": [
     {
-      "artifactId": "3f19fed0-4b03-4335-9b34-af45aa48e04c",
-      "localPath": "/home/agent/.boristype/package-artifacts/3f19fed0-4b03-4335-9b34-af45aa48e04c.zip",
+      "artifactId": "6bb4a9f6-f8df-47b1-b0ba-8a2a5898c1a0",
+      "localPath": "/home/agent/.boristype/package-artifacts/6bb4a9f6-f8df-47b1-b0ba-8a2a5898c1a0.zip",
       "mimeType": "application/zip",
-      "sizeBytes": 982,
-      "sha256": "f66c8449dd14052e55c5bf7c90f8d80146d6abf3bca9dd43cc09facfe9da6e79",
-      "expiresAt": "2026-11-18T17:13:00.549Z"
+      "sizeBytes": 979,
+      "sha256": "429d46d3f7b26e0023292ec6fc0f92072ccbafdd3c933d8561cd7ab380a8e99b",
+      "expiresAt": "2026-11-18T17:28:31.343Z"
     },
     {
-      "artifactId": "f6b287a1-54cf-4a5a-ace0-ec1c6793a60e",
-      "localPath": "/home/agent/.boristype/package-artifacts/f6b287a1-54cf-4a5a-ace0-ec1c6793a60e.zip",
+      "artifactId": "ab9550d0-70e2-4a72-93e0-a1786e337613",
+      "localPath": "/home/agent/.boristype/package-artifacts/ab9550d0-70e2-4a72-93e0-a1786e337613.zip",
       "mimeType": "application/zip",
-      "sizeBytes": 982,
-      "sha256": "f66c8449dd14052e55c5bf7c90f8d80146d6abf3bca9dd43cc09facfe9da6e79",
-      "expiresAt": "2026-11-18T17:13:00.567Z"
+      "sizeBytes": 979,
+      "sha256": "429d46d3f7b26e0023292ec6fc0f92072ccbafdd3c933d8561cd7ab380a8e99b",
+      "expiresAt": "2026-11-18T17:28:31.363Z"
     }
   ],
-  "fixtureIds": ["7352056137826425293", "7352056137815814291"],
+  "fixtureIds": ["7352059950684173716", "7352059950638544661"],
   "identity": {
     "version": "2025.2.1333 (2025-12-26)",
     "accountId": "6148914691236517121"
@@ -39,9 +39,9 @@
     "imageId": "sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab"
   },
   "code": {
-    "revision": "418a40696ce89c7fff7266a3d81a5f3bcc90461a",
+    "revision": "24a6d68cc708c0828497b8fdc54a38f0dd3c94a6",
     "files": {
-      "packages/mcp-server/src/tools/packages.ts": "e1a48dc2c409ffcf5abecc4cfdd05079f4b37e3e805579ecd0c348ac6f6662cb",
+      "packages/mcp-server/src/tools/packages.ts": "69c54971c43a839b2f628c91037a4059a33e4930b5e4df993ca2bb03119ecc3a",
       "packages/mcp-server/src/server.ts": "96442c3fb3231c6966274ca8eaac11277ba16ecc88f019616aa0a8570923cb1c",
       "packages/ws-client/src/hcm/packages/service.ts": "2e31301e6ddef9354b2a3a7b98b0b7602fb98bbdb8add3c04690e4772780e5e9",
       "packages/ws-client/resources/package-operation.bs": "4bf51412d7209ecd247d29ceb672c2700d040f608f63f30f971523b9079de996",
@@ -50,7 +50,7 @@
     }
   },
   "baselineSha256": "71e04cb359b8766d9b3d699c5ecb45af9d3ab422e73cac648a50e19101070b5f",
-  "cliEvaluator": "unsafe_eval_o2dEjoECzV1qfFPBgxa70OeHvax0OD4o.bs",
+  "cliEvaluator": "unsafe_eval_6W4i6xvJ1ZPSGzq9t14wkoQhLFsoyfVb.bs",
   "toolCount": 26,
   "baselineSchemas": [
     {
@@ -59,29 +59,29 @@
       "objectCount": 0
     }
   ],
-  "schemaId": "5a083232-0d96-4c33-a7d3-359d5ce6637a",
+  "schemaId": "1fdd91d0-9c4d-4921-b8d5-11431efa5043",
   "export": {
-    "operationId": "37aa737b-1e4d-436f-8d40-fdc03352b7c8",
+    "operationId": "dbb29985-c26f-4f3b-886e-343841e91cce",
     "artifact": {
-      "artifactId": "3f19fed0-4b03-4335-9b34-af45aa48e04c",
-      "localPath": "/home/agent/.boristype/package-artifacts/3f19fed0-4b03-4335-9b34-af45aa48e04c.zip",
+      "artifactId": "6bb4a9f6-f8df-47b1-b0ba-8a2a5898c1a0",
+      "localPath": "/home/agent/.boristype/package-artifacts/6bb4a9f6-f8df-47b1-b0ba-8a2a5898c1a0.zip",
       "mimeType": "application/zip",
-      "sizeBytes": 982,
-      "sha256": "f66c8449dd14052e55c5bf7c90f8d80146d6abf3bca9dd43cc09facfe9da6e79",
-      "expiresAt": "2026-11-18T17:13:00.549Z"
+      "sizeBytes": 979,
+      "sha256": "429d46d3f7b26e0023292ec6fc0f92072ccbafdd3c933d8561cd7ab380a8e99b",
+      "expiresAt": "2026-11-18T17:28:31.343Z"
     },
     "status": "completed",
     "verification": "archive_membership",
     "objects": {
       "items": [
         {
-          "id": "7352056137826425293",
+          "id": "7352059950684173716",
           "type": "cost_center",
           "name": "archive-0",
           "nameTruncated": false
         },
         {
-          "id": "7352056137815814291",
+          "id": "7352059950638544661",
           "type": "cost_center",
           "name": "archive-1",
           "nameTruncated": false
@@ -95,7 +95,7 @@
     "missingCount": 0,
     "errors": [],
     "operation": {
-      "operationId": "37aa737b-1e4d-436f-8d40-fdc03352b7c8",
+      "operationId": "dbb29985-c26f-4f3b-886e-343841e91cce",
       "accountId": "6148914691236517121",
       "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
       "operation": "export",
@@ -103,22 +103,22 @@
       "status": "completed",
       "verification": "archive_membership",
       "error": "",
-      "reportIds": ["7352056138623599484"],
+      "reportIds": ["7352059950666342554"],
       "downloadIds": []
     }
   },
   "inspection": {
-    "inspectionId": "c30c39fc-9d5b-400e-b744-762dd8e77eee",
+    "inspectionId": "eaaaf785-c999-4dfe-82e6-61d5f0942510",
     "artifact": {
-      "artifactId": "f6b287a1-54cf-4a5a-ace0-ec1c6793a60e",
-      "localPath": "/home/agent/.boristype/package-artifacts/f6b287a1-54cf-4a5a-ace0-ec1c6793a60e.zip",
+      "artifactId": "ab9550d0-70e2-4a72-93e0-a1786e337613",
+      "localPath": "/home/agent/.boristype/package-artifacts/ab9550d0-70e2-4a72-93e0-a1786e337613.zip",
       "mimeType": "application/zip",
-      "sizeBytes": 982,
-      "sha256": "f66c8449dd14052e55c5bf7c90f8d80146d6abf3bca9dd43cc09facfe9da6e79",
-      "expiresAt": "2026-11-18T17:13:00.567Z"
+      "sizeBytes": 979,
+      "sha256": "429d46d3f7b26e0023292ec6fc0f92072ccbafdd3c933d8561cd7ab380a8e99b",
+      "expiresAt": "2026-11-18T17:28:31.363Z"
     },
     "operation": {
-      "operationId": "c30c39fc-9d5b-400e-b744-762dd8e77eee",
+      "operationId": "eaaaf785-c999-4dfe-82e6-61d5f0942510",
       "accountId": "6148914691236517121",
       "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
       "operation": "preview",
@@ -132,7 +132,7 @@
     "items": [
       {
         "kind": "package",
-        "packageId": "qa1wyyr18v",
+        "packageId": "2syl0a0vdi",
         "type": "objects",
         "versionMismatch": false,
         "alreadyImported": false,
@@ -151,14 +151,14 @@
       "tool": "wshcm_inspect_package",
       "offset": 1,
       "arguments": {
-        "inspectionId": "c30c39fc-9d5b-400e-b744-762dd8e77eee",
+        "inspectionId": "eaaaf785-c999-4dfe-82e6-61d5f0942510",
         "offset": 1,
         "limit": 1
       }
     }
   },
   "import": {
-    "operationId": "2b557932-694e-440c-aaa6-5714b316ce87",
+    "operationId": "1ea9d0c8-8320-4d0c-9564-7972725f12fe",
     "accountId": "6148914691236517121",
     "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
     "operation": "import",
@@ -166,21 +166,21 @@
     "status": "completed",
     "verification": "platform_report_only",
     "error": "",
-    "reportIds": ["7352056138896847392"],
-    "downloadIds": ["7352056138897551747"]
+    "reportIds": ["7352059951893440508"],
+    "downloadIds": ["7352059951054841806"]
   },
   "readback": [
     {
-      "id": "7352056137826425293",
+      "id": "7352059950684173716",
       "name": "archive-0"
     },
     {
-      "id": "7352056137815814291",
+      "id": "7352059950638544661",
       "name": "archive-1"
     }
   ],
   "status": {
-    "operationId": "2b557932-694e-440c-aaa6-5714b316ce87",
+    "operationId": "1ea9d0c8-8320-4d0c-9564-7972725f12fe",
     "accountId": "6148914691236517121",
     "targetId": "sfvh3yp7xrm8prwvf8xuevibgc55ts2h",
     "operation": "import",
@@ -188,8 +188,8 @@
     "status": "completed",
     "verification": "platform_report_only",
     "error": "",
-    "reportIds": ["7352056138896847392"],
-    "downloadIds": ["7352056138897551747"]
+    "reportIds": ["7352059951893440508"],
+    "downloadIds": ["7352059951054841806"]
   },
   "schemaUnchanged": true,
   "cleanup": {
@@ -198,27 +198,27 @@
     "reportRecordsRemaining": [],
     "downloadRecordsRemaining": [],
     "objectsRemaining": 0,
-    "reportsDeleted": ["7352056138896847392", "7352056138623599484"],
-    "downloadsDeleted": ["7352056138897551747"],
+    "reportsDeleted": ["7352059951893440508", "7352059950666342554"],
+    "downloadsDeleted": ["7352059951054841806"],
     "operationsDeleted": [
-      "5a083232-0d96-4c33-a7d3-359d5ce6637a",
-      "3155c710-ff94-4d81-a569-0008a856b273",
-      "bbd1a68c-b1e9-4137-a95e-437643890cfa",
-      "95f303c6-a511-4ad3-b097-63858e22da5c",
-      "3dbd2f87-5b26-4326-a7ac-40bcb36cca7c",
-      "37aa737b-1e4d-436f-8d40-fdc03352b7c8",
-      "c30c39fc-9d5b-400e-b744-762dd8e77eee",
-      "2b557932-694e-440c-aaa6-5714b316ce87"
+      "1fdd91d0-9c4d-4921-b8d5-11431efa5043",
+      "c35cd58d-30c4-4fb6-bd50-58a3c699c981",
+      "da363f65-242d-4d49-be70-ad5138160a33",
+      "d62fe3fa-36e3-4a72-90c7-035bce76b159",
+      "c2f3d6bb-ed0f-4b88-a998-40ada2db228e",
+      "dbb29985-c26f-4f3b-886e-343841e91cce",
+      "eaaaf785-c999-4dfe-82e6-61d5f0942510",
+      "1ea9d0c8-8320-4d0c-9564-7972725f12fe"
     ],
     "errors": []
   },
   "schemaUnchangedAfterCleanup": true,
   "cliEvaluatorRemoved": true,
   "helperEvaluatorClosed": true,
-  "localArtifactsRemoved": ["3f19fed0-4b03-4335-9b34-af45aa48e04c", "f6b287a1-54cf-4a5a-ace0-ec1c6793a60e"],
+  "localArtifactsRemoved": ["6bb4a9f6-f8df-47b1-b0ba-8a2a5898c1a0", "ab9550d0-70e2-4a72-93e0-a1786e337613"],
   "evaluatorsAfter": [
     "unsafe_eval_9OOsfgcDx9QmqyoRq7HBKw84aV0Nqymd.bs",
-    "unsafe_eval_DOKRqsipE1rqkl9vGXRycDbQmQW0iKJ6.bs",
+    "unsafe_eval_9eco5amp1NMkji8prJkOUpIr7GVh006i.bs",
     "unsafe_eval_fdaex5a0foX5Z9Sv6Zdc24y4gcLwZnlr.bs",
     "unsafe_eval_fzcaIhmgW1H6uj5i6s2xs1dOzNP1DQDD.bs",
     "unsafe_eval_olCMshFATC3t23m9ogErt9vjm855tO7G.bs",
@@ -226,7 +226,7 @@
   ],
   "evaluatorsBefore": [
     "unsafe_eval_9OOsfgcDx9QmqyoRq7HBKw84aV0Nqymd.bs",
-    "unsafe_eval_DOKRqsipE1rqkl9vGXRycDbQmQW0iKJ6.bs",
+    "unsafe_eval_9eco5amp1NMkji8prJkOUpIr7GVh006i.bs",
     "unsafe_eval_fdaex5a0foX5Z9Sv6Zdc24y4gcLwZnlr.bs",
     "unsafe_eval_fzcaIhmgW1H6uj5i6s2xs1dOzNP1DQDD.bs",
     "unsafe_eval_olCMshFATC3t23m9ogErt9vjm855tO7G.bs",

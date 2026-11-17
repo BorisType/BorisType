@@ -327,3 +327,28 @@ test("oversized generic filesystem diagnostics are explicitly truncated", async 
   assert.equal(failed.truncated, true);
   assert.ok(failed.message.length <= 4096);
 });
+
+test("JSON escape expansion cannot exceed the final text budget or discard mutation correlation", async (t) => {
+  const p = packagePlatform({ tools: { add_object_to_package: () => ({ error: 1, message: "\u0000".repeat(4096) }) } });
+  const client = await connect(t, p.evaluator);
+  const schema = await call(client, "get_package_schema", { schemaId: "baseline" });
+  const operationId = randomUUID();
+  const response = await client.callTool({
+    name: "wshcm_add_package_objects",
+    arguments: {
+      schemaId: "baseline",
+      revision: schema.revision,
+      objectIds: Array.from({ length: 16 }, (_, i) => String(i + 1)),
+      operationId,
+    },
+  });
+  assert.notEqual(response.isError, true);
+  const body = JSON.parse(response.content[0].text);
+  assert.equal(body.operation.operationId, operationId);
+  assert.equal(body.operation.status, "partial");
+  assert.equal(body.operation.phase, "saved");
+  assert.equal(body.schemaId, "baseline");
+  assert.equal(body.truncated, true);
+  assert.ok(body.truncatedFields.some((path) => path.startsWith("errors")));
+  assert.ok(Buffer.byteLength(response.content[0].text) <= 262144, `Final JSON is ${Buffer.byteLength(response.content[0].text)} bytes`);
+});
