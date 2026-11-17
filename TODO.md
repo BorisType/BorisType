@@ -81,9 +81,7 @@
   custom templates/access roles/files/lists/deletions, related traversal,
   cross-client concurrency, разные аккаунты, native timeout receipt, максимальные
   размеры и Windows/MSSQL. Нужны политика уборки expired artifacts и серверных
-  receipt/temp/report; полноценный remap IDs не реализован. Public UUID schema
-  пока принимает uppercase, native validation требует lowercase; до согласования
-  используйте lowercase UUID. [Контракт и точные границы evidence](refs/mcp/object-packages.md).
+  receipt/temp/report; полноценный remap IDs не реализован. [Контракт и точные границы evidence](refs/mcp/object-packages.md).
 
 - **Пакеты: прикладные зависимости сверх штатного XMD-обхода.** Отдельная opt-in
   стратегия для известных ссылок в `wvars` (`custom_web_template` /

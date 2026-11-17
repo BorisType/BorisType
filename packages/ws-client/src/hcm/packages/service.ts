@@ -20,6 +20,18 @@ import {
 import { packageNative } from "./native.js";
 import { PackageArtifactStore } from "./artifacts.js";
 type Input<K extends keyof typeof packageSchemas> = z.input<(typeof packageSchemas)[K]>;
+// Keep public schemas JSON Schema serializable; normalize only public UUID handles
+// after validation and before native dispatch, local map lookup or artifact access.
+function canonicalHandles<T extends object>(args: T): T {
+  for (const key of ["operationId", "artifactId", "inspectionId"] as const) {
+    if (key in args) {
+      const value = args[key as keyof T];
+      if (typeof value === "string") Object.assign(args, { [key]: value.toLowerCase() });
+    }
+  }
+  return args;
+}
+
 const snapshot = z
   .string()
   .max(33554432)
@@ -100,7 +112,7 @@ export class WshcmPackages {
     return xml;
   }
   async listSchemas(input: Input<"listSchemas"> = {}): Promise<PackagePage<PackageSchemaSummary>> {
-    const args = packageSchemas.listSchemas.parse(input);
+    const args = canonicalHandles(packageSchemas.listSchemas.parse(input));
     return this.run(async () => {
       const body = await packageNative(
         this.evaluator,
@@ -120,7 +132,7 @@ export class WshcmPackages {
     });
   }
   async getSchema(input: Input<"getSchema">): Promise<PackageSchema> {
-    const args = packageSchemas.getSchema.parse(input);
+    const args = canonicalHandles(packageSchemas.getSchema.parse(input));
     return this.run(() => this.read(args));
   }
   private async read(args: { schemaId: string; offset: number; limit: number }): Promise<PackageSchema> {
@@ -152,11 +164,11 @@ export class WshcmPackages {
     }
   }
   saveSchema(input: Input<"saveSchema">) {
-    const args = packageSchemas.saveSchema.parse(input);
+    const args = canonicalHandles(packageSchemas.saveSchema.parse(input));
     return this.run(() => this.change("save", args));
   }
   deleteSchema(input: Input<"deleteSchema">) {
-    const args = packageSchemas.deleteSchema.parse(input);
+    const args = canonicalHandles(packageSchemas.deleteSchema.parse(input));
     return this.run(() =>
       packageNative(
         this.evaluator,
@@ -166,17 +178,17 @@ export class WshcmPackages {
     );
   }
   addObjects(input: Input<"addObjects">) {
-    const args = packageSchemas.addObjects.parse(input);
+    const args = canonicalHandles(packageSchemas.addObjects.parse(input));
     args.objectIds = [...new Set(args.objectIds)];
     return this.run(() => this.change("add", args));
   }
   removeObjects(input: Input<"removeObjects">) {
-    const args = packageSchemas.removeObjects.parse(input);
+    const args = canonicalHandles(packageSchemas.removeObjects.parse(input));
     args.objectIds = [...new Set(args.objectIds)];
     return this.run(() => this.change("remove", args));
   }
   async exportPackage(input: Input<"exportPackage">) {
-    const args = packageSchemas.exportPackage.parse(input);
+    const args = canonicalHandles(packageSchemas.exportPackage.parse(input));
     if (args.objectIds) args.objectIds = [...new Set(args.objectIds)];
     return this.run(async () => {
       const operationId = args.operationId ?? randomUUID();
@@ -348,7 +360,7 @@ export class WshcmPackages {
     };
   }
   async inspectPackage(input: Input<"inspectPackage">) {
-    const args = packageSchemas.inspectPackage.parse(input);
+    const args = canonicalHandles(packageSchemas.inspectPackage.parse(input));
     return this.run(async () => {
       let inspectionId = args.inspectionId;
       let state: Inspection | undefined;
@@ -427,7 +439,7 @@ export class WshcmPackages {
     });
   }
   async importPackage(input: Input<"importPackage">) {
-    const args = packageSchemas.importPackage.parse(input);
+    const args = canonicalHandles(packageSchemas.importPackage.parse(input));
     return this.run(async () => {
       const state = this.inspections.get(args.inspectionId);
       if (!state)
@@ -465,7 +477,7 @@ export class WshcmPackages {
     });
   }
   async getOperation(input: Input<"getOperation">) {
-    const args = packageSchemas.getOperation.parse(input);
+    const args = canonicalHandles(packageSchemas.getOperation.parse(input));
     const result = await packageNative(this.evaluator, { operation: "status", ...args }, operationResult);
     const artifact = this.operationArtifacts.get(args.operationId);
     return { ...result, ...(artifact ? { artifact: { ...artifact } } : {}) };

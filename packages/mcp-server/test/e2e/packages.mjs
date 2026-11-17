@@ -10,6 +10,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { WshcmClient, WshcmPackages } from "@boristype/ws-client";
+import { verifyPackageReceiptRecovery } from "../../../ws-client/test/helpers/package-native-recovery.mjs";
 import { cleanupPackageFixtures } from "../../../ws-client/test/helpers/package-native-cleanup.mjs";
 
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -89,6 +90,8 @@ test(
         "packages/mcp-server/src/tools/packages.ts",
         "packages/mcp-server/src/server.ts",
         "packages/ws-client/src/hcm/packages/service.ts",
+        "packages/ws-client/src/hcm/packages/schemas.ts",
+        "packages/ws-client/test/helpers/package-native-recovery.mjs",
         "packages/ws-client/resources/package-operation.bs",
         "packages/mcp-server/test/e2e/packages.mjs",
         "packages/ws-client/test/helpers/package-native-cleanup.mjs",
@@ -106,9 +109,22 @@ test(
       assert.equal(receipt.toolCount, 26);
       const schemas = await call("list_package_schemas", { limit: 1 });
       receipt.baselineSchemas = schemas.items.map(({ schemaId, name, objectCount }) => ({ schemaId, name, objectCount }));
-      const created = await call("save_package_schema", { name: marker, operationId: operationId() });
+      const createId = operationId();
+      const created = await call("save_package_schema", { name: marker, operationId: createId.toUpperCase() });
+      assert.equal(created.operation.operationId, createId);
       schemaId = created.schemaId;
       receipt.schemaId = schemaId;
+      assert.equal((await call("get_package_operation", { operationId: createId.toUpperCase() })).operationId, createId);
+      receipt.recovery = await verifyPackageReceiptRecovery(e, {
+        operationId: createId,
+        schemaId,
+        marker,
+        lookup: async (operationId) => {
+          const result = await client.callTool({ name: "wshcm_get_package_operation", arguments: { operationId } }, { timeout: 60000 });
+          assert.equal(result.isError, true);
+          return JSON.parse(result.content[0].text);
+        },
+      });
       receipt.fixtureIds = await ev(
         `var out=[];var i;var d;for(i=0;i<2;i++){d=OpenNewDoc('x-local://wtv/wtv_cost_center.xmd');d.TopElem.code='${marker}';d.TopElem.name='archive-'+i;d.BindToDb(DefaultDb);d.Save();out.push(StrInt(d.DocID));}return EncodeJson(out);`,
       );
@@ -139,18 +155,25 @@ test(
       assert.equal(hash(bytes), exported.artifact.sha256);
       assert.ok(!JSON.stringify(exported).includes(bytes.toString("base64")));
       receipt.export = exported;
-      const preview = await call("inspect_package", { artifactId: exported.artifact.artifactId, limit: 1, operationId: operationId() });
+      const preview = await call("inspect_package", {
+        artifactId: exported.artifact.artifactId.toUpperCase(),
+        limit: 1,
+        operationId: operationId().toUpperCase(),
+      });
       assert.equal(preview.total, 3);
       assert.equal(preview.items.length, 1);
       packageIds.push(preview.items[0].packageId);
       receipt.inspection = preview;
-      const page = await call("inspect_package", { inspectionId: preview.inspectionId, offset: 1, limit: 2 });
+      const page = await call("inspect_package", { inspectionId: preview.inspectionId.toUpperCase(), offset: 1, limit: 2 });
       assert.deepEqual(page.items.map((item) => item.id).sort(), [...receipt.fixtureIds].sort());
       await e.eval(
         `var ids=ParseJson('${JSON.stringify(receipt.fixtureIds)}');var i;var d;for(i=0;i<ArrayCount(ids);i++){d=OpenDoc(UrlFromDocID(Int(ids[i])));d.TopElem.name='local-change';d.Save();}return;`,
       );
       // Default import covers both objects although the initial response showed only the package row.
-      const applied = await call("import_package", { inspectionId: preview.inspectionId, operationId: operationId() });
+      const applied = await call("import_package", {
+        inspectionId: preview.inspectionId.toUpperCase(),
+        operationId: operationId().toUpperCase(),
+      });
       assert.equal(applied.status, "completed");
       assert.equal(applied.verification, "platform_report_only");
       assert.ok(applied.reportIds.length && applied.downloadIds.length);

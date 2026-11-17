@@ -181,7 +181,7 @@ export function registerPackageTools(server: McpServer, api: WshcmApi): void {
   const temporary = { ...read, readOnlyHint: false };
   const mutation = { ...temporary, destructiveHint: true };
   const lifecycle =
-    " Exact object IDs are decimal strings. Supply a lowercase UUID operationId before long/mutating calls; timeout does not cancel native work. Query get_package_operation before any explicit retry. No automatic retry, rollback, atomic CAS or exactly-once guarantee.";
+    " Exact object IDs are decimal strings. Supply a UUID operationId before long/mutating calls; public operationId/artifactId/inspectionId handles are canonicalized to lowercase; timeout does not cancel native work. Query get_package_operation before any explicit retry. No automatic retry, rollback, atomic CAS or exactly-once guarantee.";
   const links =
     " includeRelatedObjects uses native XMD/foreign links only; wvars/mode resolvers and complete dependency closure are not implemented.";
   function register<K extends keyof typeof packageSchemas>(name: string, method: K, description: string, annotations = mutation) {

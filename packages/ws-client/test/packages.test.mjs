@@ -15,6 +15,9 @@ test("package schemas preserve exact IDs, defaults, XOR and revision requirement
     {},
     { objectIds: ["1"], schemaId: "a", revision: "a".repeat(64) },
     { objectIds: [1] },
+    ...["not-an-id", "", "0", "01", "-1", "1.5", " 1", "1e3"].map((id) => ({ objectIds: [id] })),
+    { objectIds: [] },
+    { objectIds: Array(10001).fill("1") },
     { objectIds: ["18446744073709551616"] },
     { schemaId: "a" },
     { objectIds: ["1"], unknown: true },
@@ -192,7 +195,7 @@ test("immutable inspection rejects outside selection, repeat/version/type confli
     assert.equal(applied, 0);
     reimport = false;
     preview.artifact.sha256 = "0".repeat(64); // Returned metadata cannot mutate the inspection binding.
-    const imported = await service.importPackage({ inspectionId: preview.inspectionId });
+    const imported = await service.importPackage({ inspectionId: preview.inspectionId.toUpperCase() });
     assert.equal(imported.status, "completed");
     assert.equal(imported.verification, "platform_report_only");
     assert.equal(applied, 1);
@@ -242,7 +245,7 @@ test("direct export preserves common schema and retains partial artifact for mis
     await rm(dir, { recursive: true, force: true });
   }
 });
-test("reused operation IDs and changed account reject before mutation or receipt disclosure", async () => {
+test("reused operation IDs and changed account/target reject before mutation or receipt disclosure", async () => {
   let user = 1n;
   const p = platform({ tools: { get_cur_user_id: () => user } });
   const service = new sdk.WshcmPackages(p.evaluator);
@@ -251,7 +254,14 @@ test("reused operation IDs and changed account reject before mutation or receipt
   await assert.rejects(service.saveSchema({ name: "duplicate", operationId }), /Conflict/);
   assert.equal(p.saves, 1);
   user = 2n;
-  await assert.rejects(service.getOperation({ operationId }), /ContextMismatch/);
+  await assert.rejects(new sdk.WshcmPackages(p.evaluator).getOperation({ operationId }), /ContextMismatch/);
+  user = 1n;
+  const identity = "x-local://trash/boristype_packages/identity.txt";
+  const original = p.files.get(identity);
+  p.files.set(identity, "another-target");
+  await assert.rejects(new sdk.WshcmPackages(p.evaluator).getOperation({ operationId }), /ContextMismatch/);
+  p.files.set(identity, original);
+  assert.equal((await new sdk.WshcmPackages(p.evaluator).getOperation({ operationId })).status, "completed");
   assert.equal(p.saves, 1);
 });
 for (const wire of [null, {}, JSON.stringify({ ok: true }), JSON.stringify(JSON.stringify({ ok: true, body: {} }))])
@@ -536,3 +546,75 @@ for (const loseAck of [false, true])
       }
     },
   );
+
+for (const failure of ["missing", "unreadable", "corrupt"])
+  test(`fresh SDK receipt recovery preserves unknown historical outcome for ${failure} storage`, async () => {
+    let blocked;
+    let p;
+    p = platform({
+      LoadFileData: (path) => {
+        if (path === blocked) throw Error("permission denied");
+        if (!p.files.has(path)) throw Error("missing");
+        return p.files.get(path);
+      },
+    });
+    const operationId = randomUUID();
+    const service = new sdk.WshcmPackages(p.evaluator);
+    const created = await service.saveSchema({ name: "owned-effect", operationId });
+    assert.equal((await service.getSchema({ schemaId: created.schemaId })).name, "owned-effect");
+    assert.equal((await service.getOperation({ operationId })).status, "completed");
+    const path = `x-local://trash/boristype_packages/${operationId}/receipt.json`;
+    if (failure === "missing") p.files.delete(path);
+    if (failure === "corrupt") p.files.set(path, "{not JSON");
+    if (failure === "unreadable") blocked = path;
+    const before = new Map(p.files);
+    const calls = p.calls;
+    await assert.rejects(new sdk.WshcmPackages(p.evaluator).getOperation({ operationId }), (error) => {
+      assert.equal(error.details.operationId, operationId);
+      assert.equal(error.details.status, "unknown");
+      assert.equal(error.details.code, "ReceiptUnavailable");
+      assert.equal(error.details.phase, "receipt");
+      assert.ok(error.details.message);
+      return true;
+    });
+    assert.equal(p.calls, calls + 1);
+    assert.equal(p.saves, 1);
+    assert.equal(p.saved.find((s) => s.id === created.schemaId).name, "owned-effect");
+    assert.deepEqual(p.files, before);
+  });
+
+test("uppercase operation handles are canonical before native dispatch and status lookup", async () => {
+  const p = platform();
+  const operationId = randomUUID();
+  assert.equal(sdk.packageSchemas.saveSchema.safeParse({ name: "owned", operationId: operationId.toUpperCase() }).success, true);
+  const service = new sdk.WshcmPackages(p.evaluator);
+  const created = await service.saveSchema({ name: "owned", operationId: operationId.toUpperCase() });
+  assert.equal(created.operation.operationId, operationId);
+  const status = await new sdk.WshcmPackages(p.evaluator).getOperation({ operationId: operationId.toUpperCase() });
+  assert.equal(status.operationId, operationId);
+  assert.equal(status.status, "completed");
+  assert.equal(p.saves, 1);
+  const schemaId = "AbC_NativeKey";
+  p.saved[0].id = schemaId;
+  assert.equal((await service.getSchema({ schemaId })).schemaId, schemaId);
+});
+
+test("invalid new mutation input stays not dispatched, independently of historical receipt recovery", async () => {
+  const p = platform();
+  const service = new sdk.WshcmPackages(p.evaluator);
+  await assert.rejects(async () => service.saveSchema({ name: "owned", operationId: "invalid" }));
+  assert.equal(p.calls, 0);
+  assert.equal(p.saves, 0);
+  assert.equal(p.files.size, 0);
+  const { packageNative } = await import("../build/hcm/packages/native.js");
+  const { z } = await import("zod");
+  await assert.rejects(packageNative(p.evaluator, { operation: "save", operationId: "invalid", name: "owned" }, z.unknown()), (error) => {
+    assert.equal(error.details.code, "InvalidInput");
+    assert.equal(error.details.phase, "validate");
+    assert.equal(error.details.status, "not_attempted");
+    return true;
+  });
+  assert.equal(p.calls, 1);
+  assert.equal(p.saves, 0);
+  assert.equal(p.files.size, 0);
+});

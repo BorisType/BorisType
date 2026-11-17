@@ -48,6 +48,7 @@ test("registered package tools advertise exact SDK inputs and honest effects", a
   const packages = tools.filter((tool) => names.includes(tool.name.replace("wshcm_", "")));
   assert.equal(packages.length, 10);
   for (const tool of packages) {
+    assert.match(tool.description, /handles are canonicalized to lowercase/);
     assert.equal(tool.inputSchema.additionalProperties, false);
     assert.equal(tool.annotations.idempotentHint, false);
     assert.equal(tool.annotations.readOnlyHint, /wshcm_(list_package_schemas|get_package_schema|get_package_operation)$/.test(tool.name));
@@ -70,7 +71,10 @@ test("schema CRUD through real MCP registration preserves neighbors, revisions a
   const before = await call(client, "list_package_schemas", { limit: 1 });
   assert.equal(before.total, 1);
   assert.equal(before.items[0].schemaId, "baseline");
-  const created = await call(client, "save_package_schema", { name: "owned" });
+  const operationId = randomUUID();
+  const created = await call(client, "save_package_schema", { name: "owned", operationId: operationId.toUpperCase() });
+  assert.equal(created.operation.operationId, operationId);
+  assert.equal((await call(client, "get_package_operation", { operationId: operationId.toUpperCase() })).operationId, operationId);
   let current = await call(client, "get_package_schema", { schemaId: created.schemaId });
   await call(client, "add_package_objects", {
     schemaId: created.schemaId,
@@ -120,6 +124,8 @@ for (const [name, args] of [
   ["export_package", {}],
   ["export_package", { objectIds: ["not-an-id"] }],
   ["export_package", { objectIds: [1] }],
+  ["export_package", { objectIds: ["18446744073709551616"] }],
+  ["export_package", { objectIds: Array(10001).fill("1") }],
   ["export_package", { schemaId: "a", revision: "a".repeat(64), objectIds: [id] }],
   ["save_package_schema", { schemaId: "a", name: "missing revision" }],
   ["get_package_schema", { schemaId: "a", limit: 1001 }],
@@ -237,9 +243,9 @@ test("export/inspect/import through the registered tools retain immutable bytes 
   assert.equal(preview.items.length, 1);
   assert.equal(preview.total, 2);
   await writeFile(source, "changed original");
-  const page = await call(client, "inspect_package", { inspectionId: preview.inspectionId, offset: 1, limit: 1 });
+  const page = await call(client, "inspect_package", { inspectionId: preview.inspectionId.toUpperCase(), offset: 1, limit: 1 });
   assert.equal(page.items[0].id, id);
-  const applied = await call(client, "import_package", { inspectionId: preview.inspectionId });
+  const applied = await call(client, "import_package", { inspectionId: preview.inspectionId.toUpperCase() });
   assert.equal(selected, true);
   assert.equal(applied.status, "completed");
   assert.equal(applied.verification, "platform_report_only");
@@ -352,3 +358,38 @@ test("JSON escape expansion cannot exceed the final text budget or discard mutat
   assert.ok(body.truncatedFields.some((path) => path.startsWith("errors")));
   assert.ok(Buffer.byteLength(response.content[0].text) <= 262144, `Final JSON is ${Buffer.byteLength(response.content[0].text)} bytes`);
 });
+
+for (const failure of ["missing", "unreadable", "corrupt"])
+  test(`registered MCP receipt recovery preserves unknown historical outcome for ${failure} storage`, async (t) => {
+    let blocked;
+    let p;
+    p = packagePlatform({
+      LoadFileData: (path) => {
+        if (path === blocked) throw Error("permission denied");
+        if (!p.files.has(path)) throw Error("missing");
+        return p.files.get(path);
+      },
+    });
+    const operationId = randomUUID();
+    const first = await connect(t, p.evaluator);
+    const created = await call(first, "save_package_schema", { name: "owned-effect", operationId });
+    assert.equal((await call(first, "get_package_schema", { schemaId: created.schemaId })).name, "owned-effect");
+    assert.equal((await call(first, "get_package_operation", { operationId })).status, "completed");
+    const path = `x-local://trash/boristype_packages/${operationId}/receipt.json`;
+    if (failure === "missing") p.files.delete(path);
+    if (failure === "corrupt") p.files.set(path, "{not JSON");
+    if (failure === "unreadable") blocked = path;
+    const before = new Map(p.files);
+    const fresh = await connect(t, p.evaluator);
+    const calls = p.calls;
+    const error = await call(fresh, "get_package_operation", { operationId }, true);
+    assert.equal(error.operationId, operationId);
+    assert.equal(error.status, "unknown");
+    assert.equal(error.code, "ReceiptUnavailable");
+    assert.equal(error.phase, "receipt");
+    assert.ok(error.message);
+    assert.equal(p.calls, calls + 1);
+    assert.equal(p.saves, 1);
+    assert.equal(p.saved.find((s) => s.id === created.schemaId).name, "owned-effect");
+    assert.deepEqual(p.files, before);
+  });

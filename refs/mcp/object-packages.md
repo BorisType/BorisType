@@ -221,16 +221,31 @@ Diagnostics/settings могут сокращаться с truncatedFields. Stand
 делегирует SDK validation и JSON Schema, ограничивая также Zod/ generic errors;
 отдельных бизнес-правил в MCP нет.
 
-OperationId можно выбрать до dispatch; используйте lowercase UUID (несогласованная
-uppercase schema/native validation остаётся minor TODO). Серверные receipts связаны
+OperationId можно выбрать до dispatch. SDK принимает UUID handles operationId,
+artifactId и inspectionId в любом регистре и приводит их к lowercase перед lookup
+и dispatch; результаты используют lowercase. Native schemaId/packageId и decimal
+objectIds сохраняют исходные значения. Серверные receipts связаны
 с tools.get_cur_user_id() и persistent target identity marker. getOperation доступен
-после потери SDK/evaluator. Нет retries/cancellation/rollback/exactly-once.
+после потери SDK/evaluator. Если receipt отсутствует, недоступен или повреждён,
+lookup сохраняет unknown с operationId, code ReceiptUnavailable и phase receipt;
+это не доказательство отсутствия прежней мутации. Lookup не восстанавливает
+receipt и не повторяет операцию. Нет retries/cancellation/rollback/exactly-once.
 WshcmPackageError.details сохраняется в MCP, включая operationId/status,
 lastKnownOperation/cleanupError. Export проверяет архивный состав и может сообщить
 partial; import completed с platform_report_only — завершение native вызова,
 а не per-object success. Для делового результата требуются отчёты/readback.
 
 ## Product acceptance и границы
+
+Отдельные [SDK final-fix receipt](../research/mcp/object-packages-sdk-final-fix-2026-11-17.json)
+и [CLI/stdio final-fix receipt](../research/mcp/object-packages-mcp-final-fix-2026-11-17.json)
+содержат hashes изменённых source bytes. После доказанного собственного Save
+missing/corrupt receipt дали ReceiptUnavailable/receipt/unknown с тем же operationId,
+без восстановления receipt или изменения схемы. SDK status использовал новый
+экземпляр API; CLI проверен через реальную регистрацию tools. Uppercase public
+UUID handles прошли lookup/dispatch с lowercase результатами. Недоступное чтение
+проверено только VM doubles, не native permissions. Эти проверки не расширяют
+перечисленные ниже типы, timeout, load и другие границы прежних запусков.
 
 [Свежий native CLI/stdio receipt](../research/mcp/object-packages-mcp-2026-11-17.json)
 содержит code hashes, stand identity, операции и результаты cleanup. Runner:

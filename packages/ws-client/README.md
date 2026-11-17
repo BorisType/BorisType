@@ -156,9 +156,14 @@ SDK не возвращает ZIP/base64 в JSON. MCP дополнительно
 и добавляет truncated/nextPage; SDK выдаёт полные разрешённые страницы.
 
 Ошибка `WshcmPackageError.details` сохраняет phase/status/code/message/operationId,
-при наличии — lastKnownOperation/cleanupError. Native receipts переживают потерю
+при наличии — lastKnownOperation/cleanupError. Public UUID handles operationId,
+artifactId и inspectionId принимаются в любом регистре и приводятся к lowercase
+перед lookup/dispatch; результаты используют lowercase. Native schemaId/packageId
+сохраняют регистр. Native receipts переживают потерю
 клиента и доступны через getOperation на том же target/account; автоматического
-retry/rollback/cancellation/exactly-once нет. Timeout не останавливает HCM.
+retry/rollback/cancellation/exactly-once нет. Отсутствующий, недоступный или
+повреждённый receipt даёт ReceiptUnavailable/receipt/unknown с тем же operationId,
+без восстановления receipt или повторной мутации. Timeout не останавливает HCM.
 `completed` + `platform_report_only` не доказывает per-object success.
 
 Native objects acceptance выполнена на Linux C HCM 2025.2.1333/PostgreSQL;
@@ -367,6 +372,11 @@ pnpm --filter @boristype/ws-client test:e2e:xquery
 pnpm --filter @boristype/ws-client test:e2e:packages
 ```
 
-Native серии создают и удаляют собственные временные BS-модули, не меняя бизнес-записи.
+`test:e2e:values` и `test:e2e:xquery` создают и удаляют собственные временные
+BS-модули, не меняя бизнес-записи. `test:e2e:packages` также создаёт, импортирует,
+обновляет и удаляет собственные cost_center fixtures и схемы пакетов; очищает
+свои ZIP, receipts, reports и временные каталоги. Его опциональная guarded
+PostgreSQL cleanup удаляет только проверенные собственные catalog projections
+и относится к тестам. Это проверка с изменениями данных выбранного стенда.
 `test:e2e:values` фиксирует наблюдаемое форматирование real на Linux C 2025.2.1333;
 другие runtime требуют своей проверки.

@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { uploadPackage, downloadPackage } from "../../build/hcm/packages/transfer.js";
 import { createHash, randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { verifyPackageReceiptRecovery } from "../helpers/package-native-recovery.mjs";
 import { cleanupPackageFixtures } from "../helpers/package-native-cleanup.mjs";
 import { objectPackage, zip } from "../helpers/package-fixtures.mjs";
 import { WshcmClient, WshcmPackages } from "../../build/index.js";
@@ -32,14 +33,50 @@ await client.initialize();
 await e.initialize();
 try {
   receipt.identity = await ev(`return EncodeJson({version:String(tools.get_version('wtv')),accountId:StrInt(tools.get_cur_user_id())});`);
+  receipt.codeFiles = {};
+  for (const file of [
+    "packages/ws-client/src/hcm/packages/service.ts",
+    "packages/ws-client/src/hcm/packages/schemas.ts",
+    "packages/ws-client/resources/package-operation.bs",
+    "packages/ws-client/test/e2e/packages.mjs",
+    "packages/ws-client/test/helpers/package-native-recovery.mjs",
+    "packages/ws-client/test/helpers/package-native-cleanup.mjs",
+  ])
+    receipt.codeFiles[file] = createHash("sha256")
+      .update(await readFile(new URL("../../../../" + file, import.meta.url)))
+      .digest("hex");
   receipt.revision = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).stdout.trim();
   receipt.baseline = await e.eval("return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();");
   const op = randomUUID();
   receipt.operations.push(op);
-  const created = await api.saveSchema({ name: marker, operationId: op });
+  const created = await api.saveSchema({ name: marker, operationId: op.toUpperCase() });
   schemaId = created.schemaId;
   let read = await api.getSchema({ schemaId });
   assert.equal(read.name, marker);
+  assert.equal(created.operation.operationId, op);
+  assert.equal((await new WshcmPackages(e).getOperation({ operationId: op.toUpperCase() })).operationId, op);
+  receipt.recovery = await verifyPackageReceiptRecovery(e, {
+    operationId: op,
+    schemaId,
+    marker,
+    lookup: async (operationId) => {
+      let calls = 0;
+      const fresh = new WshcmPackages({
+        eval: (code) => {
+          calls++;
+          return e.eval(code);
+        },
+      });
+      try {
+        await fresh.getOperation({ operationId });
+        assert.fail("Receipt loss unexpectedly succeeded");
+      } catch (error) {
+        assert.equal(calls, 1);
+        assert.ok(error.details);
+        return error.details;
+      }
+    },
+  });
   ids = await ev(
     `var ids=[];var i;var d;for(i=0;i<32;i++){d=OpenNewDoc('x-local://wtv/wtv_cost_center.xmd');d.TopElem.code='${marker}';d.TopElem.name='archive-value-'+i;d.BindToDb(DefaultDb);d.Save();ids.push(StrSignedInt(d.DocID));}return EncodeJson(ids);`,
   );
@@ -70,7 +107,10 @@ try {
   assert.equal(await e.eval("return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();"), receipt.baseline);
   const inspectId = randomUUID();
   receipt.operations.push(inspectId);
-  const preview = await api.inspectPackage({ artifactId: exported.artifact.artifactId, operationId: inspectId });
+  const preview = await api.inspectPackage({
+    artifactId: exported.artifact.artifactId.toUpperCase(),
+    operationId: inspectId.toUpperCase(),
+  });
   packageIds = preview.items.filter((x) => x.kind === "package").map((x) => x.packageId);
   receipt.inspection = { operation: preview.operation, total: preview.total };
   const binding = await ev(`return LoadFileData(UrlToFilePath('x-local://trash/boristype_packages/${inspectId}/source.json'));`);
@@ -81,8 +121,8 @@ try {
     const operationId = randomUUID();
     receipt.operations.push(operationId);
     const applied = await api.importPackage({
-      inspectionId: preview.inspectionId,
-      operationId,
+      inspectionId: preview.inspectionId.toUpperCase(),
+      operationId: operationId.toUpperCase(),
       allowReimport: stage !== "create",
       ...(stage === "skip" ? { objectIds: [ids[1]] } : {}),
     });

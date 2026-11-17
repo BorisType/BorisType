@@ -120,9 +120,13 @@ input objectIds до 10000; chunk 256 KiB. Страницы default 100, limit 1
 сокращение помечается truncated/truncatedFields. Подробные diagnostics доступны
 через SDK/native reports, длинные settings могут сокращаться.
 
-Задайте lowercase UUID operationId до долгого вызова и сохраните его. После
+Задайте UUID operationId до долгого вызова и сохраните его. Public UUID handles
+operationId/artifactId/inspectionId принимаются в любом регистре и приводятся
+к lowercase перед использованием; schemaId/packageId сохраняют регистр. После
 потери ответа запросите `wshcm_get_package_operation({operationId})` на том же
-стенде и аккаунте: timeout не отменяет работу. Unknown не подтверждает отсутствие
+стенде и аккаунте: timeout не отменяет работу. Отсутствующий, недоступный или
+повреждённый receipt даёт unknown с code ReceiptUnavailable и phase receipt.
+Unknown не подтверждает отсутствие
 изменений; retry/rollback/exactly-once не предоставляются. Completed с
 platform_report_only не доказывает успех каждого объекта. Ошибки сохраняют
 operationId/status и при наличии lastKnownOperation/cleanupError.

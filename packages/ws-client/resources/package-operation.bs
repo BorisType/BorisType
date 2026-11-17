@@ -58,6 +58,8 @@ function BtPackageOperation(r) {
     var errors = [];
     try {
         if (!BtPackageUuid(r.operationId)) fail('InvalidInput','Invalid operation UUID');
+        // Missing evidence cannot establish that a historical mutation was never attempted.
+        if (r.operation == 'status') {phase = 'receipt';status = 'unknown';code = 'ReceiptUnavailable';}
         accountId = StrInt(tools.get_cur_user_id());
         if(accountId == '' || accountId == '0') fail('ContextUnavailable','Authenticated account identity required');
         if (!IsDirectory('x-local://trash/boristype_packages')) CreateDirectory('x-local://trash/boristype_packages');

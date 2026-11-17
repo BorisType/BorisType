@@ -190,11 +190,16 @@ native reports по `reportIds`/`downloadIds`.
 
 Save/delete/add/remove/import имеют mutation annotations; export/inspect —
 `readOnlyHint:false, destructiveHint:false` из-за временных побочных эффектов.
-Задайте собственный lowercase UUID `operationId` до долгого/изменяющего вызова.
+Задайте собственный UUID `operationId` до долгого/изменяющего вызова. Handles
+`operationId`, `artifactId`, `inspectionId` принимаются в любом регистре и
+приводятся SDK к lowercase до lookup/dispatch; результаты используют lowercase.
+Native `schemaId`/`packageId` сохраняют регистр.
 При timeout запросите `wshcm_get_package_operation({operationId})` на том же target
 и аккаунте. SDK errors сохраняют `code/message/phase/status/operationId`, а при
 наличии — `lastKnownOperation` и `cleanupError`; generic/validation ошибки тоже
-ограничены. `unknown` не означает отсутствие изменений. Автоматических retries,
+ограничены. Отсутствующий, недоступный или повреждённый receipt даёт
+`ReceiptUnavailable`, phase `receipt`, status `unknown`; lookup не восстанавливает
+receipt и не повторяет мутацию. `unknown` не означает отсутствие изменений. Автоматических retries,
 server cancellation, rollback и distributed exactly-once нет. `completed` с
 `verification:"platform_report_only"` сообщает завершение штатного вызова, но не
 подтверждает успех каждого объекта; проверяйте отчёты и нужный readback.

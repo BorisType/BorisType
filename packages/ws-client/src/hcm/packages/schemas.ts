@@ -3,7 +3,7 @@ import { isAbsolute } from "node:path";
 const id = z
   .string()
   .regex(/^[1-9][0-9]{0,19}$/)
-  .refine((v) => BigInt(v) <= 18446744073709551615n);
+  .refine((v) => /^[1-9][0-9]{0,19}$/.test(v) && BigInt(v) <= 18446744073709551615n);
 const ids = z.array(id).min(1).max(10000);
 const schemaId = z
   .string()
