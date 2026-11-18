@@ -82,9 +82,16 @@ Replace keyed-элемента сохраняет его позицию; нов�
 с parent/ordinal для каждого реального вхождения. Native XmlForm проверяет пути,
 singleton cardinality, scalar/structure shape, методы и integer range. Для patch
 дополнительно исключаются тихие invalid scalar conversions: bool/real/date
-проверяются до Save; неподдерживаемая conversion отклоняется явно. ISO date/dateTime
-принимаются в проверенном платформой диапазоне, некорректные даты не становятся
-default. Общая real precision граница платформы сохраняется и документируется.
+проверяются до Save; неподдерживаемая conversion отклоняется явно. Для date
+используется платформенное календарное значение, а не абсолютный UTC instant.
+Допустимы валидные YYYY-MM-DD и YYYY-MM-DDTHH:mm:ss с отсутствующим/нулевым
+offset (включая Z); суффикс +00:00 из native XML не интерпретируется как реальный
+UTC timezone. Ненулевой numeric offset и ненулевые дробные секунды отклоняются
+явно. Проверяются календарь и сохранение компонентов после native conversion;
+проверка не зависит от timezone машины Node. Date-only/zone-less означает
+platform wall time. Прочитанный native XML даты можно применить обратно без
+переинтерпретации через epoch. Некорректные даты не становятся default.
+Общая real precision граница платформы сохраняется и документируется.
 
 Typed source нужен для platform conversion, plan — для различения явно
 перечисленных полей и defaults формы. Обновляется открытый существующий документ;
@@ -118,8 +125,10 @@ request 2 MiB; limits включают patch metadata. Метаданные не
 - Scalar: string/Unicode/whitespace/CDATA/CRLF, empty versus clear, bool false,
   zero/negative/large integer/hex, finite real и invalid values.
 - Dates: DataType Date()/new Date()/OptDate()/XML elem/.Value; equal reconstructed
-  date, changed date, nested dates, same instant with offsets, date-only, empty,
-  invalid text/calendar; поддержанная precision устанавливается native пробой.
+  date, changed date, nested dates, native XML read→patch no-op, date-only,
+  zone-less/zero suffix spelling, empty, invalid text/calendar, explicit rejection
+  of nonzero numeric offsets and nonzero fractions. RawSeconds representation
+  probes document the native suffix ambiguity; no instant-normalization claim.
 - MULTIPLE: keyed add/update/remove/item replace/container replace/group replace-array/clear;
   сохранение неизвестных полей и неупомянутых элементов; scalar и compound
   unkeyed replacement, empty arrays/items, sibling/interleaved/nested arrays,
@@ -143,6 +152,16 @@ false при неизменном XML. IsChanged документа остава
 строки/даты и состава массивов; SetChanged(true) давал true без XML изменения.
 У TopElem свойство IsChanged отсутствовало. Это ограниченные native наблюдения,
 а не утверждение обо всех runtime/местах выполнения.
+
+Дополнительная native date-проба обнаружила GetLocalTimeZone=3 при экспорте
+StrXmlDate с +00:00. Значение 2025-02-03T04:05:06 из XML после reopen даёт
+DateToRawSeconds=1738544706, тогда как стандартная интерпретация 04:05:06Z
+ожидает 1738555506. RawSecondsToDate(1738555506) экспортируется как
+07:05:06+00:00 и сохраняет этот epoch после reopen. На этом runtime у BmObject
+new Date нет getTime(); DateToRawSeconds игнорирует embedded TimeZone.
+Поэтому partial-native-XML API сохраняет календарные компоненты и round-trip
+native XML. Будущий instant-aware контракт требует отдельной явной операции/
+опции и согласованного вывода, а не автоматической подмены смысла +00:00.
 
 Документация перечисляет [IsChanged как свойство XmlDoc](https://wshcm-docs.boristype.dev/datex/common/5620203358492510980.html#xmldoc)
 и [SetChanged(bool)](https://wshcm-docs.boristype.dev/datex/common/5620276892448878756.html#xmldoc-setchanged).
