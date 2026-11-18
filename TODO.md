@@ -131,6 +131,8 @@
   external data, authorization и concurrent save не аттестованы. Нужны owned fixtures,
   negatives и cleanup receipts. Save/timeout может иметь unknown outcome; повтор
   не является безопасным по умолчанию. [Текущие гарантии](refs/mcp/xml-objects.md).
+- **CLI синхронизация объектов.** Подключить общий XML patch SDK к CLI workflow
+  и определить перенос legacy `default="true"`. [Контракт SDK/MCP](refs/mcp/xml-object-patch.md).
 - **URL roots/storage routing.** DESIGN-DB/DATA-DB не достаточны как рецепт разрешения
   нового host для всех runtime; physical files и SQL blobs различаются. Проверить
   registry/config recipe отдельно по версиям. [Наблюдения](refs/platform/paths-and-storage.md).

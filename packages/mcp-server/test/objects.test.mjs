@@ -274,3 +274,143 @@ for (const payload of [
     await call(client, "get_object", { id }, true);
   });
 }
+
+const patchXml = "<cost_center><name>patched</name></cost_center>";
+const patchFixture = { id, formUrl, root: "cost_center", xml };
+const schemaXml = '<cost_center><name TYPE="string"/><n TYPE="integer"/></cost_center>';
+const wire = (body) => JSON.stringify(JSON.stringify(body));
+
+async function patchClient(t, evaluatePatch = () => assert.fail("Unexpected patch dispatch")) {
+  let reads = 0;
+  let patches = 0;
+  const client = await connect(t, (script) => {
+    const payload = script.match(/BtObjectOperation\(ParseJson\(('.*')\)\)\)\);\s*$/)?.[1];
+    assert.ok(payload, "SDK sent an object operation request");
+    const request = JSON.parse(runInNewContext(payload));
+    if (request.operation === "get_object") {
+      reads++;
+      return wire({ ok: true, ...patchFixture, schemaXml });
+    }
+    assert.equal(request.operation, "patch_object");
+    patches++;
+    return evaluatePatch(request);
+  });
+  const { readToken } = await call(client, "get_object", { id });
+  return { client, args: { id, readToken, xml: patchXml }, reads: () => reads, patches: () => patches };
+}
+
+test("patch advertises a strict shared schema and write hints", async (t) => {
+  const client = await connect(t);
+  const { tools } = await client.listTools();
+  const patch = tools.find(({ name }) => name === "wshcm_patch_object");
+  assert.ok(patch, "patch tool is registered");
+  const { type, required, additionalProperties, properties } = patch.inputSchema;
+  assert.equal(type, "object");
+  assert.deepEqual([...required].sort(), ["id", "readToken", "xml"]);
+  assert.equal(additionalProperties, false);
+  assert.deepEqual(Object.keys(properties).sort(), ["dryRun", "id", "readToken", "xml"]);
+  assert.equal(properties.id.type, "string");
+  assert.equal(properties.readToken.format, "uuid");
+  assert.equal(properties.xml.maxLength, 256 * 1024);
+  assert.equal(properties.dryRun.type, "boolean");
+  assert.equal(properties.dryRun.default, false);
+  assert.deepEqual(patch.annotations, { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true });
+});
+
+test("patch rejects bad arguments before dispatch and forwards the XML with the shared default", async (t) => {
+  const body = { ...patchFixture, xml: patchXml, changed: true, dryRun: false, writeStatus: "saved" };
+  const { client, args, reads, patches } = await patchClient(t, (request) => {
+    assert.equal(request.dryRun, false);
+    assert.equal(request.xml, patchXml);
+    return wire({ ok: true, ...body });
+  });
+  for (const bad of [
+    { ...args, mode: "replace" },
+    { ...args, id: Number(id) },
+    { ...args, id: "18446744073709551616" },
+    { ...args, readToken: "invalid" },
+    { ...args, dryRun: "false" },
+    { ...args, xml: "中".repeat(100000) },
+    { id, xml: patchXml },
+  ]) {
+    const result = await client.callTool({ name: "wshcm_patch_object", arguments: bad });
+    assert.equal(result.isError, true);
+  }
+  assert.equal(patches(), 0);
+  assert.deepEqual(await call(client, "patch_object", args), body);
+  assert.equal(reads(), 1);
+  assert.equal(patches(), 1);
+});
+
+test("patch preview preserves its result fields and consumes its full-read token", async (t) => {
+  const body = { ...patchFixture, xml: patchXml, changed: true, dryRun: true, writeStatus: "not_attempted" };
+  const { client, args, patches } = await patchClient(t, (request) => {
+    assert.equal(request.dryRun, true);
+    return wire({ ok: true, ...body });
+  });
+  assert.deepEqual(await call(client, "patch_object", { ...args, dryRun: true }), body);
+  const used = await call(client, "patch_object", args, true);
+  assert.equal(used.id, id);
+  assert.equal(used.phase, "input");
+  assert.equal(used.writeStatus, "not_attempted");
+  assert.match(used.error.message, /ReadRequired: Read the full object again/);
+  assert.equal(patches(), 1);
+});
+
+test("patch invalid XML consumes the grant without dispatching", async (t) => {
+  const { client, args, patches } = await patchClient(t);
+  const error = await call(client, "patch_object", { ...args, xml: "<cost_center>" }, true);
+  assert.equal(error.id, id);
+  assert.equal(error.phase, "input");
+  assert.equal(error.writeStatus, "not_attempted");
+  assert.equal(error.error.code, "InvalidInput");
+  const used = await call(client, "patch_object", args, true);
+  assert.match(used.error.message, /ReadRequired/);
+  assert.equal(patches(), 0);
+});
+
+const conflict = {
+  ok: false,
+  id,
+  phase: "validate",
+  writeStatus: "not_attempted",
+  error: { code: "Conflict", message: "Object or schema changed" },
+};
+for (const [name, response, expected] of [
+  ["conflict", () => wire(conflict), conflict],
+  [
+    "long readback diagnostic",
+    () =>
+      wire({
+        ok: false,
+        id,
+        phase: "readback",
+        writeStatus: "saved",
+        error: { code: "PlatformError", message: "x".repeat(65537) },
+      }),
+    { ok: false, id, phase: "readback", writeStatus: "saved", error: { code: "PlatformError", message: "x".repeat(2000) } },
+  ],
+  [
+    "invalid saved readback",
+    () => wire({ ok: true, ...patchFixture, xml: "中".repeat(100000), changed: true, dryRun: false, writeStatus: "saved" }),
+    { id, phase: "readback", writeStatus: "saved" },
+  ],
+  [
+    "lost response",
+    () => {
+      throw new Error("timeout");
+    },
+    { id, phase: "transport", writeStatus: "unknown", error: { code: "TransportError", message: "Error: timeout" } },
+  ],
+]) {
+  test(`patch preserves known identity and write status on ${name}`, async (t) => {
+    const { client, args, patches } = await patchClient(t, response);
+    const result = await call(client, "patch_object", args, true);
+    if (name === "invalid saved readback") {
+      assert.equal(result.error.code, "TransportError");
+      delete result.error;
+    }
+    assert.deepEqual(result, expected);
+    assert.equal(patches(), 1);
+  });
+}

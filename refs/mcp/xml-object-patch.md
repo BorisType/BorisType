@@ -1,8 +1,8 @@
 # Точечное редактирование XML объектов
 
-Статус 2026-11-18: согласован scope SDK/MCP, реализация и acceptance в работе.
-Основание — перенос выборочного присваивания из `feat/platform-objects-sync`,
-revision `36cbb1937b148650e13cacc046552658ab3e788e`, а не merge старой CLI-ветки.
+На 2026-11-18 SDK и MCP реализуют partial XML. Основание — перенос выборочного
+присваивания из `feat/platform-objects-sync`, revision
+`36cbb1937b148650e13cacc046552658ab3e788e`.
 Пользователь подтвердил полную замену MULTIPLE без ключа и управляющий XML-атрибут
 для режимов элементов с ключом. CLI будет следующим потребителем общего механизма.
 
@@ -175,5 +175,26 @@ native XML. Будущий instant-aware контракт требует отд�
 и [SetChanged(bool)](https://wshcm-docs.boristype.dev/datex/common/5620276892448878756.html#xmldoc-setchanged).
 Declarations: wshcmx/types revision a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b,
 [lib/xmldocument/index.d.ts](https://github.com/wshcmx/types/blob/a3b1e43d0b2add53bbc1f2acc2c5128360e8c97b/lib/xmldocument/index.d.ts).
-Документация/declarations не заменяют эти наблюдения. Исходные пробы и результаты
-будут сохранены в `refs/research/mcp/object-patch/` вместе с acceptance.
+Исходники и результаты memory и own-file проб сохранены отдельно от справки
+и declarations. [Memory observations](../research/mcp/object-patch/observe-result.json),
+[own-file observations](../research/mcp/object-patch/file-observe-result.json),
+[Date clock probe](../research/mcp/object-patch/date-probe-result.json).
+
+## Выполненная acceptance
+
+Native SDK receipt фиксирует generic form и `cost_center` на Linux C HCM
+2025.2.1333 / PostgreSQL. Для 42 изменений проверены reopen и повтор без нового
+Save hook. Пять дополнительных повторов применили фактический XML часов для
+ранних годов, включая високосную дату. [SDK receipt](../research/mcp/object-patch/acceptance.json)
+
+Собранный MCP CLI на том же стенде дал 27 tools и прошёл get → patch → readback.
+У собственной записи сохранились код, комментарий и существующий keyed-item.
+Повтор, dryRun и копирование полного native modification clock дали
+`not_attempted`. Проверены ошибки режима на входе и при native load, расходование
+grant и конфликт после сохранения независимым SDK. При очистке проверены
+OpenDoc, catalog, trash, точный marker, evaluator inventory и XML списка пакетов.
+Провал readback после подтверждённого Save и потеря ответа проверены локальными
+MCP protocol tests с подменой evaluator. [Stdio receipt](../research/mcp/object-patch/stdio-acceptance.json)
+
+Покрытие относится к одной C-сборке и указанным формам. Шаг в CLI синхронизации
+объектов остаётся отдельной задачей. [Воспроизведение и границы](../research/mcp/object-patch/README.md)

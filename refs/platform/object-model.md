@@ -59,6 +59,17 @@ Custom_elems string[name,value] дополнительно зависит от t
 custom cc_* типы — другой механизм. Fingerprint одного XMD не покрывает USE,
 base-type dependencies и business configuration.
 
+Partial XML правит открытый существующий документ по явно перечисленным полям,
+actual форме и native ключам. На проверенных memory/own-file carriers C-runtime
+IsChanged оставался false при изменении строки, даты и состава массивов.
+SetChanged(true) поднимал флаг при прежнем XML. Поэтому SDK сравнивает persistent
+XML до и после применения. На том же runtime Date()/new Date() давали BmObject,
+а OptDate и XmlElem.Value давали native date. Равная реконструированная дата
+провалила strict equality при прежнем XML. Native XML печатал `+00:00` при
+GetLocalTimeZone=3, поэтому XML patch оперирует календарными компонентами.
+[Измерения](../mcp/xml-object-patch.md#основания-date-и-ischanged),
+[XML-режимы](../mcp/xml-object-patch.md#xml-режимы).
+
 ## Почему Save отличается от карточки UI
 
 [XMS/XMD audit](../research/mcp/10-object-model/xms-and-business-logic.md) сохраняет

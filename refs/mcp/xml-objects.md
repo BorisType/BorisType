@@ -1,8 +1,9 @@
 # XML object tools: почему XML, как проверяется запись
 
 Принятое решение — [нативный XML](../decisions/2026-11-10-native-xml-object-tools.md).
-Три tools получают раскрытую форму, читают полный объект и выполняют явный
-create/replace. JSON несёт XML **строкой**, exact decimal ID и metadata.
+Четыре tools получают раскрытую форму, читают полный объект, выполняют явный
+create/replace и применяют [частичный XML patch](xml-object-patch.md). JSON несёт
+XML **строкой**, exact decimal ID и metadata.
 Node проверяет вход, но не строит редактируемую XML→JS→XML модель.
 Работа с документом выполняется BS XML API; BorisType DLL не требуется.
 [Публичные schemas](../../packages/mcp-server/README.md) задают параметры.
@@ -38,10 +39,11 @@ SQL projection и частичное чтение не дают права по�
 Create допускает локальный x-local/x-app XMD URL и запрещает XML ID.
 Replace ID в XML может отсутствовать либо совпадать с аргументом.
 
-ObjectReadState принадлежит регистрации tools одного createServer: 32 snapshots,
-TTL 30 минут, новый полный read меняет token. Snapshot включает весь XML,
+Каждый экземпляр SDK владеет своим ObjectReadState. MCP создаёт один SDK
+для всех object tools этого createServer. Хранятся 32 snapshots с TTL 30 минут,
+новый полный read меняет token. Snapshot включает весь XML,
 actual form URL и раскрытый schema root. Oversized/partial result отклоняется
-целиком без grant. Попытка replace, дошедшая до handler после schema validation,
+целиком без grant. Попытка patch или replace, дошедшая до handler после schema validation,
 расходует token, включая rejected XML/conflict/transport loss. Не прошедший schema
 validation запрос handler не вызывает. Локальная object queue сериализует операции;
 это отдельная очередь от file reads, не lock всех HCM writers/чатов.
@@ -71,6 +73,11 @@ BindToDb(existingId) → Save`; пропущенные данные удаляю
 сравниваются с snapshot перед загрузкой и повторно непосредственно перед Save.
 Два независимых `OpenDoc/Save` воспроизводили lost update; повторная проверка
 уменьшает stale overwrite, но **не является atomic CAS**.
+
+Patch применяет указанные поля к существующему открытому документу через
+нативный helper SDK. Новый XML grant расходуется также при preview и no-op.
+Для этих результатов повторная проверка выполняется перед ответом.
+[Режимы, типы, changed и native evidence](xml-object-patch.md).
 
 Почему нельзя довериться parser/readback: native OpenDocFromStr принимал чужой
 root, unknown tag, два root, duplicate scalar, NaN integer и unknown entity;
@@ -109,6 +116,6 @@ verifiers проверяют **recorded observations**, не дают новой
 
 Не аттестованы другие lifecycle/types, UI/low-privilege authorization, foreign/
 uniqueness, external CAS/transactions, Windows/MSSQL/new model/cluster cache.
-Full TopElem.Xml не является binary/external-data backup. Object delete/trash/
-restore, typed JSON, patch DSL, bulk и business adapters не входят в текущие
-три tools; наличие ручной owned trash-пробы не добавляет такие capabilities.
+Full TopElem.Xml экспортирует поля; binary/external-data требуют своего backup.
+Object delete/trash/restore, typed JSON, bulk и business adapters остаются
+за пределами публичных object tools.

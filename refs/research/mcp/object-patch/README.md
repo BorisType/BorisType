@@ -22,6 +22,23 @@ pnpm --filter @boristype/ws-client build
 NODE_USE_ENV_PROXY=0 pnpm --filter @boristype/ws-client test:e2e:object-patch
 ```
 
+Проверка транспорта запускает собранный CLI на том же уже работающем
+эксклюзивном стенде. Она использует те же переменные `WSHCM_*` и
+собственную запись `cost_center`. Для записи нового результата задайте
+`WSHCM_MCP_PATCH_RECEIPT`.
+
+```sh
+pnpm --filter @boristype/ws-client build
+pnpm --filter @boristype/mcp-server build
+NODE_USE_ENV_PROXY=0 pnpm --filter @boristype/mcp-server test:e2e:object-patch
+```
+
+Тест stdio проверяет API через настоящий CLI и сохраняет хеши исходников и
+файлов сборки. `sourceHashes` в этом receipt относится к независимым SOAP eval
+вызовам проверки и очистки. MCP eval выполняет дочерний процесс, его сообщения
+проверяются по результату tools, stdout разбирает клиент MCP.
+[Результат stdio](./stdio-acceptance.json)
+
 Исторические пробы различают `BmObject` (Date и new Date), типизированный date
 (OptDate и XmlElem.Value) и XmElem. В memory и при повторном открытии собственного
 XML-файла IsChanged оставался false после ряда скалярных и структурных изменений.

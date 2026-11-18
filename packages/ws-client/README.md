@@ -67,8 +67,8 @@ Evaluator создаёт временный `.bs` файл на сервере �
   серверные файлы. `read` возвращает content/hash/координаты и readToken;
   `edit` требует прочитанные диапазоны, overwrite — полное чтение. Token другого
   экземпляра API не принимается. Ограничения совпадают с файловыми MCP tools.
-- `objects.getForm/get/save(input)` — раскрытая XMD и XML объектов. ID передаётся
-  строкой, replace требует token полного чтения. `.details` у `WshcmObjectError`
+- `objects.getForm/get/save/patch(input)` — раскрытая XMD и XML объектов. ID
+  передаётся строкой, replace и patch требуют token полного чтения. `.details` у `WshcmObjectError`
   сохраняет phase/writeStatus/id, включая неизвестный исход Save.
 - `xquery({query,maxRows?})` возвращает typed `XQueryResult`: integer как bigint,
   real как number, XML-поля проецируются на сервере. SQL префикс передаётся без
@@ -84,6 +84,52 @@ Evaluator создаёт временный `.bs` файл на сервере �
   статус; локальная ошибка или потеря transport-ответа выбрасывает
   `WshcmRuntimeError` с `.status`. `runtime.requireReady()` дополнительно
   выбрасывает эту ошибку при любом статусе кроме ready.
+
+## Частичное редактирование XML объектов
+
+`WshcmApi.objects.patch({id, readToken, xml, dryRun?})` обновляет перечисленные
+поля существующего объекта. Он использует actual XMD, точный десятичный ID и
+снимок полного чтения из этого экземпляра API.
+
+```js
+import { WshcmApi } from "@boristype/ws-client";
+
+const api = new WshcmApi(evaluator); // evaluator initialized by caller
+const id = "7349586349801536169";
+const xml = "<cost_center><name>Changed</name></cost_center>";
+const { readToken } = await api.objects.get({ id });
+const preview = await api.objects.patch({ id, readToken, xml, dryRun: true });
+// When ready to apply, obtain a new full read and check its XML.
+const current = await api.objects.get({ id });
+const applied = await api.objects.patch({ id, readToken: current.readToken, xml });
+```
+
+Каждая попытка patch с действующим token расходует его, включая invalid XML,
+preview и no-op. `dryRun` по умолчанию `false`. Пропущенные поля сохраняются.
+При `bt-mode` на поле используйте `replace` или пустой `clear` для структуры.
+Массив с ключом по умолчанию обновляет или добавляет элементы по явно заданным
+ключам. `replace` заменяет один элемент, `remove` удаляет его по ключу. Массив без
+ключа заменяется перечисленным составом целиком. Пустой единственный
+`clear`-элемент очищает группу, а `replace-array` на первом элементе задаёт
+полный состав только этой одноимённой группы.
+
+Patch поддерживает string, integer, bool, real и date. Binary, TEMP и методы
+исключены. Date передаётся как native XML wall time до целых секунд. Можно
+передать date-only или dateTime без смещения, с `Z` или нулевым смещением.
+Поддерживается полное native написание короткого года
+`1-01-02T12:34:56+00:00` для round-trip. Ненулевые смещение и доля секунды
+отклоняются. XML и схема ограничены 256 KiB UTF-8 каждый, вход 8192 элементами
+и глубиной 64, внутренний запрос 2 MiB вместе с metadata.
+
+`changed` описывает XML кандидата до Save. Preview возвращает кандидат в
+`xml`; preview и no-op дают `writeStatus: "not_attempted"`. Изменённое
+сохранение даёт `writeStatus: "saved"` и фактический XML readback с изменениями
+hooks. При ошибке readback признанное подтверждение Save остаётся в
+`WshcmObjectError.details` вместе с фазой и известным ID. Проверка snapshot
+не атомарна относительно внешних writers. Загрузка/присваивание могут выполнить
+platform code. При неизвестном исходе установите состояние перед новым вызовом.
+
+[XML-режимы, native acceptance и границы](https://github.com/BorisType/BorisType/blob/main/refs/mcp/xml-object-patch.md).
 
 ## Пакеты объектов
 
