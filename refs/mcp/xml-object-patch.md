@@ -46,7 +46,14 @@ Save, а для preview/no-op — перед успешным ответом. Э
 под одним родителем. Вложенные массивы обрабатываются на своём уровне.
 `<rows/>` в обычном merge — no-op; `<rows bt-mode="clear"/>` — очистка.
 `<tag/>` — пустой элемент, `<tag bt-mode="clear"/>` — очистка массива tag.
-Для полной замены keyed-массива режим replace ставится на его контейнер.
+Для полной замены keyed-массива режим replace можно поставить на его контейнер.
+Если требуется заменить только одноимённую MULTIPLE-группу, включая массив прямо
+под корнем или рядом с другими массивами, на её первом входном элементе ставится
+`bt-mode="replace-array"`. Все последующие одноимённые элементы в том же родителе
+идут без явного режима. Заменяется только эта группа в указанном порядке;
+другие поля и массивы сохраняются. Для пустого массива используется clear.
+replace-array допустим только для MULTIPLE; для unkeyed он явно задаёт ту же
+полную замену. Его нельзя смешивать с merge/replace/remove/clear в одной группе.
 
 ```xml
 <cost_center>
@@ -113,7 +120,7 @@ request 2 MiB; limits включают patch metadata. Метаданные не
 - Dates: DataType Date()/new Date()/OptDate()/XML elem/.Value; equal reconstructed
   date, changed date, nested dates, same instant with offsets, date-only, empty,
   invalid text/calendar; поддержанная precision устанавливается native пробой.
-- MULTIPLE: keyed add/update/remove/item replace/container replace/clear;
+- MULTIPLE: keyed add/update/remove/item replace/container replace/group replace-array/clear;
   сохранение неизвестных полей и неупомянутых элементов; scalar и compound
   unkeyed replacement, empty arrays/items, sibling/interleaved/nested arrays,
   duplicate/missing keys, order, hazardous XML field/key names.
