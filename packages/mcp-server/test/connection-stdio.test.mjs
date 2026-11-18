@@ -40,6 +40,185 @@ async function openSession(t, port, ...args) {
   return { client, call, transport, stderr: () => stderr };
 }
 
+function missingModule(res) {
+  res.writeHead(500);
+  res.end(fault.replace("Native fixture diagnostic", "Evaluator module missing"));
+}
+
+async function openOwnedHelperFixture(t, ...args) {
+  const requests = [];
+  const modules = [];
+  const hcm = {
+    installed: undefined,
+    async upload(url, res) {
+      hcm.installed = url;
+      await delay(30);
+      res.end(result("bool", "1"));
+    },
+    probe(url, res) {
+      if (hcm.installed === url) res.end(result("integer", "1"));
+      else missingModule(res);
+    },
+  };
+  const server = createServer(async (req, res) => {
+    assert.equal(req.headers.authorization, `Basic ${Buffer.from("fixture-user:fixture-password").toString("base64")}`);
+    if (req.method === "GET") {
+      res.setHeader("Set-Cookie", "sid=private-cookie; Path=/");
+      res.end();
+      return;
+    }
+    assert.equal(req.headers.cookie, "sid=private-cookie");
+    let xml = "";
+    for await (const chunk of req) xml += chunk;
+    const method = xml.match(/<MethodName>([^<]+)<\/MethodName>/)[1];
+    const url = xml.match(/x-local:\/\/wt\/unsafe_eval_[A-Za-z0-9]{32}\.bs/)[0];
+    if (method === "put_url_text_server") {
+      requests.push(["upload", url]);
+      modules.push(xml);
+      await hcm.upload(url, res);
+    } else if (method === "drop_self") {
+      requests.push(["cleanup", url]);
+      assert.equal(url, hcm.installed);
+      hcm.installed = undefined;
+      res.end(result("bool", "1"));
+    } else if (xml.includes(">return&#32;1;</arg-0>")) {
+      assert.equal(method, "execute");
+      requests.push(["probe", url]);
+      hcm.probe(url, res);
+    } else {
+      assert.equal(method, "execute");
+      assert.equal(url, hcm.installed);
+      requests.push(["business", url]);
+      res.end(
+        result(
+          "Object",
+          '<ok VALUE-TYPE="bool">1</ok><value VALUE-TYPE="integer">7</value><output VALUE-TYPE="Array"/><outputTruncated VALUE-TYPE="bool">0</outputTruncated><error VALUE-TYPE="null"/>',
+        ),
+      );
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(
+    () =>
+      new Promise((resolve) => {
+        server.close(resolve);
+        server.closeAllConnections();
+      }),
+  );
+  const session = await openSession(t, server.address().port, "--username", "fixture-user", ...args);
+  return {
+    ...session,
+    hcm,
+    requests,
+    modules,
+    execute: (expectError) => session.call("wshcm_execute", { code: "return 7;" }, expectError),
+  };
+}
+
+test("concurrent CLI requests restore a removed helper once at the original URL", { timeout: 5000 }, async (t) => {
+  const { client, hcm, requests, modules, execute } = await openOwnedHelperFixture(t);
+  await execute();
+  const ownUrl = hcm.installed;
+  hcm.installed = undefined;
+  await Promise.all([execute(), execute()]);
+  await client.close();
+  assert.deepEqual(
+    requests,
+    ["upload", "probe", "business", "probe", "upload", "probe", "business", "business", "cleanup"].map((method) => [method, ownUrl]),
+  );
+  assert.deepEqual(modules, [modules[0], modules[0]]);
+  assert.equal(hcm.installed, undefined);
+});
+
+for (const installed of [false, true]) {
+  const name = installed ? "reuses the surviving helper" : "restores the missing helper";
+  test(`CLI ${name} after a lost initial upload response`, { timeout: 5000 }, async (t) => {
+    const { client, hcm, requests, execute } = await openOwnedHelperFixture(t);
+    const upload = hcm.upload;
+    hcm.upload = (url, res) => {
+      if (installed) hcm.installed = url;
+      res.destroy();
+      hcm.upload = upload;
+    };
+    const first = await execute(true);
+    assert.equal(first.connection.state, "network");
+    assert.equal(first.executionStatus, "not_started");
+    const [[, ownUrl]] = requests;
+    assert.deepEqual(requests, [["upload", ownUrl]]);
+    await execute();
+    await client.close();
+    const repair = installed ? [] : ["upload", "probe"];
+    assert.deepEqual(
+      requests,
+      ["upload", "probe", ...repair, "business", "cleanup"].map((method) => [method, ownUrl]),
+    );
+  });
+}
+
+for (const [name, response] of [
+  ["missing", missingModule],
+  ["wrong", (res) => res.end(result("integer", "2"))],
+]) {
+  test(`CLI bounds repair when the confirming probe remains ${name}`, { timeout: 5000 }, async (t) => {
+    const { client, hcm, requests, execute } = await openOwnedHelperFixture(t);
+    await execute();
+    const ownUrl = hcm.installed;
+    hcm.probe = (_url, res) => response(res);
+    const failure = await execute(true);
+    assert.equal(failure.connection.state, "evaluator");
+    assert.equal(failure.executionStatus, "not_started");
+    await client.close();
+    assert.deepEqual(
+      requests.slice(3),
+      ["probe", "upload", "probe", "cleanup"].map((method) => [method, ownUrl]),
+    );
+  });
+}
+
+test("CLI authentication, network, timeout and HTTP probe failures skip helper upload", { timeout: 6000 }, async (t) => {
+  const { client, hcm, requests, execute } = await openOwnedHelperFixture(t, "--connection-timeout-ms", "300");
+  await execute();
+  const ownUrl = hcm.installed;
+  for (const [state, response] of [
+    ["authentication", (res) => res.writeHead(403).end()],
+    ["network", (res) => res.destroy()],
+    ["timeout", () => {}],
+    ["http", (res) => res.writeHead(503).end("secret-body")],
+  ]) {
+    hcm.probe = (_url, res) => response(res);
+    const failure = await execute(true);
+    assert.equal(failure.connection.state, state);
+    assert.equal(failure.executionStatus, "not_started");
+  }
+  await client.close();
+  assert.deepEqual(
+    requests.slice(3),
+    ["probe", "probe", "probe", "probe", "cleanup"].map((method) => [method, ownUrl]),
+  );
+});
+
+test("CLI EOF during its own helper repair still cleans up that URL", { timeout: 6000 }, async (t) => {
+  const { client, hcm, requests, execute } = await openOwnedHelperFixture(t, "--connection-timeout-ms", "300");
+  await execute();
+  const ownUrl = hcm.installed;
+  hcm.installed = undefined;
+  const repair = Promise.withResolvers();
+  // The server saves the helper but never acknowledges the upload.
+  hcm.upload = (url) => {
+    hcm.installed = url;
+    repair.resolve();
+  };
+  const pending = execute().catch(() => undefined);
+  await Promise.race([repair.promise, pending.then(() => assert.fail("The tool finished before the repair upload started"))]);
+  await client.close();
+  await pending;
+  assert.deepEqual(
+    requests.slice(3),
+    ["probe", "upload", "cleanup"].map((method) => [method, ownUrl]),
+  );
+  assert.equal(hcm.installed, undefined);
+});
+
 test("real CLI remains usable through offline boot, auth and repeated service outages without replay", { timeout: 15000 }, async (t) => {
   const calls = { get: 0, put: 0, probe: 0, business: 0, cleanup: 0 };
   let status = 503;
@@ -144,10 +323,11 @@ test("real CLI remains usable through offline boot, auth and repeated service ou
   assert.match(native.content[0].text, /Native fixture diagnostic/);
   assert.doesNotMatch(native.content[0].text, /HcmUnavailable/);
   business = "drop";
+  const beforeDrop = calls.business;
   const unknown = await execute();
   assert.equal(unknown.executionStatus, "unknown");
   assert.equal(unknown.connection.state, "network");
-  assert.equal(calls.business, 4);
+  assert.equal(calls.business, beforeDrop + 1);
   business = "read";
   const { readToken } = await call("wshcm_get_object", { id: object.id });
   assert.equal(typeof readToken, "string");

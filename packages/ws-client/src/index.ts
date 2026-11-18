@@ -5,7 +5,7 @@
  */
 
 export { WshcmClient } from "./client.js";
-export { Evaluator } from "./evaluator.js";
+export { Evaluator, type EvaluatorInitializeOptions } from "./evaluator.js";
 export { executeXQuery } from "./xquery.js";
 export type { XQueryOptions, XQueryResult } from "./xquery.js";
 export { WshcmException, UnauthorizedError, WshcmRequestError, WshcmSoapFault, WshcmDispatchError } from "./exceptions.js";

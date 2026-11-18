@@ -1,4 +1,4 @@
-import { WshcmClient, WshcmRequestError, type Evaluator, type WshcmEvaluator } from "@boristype/ws-client";
+import { WshcmClient, WshcmException, WshcmRequestError, type Evaluator, type WshcmEvaluator } from "@boristype/ws-client";
 import { HcmConnectionError, type ConnectionTarget } from "./connection-error.js";
 import { defaultConnectionTimeoutMs, toWshcmClientOptions, type McpServerOptions } from "./types.js";
 
@@ -34,6 +34,15 @@ export class ConnectionManager implements WshcmEvaluator {
       this.setupAttempted = true;
       await this.backend.initialize(this.request);
     }
+    this.checkOpen();
+    try {
+      if (await this.backend.probe(this.request)) return;
+    } catch (cause) {
+      // A failed HTTP exchange does not establish a problem with the owned module.
+      if (!(cause instanceof WshcmException) || cause instanceof WshcmRequestError) throw cause;
+    }
+    this.checkOpen();
+    await this.backend.initialize({ ...this.request, force: true });
     this.checkOpen();
     if (!(await this.backend.probe(this.request))) throw new Error("Unexpected evaluator probe result");
   }

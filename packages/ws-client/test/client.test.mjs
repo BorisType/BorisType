@@ -150,3 +150,23 @@ test("reauthentication replaces expired session cookies on the existing client",
   }
   assert.equal(await client.callMethod("tools", "fixture"), true);
 });
+
+test("explicit evaluator initialization uploads the same owned module again", { timeout: 3000 }, async (t) => {
+  const uploads = [];
+  const client = await fixture(t, (req, res) => {
+    let xml = "";
+    req.setEncoding("utf8");
+    req.on("data", (chunk) => (xml += chunk));
+    req.on("end", () => {
+      assert.match(xml, /<MethodName>put_url_text_server<\/MethodName>/);
+      uploads.push(xml);
+      res.end('<ResultData><Result VALUE-TYPE="bool">1</Result></ResultData>');
+    });
+  });
+  const evaluator = client.createEvaluator();
+  await evaluator.initialize();
+  await evaluator.initialize();
+  assert.equal(uploads.length, 1);
+  await evaluator.initialize({ force: true, timeoutMs: 200 });
+  assert.deepEqual(uploads, [uploads[0], uploads[0]]);
+});

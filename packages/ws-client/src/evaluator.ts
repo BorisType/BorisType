@@ -2,6 +2,11 @@ import type { WshcmRequestOptions } from "./types.js";
 import { WshcmClient } from "./client.js";
 import { executeXQuery, type XQueryOptions, type XQueryResult } from "./xquery.js";
 
+export interface EvaluatorInitializeOptions extends WshcmRequestOptions {
+  /** Upload the fixed module again at this evaluator's existing URL. */
+  force?: boolean;
+}
+
 /**
  * Evaluator для выполнения произвольного BorisScript-кода на сервере
  *
@@ -36,8 +41,8 @@ export class Evaluator {
   /**
    * Инициализирует evaluator, создавая временный модуль на сервере
    */
-  async initialize(options: WshcmRequestOptions = {}): Promise<void> {
-    if (this.initialized) {
+  async initialize(options: EvaluatorInitializeOptions = {}): Promise<void> {
+    if (this.initialized && !options.force) {
       return;
     }
 
