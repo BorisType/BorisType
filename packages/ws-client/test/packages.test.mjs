@@ -640,3 +640,83 @@ test("preflight on schema readback retains the mutation receipt and cause", asyn
   });
   assert.equal(p.saves, 1);
 });
+
+test("inspection failures retain the latest acknowledged native receipt", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "bt-inspection-receipt-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const localPath = join(directory, "input.zip");
+  await writeFile(localPath, objectPackage());
+  for (const failedStep of [
+    "write_chunk",
+    "read_chunk",
+    "seal_upload",
+    "preview",
+    "mismatched preview",
+    "malformed preview",
+    "wrong receipt",
+    "preview rejected",
+  ]) {
+    await t.test(failedStep, async () => {
+      const operationId = randomUUID();
+      const unavailable = new sdk.WshcmDispatchError("Probe failed", false);
+      const p = platform({
+        FileSize: (path) => Buffer.byteLength(p.files.get(path)),
+        Base64Encode: (bytes) => Buffer.from(bytes).toString("base64"),
+        Base64Decode: (data) => Buffer.from(data, "base64"),
+        LoadFileDataRange: (path, start, end) => Buffer.from(p.files.get(path)).subarray(start, end),
+        PutFileDataRange: (path, _start, _end, bytes) => p.files.set(path, Buffer.concat([Buffer.from(p.files.get(path)), bytes])),
+      });
+      let acknowledged;
+      const service = new sdk.WshcmPackages(
+        {
+          eval: async (code) => {
+            const step = code.match(/\\"operation\\":\\"(\w+)\\"/)?.[1];
+            assert.ok(step);
+            if (step === failedStep) throw unavailable;
+            if (step === "preview") {
+              if (failedStep === "preview rejected") {
+                return JSON.stringify(
+                  JSON.stringify({ ok: false, code: "Conflict", message: "Context changed", phase: "validate", status: "not_attempted" }),
+                );
+              }
+              const receipt = { ...acknowledged, operation: "preview", phase: "inspected", status: "completed", reportIds: ["77"] };
+              if (failedStep === "wrong receipt") receipt.operationId = randomUUID();
+              else acknowledged = receipt;
+              return JSON.stringify(
+                JSON.stringify({
+                  ok: true,
+                  body: { operation: receipt, serverVersion: "fixture", parts: failedStep === "malformed preview" ? null : [] },
+                }),
+              );
+            }
+            const wire = await p.evaluator.eval(code);
+            if (step === "upload" || step === "seal_upload") acknowledged = JSON.parse(JSON.parse(wire)).body;
+            return wire;
+          },
+        },
+        { artifactDirectory: join(directory, "artifacts") },
+      );
+      await assert.rejects(service.inspectPackage({ operationId, localPath }), (error) => {
+        assert.ok(acknowledged);
+        assert.ok(error instanceof sdk.WshcmPackageError);
+        assert.equal(error.details.operationId, operationId);
+        assert.equal(error.details.status, "unknown");
+        assert.deepEqual(error.details.lastKnownOperation, acknowledged);
+        if (failedStep === "mismatched preview") assert.match(error.cause.message, /Native inspection identity mismatch/);
+        else if (failedStep === "preview rejected") {
+          assert.equal(error.details.code, "Conflict");
+          assert.equal(error.details.phase, "validate");
+          assert.equal(error.details.stepStatus, "not_attempted");
+          assert.equal(error.cause.details.status, "not_attempted");
+        } else if (failedStep === "malformed preview" || failedStep === "wrong receipt") {
+          assert.equal(error.details.code, "TransportError");
+          assert.equal(error.cause.name, "ZodError");
+        } else {
+          assert.equal(error.details.code, "TransportError");
+          assert.equal(error.cause, unavailable);
+        }
+        return true;
+      });
+    });
+  }
+});

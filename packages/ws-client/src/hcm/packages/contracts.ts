@@ -48,6 +48,8 @@ export interface PackageErrorDetails {
   schemaId?: string;
   phase: string;
   status: "not_attempted" | "unknown" | "failed";
+  /** The latest step was rejected before execution, after earlier steps were acknowledged. */
+  stepStatus?: "not_attempted";
   code: string;
   message: string;
 }
@@ -58,4 +60,23 @@ export class WshcmPackageError extends Error {
     this.name = "WshcmPackageError";
     this.details = details;
   }
+}
+
+/** Keep the most recent acknowledged step when a later part of the same operation fails. */
+export function packageStepError(
+  cause: unknown,
+  fallback: Pick<PackageErrorDetails, "operationId" | "phase" | "code" | "lastKnownOperation">,
+): WshcmPackageError {
+  if (cause instanceof WshcmPackageError) {
+    if (fallback.operationId) cause.details.operationId ??= fallback.operationId;
+    if (fallback.lastKnownOperation) {
+      const lastKnownOperation = cause.details.lastKnownOperation ?? fallback.lastKnownOperation;
+      if (cause.details.status === "not_attempted") {
+        return new WshcmPackageError({ ...cause.details, lastKnownOperation, stepStatus: "not_attempted", status: "unknown" }, { cause });
+      }
+      cause.details.lastKnownOperation = lastKnownOperation;
+    }
+    return cause;
+  }
+  return new WshcmPackageError({ ...fallback, status: "unknown", message: String(cause).slice(0, 2000) }, { cause });
 }

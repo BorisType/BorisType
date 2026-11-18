@@ -186,16 +186,25 @@ function findElement(obj: unknown, key: string): unknown {
 
 /** A SOAP fault must belong to the envelope body. HTTP error pages can also contain a field named Fault. */
 function responseFault(parsed: unknown): unknown {
-  function direct(parent: unknown, local: string) {
-    if (!parent || typeof parent !== "object") return undefined;
-    return Object.entries(parent).find(([key]) => key.split(":").at(-1) === local);
+  const soapNamespaces = ["http://schemas.xmlsoap.org/soap/envelope/", "http://www.w3.org/2003/05/soap-envelope"];
+  function child(local: string, scope: Record<string, unknown>[], expected?: string) {
+    for (const [name, value] of Object.entries(scope[0])) {
+      const colon = name.indexOf(":");
+      if (name.startsWith("@_") || name.slice(colon + 1) !== local || !value || typeof value !== "object" || Array.isArray(value)) continue;
+      const declaration = colon < 0 ? "@_xmlns" : `@_xmlns:${name.slice(0, colon)}`;
+      const nested = [value as Record<string, unknown>, ...scope];
+      const namespace = nested.find((element) => Object.hasOwn(element, declaration))?.[declaration];
+      if (typeof namespace === "string" && (expected === undefined ? soapNamespaces.includes(namespace) : namespace === expected)) {
+        return { scope: nested, namespace };
+      }
+    }
+    return undefined;
   }
-  const entry = direct(parsed, "Envelope");
-  if (!entry) return undefined;
-  const [name, envelope] = entry;
-  const ns = name.includes(":") ? `@_xmlns:${name.split(":")[0]}` : "@_xmlns";
-  if (!["http://schemas.xmlsoap.org/soap/envelope/", "http://www.w3.org/2003/05/soap-envelope"].includes(envelope?.[ns])) return undefined;
-  return direct(direct(envelope, "Body")?.[1], "Fault")?.[1];
+  if (!parsed || typeof parsed !== "object") return undefined;
+  const envelope = child("Envelope", [parsed as Record<string, unknown>]);
+  if (!envelope) return undefined;
+  const body = child("Body", envelope.scope, envelope.namespace);
+  return body && child("Fault", body.scope, envelope.namespace)?.scope[0];
 }
 
 /** Extract direct XML element children, excluding attributes and text. */
