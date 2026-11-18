@@ -1,0 +1,203 @@
+{
+  "version": "2025.2.1333",
+  "cases": [
+    {
+      "name": "same string",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "changed string",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "string changed then restored",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "same integer",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "same boolean",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "same XML date Value",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {
+        "strictEqual": true,
+        "previousKind": "date",
+        "currentKind": "date"
+      },
+      "error": ""
+    },
+    {
+      "name": "equal reconstructed date",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {
+        "strictEqual": false,
+        "previousKind": "date",
+        "currentKind": "date"
+      },
+      "error": ""
+    },
+    {
+      "name": "changed date and previous alias",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {
+        "oldText": "2025-02-03T04:05:06+00:00",
+        "previousAfter": "2025-02-03T04:05:06+00:00",
+        "currentText": "2025-02-04T04:05:06+00:00",
+        "strictEqual": false
+      },
+      "error": ""
+    },
+    {
+      "name": "equal script Date assignment",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "same keyed item scalar",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "changed keyed item scalar",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "add empty keyed item",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "delete keyed item",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "clear keyed array",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "rebuild keyed array with same values",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "rebuild unkeyed array with same values",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    }
+  ],
+  "types": {
+    "platformDate": {
+      "dataType": "object",
+      "objectType": "BmObject",
+      "xmlDate": "2026-11-18T10:58:00+00:00"
+    },
+    "optDate": {
+      "dataType": "date",
+      "objectType": "",
+      "xmlDate": "2025-02-03T04:05:06+00:00"
+    },
+    "scriptDate": {
+      "dataType": "object",
+      "objectType": "BmObject",
+      "xmlDate": "2025-02-03T04:05:06+00:00"
+    },
+    "xmlElement": {
+      "dataType": "object",
+      "objectType": "XmElem",
+      "xmlDate": "2025-02-03T04:05:06+00:00"
+    },
+    "xmlValue": {
+      "dataType": "date",
+      "objectType": "",
+      "xmlDate": "2025-02-03T04:05:06+00:00"
+    },
+    "documentFlagType": "bool",
+    "elementFlag": {
+      "error": "Unknown object property: IsChanged\r\n(eval,  Unknown source,   line 1)\r\n(eval(),  Unknown source,   line 13)\r\n(eval,  Unknown source,   line 13)"
+    }
+  },
+  "probe": {
+    "marker": "676354a1420a4f0ea09835b5f786ebe4",
+    "sourceSha256": "f613cb956be02b2954fc7fb22428f16b37e89190482fab832905ea084e94396b",
+    "carrier": "native C-runtime/SOAP; memory-only; no Save or DB binding"
+  },
+  "cleanup": {
+    "evaluatorInventoryUnchanged": true,
+    "registeredMemoryForm": "676354a1420a4f0ea09835b5f786ebe4",
+    "formCacheEvictionVerified": false
+  }
+}

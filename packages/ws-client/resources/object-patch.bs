@@ -1,0 +1,194 @@
+// Build the typed source against the opened object's actual form. The strict XML
+// reader supplies decoded text and exact decimal/clock spellings. Native LoadData
+// alone silently defaults invalid scalars and ignores numeric UTC offsets.
+function BtPatchNewChild(parent, field) {
+    var item = CreateElemByFormElem(field);
+    parent.AddChildElem(item);
+    return item;
+}
+
+function BtPatchLoadSource(top, nodes) {
+    top.Clear();
+    var elems = [top];
+    var i; var node; var parent; var field; var elem; var type; var value; var text;
+    for (i = 1; i < ArrayCount(nodes); i++) {
+        node = nodes[i];
+        parent = elems[node.parentIndex];
+        field = parent.FormElem.Child(node.name);
+        type = field.Type;
+        if (!field.IsMultiple && (node.mode == 'remove' || node.mode == 'replace-array')) throw 'Array-only mode on singleton field';
+        if (field.IsMethod || field.IsTemp || field.SubType == 'binary') throw 'Unsupported non-persistent, method or binary field';
+        elem = field.IsMultiple ? BtPatchNewChild(parent, field) : parent.Child(node.name);
+        elems.push(elem);
+        if (type == '' || node.mode == 'clear') continue;
+        if (type != 'integer' && type != 'bool' && type != 'real' && type != 'date' && type != 'string')
+            throw 'Unsupported scalar XML type';
+        if (type == 'string') {
+            elem.Value = node.text;
+            // A file reopen may trim trailing spaces. Normalize only this source
+            // scalar through the same native XML reader before the snapshot diff.
+            elem.LoadData(elem.Xml);
+            if (String(elem.Value) == '' && field.DefaultValue != '') elem.AssignElem(CreateElemByFormElem(field));
+            continue;
+        }
+        if (!node.hasText) {
+            elem.Clear();
+            if (field.DefaultValue != '') elem.AssignElem(CreateElemByFormElem(field));
+            continue;
+        }
+        text = Trim(node.text);
+        if (type == 'integer') {
+            if (!node.integerValid) throw 'Invalid integer XML value';
+            value = Int(node.integer);
+            if (StrInt(value) != node.integer && StrSignedInt(value) != node.integer) throw 'Integer XML conversion lost precision';
+        }
+        else if (type == 'bool') {
+            if (text != '0' && text != '1' && text != 'false' && text != 'true') throw 'Invalid bool XML value';
+            value = text == '1' || text == 'true';
+        }
+        else if (type == 'real') {
+            if (!node.realValid) throw 'Invalid real XML value';
+            value = Real(text);
+            if (value - value != 0) throw 'Non-finite real XML value';
+        }
+        else {
+            if (node.date == '') throw 'Invalid XML date: use a valid whole-second clock with absent or zero offset';
+            value = OptDate(node.date);
+            if (DataType(value) != 'date') throw 'Unsupported native XML date range';
+        }
+        elem.Value = value;
+        if (type == 'date' && StrLeftCharRange(StrXmlDate(elem.Value, true, true), 19) != node.date)
+            throw 'Native XML date conversion changed clock components';
+    }
+}
+
+// Keyed/group lookups always use prefixed strings and native canonical field
+// XML. Arbitrary field names and key text never become native method names.
+function BtPatchLookup(table, key) {
+    try { return table['$' + key]; } catch (missing) { return undefined; }
+}
+
+function BtPatchDataGroups(parent, wanted) {
+    var groups = {}; var i; var item; var name; var group;
+    for (i = 0; i < ArrayCount(parent); i++) {
+        item = parent.Child(i);
+        name = item.Name;
+        if (BtPatchLookup(wanted, name) == undefined) continue;
+        group = BtPatchLookup(groups, name);
+        if (group == undefined) { group = []; groups['$' + name] = group; }
+        group.push(item);
+    }
+    return groups;
+}
+
+function BtApplyObjectPatch(targetTopElem, sourceTopElem, nodes) {
+    // Each plan parent owns its groups. Numeric plan indices distinguish two
+    // occurrences of the same ancestor path, including nested MULTIPLE.
+    var children = []; var i; var node; var parent; var group;
+    for (i = 0; i < ArrayCount(nodes); i++) {
+        children.push({names:[],groups:{}});
+        node = nodes[i];
+        if (i == 0) continue;
+        parent = children[node.parentIndex];
+        group = BtPatchLookup(parent.groups, node.name);
+        if (group == undefined) {
+            group = [];
+            parent.groups['$' + node.name] = group;
+            parent.names.push(node.name);
+        }
+        group.push(i);
+    }
+    function applyElem(target, source, index) {
+        var n = nodes[index]; var form = source.FormElem;
+        if (n.mode == 'clear') {
+            // Explicit clear has the same durable value as a fresh form field
+            // after reopening. Restore native defaults without parsing arbitrary XML.
+            target.Clear();
+            if (form.DefaultValue != '' || form.Type == '') target.AssignElem(CreateElemByFormElem(form));
+            return;
+        }
+        if (form.Type != '') {
+            target.Value = source.Value;
+            return;
+        }
+        if (n.mode == 'replace') target.AssignElem(CreateElemByFormElem(form));
+        applyChildren(target, source, index);
+    }
+    function applyGroup(target, sources, existing, indices, field) {
+        var key = field.PrimaryKeyName;
+        var first = nodes[indices[0]];
+        var clear = first.mode == 'clear';
+        var replaceAll = first.mode == 'replace-array' || key == '';
+        var keyed = {}; var seen = {}; var keys = [];
+        var j; var idx; var n; var k; var keyNodes; var keyField; var match; var item;
+        if (clear && ArrayCount(indices) != 1) throw 'Array clear requires a sole empty placeholder';
+        if (key != '' && !clear) {
+            keyField = field.OptChild(key);
+            if (keyField == undefined || keyField.Type == '' || keyField.IsMultiple || keyField.IsMethod ||
+                keyField.IsTemp || keyField.SubType == 'binary') throw 'Unsupported array primary key';
+            for (j = 0; j < ArrayCount(existing); j++) {
+                k = existing[j].Child(key).Xml;
+                if (BtPatchLookup(keyed, k) != undefined) throw 'Ambiguous target array primary key';
+                keyed['$' + k] = existing[j];
+            }
+        }
+        for (j = 0; j < ArrayCount(indices); j++) {
+            idx = indices[j]; n = nodes[idx];
+            if (j > 0 && (n.mode == 'replace-array' || n.mode == 'clear' || (first.mode == 'replace-array' && n.mode != 'auto')))
+                throw 'Mixed array controls';
+            if (key == '' && (n.mode == 'merge' || n.mode == 'remove')) throw 'Unkeyed array cannot merge or remove an item';
+            if (clear || key == '') continue;
+            keyNodes = BtPatchLookup(children[idx].groups, key);
+            if (keyNodes == undefined || ArrayCount(keyNodes) != 1 || !nodes[keyNodes[0]].hasText ||
+                nodes[keyNodes[0]].mode == 'clear') throw 'Array primary key must be explicitly non-empty';
+            if (n.mode == 'remove' && ArrayCount(children[idx].names) != 1) throw 'Remove accepts only the primary key';
+            if (keyField.Type == 'string' && String(sources[j].Child(key).Value) == '') throw 'Empty native array primary key';
+            k = sources[j].Child(key).Xml;
+            if (BtPatchLookup(seen, k) != undefined) throw 'Duplicate input array primary key';
+            seen['$' + k] = true; keys.push(k);
+        }
+        if (clear || replaceAll) {
+            for (j = ArrayCount(existing) - 1; j >= (clear ? 0 : ArrayCount(indices)); j--) existing[j].Delete();
+        }
+        if (clear) return;
+        for (j = 0; j < ArrayCount(indices); j++) {
+            idx = indices[j]; n = nodes[idx];
+            match = undefined;
+            if (!replaceAll) match = BtPatchLookup(keyed, keys[j]);
+            else if (j < ArrayCount(existing)) {
+                // Reuse this occurrence's position among unrelated sibling groups.
+                match = existing[j];
+                if (field.Type == '') match.AssignElem(CreateElemByFormElem(field));
+            }
+            if (n.mode == 'remove') {
+                if (match != undefined) match.Delete();
+                continue;
+            }
+            item = match == undefined ? BtPatchNewChild(target, field) : match;
+            applyElem(item, sources[j], idx);
+        }
+    }
+    function applyChildren(target, source, index) {
+        var plan = children[index]; var j; var name; var indices; var n; var field; var existing;
+        var src; var dst;
+        for (j = 0; j < ArrayCount(plan.names); j++) {
+            name = plan.names[j]; indices = plan.groups['$' + name];
+            n = nodes[indices[0]]; field = source.FormElem.Child(name);
+            if (index == 0 && name == 'id') continue;
+            if (!field.IsMultiple) {
+                if (n.mode == 'remove' || n.mode == 'replace-array') throw 'Array-only mode on singleton field';
+                applyElem(target.Child(name), source.Child(name), indices[0]);
+            }
+            else {
+                if (src == undefined) {
+                    src = BtPatchDataGroups(source, plan.groups);
+                    dst = BtPatchDataGroups(target, plan.groups);
+                }
+                existing = BtPatchLookup(dst, name);
+                if (existing == undefined) existing = [];
+                applyGroup(target, src['$' + name], existing, indices, field);
+            }
+        }
+    }
+    applyChildren(targetTopElem, sourceTopElem, 0);
+}

@@ -1,0 +1,240 @@
+{
+  "marker": "1b1d4ac9f51342e2ae444040daacd835",
+  "image": "sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab",
+  "sourceHashes": [
+    "12d47c0cbc50caa5f36b0ac77c671a342287e12b7de10ee95499d9237dccfbe9",
+    "568ecc5010500b4b290eeb07b2236ceb4930f0cc65cadd253d2a80db6b9e1896"
+  ],
+  "cleanup": {
+    "evaluatorInventoryUnchanged": true
+  },
+  "version": "2025.2.1333",
+  "report": {
+    "cases": [
+      {
+        "code": "return new Date('2025-02-03T04:05:06Z');",
+        "source": {
+          "kind": "object",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "0",
+          "local": "3"
+        },
+        "getTimeError": "Unknown method: getTime()\r\n(getTime(),  Unknown source,   line 29)",
+        "typed": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "0",
+          "local": "3"
+        },
+        "reopened": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "",
+          "local": "3"
+        }
+      },
+      {
+        "code": "return new Date('2025-02-03T05:05:06+01:00');",
+        "source": {
+          "kind": "object",
+          "xml": "2025-02-03T05:05:06+00:00",
+          "raw": "1738548306",
+          "embedded": "1",
+          "local": "3"
+        },
+        "typed": {
+          "kind": "date",
+          "xml": "2025-02-03T05:05:06+00:00",
+          "raw": "1738548306",
+          "embedded": "1",
+          "local": "3"
+        },
+        "reopened": {
+          "kind": "date",
+          "xml": "2025-02-03T05:05:06+00:00",
+          "raw": "1738548306",
+          "embedded": "",
+          "local": "3"
+        }
+      },
+      {
+        "code": "return OptDate('2025-02-03T04:05:06+00:00');",
+        "source": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "0",
+          "local": "3"
+        },
+        "typed": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "0",
+          "local": "3"
+        },
+        "reopened": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "",
+          "local": "3"
+        }
+      },
+      {
+        "code": "return RawSecondsToDate(1738555506);",
+        "source": {
+          "kind": "date",
+          "xml": "2025-02-03T07:05:06+00:00",
+          "raw": "1738555506",
+          "embedded": "0",
+          "local": "3"
+        },
+        "typed": {
+          "kind": "date",
+          "xml": "2025-02-03T07:05:06+00:00",
+          "raw": "1738555506",
+          "embedded": "0",
+          "local": "3"
+        },
+        "reopened": {
+          "kind": "date",
+          "xml": "2025-02-03T07:05:06+00:00",
+          "raw": "1738555506",
+          "embedded": "",
+          "local": "3"
+        }
+      },
+      {
+        "code": "return DateToTimeZoneDate(RawSecondsToDate(1738555506),0);",
+        "source": {
+          "kind": "date",
+          "xml": "2025-02-03T07:05:06+00:00",
+          "raw": "1738555506",
+          "embedded": "0",
+          "local": "3"
+        },
+        "typed": {
+          "kind": "date",
+          "xml": "2025-02-03T07:05:06+00:00",
+          "raw": "1738555506",
+          "embedded": "0",
+          "local": "3"
+        },
+        "reopened": {
+          "kind": "date",
+          "xml": "2025-02-03T07:05:06+00:00",
+          "raw": "1738555506",
+          "embedded": "",
+          "local": "3"
+        }
+      },
+      {
+        "code": "return DateNewTimeZone(OptDate('2025-02-03T04:05:06'),0);",
+        "source": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "0",
+          "local": "3"
+        },
+        "typed": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "0",
+          "local": "3"
+        },
+        "reopened": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "",
+          "local": "3"
+        }
+      },
+      {
+        "code": "return DateNewTimeZone(OptDate('2025-02-03T05:05:06'),1);",
+        "source": {
+          "kind": "date",
+          "xml": "2025-02-03T05:05:06+00:00",
+          "raw": "1738548306",
+          "embedded": "1",
+          "local": "3"
+        },
+        "typed": {
+          "kind": "date",
+          "xml": "2025-02-03T05:05:06+00:00",
+          "raw": "1738548306",
+          "embedded": "1",
+          "local": "3"
+        },
+        "reopened": {
+          "kind": "date",
+          "xml": "2025-02-03T05:05:06+00:00",
+          "raw": "1738548306",
+          "embedded": "",
+          "local": "3"
+        }
+      },
+      {
+        "code": "return OptDate('2025-02-03T04:05:06');",
+        "source": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "",
+          "local": "3"
+        },
+        "typed": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "",
+          "local": "3"
+        },
+        "reopened": {
+          "kind": "date",
+          "xml": "2025-02-03T04:05:06+00:00",
+          "raw": "1738544706",
+          "embedded": "",
+          "local": "3"
+        }
+      },
+      {
+        "code": "return OptDate('2025-02-03');",
+        "source": {
+          "kind": "date",
+          "xml": "2025-02-03",
+          "raw": "1738530000",
+          "embedded": "",
+          "local": "3"
+        },
+        "typed": {
+          "kind": "date",
+          "xml": "2025-02-03",
+          "raw": "1738530000",
+          "embedded": "",
+          "local": "3"
+        },
+        "reopened": {
+          "kind": "date",
+          "xml": "2025-02-03T00:00:00+00:00",
+          "raw": "1738530000",
+          "embedded": "",
+          "local": "3"
+        }
+      }
+    ],
+    "cleanup": {
+      "fileAbsent": true
+    }
+  },
+  "probe": {
+    "marker": "1b1d4ac9f51342e2ae444040daacd835",
+    "sourceSha256": "568ecc5010500b4b290eeb07b2236ceb4930f0cc65cadd253d2a80db6b9e1896"
+  }
+}

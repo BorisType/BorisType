@@ -50,6 +50,7 @@ const boundedXml = z
   .string()
   .max(objectXmlBytes)
   .refine((xml) => xml.isWellFormed() && Buffer.byteLength(xml, "utf8") <= objectXmlBytes);
+const patchInput = z.strictObject({ id: objectId, readToken: z.uuid(), xml: boundedXml, dryRun: z.boolean().default(false) });
 const saveInput = z
   .strictObject({
     mode: z.enum(["create", "replace"]),
@@ -91,7 +92,7 @@ const xquery = z.strictObject({
 export const wshcmSchemas = {
   packages: packageSchemas,
   files: { read, write, edit, list, delete: deleteInput, mkdir, move, info, search: searchInput },
-  objects: { getForm: z.strictObject({ formUrl }), get: z.strictObject({ id: objectId }), save: saveInput },
+  objects: { getForm: z.strictObject({ formUrl }), get: z.strictObject({ id: objectId }), save: saveInput, patch: patchInput },
   xquery,
   execute: z.strictObject({
     code: z

@@ -1,0 +1,251 @@
+{
+  "version": "2025.2.1333",
+  "backingFile": true,
+  "cases": [
+    {
+      "name": "same string",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "changed string",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "string changed then restored",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "same integer",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "same boolean",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "same XML date Value",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {
+        "strictEqual": true,
+        "previousKind": "date",
+        "currentKind": "date"
+      },
+      "error": ""
+    },
+    {
+      "name": "equal reconstructed date",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {
+        "strictEqual": false,
+        "previousKind": "date",
+        "currentKind": "date"
+      },
+      "error": ""
+    },
+    {
+      "name": "changed date and previous alias",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {
+        "oldText": "2025-02-03T04:05:06+00:00",
+        "previousAfter": "2025-02-03T04:05:06+00:00",
+        "currentText": "2025-02-04T04:05:06+00:00",
+        "strictEqual": false
+      },
+      "error": ""
+    },
+    {
+      "name": "equal script Date assignment",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "same keyed item scalar",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "changed keyed item scalar",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "add empty keyed item",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "delete keyed item",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "clear keyed array",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": true,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "rebuild keyed array with same values",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "rebuild unkeyed array with same values",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "manual flag true",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": true,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    },
+    {
+      "name": "manual flag true then false",
+      "initialFlag": false,
+      "resetFlag": false,
+      "isChanged": false,
+      "xmlChanged": false,
+      "extra": {},
+      "error": ""
+    }
+  ],
+  "types": {
+    "platformDate": {
+      "dataType": "object",
+      "objectType": "BmObject",
+      "xmlDate": "2026-11-18T11:00:24+00:00"
+    },
+    "optDate": {
+      "dataType": "date",
+      "objectType": "",
+      "xmlDate": "2025-02-03T04:05:06+00:00"
+    },
+    "scriptDate": {
+      "dataType": "object",
+      "objectType": "BmObject",
+      "xmlDate": "2025-02-03T04:05:06+00:00"
+    },
+    "xmlElement": {
+      "dataType": "object",
+      "objectType": "XmElem",
+      "xmlDate": "2025-02-03T04:05:06+00:00"
+    },
+    "xmlValue": {
+      "dataType": "date",
+      "objectType": "",
+      "xmlDate": "2025-02-03T04:05:06+00:00"
+    },
+    "documentFlagType": "bool",
+    "elementFlag": {
+      "error": "Unknown object property: IsChanged\r\n(eval,  Unknown source,   line 1)\r\n(eval(),  Unknown source,   line 16)\r\n(eval,  Unknown source,   line 16)"
+    }
+  },
+  "reflection": {
+    "keyed": {
+      "name": "row",
+      "kind": "XmElem",
+      "xml": "<row>\r\n\t<key>a</key>\r\n\t<value>1</value>\r\n</row>\r\n",
+      "multi": false,
+      "formMultiple": true,
+      "formXml": "\t\t\t<row MULTIPLE=\"1\" PRIMARY-KEY=\"key\">\r\n\t\t\t\t<key TYPE=\"string\"/>\r\n\t\t\t\t<value TYPE=\"integer\"/>\r\n\t\t\t</row>\r\n",
+      "primaryName": "key",
+      "primaryType": "string",
+      "primaryXml": "<key>a</key>\r\n",
+      "primarySame": false,
+      "primaryAttribute": ""
+    },
+    "unkeyed": {
+      "name": "tag",
+      "kind": "XmElem",
+      "xml": "<tag>one</tag>\r\n",
+      "multi": false,
+      "formMultiple": true,
+      "formXml": "\t\t\t<tag TYPE=\"string\" MULTIPLE=\"1\"/>\r\n",
+      "primaryName": "tag",
+      "primaryType": "string",
+      "primaryXml": "<tag>one</tag>\r\n",
+      "primarySame": true,
+      "primaryAttribute": ""
+    }
+  },
+  "ownFileAbsent": true,
+  "probe": {
+    "marker": "3508857ceaf947a78bdee9be12da1df3",
+    "sourceSha256": "8e716241b9cc9af0b158017c6bb979a4b56118aef3791818fcc5953f299190ab",
+    "carrier": "native C-runtime/SOAP; own temporary XML file; no DB binding"
+  },
+  "cleanup": {
+    "evaluatorInventoryUnchanged": true,
+    "registeredMemoryForm": "3508857ceaf947a78bdee9be12da1df3",
+    "formCacheEvictionVerified": false
+  }
+}

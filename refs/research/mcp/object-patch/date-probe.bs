@@ -1,0 +1,41 @@
+// Compare native civil time, embedded zone, epoch seconds and persisted XML.
+var f='x-local://wt/bt_date_probe_${marker}.xmd';
+var u='x-local://wt/bt_date_probe_${marker}.xml';
+var path=UrlToFilePath(u);
+if(FilePathExists(path)) throw 'Fixture exists';
+var result={cases:[]};var d;var base;var i;var v;var row;var error='';
+function dateFacts(value){
+    return {kind:DataType(value),xml:StrXmlDate(value),raw:String(DateToRawSeconds(value)),embedded:String(TimeZone(value)),local:String(GetLocalTimeZone(value))};
+}
+var cases=[
+    "return new Date('2025-02-03T04:05:06Z');",
+    "return new Date('2025-02-03T05:05:06+01:00');",
+    "return OptDate('2025-02-03T04:05:06+00:00');",
+    "return RawSecondsToDate(1738555506);",
+    "return DateToTimeZoneDate(RawSecondsToDate(1738555506),0);",
+    "return DateNewTimeZone(OptDate('2025-02-03T04:05:06'),0);",
+    "return DateNewTimeZone(OptDate('2025-02-03T05:05:06'),1);",
+    "return OptDate('2025-02-03T04:05:06');",
+    "return OptDate('2025-02-03');"
+];
+try{
+    RegisterFormFromStr(f,'<SPXML-FORM><probe><stamp TYPE="date"/></probe></SPXML-FORM>');
+    for(i=0;i<ArrayCount(cases);i++){
+        row={code:cases[i]};
+        try {
+            d=OpenNewDoc(f);
+            v=eval(cases[i]);
+            row.source=dateFacts(v);
+            if(i==0){try{row.getTime=String(v.getTime());}catch(err){row.getTimeError=String(err);}}
+            d.TopElem.stamp.Value=v;
+            row.typed=dateFacts(d.TopElem.stamp.Value);
+            d.Save(u);
+            row.reopened=dateFacts(OpenDoc(u).TopElem.stamp.Value);
+        }catch(err){row.error=String(err);}
+        result.cases.push(row);
+    }
+}catch(err){error=String(err);}
+if(FilePathExists(path))DeleteFile(path);
+result.cleanup={fileAbsent:!FilePathExists(path)};
+if(error!='') throw error;
+return EncodeJson(result);

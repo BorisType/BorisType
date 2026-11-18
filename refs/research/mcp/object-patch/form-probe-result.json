@@ -1,0 +1,320 @@
+{
+  "marker": "d6c0ccbef9cc4308aabae74deb7e2e70",
+  "image": "sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab",
+  "sourceHashes": [
+    "12d47c0cbc50caa5f36b0ac77c671a342287e12b7de10ee95499d9237dccfbe9",
+    "5c604784ce9945afa22eaf8a7c78fd43265fb45438086c116f3ff883078c4263"
+  ],
+  "cleanup": {
+    "evaluatorInventoryUnchanged": true
+  },
+  "version": "2025.2.1333",
+  "report": {
+    "fields": [
+      {
+        "name": "id",
+        "type": "integer",
+        "sub": "",
+        "key": "",
+        "keyType": "string"
+      },
+      {
+        "name": "stamp",
+        "type": "date",
+        "sub": "",
+        "key": "",
+        "keyType": "string"
+      },
+      {
+        "name": "real",
+        "type": "real",
+        "sub": "",
+        "key": "",
+        "keyType": "string"
+      },
+      {
+        "name": "flag",
+        "type": "bool",
+        "sub": "",
+        "key": "",
+        "keyType": "string"
+      },
+      {
+        "name": "n",
+        "type": "integer",
+        "sub": "",
+        "key": "",
+        "keyType": "string"
+      },
+      {
+        "name": "row",
+        "type": "",
+        "sub": "",
+        "key": "k",
+        "keyType": "string"
+      },
+      {
+        "name": "tag",
+        "type": "string",
+        "sub": "",
+        "key": "",
+        "keyType": "string"
+      },
+      {
+        "name": "point",
+        "type": "",
+        "sub": "",
+        "key": "",
+        "keyType": "string"
+      }
+    ],
+    "dates": [
+      {
+        "text": "2025-02-03",
+        "kind": "date",
+        "xml": "<stamp>2025-02-03T00:00:00+00:00</stamp>\r\n"
+      },
+      {
+        "text": "2025-02-03T04:05:06Z",
+        "kind": "date",
+        "xml": "<stamp>2025-02-03T04:05:06+00:00</stamp>\r\n"
+      },
+      {
+        "text": "2025-02-03T05:05:06+01:00",
+        "kind": "date",
+        "xml": "<stamp>2025-02-03T05:05:06+00:00</stamp>\r\n"
+      },
+      {
+        "text": "2025-02-03T04:05:06.123Z",
+        "kind": "date",
+        "xml": "<stamp>2025-02-03T04:05:06+00:00</stamp>\r\n"
+      },
+      {
+        "text": "2025-02-03T04:05:06",
+        "kind": "date",
+        "xml": "<stamp>2025-02-03T04:05:06+00:00</stamp>\r\n"
+      },
+      {
+        "text": "2025-02-31",
+        "kind": "date",
+        "xml": "<stamp>2025-02-31T00:00:00+00:00</stamp>\r\n"
+      },
+      {
+        "text": "nonsense",
+        "kind": "date",
+        "xml": "<stamp>2025-02-31T00:00:00+00:00</stamp>\r\n"
+      },
+      {
+        "text": "",
+        "kind": "null",
+        "xml": "<stamp/>\r\n"
+      }
+    ],
+    "values": [
+      {
+        "name": "flag",
+        "text": "1",
+        "xml": "<flag>1</flag>\r\n",
+        "kind": "bool",
+        "value": "true"
+      },
+      {
+        "name": "flag",
+        "text": "0",
+        "xml": "<flag>0</flag>\r\n",
+        "kind": "bool",
+        "value": "false"
+      },
+      {
+        "name": "flag",
+        "text": "false",
+        "xml": "<flag>0</flag>\r\n",
+        "kind": "bool",
+        "value": "false"
+      },
+      {
+        "name": "flag",
+        "text": "TRUE",
+        "xml": "<flag>0</flag>\r\n",
+        "kind": "bool",
+        "value": "false"
+      },
+      {
+        "name": "real",
+        "text": "1e2",
+        "xml": "<real>100</real>\r\n",
+        "kind": "real",
+        "value": "100"
+      },
+      {
+        "name": "real",
+        "text": "1e309",
+        "xml": "<real>inf</real>\r\n",
+        "kind": "real",
+        "value": "inf"
+      },
+      {
+        "name": "real",
+        "text": "1.25",
+        "xml": "<real>1.25</real>\r\n",
+        "kind": "real",
+        "value": "1.25"
+      },
+      {
+        "name": "n",
+        "text": "0xffffffffffffffff",
+        "xml": "<n>0x7FFFFFFFFFFFFFFF</n>\r\n",
+        "kind": "integer",
+        "value": "9223372036854775807"
+      },
+      {
+        "name": "n",
+        "text": "-2",
+        "xml": "<n>0x7FFFFFFFFFFFFFFF</n>\r\n",
+        "kind": "integer",
+        "value": "9223372036854775807"
+      },
+      {
+        "name": "n",
+        "text": "18446744073709551615",
+        "xml": "<n>0xFFFFFFFFFFFFFFFF</n>\r\n",
+        "kind": "integer",
+        "value": "18446744073709551615"
+      }
+    ],
+    "ops": [
+      {
+        "expr": "var q={};var k='<abc> </abc>';q[k]=7;return q[k];",
+        "result": "7"
+      },
+      {
+        "expr": "var q={};return q.GetOptProperty('missing');",
+        "result": "undefined"
+      },
+      {
+        "expr": "return StrLen('ёж');",
+        "result": "4"
+      },
+      {
+        "expr": "return StrCharCount('ёж');",
+        "result": "2"
+      },
+      {
+        "expr": "return Real('1e2');",
+        "result": "100"
+      },
+      {
+        "expr": "return Real('1e309');",
+        "result": "inf"
+      },
+      {
+        "expr": "return StrReal(Real('1e309'));",
+        "result": "inf"
+      },
+      {
+        "expr": "return StrXmlDate(OptDate('2025-02-03T05:05:06+01:00'));",
+        "result": "2025-02-03T05:05:06+00:00"
+      },
+      {
+        "expr": "return StrXmlDate(OptDate('2025-02-03T04:05:06+00:00'));",
+        "result": "2025-02-03T04:05:06+00:00"
+      },
+      {
+        "expr": "return StrXmlDate(OptDate('0001-01-01T00:00:00+00:00'));",
+        "result": "1-01-01T00:00:00+00:00"
+      },
+      {
+        "expr": "var child=CreateElemByFormElem(te.FormElem.Child('row'));te.AddChildElem(child);child.Child('k').Value='key';return te.Xml;",
+        "result": "<probe>\r\n\t<row>\r\n\t\t<k>key</k>\r\n\t</row>\r\n</probe>\r\n"
+      },
+      {
+        "expr": "var child=CreateElemByFormElem(te.FormElem.Child('tag'));te.AddChildElem(child);child.Value='v';return te.Xml;",
+        "result": "<probe>\r\n\t<row>\r\n\t\t<k>key</k>\r\n\t</row>\r\n\t<tag>v</tag>\r\n</probe>\r\n"
+      },
+      {
+        "expr": "return te.Child('row').Child('k').Xml;",
+        "result": "<k>key</k>\r\n"
+      },
+      {
+        "expr": "return te.Child('row').Child('k').Value;",
+        "result": "key"
+      },
+      {
+        "expr": "return te.Child('row').Child('k').FormElem.Type;",
+        "result": "string"
+      },
+      {
+        "expr": "return StrInt(Int('18446744073709551615'));",
+        "result": "18446744073709551615"
+      },
+      {
+        "expr": "return StrSignedInt(Int('-9223372036854775808'));",
+        "result": "-9223372036854775808"
+      },
+      {
+        "expr": "te.n.Value=Int('-2');return te.n.Xml;",
+        "result": "<n>0xFFFFFFFFFFFFFFFE</n>\r\n"
+      },
+      {
+        "expr": "te.n.Value=Int('18446744073709551615');return te.n.Xml;",
+        "result": "<n>0xFFFFFFFFFFFFFFFF</n>\r\n"
+      },
+      {
+        "expr": "return StrXmlDate(OptDate('2025-02-03T04:05:06Z'));",
+        "result": "2025-02-03T04:05:06+00:00"
+      },
+      {
+        "expr": "return te.FormElem.Type;",
+        "result": ""
+      },
+      {
+        "expr": "return FetchForm('x-local://wtv/wtv_cost_center.xmd').TopElem.OptChild('custom_elems').OptChild('custom_elem').OptChild('value').Type;",
+        "result": "string"
+      },
+      {
+        "expr": "return te.AddChild('row').Name;",
+        "result": "ERROR Element is not a simple array.\r\n(AddChild(),  Unknown source,   line 1)\r\n(eval(),  Unknown source,   line 8)\r\n(eval,  Unknown source,   line 8)"
+      },
+      {
+        "expr": "return te.AddChild('tag').Name;",
+        "result": "ERROR Element is not a simple array.\r\n(AddChild(),  Unknown source,   line 1)\r\n(eval(),  Unknown source,   line 8)\r\n(eval,  Unknown source,   line 8)"
+      },
+      {
+        "expr": "return te.AddChild('point').Name;",
+        "result": "ERROR Element is not a simple array.\r\n(AddChild(),  Unknown source,   line 1)\r\n(eval(),  Unknown source,   line 8)\r\n(eval,  Unknown source,   line 8)"
+      },
+      {
+        "expr": "return te.Xml;",
+        "result": "<probe>\r\n\t<n>0xFFFFFFFFFFFFFFFF</n>\r\n\t<row>\r\n\t\t<k>key</k>\r\n\t</row>\r\n\t<tag>v</tag>\r\n</probe>\r\n"
+      },
+      {
+        "expr": "return te.Child('row').FormElem.PrimaryKeyName;",
+        "result": "k"
+      },
+      {
+        "expr": "return te.Child('tag').FormElem.PrimaryKeyName;",
+        "result": ""
+      },
+      {
+        "expr": "return te.Child('point').FormElem.PrimaryKeyName;",
+        "result": "ERROR No such child: point\r\n(Child(),  Unknown source,   line 1)\r\n(eval(),  Unknown source,   line 8)\r\n(eval,  Unknown source,   line 8)"
+      },
+      {
+        "expr": "return te.Child('row').Child('k').Xml;",
+        "result": "<k>key</k>\r\n"
+      },
+      {
+        "expr": "return te.Child('row').Child('k').Value;",
+        "result": "key"
+      },
+      {
+        "expr": "return FetchForm('x-local://wtv/wtv_cost_center.xmd').TopElem.OptChild('custom_elems').OptChild('custom_elem').PrimaryKeyName;",
+        "result": "name"
+      }
+    ]
+  },
+  "probe": {
+    "marker": "d6c0ccbef9cc4308aabae74deb7e2e70",
+    "sourceSha256": "5c604784ce9945afa22eaf8a7c78fd43265fb45438086c116f3ff883078c4263"
+  }
+}
