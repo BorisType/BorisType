@@ -45,6 +45,7 @@ export interface PackageErrorDetails {
   /** Secondary local cleanup failure; never replaces the primary operation error. */
   cleanupError?: string;
   operationId?: string;
+  schemaId?: string;
   phase: string;
   status: "not_attempted" | "unknown" | "failed";
   code: string;
@@ -52,8 +53,8 @@ export interface PackageErrorDetails {
 }
 export class WshcmPackageError extends Error {
   readonly details: PackageErrorDetails;
-  constructor(details: PackageErrorDetails) {
-    super(`${details.code}: ${details.message}`);
+  constructor(details: PackageErrorDetails, options?: ErrorOptions) {
+    super(`${details.code}: ${details.message}`, options);
     this.name = "WshcmPackageError";
     this.details = details;
   }

@@ -29,6 +29,7 @@ function localFailure(reason: string, expected: RuntimeBuildIdentity | null, err
   return new WshcmRuntimeError(
     { schemaVersion: 1, status: "blocked", reason, expected, installed: null, loaded: null, changed: false, process: null },
     error instanceof Error ? error.message : String(error),
+    { cause: error },
   );
 }
 

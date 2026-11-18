@@ -31,3 +31,122 @@ test("SOAP response preserves UTF-8 characters split across HTTP chunks", { time
   });
   assert.equal(await client.callMethod("tools", "fixture"), expected);
 });
+
+async function fixture(t, handler) {
+  const server = createServer((request, response) => {
+    request.resume();
+    handler(request, response);
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(
+    () =>
+      new Promise((resolve) => {
+        server.close(resolve);
+        server.closeAllConnections();
+      }),
+  );
+  return new WshcmClient({
+    host: "127.0.0.1",
+    port: server.address().port,
+    overHttps: false,
+    username: "fixture",
+    password: "secret",
+    requestTimeout: 300,
+  });
+}
+
+test("login and SOAP distinguish HTTP service and authentication failures without response disclosure", async (t) => {
+  let status;
+  const client = await fixture(t, (_req, res) => {
+    res.writeHead(status, { "set-cookie": "private=header" });
+    res.end("<html>sensitive upstream diagnostics</html>");
+  });
+  for (status of [401, 403, 503]) {
+    for (const run of [() => client.initialize(), () => client.callMethod("tools", "fixture")]) {
+      await assert.rejects(run(), (err) => {
+        assert.equal(err.kind, status === 503 ? "http" : "authentication");
+        assert.equal(err.statusCode, status);
+        assert.doesNotMatch(String(err), /private|sensitive|secret/);
+        return true;
+      });
+    }
+  }
+});
+
+test("HTTP 500 SOAP fault keeps the native diagnostic", async (t) => {
+  const client = await fixture(t, (_req, res) => {
+    res.writeHead(500);
+    res.end(
+      '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><s:Fault><faultcode>Server</faultcode><faultstring>Native failure</faultstring></s:Fault></s:Body></s:Envelope>',
+    );
+  });
+  await assert.rejects(client.callMethod("tools", "fixture"), { message: "ERR: (Server) Native failure", name: "WshcmSoapFault" });
+});
+
+test("per-request deadline covers slow streamed login, independent of the next ordinary call", async (t) => {
+  const client = await fixture(t, (_req, res) => {
+    res.writeHead(200);
+    const interval = globalThis.setInterval(() => res.write(" "), 10);
+    const end = globalThis.setTimeout(() => res.end('<ResultData><Result VALUE-TYPE="integer">1</Result></ResultData>'), 120);
+    res.on("close", () => {
+      clearInterval(interval);
+      clearTimeout(end);
+    });
+  });
+  await assert.rejects(client.initialize({ timeoutMs: 40 }), { kind: "timeout" });
+  assert.equal(await client.callMethod("tools", "fixture"), 1n);
+});
+
+test("response lost after its headers is a network failure", { timeout: 2000 }, async (t) => {
+  const client = await fixture(t, (_req, res) => {
+    res.writeHead(200);
+    res.write("<unfinished>");
+    globalThis.setTimeout(() => res.destroy(), 10);
+  });
+  await assert.rejects(client.callMethod("tools", "fixture"), { kind: "network" });
+});
+
+test("an HTTP error page with a Fault-like field remains a redacted HTTP error", async (t) => {
+  const client = await fixture(t, (_req, res) => {
+    res.writeHead(502);
+    res.end("<html><Fault><faultstring>private details</faultstring></Fault></html>");
+  });
+  await assert.rejects(client.callMethod("tools", "fixture"), (err) => {
+    assert.equal(err.kind, "http");
+    assert.doesNotMatch(err.message, /private/);
+    return true;
+  });
+});
+
+test("reauthentication replaces expired session cookies on the existing client", async (t) => {
+  let logins = 0;
+  const stale = Promise.withResolvers();
+  const client = await fixture(t, (req, res) => {
+    if (req.method === "GET") {
+      if (req.headers.cookie) {
+        res.writeHead(401);
+        res.end();
+        return;
+      }
+      logins++;
+      res.setHeader("Set-Cookie", `sid=session${logins}; Path=/`);
+      res.end();
+    } else if (logins === 1) {
+      stale.resolve(res);
+    } else if (req.headers.cookie !== "sid=session2") {
+      res.writeHead(401);
+      res.end();
+    } else res.end('<ResultData><Result VALUE-TYPE="bool">1</Result></ResultData>');
+  });
+  await client.initialize();
+  const oldCall = client.callMethod("tools", "old");
+  const oldResponse = await stale.promise;
+  try {
+    await client.initialize();
+  } finally {
+    oldResponse.setHeader("Set-Cookie", "sid=expired");
+    oldResponse.end('<ResultData><Result VALUE-TYPE="bool">1</Result></ResultData>');
+    await oldCall;
+  }
+  assert.equal(await client.callMethod("tools", "fixture"), true);
+});

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { z } from "zod";
+import { WshcmDispatchError } from "../exceptions.js";
 import type { WshcmValue } from "../types.js";
 import { carrierArray, carrierRecord, decodeCarrierString, projectionDecoder, projectionSource } from "../value-projection.js";
 import { wshcmSchemas } from "./schemas.js";
@@ -14,7 +15,7 @@ export type ExecutionResult = ExecutionOutput &
 
 export interface ExecutionErrorDetails {
   phase: "transport" | "response";
-  executionStatus: "unknown";
+  executionStatus: "unknown" | "not_started";
   error: { code: "TransportError" | "InvalidResponse"; message: string };
 }
 
@@ -23,11 +24,12 @@ export class WshcmExecutionError extends Error {
   readonly details: ExecutionErrorDetails;
   constructor(phase: ExecutionErrorDetails["phase"], cause: unknown) {
     const message = (cause instanceof Error ? cause.message : String(cause)).slice(0, 2000).toWellFormed();
-    super(`Execution outcome unknown (${phase}): ${message}`, { cause });
+    const unstarted = phase === "transport" && cause instanceof WshcmDispatchError && !cause.dispatched;
+    super(`Execution ${unstarted ? "not started" : "outcome unknown"} (${phase}): ${message}`, { cause });
     this.name = "WshcmExecutionError";
     this.details = {
       phase,
-      executionStatus: "unknown",
+      executionStatus: unstarted ? "not_started" : "unknown",
       error: { code: phase === "transport" ? "TransportError" : "InvalidResponse", message },
     };
   }

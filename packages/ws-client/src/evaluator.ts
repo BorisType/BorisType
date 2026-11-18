@@ -1,3 +1,4 @@
+import type { WshcmRequestOptions } from "./types.js";
 import { WshcmClient } from "./client.js";
 import { executeXQuery, type XQueryOptions, type XQueryResult } from "./xquery.js";
 
@@ -20,6 +21,7 @@ export class Evaluator {
   private evalKey: string;
   private libUrl: string;
   private initialized = false;
+  private setupAttempted = false;
 
   /**
    * Создает новый evaluator
@@ -34,14 +36,23 @@ export class Evaluator {
   /**
    * Инициализирует evaluator, создавая временный модуль на сервере
    */
-  async initialize(): Promise<void> {
+  async initialize(options: WshcmRequestOptions = {}): Promise<void> {
     if (this.initialized) {
       return;
     }
 
     const content = this.getUnsafeEvalScript();
-    await this.client.callMethod("tools", "put_url_text_server", [this.libUrl, content]);
+    this.setupAttempted = true;
+    await this.client.callMethod("tools", "put_url_text_server", [this.libUrl, content], options);
     this.initialized = true;
+  }
+
+  /** Check only this module, including after an unacknowledged setup request. */
+  async probe(options: WshcmRequestOptions = {}): Promise<boolean> {
+    const value = await this.client.callMethod(this.libUrl, "execute", ["return 1;"], options);
+    if (value !== 1n && value !== 1) return false;
+    this.initialized = true;
+    return true;
   }
 
   /**
@@ -49,11 +60,11 @@ export class Evaluator {
    * @param code - код для выполнения
    * @returns результат выполнения
    */
-  async eval(code: string): Promise<any> {
+  async eval(code: string, options: WshcmRequestOptions = {}): Promise<any> {
     if (!this.initialized) {
-      await this.initialize();
+      await this.initialize(options);
     }
-    return this.client.callMethod(this.libUrl, "execute", [code]);
+    return this.client.callMethod(this.libUrl, "execute", [code], options);
   }
 
   /**
@@ -81,14 +92,15 @@ export class Evaluator {
    * Закрывает evaluator и удаляет временный модуль с сервера
    * @returns true если удаление успешно, false в противном случае
    */
-  async close(): Promise<boolean> {
-    if (!this.initialized) {
+  async close(options: WshcmRequestOptions = {}): Promise<boolean> {
+    if (!this.setupAttempted) {
       return false;
     }
     try {
-      const result = await this.client.callMethod(this.libUrl, "drop_self", []);
+      const result = await this.client.callMethod(this.libUrl, "drop_self", [], options);
       this.initialized = false;
-      return result;
+      if (result === true) this.setupAttempted = false;
+      return result === true;
     } catch {
       return false;
     }

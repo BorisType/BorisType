@@ -1,3 +1,4 @@
+import { WshcmDispatchError } from "../exceptions.js";
 import { readFileSync } from "node:fs";
 import { z } from "zod";
 import type { WshcmEvaluator } from "./types.js";
@@ -83,11 +84,14 @@ export class WshcmObjects {
         return body;
       } catch (error) {
         if (error instanceof WshcmObjectError) throw error;
-        throw new WshcmObjectError({
-          error: { code: "ReadError", message: String(error).slice(0, 2000) },
-          phase: "read",
-          writeStatus: "not_attempted",
-        });
+        throw new WshcmObjectError(
+          {
+            error: { code: "ReadError", message: String(error).slice(0, 2000) },
+            phase: "read",
+            writeStatus: "not_attempted",
+          },
+          { cause: error },
+        );
       }
     });
   }
@@ -102,12 +106,15 @@ export class WshcmObjects {
         return { ...body, readToken: this.reads.record({ ...body, schemaXml }) };
       } catch (error) {
         if (error instanceof WshcmObjectError) throw error;
-        throw new WshcmObjectError({
-          error: { code: "ReadError", message: String(error).slice(0, 2000) },
-          id,
-          phase: "read",
-          writeStatus: "not_attempted",
-        });
+        throw new WshcmObjectError(
+          {
+            error: { code: "ReadError", message: String(error).slice(0, 2000) },
+            id,
+            phase: "read",
+            writeStatus: "not_attempted",
+          },
+          { cause: error },
+        );
       }
     });
   }
@@ -155,12 +162,15 @@ export class WshcmObjects {
         return body;
       } catch (error) {
         if (error instanceof WshcmObjectError) throw error;
-        throw new WshcmObjectError({
-          error: { code: phase === "input" ? "InvalidInput" : "TransportError", message: String(error).slice(0, 2000) },
-          ...(knownId ? { id: knownId } : {}),
-          phase,
-          writeStatus,
-        });
+        throw new WshcmObjectError(
+          {
+            error: { code: phase === "input" ? "InvalidInput" : "TransportError", message: String(error).slice(0, 2000) },
+            ...(knownId ? { id: knownId } : {}),
+            phase,
+            writeStatus: phase === "transport" && error instanceof WshcmDispatchError && !error.dispatched ? "not_attempted" : writeStatus,
+          },
+          { cause: error },
+        );
       }
     });
   }
@@ -201,12 +211,15 @@ export class WshcmObjects {
         return body;
       } catch (error) {
         if (error instanceof WshcmObjectError) throw error;
-        throw new WshcmObjectError({
-          error: { code: phase === "input" ? "InvalidInput" : "TransportError", message: String(error).slice(0, 2000) },
-          ...(knownId ? { id: knownId } : {}),
-          phase,
-          writeStatus,
-        });
+        throw new WshcmObjectError(
+          {
+            error: { code: phase === "input" ? "InvalidInput" : "TransportError", message: String(error).slice(0, 2000) },
+            ...(knownId ? { id: knownId } : {}),
+            phase,
+            writeStatus: phase === "transport" && error instanceof WshcmDispatchError && !error.dispatched ? "not_attempted" : writeStatus,
+          },
+          { cause: error },
+        );
       }
     });
   }

@@ -1,6 +1,6 @@
 import { WshcmClient, Evaluator } from "@boristype/ws-client";
 import type { McpServerOptions } from "./types.js";
-import { toWshcmClientOptions } from "./types.js";
+import { defaultConnectionTimeoutMs, toWshcmClientOptions } from "./types.js";
 
 /**
  * Активное соединение с WSHCM сервером.
@@ -20,10 +20,18 @@ export interface WshcmConnection {
  */
 export async function createConnection(options: McpServerOptions): Promise<WshcmConnection> {
   const client = new WshcmClient(toWshcmClientOptions(options));
-  await client.initialize();
+  const request = { timeoutMs: options.connectionTimeoutMs ?? defaultConnectionTimeoutMs };
+  await client.initialize(request);
 
   const evaluator = client.createEvaluator();
-  await evaluator.initialize();
+  try {
+    await evaluator.initialize(request);
+  } catch (cause) {
+    if (!(await evaluator.close(request))) {
+      throw new AggregateError([cause], "Evaluator setup failed and temporary WSHCM evaluator cleanup was not confirmed", { cause });
+    }
+    throw cause;
+  }
 
   return { client, evaluator };
 }

@@ -618,3 +618,25 @@ test("invalid new mutation input stays not dispatched, independently of historic
   assert.equal(p.saves, 0);
   assert.equal(p.files.size, 0);
 });
+
+test("preflight on schema readback retains the mutation receipt and cause", async () => {
+  const p = platform();
+  const failure = new sdk.WshcmDispatchError("probe did not complete", false);
+  const service = new sdk.WshcmPackages({
+    eval: async (code) => {
+      if (p.saves === 1) throw failure;
+      return p.evaluator.eval(code);
+    },
+  });
+  const operationId = randomUUID();
+  await assert.rejects(service.saveSchema({ name: "own", operationId }), (error) => {
+    assert.equal(error.details.operationId, operationId);
+    assert.ok(error.details.schemaId);
+    assert.equal(error.details.lastKnownOperation?.status, "completed");
+    assert.equal(error.details.lastKnownOperation.operationId, operationId);
+    assert.equal(error.cause.cause, failure);
+    assert.equal(error.details.status, "unknown");
+    return true;
+  });
+  assert.equal(p.saves, 1);
+});

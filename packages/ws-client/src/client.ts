@@ -1,7 +1,7 @@
 import * as https from "https";
 import * as http from "http";
-import { WshcmClientOptions } from "./types.js";
-import { UnauthorizedError, WshcmException } from "./exceptions.js";
+import type { WshcmClientOptions, WshcmRequestOptions } from "./types.js";
+import { UnauthorizedError, WshcmRequestError, WshcmSoapFault } from "./exceptions.js";
 import { renderRequest, parseResponse } from "./soap-utils.js";
 import { Evaluator } from "./evaluator.js";
 
@@ -38,7 +38,7 @@ export class WshcmClient {
   private baseUrl: string;
   private username: string;
   private password: string;
-  private cookies: string[] = [];
+  private cookies = new Map<string, string>();
   private isHttps: boolean;
   private requestTimeout: number;
 
@@ -58,11 +58,11 @@ export class WshcmClient {
    * Инициализирует клиент и проверяет авторизацию
    * Должен быть вызван после создания экземпляра
    */
-  async initialize(): Promise<void> {
-    const statusCode = await this.makeRequest("/spxml_web/main.htm", "GET");
-    if (statusCode !== 200) {
-      throw new UnauthorizedError();
-    }
+  async initialize(options: WshcmRequestOptions = {}): Promise<void> {
+    // Start a fresh authenticated session even if the previous cookie is now refused.
+    this.cookies = new Map();
+    const { status } = await this.makeRequest("/spxml_web/main.htm", "GET", options);
+    if (status !== 200) throw new WshcmRequestError("http", `HCM returned HTTP ${status}`, status);
   }
 
   /**
@@ -75,7 +75,7 @@ export class WshcmClient {
    * @param methodArgs - массив аргументов метода
    * @returns результат выполнения метода
    */
-  async callMethod<T = any>(lib: string, method: string, methodArgs: any[] = []): Promise<T> {
+  async callMethod<T = any>(lib: string, method: string, methodArgs: any[] = [], options: WshcmRequestOptions = {}): Promise<T> {
     const headers = {
       accept: "*/*",
       "accept-language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -86,9 +86,16 @@ export class WshcmClient {
     };
 
     const body = renderRequest(lib, method, methodArgs);
-    const responseText = await this.makeRequest("/api/spxml/CallMethod", "POST", headers, body);
-
-    return parseResponse(responseText as string) as T;
+    const response = await this.makeRequest("/api/spxml/CallMethod", "POST", options, headers, body);
+    if (response.status < 200 || response.status >= 300) {
+      try {
+        parseResponse(response.data);
+      } catch (error) {
+        if (error instanceof WshcmSoapFault) throw error;
+      }
+      throw new WshcmRequestError("http", `HCM returned HTTP ${response.status}`, response.status);
+    }
+    return parseResponse(response.data) as T;
   }
 
   /**
@@ -111,8 +118,17 @@ export class WshcmClient {
    * @param body - тело запроса
    * @returns статус-код или тело ответа
    */
-  private makeRequest(path: string, method: string, headers: Record<string, string> = {}, body?: string): Promise<number | string> {
+  private makeRequest(
+    path: string,
+    method: string,
+    request: WshcmRequestOptions,
+    headers: Record<string, string> = {},
+    body?: string,
+  ): Promise<{ status: number; data: string }> {
     return new Promise((resolve, reject) => {
+      const deadline = request.timeoutMs;
+      if (deadline !== undefined && (!Number.isSafeInteger(deadline) || deadline <= 0))
+        throw new RangeError("timeoutMs must be a positive safe integer");
       const url = new URL(this.baseUrl + path);
       const auth = Buffer.from(`${this.username}:${this.password}`).toString("base64");
 
@@ -121,8 +137,10 @@ export class WshcmClient {
         Authorization: `Basic ${auth}`,
       };
 
-      if (this.cookies.length > 0) {
-        allHeaders["Cookie"] = this.cookies.join("; ");
+      // Responses already in flight belong to their original session.
+      const cookies = this.cookies;
+      if (cookies.size > 0) {
+        allHeaders["Cookie"] = [...cookies.values()].join("; ");
       }
 
       if (body) {
@@ -130,20 +148,27 @@ export class WshcmClient {
       }
 
       const options: http.RequestOptions = {
-        hostname: url.hostname,
+        hostname: url.hostname.replace(/^\[|\]$/g, ""),
         port: url.port,
         path: url.pathname + url.search,
         method: method,
         headers: allHeaders,
-        timeout: this.requestTimeout,
+        timeout: deadline === undefined ? this.requestTimeout : 0,
       };
 
       const lib = this.isHttps ? https : http;
       const req = lib.request(options, (res) => {
+        const status = res.statusCode ?? 500;
+        if (status === 401 || status === 403) {
+          reject(new UnauthorizedError(`HCM authentication failed (HTTP ${status})`, status));
+          res.destroy();
+          return;
+        }
         // Сохраняем cookies
-        const setCookie = res.headers["set-cookie"];
-        if (setCookie) {
-          this.cookies.push(...setCookie.map((cookie) => cookie.split(";")[0]));
+        for (const header of res.headers["set-cookie"] ?? []) {
+          const cookie = header.split(";", 1)[0];
+          const separator = cookie.indexOf("=");
+          if (separator > 0) cookies.set(cookie.slice(0, separator), cookie);
         }
 
         // Keep incomplete UTF-8 sequences between HTTP chunks instead of decoding each Buffer separately.
@@ -153,23 +178,26 @@ export class WshcmClient {
           data += chunk;
         });
 
-        res.on("end", () => {
-          if (method === "GET") {
-            resolve(res.statusCode || 500);
-          } else {
-            resolve(data);
-          }
-        });
+        res.on("error", networkFailure);
+        res.on("end", () => resolve({ status, data }));
       });
-
-      req.on("timeout", () => {
+      function networkFailure(cause: Error) {
+        reject(new WshcmRequestError("network", "Request failed: HCM connection lost or unavailable", undefined, { cause }));
+      }
+      const timeout = () => {
+        reject(new WshcmRequestError("timeout", `Request timed out after ${deadline ?? this.requestTimeout}ms: ${method} ${path}`));
         req.destroy();
-        reject(new WshcmException(`Request timed out after ${this.requestTimeout}ms: ${method} ${path}`));
-      });
-
-      req.on("error", (error) => {
-        reject(new WshcmException(`Request failed: ${error.message}`));
-      });
+      };
+      // Node coerces delays above a signed 32-bit interval to 1 ms.
+      let timer: NodeJS.Timeout | undefined;
+      function scheduleDeadline(remaining: number) {
+        const interval = Math.min(remaining, 2147483647);
+        timer = setTimeout(remaining > interval ? () => scheduleDeadline(remaining - interval) : timeout, interval);
+      }
+      if (deadline !== undefined) scheduleDeadline(deadline);
+      req.on("close", () => clearTimeout(timer));
+      req.on("timeout", timeout);
+      req.on("error", networkFailure);
 
       if (body) {
         req.write(body);

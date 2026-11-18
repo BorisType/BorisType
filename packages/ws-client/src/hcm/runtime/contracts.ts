@@ -69,8 +69,9 @@ export class WshcmRuntimeError extends Error {
   constructor(
     public readonly status: RuntimeStatus,
     detail?: string,
+    options?: ErrorOptions,
   ) {
-    super(`WSHCM runtime ${status.status}: ${status.reason}${detail ? ` (${detail.slice(0, 2000)})` : ""}`);
+    super(`WSHCM runtime ${status.status}: ${status.reason}${detail ? ` (${detail.slice(0, 2000)})` : ""}`, options);
     this.name = "WshcmRuntimeError";
   }
 }

@@ -31,12 +31,15 @@ export async function packageNative<T>(evaluator: WshcmEvaluator, request: Recor
     return schema.parse(result.body);
   } catch (error) {
     if (error instanceof WshcmPackageError) throw error;
-    throw new WshcmPackageError({
-      code: "TransportError",
-      message: String(error).slice(0, 2000),
-      phase: "transport",
-      status: "unknown",
-      ...(operationId ? { operationId } : {}),
-    });
+    throw new WshcmPackageError(
+      {
+        code: "TransportError",
+        message: String(error).slice(0, 2000),
+        phase: "transport",
+        status: "unknown",
+        ...(operationId ? { operationId } : {}),
+      },
+      { cause: error },
+    );
   }
 }

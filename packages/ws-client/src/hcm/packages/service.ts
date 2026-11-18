@@ -154,13 +154,18 @@ export class WshcmPackages {
       const fresh = await this.read({ schemaId: body.schemaId, offset: 0, limit: 100 });
       return { ...body, revision: fresh.revision };
     } catch (error) {
-      throw new WshcmPackageError({
-        code: "ReadbackError",
-        message: String(error).slice(0, 2000),
-        operationId: body.operation.operationId,
-        phase: "readback",
-        status: "unknown",
-      });
+      throw new WshcmPackageError(
+        {
+          code: "ReadbackError",
+          message: String(error).slice(0, 2000),
+          operationId: body.operation.operationId,
+          schemaId: body.schemaId,
+          phase: "readback",
+          status: "unknown",
+          lastKnownOperation: body.operation,
+        },
+        { cause: error },
+      );
     }
   }
   saveSchema(input: Input<"saveSchema">) {
@@ -246,13 +251,16 @@ export class WshcmPackages {
         const failure =
           error instanceof WshcmPackageError
             ? error
-            : new WshcmPackageError({
-                operationId,
-                code: "ArchiveError",
-                message: String(error).slice(0, 2000),
-                phase: "archive",
-                status: "unknown",
-              });
+            : new WshcmPackageError(
+                {
+                  operationId,
+                  code: "ArchiveError",
+                  message: String(error).slice(0, 2000),
+                  phase: "archive",
+                  status: "unknown",
+                },
+                { cause: error },
+              );
         failure.details.lastKnownOperation ??= structuredClone(result.operation);
         const cleanupError = await cleanup();
         if (cleanupError) failure.details.cleanupError = cleanupError;

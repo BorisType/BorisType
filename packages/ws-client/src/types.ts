@@ -23,3 +23,8 @@ export interface WshcmClientOptions {
   /** Таймаут HTTP-запросов в мс (по умолчанию 30000) */
   requestTimeout?: number;
 }
+
+export interface WshcmRequestOptions {
+  /** Deadline for this HTTP exchange, including connection and response body. */
+  timeoutMs?: number;
+}

@@ -1,5 +1,5 @@
 import { XMLParser, XMLBuilder, XMLValidator } from "fast-xml-parser";
-import { WshcmException } from "./exceptions.js";
+import { WshcmException, WshcmSoapFault } from "./exceptions.js";
 import type { WshcmValue } from "./types.js";
 
 const INT64_MIN = -(1n << 63n);
@@ -184,6 +184,20 @@ function findElement(obj: unknown, key: string): unknown {
   return undefined;
 }
 
+/** A SOAP fault must belong to the envelope body. HTTP error pages can also contain a field named Fault. */
+function responseFault(parsed: unknown): unknown {
+  function direct(parent: unknown, local: string) {
+    if (!parent || typeof parent !== "object") return undefined;
+    return Object.entries(parent).find(([key]) => key.split(":").at(-1) === local);
+  }
+  const entry = direct(parsed, "Envelope");
+  if (!entry) return undefined;
+  const [name, envelope] = entry;
+  const ns = name.includes(":") ? `@_xmlns:${name.split(":")[0]}` : "@_xmlns";
+  if (!["http://schemas.xmlsoap.org/soap/envelope/", "http://www.w3.org/2003/05/soap-envelope"].includes(envelope?.[ns])) return undefined;
+  return direct(direct(envelope, "Body")?.[1], "Fault")?.[1];
+}
+
 /** Extract direct XML element children, excluding attributes and text. */
 function children(element: Record<string, unknown>): [string, unknown][] {
   return Object.entries(element).filter(([key]) => !key.startsWith("@_") && key !== "#text");
@@ -253,11 +267,11 @@ export function parseResponse(responseText: string): WshcmValue {
   } catch (error) {
     throw new WshcmException(`Malformed SOAP XML: ${error instanceof Error ? error.message : String(error)}`);
   }
-  const fault = findElement(parsed, "Fault");
+  const soapFault = responseFault(parsed);
+  const fault = soapFault ?? findElement(parsed, "Fault");
   if (fault && typeof fault === "object") {
-    throw new WshcmException(
-      `ERR: (${findElement(fault, "faultcode") ?? "UNKNOWN"}) ${findElement(fault, "faultstring") ?? "Unknown error"}`,
-    );
+    const Fault = soapFault ? WshcmSoapFault : WshcmException;
+    throw new Fault(`ERR: (${findElement(fault, "faultcode") ?? "UNKNOWN"}) ${findElement(fault, "faultstring") ?? "Unknown error"}`);
   }
   const resultData = findElement(parsed, "ResultData");
   if (!resultData || typeof resultData !== "object" || Array.isArray(resultData))

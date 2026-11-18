@@ -57,13 +57,16 @@ export async function uploadPackage(
     );
   } catch (error) {
     if (error instanceof WshcmPackageError) throw error;
-    throw new WshcmPackageError({
-      operationId,
-      code: "TransferError",
-      message: String(error).slice(0, 2000),
-      phase: "transfer",
-      status: "unknown",
-    });
+    throw new WshcmPackageError(
+      {
+        operationId,
+        code: "TransferError",
+        message: String(error).slice(0, 2000),
+        phase: "transfer",
+        status: "unknown",
+      },
+      { cause: error },
+    );
   }
 }
 export async function downloadPackage(e: WshcmEvaluator, operationId: string, sizeBytes: number, directory: string): Promise<string> {
