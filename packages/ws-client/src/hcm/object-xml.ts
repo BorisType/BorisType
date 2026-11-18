@@ -14,9 +14,20 @@ export interface ObjectXmlNode {
 export const objectXmlBytes = 262144;
 export const objectRequestBytes = 2097152;
 
+function isXmlSpace(code: number): boolean {
+  return code === 0x20 || code === 0x09 || code === 0x0d || code === 0x0a;
+}
+
+function trimXmlSpace(text: string): string {
+  let start = 0;
+  let end = text.length;
+  while (start < end && isXmlSpace(text.charCodeAt(start))) start++;
+  while (end > start && isXmlSpace(text.charCodeAt(end - 1))) end--;
+  return text.slice(start, end);
+}
+
 /** Recognize native decimal/hex integer values without passing through Number. */
-function integerValue(text: string): bigint | undefined {
-  const value = text.replace(/^[\x20\t\r\n]+|[\x20\t\r\n]+$/g, "");
+function integerValue(value: string): bigint | undefined {
   if (!/^(?:[+-]?\d+|0[xX][\da-fA-F]+)$/.test(value)) return undefined;
   const normalized = value.replace(/^([+-]?)0+(?=\d)/, "$1").replace(/^(0[xX])0+(?=[\da-fA-F])/, "$1");
   if (normalized.length > 21) return undefined;
@@ -130,12 +141,12 @@ function inspect(xml: string, identity: Identity, patch: boolean): Inspection<Ob
   });
   parser.on("closetag", () => {
     const { node, children } = stack.pop()!;
-    node.hasText = /[^\x20\t\r\n]/.test(node.text);
-    const integer = node.hasText ? integerValue(node.text) : undefined;
+    const text = trimXmlSpace(node.text);
+    node.hasText = text.length > 0;
+    const integer = node.hasText ? integerValue(text) : undefined;
     node.integerValid = !node.hasText || integer !== undefined;
     if (patch) {
       const p = node as ObjectPatchNode;
-      const text = node.text.replace(/^[\x20\t\r\n]+|[\x20\t\r\n]+$/g, "");
       p.integer = integer?.toString() ?? "";
       p.realValid = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text);
       p.date = patchDate(text);
@@ -143,8 +154,8 @@ function inspect(xml: string, identity: Identity, patch: boolean): Inspection<Ob
     }
     for (const siblings of children.values()) for (const sibling of siblings) sibling.count = siblings.length;
     if (node.path.length === 1 && node.path[0] === "id") {
-      if (id !== undefined || node.hasElements || identity.id === undefined || integerValue(node.text)?.toString() !== identity.id)
-        throw new Error("XML ID must match replace identity; create must omit ID");
+      if (id !== undefined || node.hasElements || identity.id === undefined || integer?.toString() !== identity.id)
+        throw new Error("XML ID must match the requested object ID. Create must omit ID");
       id = identity.id;
     }
   });

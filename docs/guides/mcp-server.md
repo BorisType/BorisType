@@ -365,7 +365,7 @@ XML object suite `test:e2e:objects` не требует BorisType DLL и про�
 form/create/read/whole replace, XML negatives и stale/consumed token на одном
 собственном `cost_center`, с независимым удалением/cleanup. На Linux HCM
 2025.2.1333 / CLR 9.0.11 / PostgreSQL 16 прошло 8/8 tests без skips.
-Общий локальный MCP suite — 218/218; он не заменяет native acceptance.
+При проверке create/replace 2026-11-10 общий локальный MCP suite прошёл 218/218 тестов.
 [Отчёт и границы](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/10-object-model/first-implementation.md).
 
 Для patch команда `test:e2e:object-patch` проверяет собранный MCP CLI по stdio

@@ -53,7 +53,7 @@ return EncodeJson({changed:changed,xml:xml,persisted:read.TopElem.Xml,hooks:StrI
         /<memo>keep memo<\/memo>[\s\S]*<key>new member B<\/key>[\s\S]*<key>new member A<\/key>/,
         /old member|old memo/,
       ],
-      ["clear only keyed MULTIPLE group", '<members><member bt-mode="clear"/></members>', /<memo>keep memo<\/memo>/, /<member>/],
+      ["clear only keyed MULTIPLE group", '<members><member bt-mode="clear"/></members>', /<memo>keep memo<\/memo>/, /<member\b/],
       ["Unicode/CDATA/CRLF", "<name>  Ω\r\n<![CDATA[<&]]>  </name>", /  Ω&#10;&lt;&amp;<\/name>/],
       ["defaulted scalar assigned", "<nested><d>9</d></nested>", /<d>9<\/d>/],
       ["durable scalar clear", '<nested><d bt-mode="clear"/></nested>', /<d>7<\/d>/, /<d>9<\/d>/],
@@ -201,9 +201,29 @@ return EncodeJson({changed:changed,xml:xml,persisted:read.TopElem.Xml,hooks:StrI
     for (const body of ["<nested/>", '<row bt-mode="remove"><key>absent</key></row>']) assert.equal((await run(body)).changed, false);
     assert.equal(await evaluate("return EncodeJson(OpenDoc(u).TopElem.Xml);"), prev);
     await evaluate(
-      "var d=OpenDoc(u);var tag=CreateElemByFormElem(d.TopElem.FormElem.Child('tag'));d.TopElem.AddChildElem(tag);tag.Value='between';var row=CreateElemByFormElem(d.TopElem.FormElem.Child('row'));d.TopElem.AddChildElem(row);row.Child('key').Value='only';tag=CreateElemByFormElem(d.TopElem.FormElem.Child('tag'));d.TopElem.AddChildElem(tag);tag.Value='after';d.Save();return EncodeJson(true);",
+      `var d=OpenDoc(u);
+       var tag=CreateElemByFormElem(d.TopElem.FormElem.Child('tag'));
+       d.TopElem.AddChildElem(tag);tag.Value='between';
+       var row=CreateElemByFormElem(d.TopElem.FormElem.Child('row'));
+       d.TopElem.AddChildElem(row);row.Child('key').Value='only';
+       tag=CreateElemByFormElem(d.TopElem.FormElem.Child('tag'));
+       d.TopElem.AddChildElem(tag);tag.Value='after';
+       row=CreateElemByFormElem(d.TopElem.FormElem.Child('row'));
+       d.TopElem.AddChildElem(row);row.Child('key').Value='unique';
+       d.Save();return EncodeJson(true);`,
     );
-    const duplicateBefore = await evaluate("return EncodeJson(OpenDoc(u).TopElem.Xml);");
+    const unique = await checkChange(
+      "update unique key alongside two equal old keys",
+      "<row><key>unique</key><v>updated</v></row>",
+      /<key>only<\/key>[\s\S]*<tag>between<\/tag>[\s\S]*<key>only<\/key>[\s\S]*<tag>after<\/tag>[\s\S]*<key>unique<\/key>[\s\S]*<v>updated<\/v>/,
+    );
+    const duplicateBefore = unique.persisted;
+    const absent = await run('<row bt-mode="remove"><key>absent</key></row>');
+    assert.equal(absent.changed, false);
+    assert.equal(absent.persisted, duplicateBefore);
+    assert.equal(absent.hooks, unique.hooks);
+    receipt.generic.absentRemoveWithDuplicates = { changed: absent.changed, hooks: absent.hooks };
+
     await assert.rejects(run("<row><key>only</key></row>"), /Ambiguous target array primary key/);
     assert.equal(await evaluate("return EncodeJson(OpenDoc(u).TopElem.Xml);"), duplicateBefore);
     receipt.generic.ambiguousTargetRejected = true;
@@ -384,6 +404,9 @@ const receipt = await withStand(async (ev, r) => {
     "src/hcm/object-xml.ts",
     "src/hcm/objects.ts",
     "src/hcm/schemas.ts",
+    "build/hcm/object-xml.js",
+    "build/hcm/objects.js",
+    "build/hcm/schemas.js",
     "test/e2e/object-patch.mjs",
   ])
     r.files[path] = sha256(await readFile(new URL("../../" + path, import.meta.url)));

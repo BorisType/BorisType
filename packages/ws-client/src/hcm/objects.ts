@@ -55,6 +55,12 @@ async function execute(evaluator: WshcmEvaluator, request: Record<string, unknow
   const text: unknown = JSON.parse(wire);
   if (typeof text !== "string" || Buffer.byteLength(text, "utf8") > 4 * 1048576) throw new Error("Invalid platform object response size");
   const result: unknown = JSON.parse(text);
+  if (request.operation === "patch_object") {
+    if (typeof result !== "object" || result === null || !("id" in result) || result.id !== request.id)
+      throw new Error("Object patch response identity mismatch");
+    if (request.dryRun && (!("writeStatus" in result) || result.writeStatus !== "not_attempted"))
+      throw new Error("Inconsistent object patch preview response");
+  }
   const failed = failure.safeParse(result);
   if (failed.success)
     throw new WshcmObjectError({ ...failed.data, error: { ...failed.data.error, message: failed.data.error.message.slice(0, 2000) } });
@@ -140,7 +146,6 @@ export class WshcmObjects {
         }
         const { ok: _, ...body } = patchResponse.parse(result);
         if (
-          body.id !== args.id ||
           body.formUrl !== expected.formUrl ||
           body.root !== inspected.root ||
           body.dryRun !== args.dryRun ||

@@ -15,6 +15,7 @@ const definitions = [
   ["n", "integer"],
   ["flag", "bool"],
   ["r", "real"],
+  ["opaque", "unrecognized"],
   [
     "row",
     "",
@@ -183,6 +184,7 @@ function platformFixture(extra = {}) {
       };
       const wire = runInNewContext("(function(){" + code + "})()", context);
       if (platform.loseAck) throw Error("connection lost");
+      if (platform.response) return JSON.stringify(JSON.stringify(platform.response));
       if (platform.badAck) {
         const ack = JSON.parse(JSON.parse(wire));
         delete ack.xml;
@@ -458,4 +460,92 @@ test("early calendar years accept the native unpadded readback clock and reject 
   for (const value of ["0-01-02T12:34:56+00:00", "001-01-02T12:34:56+00:00", "1-01-02", "99-01-02T12:34:56Z", "999-02-29T12:34:56+00:00"])
     await assert.rejects(patch("<stamp>" + value + "</stamp>"), /date/);
   assert.equal(platform.saveCount, 5);
+});
+
+test("patch outcomes require acknowledgements for the requested ID", async () => {
+  for (const responseId of ["222", "", undefined]) {
+    for (const dryRun of [false, true]) {
+      const success = { ok: true, formUrl, root: "probe", xml: "<probe/>", dryRun, changed: false, writeStatus: "not_attempted" };
+      const failure = { ok: false, phase: "readback", writeStatus: "saved", error: { code: "PlatformError", message: "unrelated" } };
+      for (const response of [success, failure]) {
+        const { api, platform } = platformFixture();
+        const { readToken } = await api.objects.get({ id });
+        platform.response = { ...response, id: responseId };
+        await assert.rejects(api.objects.patch({ id, readToken, xml: "<probe/>", dryRun }), (error) => {
+          assert.equal(error.details.id, id);
+          assert.equal(error.details.writeStatus, dryRun ? "not_attempted" : "unknown");
+          assert.equal(error.details.phase, "transport");
+          assert.equal(error.details.error.code, "TransportError");
+          return true;
+        });
+        assert.equal(platform.dispatches, 2);
+      }
+    }
+  }
+});
+
+test("a dry run retains its local outcome on a contradictory acknowledgement", async () => {
+  for (const response of [
+    { ok: true, id, formUrl, root: "probe", xml: "<probe/>", dryRun: true, changed: true, writeStatus: "saved" },
+    { ok: false, id, phase: "readback", writeStatus: "saved", error: { code: "PlatformError", message: "invalid ack" } },
+  ]) {
+    const { api, platform } = platformFixture();
+    const { readToken } = await api.objects.get({ id });
+    platform.response = response;
+    await assert.rejects(
+      api.objects.patch({ id, readToken, xml: "<probe/>", dryRun: true }),
+      (error) => error.details.id === id && error.details.phase === "transport" && error.details.writeStatus === "not_attempted",
+    );
+  }
+});
+
+test("only a requested duplicate target key is ambiguous", async () => {
+  const { patch, platform } = platformFixture({
+    row: [
+      { key: "a", value: "first" },
+      { key: "a", value: "second" },
+      { key: "b", value: "last" },
+    ],
+  });
+  const saved = await patch("<row><key>b</key><value>updated</value></row>");
+  assert.equal(saved.writeStatus, "saved");
+  assert.match(saved.xml, /<key>a<\/key><value>first<\/value>.*<key>a<\/key><value>second<\/value>.*<key>b<\/key><value>updated<\/value>/);
+  const absent = await patch('<row bt-mode="remove"><key>c</key></row>');
+  assert.equal(absent.writeStatus, "not_attempted");
+  assert.equal(absent.changed, false);
+  assert.equal(absent.xml, saved.xml);
+  for (const mode of ["merge", "replace", "remove"]) {
+    await assert.rejects(patch('<row bt-mode="' + mode + '"><key>a</key></row>'), /Ambiguous target array primary key/);
+  }
+  assert.equal(platform.saveCount, 1);
+});
+
+test("clear of an unknown scalar type fails before Save", async () => {
+  const { patch, platform } = platformFixture({ opaque: "keep" });
+  await assert.rejects(patch('<opaque bt-mode="clear"/>'), /Unsupported scalar XML type/);
+  assert.equal(platform.saveCount, 0);
+});
+
+test("scalar classification trims only XML whitespace and preserves internal runs", () => {
+  const space = " \t".repeat(1024);
+  const body =
+    "<s>" +
+    space +
+    "a" +
+    space +
+    "b" +
+    space +
+    "</s>" +
+    "<n> &#13;\t+00016\n</n><r>\t.5&#13;</r><d> 2024-02-29\t</d>" +
+    "<n>1\u00a0</n><r>\u00851</r><d>2024-02-29\uFEFF</d><blank> &#13;\n\t</blank>";
+  const xml = "<probe>" + body + "</probe>";
+  const [, s, n, r, d, badN, badR, badD, blank] = xmlTools.inspectObjectPatchXml(xml, { formUrl, id }).nodes;
+  assert.equal(s.text, space + "a" + space + "b" + space);
+  assert.deepEqual([s.hasText, s.integerValid, s.realValid, s.date], [true, false, false, ""]);
+  assert.deepEqual([n.integer, r.realValid, d.date], ["16", true, "2024-02-29T00:00:00"]);
+  assert.deepEqual([badN.integerValid, badR.realValid, badD.date, blank.hasText], [false, false, "", false]);
+  assert.deepEqual(
+    xmlTools.inspectObjectXml(xml, { formUrl, id }).nodes.map((node) => node.integerValid),
+    [true, false, true, false, false, false, false, false, true],
+  );
 });

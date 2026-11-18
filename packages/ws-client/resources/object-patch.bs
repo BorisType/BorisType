@@ -20,9 +20,10 @@ function BtPatchLoadSource(top, nodes) {
         if (field.IsMethod || field.IsTemp || field.SubType == 'binary') throw 'Unsupported non-persistent, method or binary field';
         elem = field.IsMultiple ? BtPatchNewChild(parent, field) : parent.Child(node.name);
         elems.push(elem);
-        if (type == '' || node.mode == 'clear') continue;
+        if (type == '') continue;
         if (type != 'integer' && type != 'bool' && type != 'real' && type != 'date' && type != 'string')
             throw 'Unsupported scalar XML type';
+        if (node.mode == 'clear') continue;
         if (type == 'string') {
             elem.Value = node.text;
             // A file reopen may trim trailing spaces. Normalize only this source
@@ -131,13 +132,6 @@ function BtApplyObjectPatch(targetTopElem, sourceTopElem, nodes) {
             if (keyField == undefined || keyField.Type == '' || keyField.IsMultiple || keyField.IsMethod ||
                 keyField.IsTemp || keyField.SubType == 'binary') throw 'Unsupported array primary key';
         }
-        if (!clear && !replaceAll) {
-            for (j = 0; j < ArrayCount(existing); j++) {
-                k = existing[j].Child(key).Xml;
-                if (BtPatchLookup(keyed, k) != undefined) throw 'Ambiguous target array primary key';
-                keyed['$' + k] = existing[j];
-            }
-        }
         for (j = 0; j < ArrayCount(indices); j++) {
             idx = indices[j]; n = nodes[idx];
             if (j > 0 && (n.mode == 'replace-array' || n.mode == 'clear' || (first.mode == 'replace-array' && n.mode != 'auto')))
@@ -152,6 +146,14 @@ function BtApplyObjectPatch(targetTopElem, sourceTopElem, nodes) {
             k = sources[j].Child(key).Xml;
             if (BtPatchLookup(seen, k) != undefined) throw 'Duplicate input array primary key';
             seen['$' + k] = true; keys.push(k);
+        }
+        if (!clear && !replaceAll) {
+            for (j = 0; j < ArrayCount(existing); j++) {
+                k = existing[j].Child(key).Xml;
+                if (BtPatchLookup(seen, k) == undefined) continue;
+                if (BtPatchLookup(keyed, k) != undefined) throw 'Ambiguous target array primary key';
+                keyed['$' + k] = existing[j];
+            }
         }
         if (clear || replaceAll) {
             for (j = ArrayCount(existing) - 1; j >= (clear ? 0 : ArrayCount(indices)); j--) existing[j].Delete();

@@ -477,8 +477,9 @@ token. Не прошедшие schema validation аргументы до SDK-о�
 Patch присваивает XML scalar types string, integer, bool, real и date.
 Binary, TEMP и методы исключены. Для integer сохраняется точность decimal/hex;
 real использует native точность. Date сохраняет календарные компоненты платформы.
-Поддерживаются `YYYY-MM-DD` и `YYYY-MM-DDTHH:mm:ss` без смещения, с `Z` или
-нулевым смещением, с точностью до целой секунды. Ненулевая дробь и ненулевое
+Дату без времени передают в виде `YYYY-MM-DD`. Для `YYYY-MM-DDTHH:mm:ss`
+с точностью до целой секунды допустимы отсутствие суффикса, `Z` или нулевое
+числовое смещение. Ненулевая дробь и ненулевое
 смещение отклоняются. Для годов 1–999 можно повторно применить полное native
 написание, например `1-01-02T12:34:56+00:00`. Смещение `+00:00` в native XML
 не определяет UTC instant. [Измерения Date и IsChanged](https://github.com/BorisType/BorisType/blob/main/refs/mcp/xml-object-patch.md#основания-date-и-ischanged).
