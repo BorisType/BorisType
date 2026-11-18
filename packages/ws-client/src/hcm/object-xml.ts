@@ -12,10 +12,22 @@ export interface ObjectXmlNode {
 
 /** XML transport bounds; an oversized document is rejected in full. */
 export const objectXmlBytes = 262144;
+export const objectRequestBytes = 2097152;
+
+function isXmlSpace(code: number): boolean {
+  return code === 0x20 || code === 0x09 || code === 0x0d || code === 0x0a;
+}
+
+function trimXmlSpace(text: string): string {
+  let start = 0;
+  let end = text.length;
+  while (start < end && isXmlSpace(text.charCodeAt(start))) start++;
+  while (end > start && isXmlSpace(text.charCodeAt(end - 1))) end--;
+  return text.slice(start, end);
+}
 
 /** Recognize native decimal/hex integer values without passing through Number. */
-function integerValue(text: string): bigint | undefined {
-  const value = text.replace(/^[\x20\t\r\n]+|[\x20\t\r\n]+$/g, "");
+function integerValue(value: string): bigint | undefined {
   if (!/^(?:[+-]?\d+|0[xX][\da-fA-F]+)$/.test(value)) return undefined;
   const normalized = value.replace(/^([+-]?)0+(?=\d)/, "$1").replace(/^(0[xX])0+(?=[\da-fA-F])/, "$1");
   if (normalized.length > 21) return undefined;
@@ -23,15 +35,49 @@ function integerValue(text: string): bigint | undefined {
   return integer >= -9223372036854775808n && integer <= 18446744073709551615n ? integer : undefined;
 }
 
+const patchModes = ["merge", "replace", "replace-array", "clear", "remove"] as const;
+type PatchMode = "auto" | (typeof patchModes)[number];
+export interface ObjectPatchNode extends ObjectXmlNode {
+  name: string;
+  parentIndex: number;
+  ordinal: number;
+  mode: PatchMode;
+  integer: string;
+  date: string;
+  realValid: boolean;
+}
+
+/** Native XML wall clock at whole-second precision. Z and zero offsets are accepted XML spellings. */
+function patchDate(text: string): string {
+  // The native serializer drops leading year zeroes only in its full XML clock.
+  const normalized = text.replace(/^([1-9]\d{0,2})(?=-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$)/, (year) => year.padStart(4, "0"));
+  const match = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}:\d{2})(?:\.(0+))?(Z|[+-]00:00)?)?$/.exec(normalized);
+  if (!match || match[1]!.startsWith("0000")) return "";
+  const clock = match[1] + "T" + (match[2] ?? "00:00:00");
+  const local = new Date(clock + "Z");
+  if (!Number.isFinite(local.getTime()) || local.toISOString().slice(0, 19) !== clock) return "";
+  return clock;
+}
+
+type Identity = { formUrl: string; id?: string };
+type Inspection<T> = { root: string; id?: string; nodes: T[] };
+
 /** Validate strict XML 1.0 and identity; collect only bounded native validation metadata. */
-export function inspectObjectXml(
-  xml: string,
-  identity: { formUrl: string; id?: string },
-): { root: string; id?: string; nodes: ObjectXmlNode[] } {
+export function inspectObjectXml(xml: string, identity: Identity): Inspection<ObjectXmlNode> {
+  return inspect(xml, identity, false);
+}
+
+export function inspectObjectPatchXml(xml: string, identity: { formUrl: string; id: string }): Inspection<ObjectPatchNode> {
+  return inspect(xml, identity, true);
+}
+function inspect(xml: string, identity: Identity, patch: true): Inspection<ObjectPatchNode>;
+function inspect(xml: string, identity: Identity, patch: false): Inspection<ObjectXmlNode>;
+function inspect(xml: string, identity: Identity, patch: boolean): Inspection<ObjectXmlNode> {
   if (!xml.trim() || Buffer.byteLength(xml, "utf8") > objectXmlBytes) throw new Error("XML size limit: provide 1–256 KiB of XML");
   if (!xml.isWellFormed()) throw new Error("Invalid XML character");
   const nodes: ObjectXmlNode[] = [];
-  const stack: { node: ObjectXmlNode; children: Map<string, ObjectXmlNode[]> }[] = [];
+  let repeatedPathBytes = 0;
+  const stack: { index: number; pathBytes: number; node: ObjectXmlNode; children: Map<string, ObjectXmlNode[]> }[] = [];
   let root = "";
   let id: string | undefined;
   const parser = new SaxesParser({ xmlns: false, defaultXMLVersion: "1.0" });
@@ -53,11 +99,27 @@ export function inspectObjectXml(
     const parent = stack.at(-1);
     if (!parent) root = tag.name;
     const path = parent ? [...parent.node.path, tag.name] : [];
+    const pathBytes = patch && parent ? parent.pathBytes + Buffer.byteLength(tag.name, "utf8") : 0;
+    // An arbitrarily long ancestor repeated in thousands of paths can otherwise
+    // exhaust memory in JSON.stringify before the exact request budget check.
+    repeatedPathBytes += pathBytes;
+    if (repeatedPathBytes > objectRequestBytes) throw new Error("InputLimit: XML validation paths exceed 2 MiB");
+    let mode: PatchMode = "auto";
     for (const [name, value] of Object.entries(tag.attributes)) {
+      if (patch && name === "bt-mode") {
+        if (!patchModes.some((m) => m === value)) throw new Error("Unknown XML bt-mode");
+        mode = value as PatchMode;
+        if ((!parent && mode !== "merge") || (path.length === 1 && tag.name === "id"))
+          throw new Error("Invalid mode on XML root or identity");
+        continue;
+      }
       if (parent || name !== "SPXML-FORM") throw new Error(`Unsupported XML attribute ${name}`);
       if (value !== identity.formUrl) throw new Error("XML form attribute does not match selected form");
     }
     const node: ObjectXmlNode = { path, count: 1, hasElements: false, hasText: false, text: "", integerValid: true };
+    if (patch)
+      Object.assign(node, { name: tag.name, parentIndex: parent?.index ?? -1, ordinal: parent?.children.get(tag.name)?.length ?? 0, mode });
+    const index = nodes.length;
     nodes.push(node);
     if (parent) {
       parent.node.hasElements = true;
@@ -65,7 +127,7 @@ export function inspectObjectXml(
       siblings.push(node);
       parent.children.set(tag.name, siblings);
     }
-    stack.push({ node, children: new Map() });
+    stack.push({ index, pathBytes, node, children: new Map() });
   });
   const appendText = (text: string): void => {
     const frame = stack.at(-1);
@@ -79,12 +141,21 @@ export function inspectObjectXml(
   });
   parser.on("closetag", () => {
     const { node, children } = stack.pop()!;
-    node.hasText = /[^\x20\t\r\n]/.test(node.text);
-    node.integerValid = !node.hasText || integerValue(node.text) !== undefined;
+    const text = trimXmlSpace(node.text);
+    node.hasText = text.length > 0;
+    const integer = node.hasText ? integerValue(text) : undefined;
+    node.integerValid = !node.hasText || integer !== undefined;
+    if (patch) {
+      const p = node as ObjectPatchNode;
+      p.integer = integer?.toString() ?? "";
+      p.realValid = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text);
+      p.date = patchDate(text);
+      if (p.mode === "clear" && (p.hasElements || p.text.length)) throw new Error("XML clear requires an empty placeholder");
+    }
     for (const siblings of children.values()) for (const sibling of siblings) sibling.count = siblings.length;
     if (node.path.length === 1 && node.path[0] === "id") {
-      if (id !== undefined || node.hasElements || identity.id === undefined || integerValue(node.text)?.toString() !== identity.id)
-        throw new Error("XML ID must match replace identity; create must omit ID");
+      if (id !== undefined || node.hasElements || identity.id === undefined || integer?.toString() !== identity.id)
+        throw new Error("XML ID must match the requested object ID. Create must omit ID");
       id = identity.id;
     }
   });

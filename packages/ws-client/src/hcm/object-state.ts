@@ -33,11 +33,11 @@ export class ObjectReadState {
     return snapshot.token;
   }
 
-  /** Require and consume an exact-ID grant, including for a rejected/uncertain replace attempt. */
+  /** Require and consume an exact-ID grant, including for a rejected or uncertain mutation attempt. */
   consume(id: string, token: string): ObjectSnapshot {
     this.prune();
     const snapshot = this.snapshots.get(id);
-    if (!snapshot || snapshot.token !== token) throw new Error("ReadRequired: Read the full object in this MCP instance before replace");
+    if (!snapshot || snapshot.token !== token) throw new Error("ReadRequired: Read the full object again to obtain a fresh read token");
     this.snapshots.delete(id);
     return snapshot;
   }

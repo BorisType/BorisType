@@ -4,8 +4,8 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Использует [@boristype/ws-client](https://github.com/BorisType/BorisType/tree/main/packages/ws-client) для соединения с WSHCM сервером.
 
-Статус: экспериментальный checkpoint 26 tools: десяти package tools, девяти файловых, `wshcm_xquery`,
-`wshcm_get_system_info`, `wshcm_execute` и первого XML object MVP (`get_form`, `get_object`, `save_object`).
+Экспериментальный сервер предоставляет 27 tools. В их числе девять файловых,
+десять для пакетов объектов и четыре для XML объектов, включая частичное редактирование.
 Требуется Node.js >=24.22.2; для файловых tools — net9 HCM с доступным dotnetcore/shared. Общий API
 `ws-client` включает production DLL и автоматически подготавливает FileSystem
 **0.1.0-alpha.4 / API 2** для девяти файловых tools; execute, XQuery, system info, object и package tools её не используют.
@@ -77,6 +77,7 @@ instructions и skill не добавляют гарантий чтения, и�
 | `wshcm_get_form`               | XML раскрытого root загруженной XMD                       |
 | `wshcm_get_object`             | Полный экспортируемый XML объекта и readToken             |
 | `wshcm_save_object`            | Create либо полная замена объекта из XML                  |
+| `wshcm_patch_object`           | Частичная правка существующего объекта из XML             |
 | `wshcm_list_package_schemas`   | Страница сохранённых схем и общая revision                |
 | `wshcm_get_package_schema`     | Схема по id, настройки и страница объектов                |
 | `wshcm_save_package_schema`    | Создание схемы или изменение имени/settings/editable      |
@@ -412,9 +413,93 @@ readback. Ошибка содержит `error`, `phase`, `writeStatus` и из�
 Save/hooks могут иметь частичные эффекты. Rollback, cancellation, UI permissions
 и эквивалентность XMS-сценария не гарантируются; автоматических повторов нет.
 После неизвестного исхода сначала установить фактическое состояние по ID либо
-уникальному коду созданного объекта. Удаление, patch DSL и bulk не входят в MVP.
+уникальному коду созданного объекта. Удаление и bulk API пока отсутствуют.
 
-[Native acceptance и границы](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/10-object-model/first-implementation.md).
+[Native acceptance для create/replace](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/10-object-model/first-implementation.md).
+
+### Частичное редактирование XML
+
+Получите свежий `readToken` через `wshcm_get_object({id})`. Укажите только поля,
+которые нужно изменить. Пример меняет имя `cost_center`, сохраняя его код,
+комментарий и массивы.
+
+```json
+{
+  "id": "7349586349801536169",
+  "readToken": "<token-from-get-object>",
+  "xml": "<cost_center><name>Changed</name></cost_center>",
+  "dryRun": true
+}
+```
+
+`dryRun` по умолчанию `false`. После каждой попытки, дошедшей до обработчика,
+нужен новый полный read. Preview, no-op, XML error и conflict тоже расходуют
+token. Не прошедшие schema validation аргументы до SDK-обработчика не доходят.
+Форма выбирается существующим объектом. ID в XML можно опустить или подтвердить
+точным значением. `SPXML-FORM` на корне должен совпасть с actual form URL.
+
+`bt-mode` — управляющий атрибут patch, его значения чувствительны к регистру и
+в сохранённый XML не переносятся. По умолчанию структура объединяет только
+переданные поля. Для структуры `replace` заменяет содержимое, `clear` очищает его.
+Для scalar `replace` означает присваивание, `clear` сбрасывает значение. Пустой
+`clear` может восстановить XMD default. На корне допустим только merge.
+
+Для массива с ключом явно укажите непустой ключ в каждом редактируемом элементе.
+В примере `theme` обновляется или добавляется, `region` заменяется целиком,
+`obsolete` удаляется без ошибки, если его уже нет.
+
+```xml
+<cost_center>
+  <custom_elems>
+    <custom_elem><name>theme</name><value>blue</value></custom_elem>
+    <custom_elem bt-mode="replace"><name>region</name><value>west</value></custom_elem>
+    <custom_elem bt-mode="remove"><name>obsolete</name></custom_elem>
+  </custom_elems>
+</cost_center>
+```
+
+Неперечисленные элементы остаются на своих местах, новые добавляются в конец.
+Неоднозначное сопоставление существующих ключей и дубликаты во входе отклоняются.
+`remove` принимает только ключ. Чтобы заменить весь контейнер, передайте
+`<custom_elems bt-mode="replace">…</custom_elems>`; пустой
+`<custom_elems bt-mode="clear"/>` его очистит. Чтобы заменить только одноимённую
+группу массива, поставьте `bt-mode="replace-array"` на её первый элемент и
+перечислите весь новый состав по порядку. Остальные элементы группы идут без
+`bt-mode`. Такой replace допускается и для исправления старых дубликатов
+ключа, с обязательными уникальными ключами в новом составе.
+
+Для массива без ключа перечисление уже означает полную замену. Например,
+для формы с unkeyed `tag MULTIPLE` фрагмент `<tag>blue</tag><tag>green</tag>`
+задаёт ровно два элемента, `<tag/>` — один пустой. Явные `merge` и `remove`
+отклоняются. Единственный пустой `<tag bt-mode="clear"/>` очищает массив.
+Для keyed-массива такой же пустой placeholder очищает его целиком.
+
+Patch присваивает XML scalar types string, integer, bool, real и date.
+Binary, TEMP и методы исключены. Для integer сохраняется точность decimal/hex;
+real использует native точность. Date сохраняет календарные компоненты платформы.
+Дату без времени передают в виде `YYYY-MM-DD`. Для `YYYY-MM-DDTHH:mm:ss`
+с точностью до целой секунды допустимы отсутствие суффикса, `Z` или нулевое
+числовое смещение. Ненулевая дробь и ненулевое
+смещение отклоняются. Для годов 1–999 можно повторно применить полное native
+написание, например `1-01-02T12:34:56+00:00`. Смещение `+00:00` в native XML
+не определяет UTC instant. [Измерения Date и IsChanged](https://github.com/BorisType/BorisType/blob/main/refs/mcp/xml-object-patch.md#основания-date-и-ischanged).
+
+Действуют лимиты 256 KiB UTF-8 на XML и 256 KiB на схему, глубина 64, 8192
+входных элементов, 2 MiB на внутренний запрос вместе с patch metadata.
+Patch работает с существующим объектом, без создания, смены формы или ID,
+загрузки binary/external data и автоматических повторов.
+
+Результат содержит `id`, `formUrl`, `root`, `xml`, `changed`, `dryRun` и
+`writeStatus`. `changed` сравнивает кандидат с предыдущим persistent XML перед
+Save. При preview `xml` содержит кандидат, `writeStatus` равен `not_attempted`.
+При no-op `changed: false`, Save и его hooks пропускаются. Изменённый apply
+вызывает Save один раз и возвращает фактический readback, который могут изменить
+hooks. Подтверждение Save сохраняется даже при ошибке readback. Снимок XML,
+формы и схемы перепроверяется перед Save или успешным preview/no-op. Внешний
+writer может изменить документ между проверкой и записью. Загрузка формы и
+присваивания могут выполнять platform code даже при `not_attempted`.
+
+[Полный контракт и границы](https://github.com/BorisType/BorisType/blob/main/refs/mcp/xml-object-patch.md).
 
 ### Серверный XQuery и SQL
 
@@ -811,6 +896,22 @@ form/create/read/full replace, плохие XML без изменения объ
 CLR 9.0.11 / PostgreSQL 16 прошли **8/8** tests (семь сценариев и parent), без skips.
 Это ограниченная вертикаль одного типа; остальные типы/hooks/провайдеры требуют
 отдельных native проверок. [Evidence](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/10-object-model/first-implementation.md).
+
+Для partial XML patch соберите SDK и MCP и запустите отдельный тест
+на работающем эксклюзивном Docker stand. Он принимает `WSHCM_USERNAME`,
+`WSHCM_PASSWORD`, `WSHCM_HOST`, `WSHCM_PORT` и `WSHCM_CONTAINER`.
+Путь для результата выбирает `WSHCM_MCP_PATCH_RECEIPT`.
+
+```bash
+pnpm --filter @boristype/ws-client build
+pnpm --filter @boristype/mcp-server build
+NODE_USE_ENV_PROXY=0 pnpm --filter @boristype/mcp-server test:e2e:object-patch
+```
+
+Stdio acceptance проверяет 27 tools, partial Save/readback, repeat без Save,
+preview, invalid mode, расходование token и конфликт с независимым writer.
+Проверка очистки охватывает только собственный `cost_center`, инвентарь
+evaluator и XML списка пакетов. [Хеши и результаты Linux C HCM 2025.2.1333](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/object-patch/stdio-acceptance.json).
 
 Системный отчёт проверяется отдельно с теми же `WSHCM_E2E_*`:
 

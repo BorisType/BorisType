@@ -52,7 +52,7 @@ async function primed(t, evaluate, content = "abc") {
   return { client, readToken: JSON.parse(result.content[0].text).readToken };
 }
 
-test("MCP advertises nine file tools, runtime status, system info, execute, xquery and three XML object tools and ten package tools", async (t) => {
+test("MCP advertises all 27 tools", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
@@ -74,6 +74,7 @@ test("MCP advertises nine file tools, runtime status, system info, execute, xque
     "wshcm_list_directory",
     "wshcm_list_package_schemas",
     "wshcm_move_file",
+    "wshcm_patch_object",
     "wshcm_read_file",
     "wshcm_remove_package_objects",
     "wshcm_runtime_status",
@@ -100,6 +101,7 @@ test("MCP advertises nine file tools, runtime status, system info, execute, xque
         {
           wshcm_get_form: "formUrl",
           wshcm_get_object: "id",
+          wshcm_patch_object: "xml",
           wshcm_save_object: "xml",
           wshcm_xquery: "query",
           wshcm_move_file: "source",

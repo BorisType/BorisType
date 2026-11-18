@@ -1,0 +1,71 @@
+// Bounded memory-only probe: no BindToDb, Save, user objects or schema files.
+var schemaUrl = 'x-local://wt/boristype_patch_observe_${marker}.xmd';
+RegisterFormFromStr(schemaUrl, '<SPXML-FORM><probe><s TYPE="string"/><n TYPE="integer"/><flag TYPE="bool"/><stamp TYPE="date"/><nested><stamp TYPE="date"/></nested><rows><row MULTIPLE="1" PRIMARY-KEY="key"><key TYPE="string"/><value TYPE="integer"/></row></rows><tags><tag TYPE="string" MULTIPLE="1"/></tags></probe></SPXML-FORM>');
+var initialXml = '<probe><s>same</s><n>1</n><flag>true</flag><stamp>2025-02-03T04:05:06+00:00</stamp><nested><stamp>2025-02-03T04:05:06+00:00</stamp></nested><rows><row><key>a</key><value>1</value></row><row><key>b</key><value>2</value></row></rows><tags><tag>one</tag><tag>two</tag></tags></probe>';
+var fileUrl = 'x-local://wt/boristype_patch_observe_${marker}.xml';
+if (FilePathExists(UrlToFilePath(fileUrl))) throw 'Owned probe file already exists';
+var backing = OpenNewDoc(schemaUrl); backing.TopElem.LoadData(initialXml); backing.Save(fileUrl);
+var report = {version:tools.get_version('wtv', false), backingFile:true, cases:[]};
+function inspectKind(value) {
+    var result = {dataType:DataType(value)};
+    try {result.objectType = ObjectType(value);} catch (err) {result.objectTypeError = String(err);}
+    try {result.xmlDate = StrXmlDate(value);} catch (err) {result.xmlDateError = String(err);}
+    return result;
+}
+function capture(code) {
+    try {return eval(code);} catch (err) {return {error:String(err)};}
+}
+var sample = OpenNewDoc(schemaUrl);
+sample.TopElem.LoadData(initialXml);
+report.types = {
+    platformDate:inspectKind(Date()),
+    optDate:inspectKind(OptDate('2025-02-03T04:05:06+00:00')),
+    scriptDate:capture("return inspectKind(new Date('2025-02-03T04:05:06Z'));"),
+    xmlElement:inspectKind(sample.TopElem.stamp),
+    xmlValue:inspectKind(sample.TopElem.stamp.Value),
+    documentFlagType:DataType(sample.IsChanged),
+    elementFlag:capture('return sample.TopElem.IsChanged;')
+};
+function measure(name, action) {
+    var doc = OpenDoc(fileUrl);
+    var te = doc.TopElem;
+    var initialFlag = doc.IsChanged;
+    doc.SetChanged(false);
+    var resetFlag = doc.IsChanged;
+    var before = te.Xml;
+    var extra = {};
+    var failure = '';
+    try {eval(action);} catch (err) {failure = String(err);}
+    report.cases.push({name:name, initialFlag:initialFlag, resetFlag:resetFlag, isChanged:doc.IsChanged, xmlChanged:te.Xml != before, extra:extra, error:failure});
+}
+measure('same string', "te.s.Value = 'same';");
+measure('changed string', "te.s.Value = 'changed';");
+measure('string changed then restored', "te.s.Value = 'changed'; te.s.Value = 'same';");
+measure('same integer', 'te.n.Value = 1;');
+measure('same boolean', 'te.flag.Value = true;');
+measure('same XML date Value', 'var previous = te.stamp.Value; te.stamp.Value = previous; extra = {strictEqual:te.stamp.Value === previous, previousKind:DataType(previous), currentKind:DataType(te.stamp.Value)};');
+measure('equal reconstructed date', "var previous = te.stamp.Value; te.stamp.Value = OptDate('2025-02-03T04:05:06+00:00'); extra = {strictEqual:te.stamp.Value === previous, previousKind:DataType(previous), currentKind:DataType(te.stamp.Value)};");
+measure('changed date and previous alias', "var previous = te.stamp.Value; var oldText = StrXmlDate(previous); te.stamp.Value = OptDate('2025-02-04T04:05:06+00:00'); extra = {oldText:oldText, previousAfter:StrXmlDate(previous), currentText:StrXmlDate(te.stamp.Value), strictEqual:te.stamp.Value === previous};");
+measure('equal script Date assignment', "te.stamp.Value = new Date('2025-02-03T04:05:06Z');");
+measure('same keyed item scalar', 'te.rows[0].value.Value = 1;');
+measure('changed keyed item scalar', 'te.rows[0].value.Value = 3;');
+measure('add empty keyed item', 'te.rows.AddChild();');
+measure('delete keyed item', 'te.rows[0].Delete();');
+measure('clear keyed array', 'te.rows.Clear();');
+measure('rebuild keyed array with same values', "te.rows.Clear(); var row = te.rows.AddChild(); row.key = 'a'; row.value = 1; row = te.rows.AddChild(); row.key = 'b'; row.value = 2;");
+measure('rebuild unkeyed array with same values', "te.tags.Clear(); te.tags.AddChild().Value = 'one'; te.tags.AddChild().Value = 'two';");
+measure('manual flag true', 'doc.SetChanged(true);');
+measure('manual flag true then false', 'doc.SetChanged(true); doc.SetChanged(false);');
+function reflect(elem) {
+    var out = {name:elem.Name, kind:ObjectType(elem), xml:elem.Xml};
+    try {out.multi = elem.IsMultiElem;} catch (err) {out.multiError = String(err);}
+    try {out.formMultiple = elem.FormElem.IsMultiple; out.formXml = elem.FormElem.Xml;} catch (err) {out.formError = String(err);}
+    try {out.primaryName = elem.PrimaryKey.Name; out.primaryType = elem.PrimaryKey.Type; out.primaryXml = elem.PrimaryKey.Xml; out.primarySame = elem.PrimaryKey === elem;} catch (err) {out.primaryError = String(err);}
+    try {out.primaryAttribute = elem.FormElem.Attr('PRIMARY-KEY');} catch (err) {out.attributeError = String(err);}
+    return out;
+}
+report.reflection = {keyed:reflect(sample.TopElem.rows[0]), unkeyed:reflect(sample.TopElem.tags[0])};
+DeleteUrl(fileUrl);
+if (FilePathExists(UrlToFilePath(fileUrl))) DeleteFile(UrlToFilePath(fileUrl));
+report.ownFileAbsent = !FilePathExists(UrlToFilePath(fileUrl));
+return EncodeJson(report);

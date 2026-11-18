@@ -1,0 +1,123 @@
+{
+  "marker": "16de6badf2fa49c5a4372fa7e7212298",
+  "image": "sha256:0edeac24afc2a5371ea8431c59b1c17ca2b1a9e5a3768275cfdb5023609e34ab",
+  "sourceHashes": [
+    "12d47c0cbc50caa5f36b0ac77c671a342287e12b7de10ee95499d9237dccfbe9",
+    "1dae16b357b025cdb5dccb2a6b1a92d7a2b0d6efe766552ea61b5437ae827591",
+    "24b66458cb7015e828fc41ed684b5d13adc8189ce27e9354cae0ffe6414377ee",
+    "24b66458cb7015e828fc41ed684b5d13adc8189ce27e9354cae0ffe6414377ee",
+    "fc290d73359cd9fc0276e3d65b00f831442ab484784aca77bb8d97d3a9c663dd",
+    "3acc35227fb78ad419cdee5b7cbdd3cf18624c3606acaaa4f6e8aca0dec66da7",
+    "24b66458cb7015e828fc41ed684b5d13adc8189ce27e9354cae0ffe6414377ee",
+    "99c7beff02acd1798f17e9234c966d445a00329c38ef81218f92f6c567602109",
+    "24b66458cb7015e828fc41ed684b5d13adc8189ce27e9354cae0ffe6414377ee",
+    "1dae16b357b025cdb5dccb2a6b1a92d7a2b0d6efe766552ea61b5437ae827591"
+  ],
+  "cleanup": {
+    "objects": [
+      {
+        "id": "7352310289343140674",
+        "opened": false,
+        "rows": 0,
+        "trash": 0
+      }
+    ],
+    "ownedMarkerAbsent": true,
+    "packageSchema": {
+      "beforeSha256": "71e04cb359b8766d9b3d699c5ecb45af9d3ab422e73cac648a50e19101070b5f",
+      "afterSha256": "71e04cb359b8766d9b3d699c5ecb45af9d3ab422e73cac648a50e19101070b5f"
+    },
+    "evaluatorInventoryUnchanged": true
+  },
+  "version": "2025.2.1333",
+  "protocol": {
+    "carrier": "built CLI / JSON-RPC stdio / SP-XML SOAP / Linux C-runtime",
+    "tools": 27,
+    "name": "boristype-wshcm",
+    "version": "0.1.0-alpha.6",
+    "errors": 0
+  },
+  "fixture": {
+    "id": "7352310289343140674",
+    "code": "bt-mcp-patch-16de6badf2fa49c5a4372fa7e7212298",
+    "formUrl": "x-local://wtv/wtv_cost_center.xmd"
+  },
+  "outcomes": {
+    "saved": {
+      "changed": true,
+      "writeStatus": "saved",
+      "xmlSha256": "baf51e62476ef24c5a2f868244c8851df5aa49c32f9667a52a45b7b41029c02c",
+      "untouchedFieldsPreserved": true
+    },
+    "repeat": {
+      "changed": false,
+      "writeStatus": "not_attempted",
+      "xmlSha256": "baf51e62476ef24c5a2f868244c8851df5aa49c32f9667a52a45b7b41029c02c"
+    },
+    "preview": {
+      "changed": true,
+      "dryRun": true,
+      "writeStatus": "not_attempted",
+      "storedXmlUnchanged": true
+    },
+    "copyNativeClock": {
+      "clock": "2026-11-18T13:27:09+00:00",
+      "changed": false,
+      "writeStatus": "not_attempted"
+    },
+    "invalidModes": [
+      {
+        "xml": "<cost_center><name bt-mode=\"remove\"/></cost_center>",
+        "phase": "load",
+        "error": "InvalidXml",
+        "writeStatus": "not_attempted"
+      },
+      {
+        "xml": "<cost_center><name bt-mode=\"MERGE\"/></cost_center>",
+        "phase": "input",
+        "error": "InvalidInput",
+        "writeStatus": "not_attempted"
+      }
+    ],
+    "conflict": {
+      "code": "Conflict",
+      "phase": "validate",
+      "writeStatus": "not_attempted",
+      "storedXmlSha256": "fba468c10196eb79356e45912783b491c84b2a291bc2ecf839aefef28a109c1d"
+    },
+    "attemptedTokensConsumed": true
+  },
+  "node": "v24.22.2",
+  "sourceFiles": {
+    "packages/ws-client/package.json": "d89a310b669c503bccdb50090195573ea3b88d0ed4006623aa8c4049149b3034",
+    "packages/ws-client/resources/object-operation.bs": "9feb6b2bf5f0da2b080e20bad66ccf3df207d3859e14b076ecdf35d5e0c6a104",
+    "packages/ws-client/resources/object-patch.bs": "7d3291ad665a5f73bc1bc8347c32c02e5e0048362b7d34fe47b9927fea3bda7b",
+    "packages/ws-client/src/hcm/api.ts": "402d06300d05237e1bd0f568274af784ea3e01a42151c964467c92288596648e",
+    "packages/ws-client/src/hcm/load.ts": "4cc892a1c10116d1adc7ad20ec35aa08c47e5f00e4877286c8f900dfea66c601",
+    "packages/ws-client/src/hcm/objects.ts": "295cd9217a8c03a6f0783524c076e0531d3826c0f1593b1a11715661d7217073",
+    "packages/ws-client/src/hcm/object-error.ts": "71948b7ceaddf6c05dd57bf45929070e4bfe4e602295fe0a92113dc6cb7a29a4",
+    "packages/ws-client/src/hcm/object-state.ts": "e7248c7220d9e05d2b42a8449f75d920c82a8fb346596f4ad62e08d91c65015b",
+    "packages/ws-client/src/hcm/object-xml.ts": "60ddf3d50f1f960e5962c9f3eb71388043d53121715ccdd2de59f346d6207cdd",
+    "packages/ws-client/src/hcm/schemas.ts": "a61fbeaed39785abb74f06212843810c2381c62874df432fab387a35f69ac6d4",
+    "packages/mcp-server/package.json": "6ed39f51b818a2f535982be9cb7b42a634aae1207989e5eb3239c9e0a75e1855",
+    "packages/mcp-server/src/cli.ts": "9cbf63ca394bc18e62af275cccb0dd484357738fff70ea758bebe665d5c5053f",
+    "packages/mcp-server/src/connection.ts": "89845939c053ebeea62fcdf6b51c1cb63bf6fb7d5fc952e02dd6795770ad4520",
+    "packages/mcp-server/src/server.ts": "c8f28fd325d21dc7b2c7a3dfa71cf411ec200f169088c66383eec2c75cb89d50",
+    "packages/mcp-server/src/tools/objects.ts": "98a32da0666196ecab436eee89b62852c7a6020c95f66dc244d854099cdd9b43",
+    "packages/mcp-server/test/e2e/object-patch.mjs": "22b75a9c0214676ead8f8c16f1210c786d2b1b1840611b713d6c48b8a514972c",
+    "refs/research/mcp/object-patch/stand.mjs": "76c43bc83b0f11ec1dd9cbba4aeb0e505c1bb2bddaf66d5386e333f00200e719"
+  },
+  "builtFiles": {
+    "packages/ws-client/build/hcm/api.js": "93d6b86f9660cfaaeaf018bddc961a8c7a7efa0a58ea6739c8d598c2d4408fa7",
+    "packages/ws-client/build/hcm/load.js": "d8b53706c47d76d5cc484ea2b56a0f962f806f848dc626e06d5829d54bb58713",
+    "packages/ws-client/build/hcm/objects.js": "5192ff4d1de4476c805699c557e2a774ade1cdb486ae7f2e2dac64689ad5681c",
+    "packages/ws-client/build/hcm/object-error.js": "a5b4ae8e2de44a6e0f610294780c9e891a4e00623f1fb4627eab6b8a4202d466",
+    "packages/ws-client/build/hcm/object-state.js": "37bac2c63af1b9ebc997530187341bbe7d4efa53436d8605668ae58239371d9c",
+    "packages/ws-client/build/hcm/object-xml.js": "914049af5512f86920b0f55fec70099c00e5e59fb4a077e503c43db231b7b13e",
+    "packages/ws-client/build/hcm/schemas.js": "5018f5ca5bfa08abfc0315ae5d889db2865337576eb9276b52bd3e911b393c1e",
+    "packages/mcp-server/build/cli.js": "f489ef6ac571e94d71e0ac78e8782fe1ed6a714dd608776b9476c0407f0b3ba5",
+    "packages/mcp-server/build/connection.js": "1afe714e122cd41dffcfbf4fcf1118fd5ca5508a59f0a8809d976e417fa2a267",
+    "packages/mcp-server/build/server.js": "1ded629670879dd99bb5dbe1af50e0347d56dc4ee34c0c47cbccee4489f9b2a8",
+    "packages/mcp-server/build/tools/objects.js": "50424b7d2bba816f91bb5d1f31eaae51b1d823dffda65ccfc59e51440defc790"
+  }
+}

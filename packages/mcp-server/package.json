@@ -21,6 +21,7 @@
     "test:e2e:system-info": "node --test --test-concurrency=1 test/e2e/system-info.mjs",
     "test:e2e:execute": "node --test --test-concurrency=1 test/e2e/execute.mjs",
     "test:e2e:objects": "node --test --test-concurrency=1 test/e2e/objects.mjs",
+    "test:e2e:object-patch": "node --test --test-concurrency=1 test/e2e/object-patch.mjs",
     "test:pack": "node test/pack-smoke.mjs",
     "prepublishOnly": "pnpm build",
     "inspector": "mcp-inspector node build/cli.js",

@@ -1,0 +1,49 @@
+var url='x-local://wt/bt_form_probe_${marker}.xmd';
+var xmd='<SPXML-FORM><probe><id TYPE="integer"/><stamp TYPE="date"/><real TYPE="real"/><flag TYPE="bool"/><n TYPE="integer"/><row MULTIPLE="1" PRIMARY-KEY="k"><k TYPE="string"/><v TYPE="string"/></row><tag TYPE="string" MULTIPLE="1"/><point MULTIPLE="1"><x TYPE="real"/></point></probe></SPXML-FORM>';
+RegisterFormFromStr(url,xmd);
+var d=OpenNewDoc(url); var te=d.TopElem;
+var out={fields:[],dates:[],values:[],ops:[]};
+var f;var i;var j;var t;var item;
+for(i=0;i<ArrayCount(te.FormElem);i++){f=te.FormElem.Child(i);out.fields.push({name:f.Name,type:f.Type,sub:f.SubType,key:f.PrimaryKeyName,keyType:DataType(f.PrimaryKeyName)});}
+function attempt(src){try{return String(eval(src));}catch(e){return 'ERROR '+String(e);}}
+var ops=[
+"var q={};var k='<abc> </abc>';q[k]=7;return q[k];",
+"var q={};return q.GetOptProperty('missing');",
+"return StrLen('ёж');",
+"return StrCharCount('ёж');",
+"return Real('1e2');",
+"return Real('1e309');",
+"return StrReal(Real('1e309'));",
+"return StrXmlDate(OptDate('2025-02-03T05:05:06+01:00'));",
+"return StrXmlDate(OptDate('2025-02-03T04:05:06+00:00'));",
+"return StrXmlDate(OptDate('0001-01-01T00:00:00+00:00'));",
+
+"var child=CreateElemByFormElem(te.FormElem.Child('row'));te.AddChildElem(child);child.Child('k').Value='key';return te.Xml;",
+"var child=CreateElemByFormElem(te.FormElem.Child('tag'));te.AddChildElem(child);child.Value='v';return te.Xml;",
+"return te.Child('row').Child('k').Xml;",
+"return te.Child('row').Child('k').Value;",
+"return te.Child('row').Child('k').FormElem.Type;",
+"return StrInt(Int('18446744073709551615'));",
+"return StrSignedInt(Int('-9223372036854775808'));",
+"te.n.Value=Int('-2');return te.n.Xml;",
+"te.n.Value=Int('18446744073709551615');return te.n.Xml;",
+"return StrXmlDate(OptDate('2025-02-03T04:05:06Z'));",
+"return te.FormElem.Type;",
+"return FetchForm('x-local://wtv/wtv_cost_center.xmd').TopElem.OptChild('custom_elems').OptChild('custom_elem').OptChild('value').Type;",
+"return te.AddChild('row').Name;",
+"return te.AddChild('tag').Name;",
+"return te.AddChild('point').Name;",
+"return te.Xml;",
+"return te.Child('row').FormElem.PrimaryKeyName;",
+"return te.Child('tag').FormElem.PrimaryKeyName;",
+"return te.Child('point').FormElem.PrimaryKeyName;",
+"return te.Child('row').Child('k').Xml;",
+"return te.Child('row').Child('k').Value;",
+"return FetchForm('x-local://wtv/wtv_cost_center.xmd').TopElem.OptChild('custom_elems').OptChild('custom_elem').PrimaryKeyName;"
+];
+for(i=0;i<ArrayCount(ops);i++)out.ops.push({expr:ops[i],result:attempt(ops[i])});
+var dates=['2025-02-03','2025-02-03T04:05:06Z','2025-02-03T05:05:06+01:00','2025-02-03T04:05:06.123Z','2025-02-03T04:05:06','2025-02-31','nonsense',''];
+for(i=0;i<ArrayCount(dates);i++){t=dates[i];try{te.LoadData('<probe><stamp>'+t+'</stamp></probe>');out.dates.push({text:t,kind:DataType(te.stamp.Value),xml:te.stamp.Xml});} catch(e){out.dates.push({text:t,error:String(e)});}}
+var vals=[['flag','1'],['flag','0'],['flag','false'],['flag','TRUE'],['real','1e2'],['real','1e309'],['real','1.25'],['n','0xffffffffffffffff'],['n','-2'],['n','18446744073709551615']];
+for(i=0;i<ArrayCount(vals);i++){item=vals[i];try{te.LoadData('<probe><'+item[0]+'>'+item[1]+'</'+item[0]+'></probe>');f=te.Child(item[0]);out.values.push({name:item[0],text:item[1],xml:f.Xml,kind:DataType(f.Value),value:String(f.Value)});}catch(e){out.values.push({text:item[1],error:String(e)});}}
+return EncodeJson(out);

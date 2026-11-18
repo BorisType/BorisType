@@ -8,7 +8,7 @@
 Доступны read_file, write_file, edit_file, list_directory, search_files,
 delete_file, create_directory, move_file и get_file_info с префиксом `wshcm_`.
 Также доступны `wshcm_execute`, `wshcm_get_system_info`, `wshcm_xquery` и XML object tools `wshcm_get_form`,
-`wshcm_get_object`, `wshcm_save_object`, а также десять package tools; всем им BorisType DLL не нужна.
+`wshcm_get_object`, `wshcm_save_object`, `wshcm_patch_object`, а также десять package tools. Эти tools работают без BorisType DLL.
 Конфигурация CLI/env и клиента, installation и точные options — в
 [package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
 
@@ -48,7 +48,7 @@ npm install -g @boristype/mcp-server@next
 [конфигурации package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#конфигурация).
 
 Запустите сервер средствами MCP-клиента и проверьте список tools: девять
-файловых, `wshcm_execute`, `wshcm_get_system_info`, `wshcm_xquery`, три XML tools, десять package tools и `wshcm_runtime_status` — всего 26. Затем выполните операцию чтения,
+файловых, `wshcm_execute`, `wshcm_get_system_info`, `wshcm_xquery`, четыре XML tools, десять package tools и `wshcm_runtime_status` — всего 27. Затем выполните операцию чтения,
 например `wshcm_get_form` с формой, существующей на вашей установке:
 
 ```json
@@ -189,7 +189,48 @@ integer lexical/range. Остальные scalar conversions и бизнес-п�
 `unknown` — исход не установлен, `saved` — Save завершился, даже если последующий
 readback не удался. Известный ID сохраняется в ошибке. Нет гарантии rollback или
 отмены по timeout; автоматически повторять create/replace нельзя.
-[Полный контракт и примеры](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#xml-объектов-форма-чтение-сохранение).
+[Полный контракт create/replace](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#xml-объектов-форма-чтение-сохранение).
+
+### Изменение отдельных полей
+
+Прочитайте объект через `wshcm_get_object`, затем вызовите `wshcm_patch_object`
+с тем же ID и полученным `readToken`. Передайте XML с корнем объекта и полями
+для правки. В примере preview меняет только имя.
+
+```json
+{
+  "id": "7349586349801536169",
+  "readToken": "<token-from-get-object>",
+  "xml": "<cost_center><name>Changed</name></cost_center>",
+  "dryRun": true
+}
+```
+
+При preview `xml` в ответе содержит кандидат, `changed` показывает отличие
+кандидата от прочитанного XML. `writeStatus: "not_attempted"` означает, что Save
+не вызывался. Для применения перечитайте объект и используйте свежий token
+с `dryRun: false` или без этого параметра. Каждый вызов с действующим token,
+дошедший до обработчика, расходует его. Это касается preview, no-op и ошибок.
+No-op возвращает `changed: false` и пропускает Save. При изменении `saved`
+подтверждает Save, а `xml` содержит фактическое чтение после него, включая
+изменения hooks. При ошибке этого чтения сохраняются известный ID и статус Save.
+Form loading и присваивания могут выполнять platform code до Save.
+
+Для массива с ключом укажите ключ каждого элемента. Обычный элемент обновляется
+или добавляется, `bt-mode="replace"` заменяет выбранный элемент, `remove` удаляет
+его по ключу. `replace` на контейнере заменяет содержимое контейнера, пустой
+`clear` очищает его. `replace-array` на первом одноимённом элементе заменяет
+только его группу. Для массива без ключа переданный состав уже задаёт полную
+замену. Единственный пустой элемент с `bt-mode="clear"` очищает массив.
+
+Лимиты XML и схемы составляют по 256 KiB UTF-8. Вход допускает до 8192 элементов,
+глубину 64, внутренний запрос до 2 MiB с метаданными. Patch применяет native
+string, integer, bool, real и date. Binary, TEMP и методы исключены. Дата
+сохраняется как календарное время платформы с точностью до секунд, включая
+повторное применение native XML с годом без нулей, например
+`1-01-02T12:34:56+00:00`. Суффикс `+00:00` здесь не означает UTC instant.
+Ненулевое смещение и ненулевые дробные секунды отклоняются.
+[Режимы, примеры и границы](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#частичное-редактирование-xml).
 
 ## Выполнение BorisScript
 
@@ -324,8 +365,15 @@ XML object suite `test:e2e:objects` не требует BorisType DLL и про�
 form/create/read/whole replace, XML negatives и stale/consumed token на одном
 собственном `cost_center`, с независимым удалением/cleanup. На Linux HCM
 2025.2.1333 / CLR 9.0.11 / PostgreSQL 16 прошло 8/8 tests без skips.
-Общий локальный MCP suite — 218/218; он не заменяет native acceptance.
+При проверке create/replace 2026-11-10 общий локальный MCP suite прошёл 218/218 тестов.
 [Отчёт и границы](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/10-object-model/first-implementation.md).
+
+Для patch команда `test:e2e:object-patch` проверяет собранный MCP CLI по stdio
+на собственном `cost_center`. Проверены сохранение и readback, сохранность
+соседних полей, повтор без Save, preview, недопустимые режимы, расходование token
+и конфликт при независимом изменении. Отчёт содержит хеши исходников и сборки,
+а также проверку удаления fixture и сохранности evaluator inventory и схемы пакетов.
+[Native stdio receipt](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/object-patch/stdio-acceptance.json).
 
 Есть managed, MCP protocol/VM, stdio и pack проверки, а также отдельные native
 команды test:e2e, test:e2e:edit, test:e2e:read-aware, test:e2e:search. Native suites
