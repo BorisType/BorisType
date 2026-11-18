@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
@@ -9,7 +9,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/client";
-import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { PackageArtifactStore } from "../../ws-client/build/hcm/packages/artifacts.js";
 import { objectPackage } from "../../ws-client/test/helpers/package-fixtures.mjs";
 
@@ -50,7 +51,7 @@ function missingModule(res) {
   res.end(fault.replace("Native fixture diagnostic", "Evaluator module missing"));
 }
 
-async function openOwnedHelperFixture(t, ...args) {
+async function openOwnedHelperBackend(t) {
   const requests = [];
   const modules = [];
   const hcm = {
@@ -110,14 +111,59 @@ async function openOwnedHelperFixture(t, ...args) {
         server.closeAllConnections();
       }),
   );
-  const session = await openSession(t, server.address().port, "--username", "fixture-user", ...args);
+  return { port: server.address().port, hcm, requests, modules };
+}
+
+async function openOwnedHelperFixture(t, ...args) {
+  const backend = await openOwnedHelperBackend(t);
+  const session = await openSession(t, backend.port, "--username", "fixture-user", ...args);
   return {
+    ...backend,
     ...session,
-    hcm,
-    requests,
-    modules,
     execute: (expectError) => session.call("wshcm_execute", { code: "return 7;" }, expectError),
   };
+}
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  test(`CLI removes its active helper and exits cleanly on ${signal}`, { timeout: 5000, skip: process.platform === "win32" }, async (t) => {
+    const { port, hcm, requests } = await openOwnedHelperBackend(t);
+    const child = spawn(
+      process.execPath,
+      [cli, "--host", "127.0.0.1", "--port", String(port), "--username", "fixture-user", "--password", "fixture-password"],
+      { env: getDefaultEnvironment() },
+    );
+    const client = new Client({ name: "signal-test", version: "1" }, { supportedProtocolVersions: ["2025-11-25"] });
+    const transport = new StdioServerTransport(child.stdout, child.stdin);
+    let stderr = "";
+    child.stderr.setEncoding("utf8").on("data", (chunk) => {
+      stderr += chunk;
+    });
+    t.after(async () => {
+      if (child.exitCode === null && child.signalCode === null) {
+        const stopped = once(child, "exit");
+        child.kill("SIGKILL");
+        await stopped;
+      }
+      await client.close();
+    });
+    await client.connect(transport, { timeout: 3000 });
+    const response = await client.callTool({ name: "wshcm_execute", arguments: { code: "return 7;" } });
+    assert.notEqual(response.isError, true);
+    assert.equal(JSON.parse(response.content[0].text).ok, true);
+    const ownUrl = hcm.installed;
+    assert.ok(ownUrl);
+
+    // Leave stdin open until the child exits so EOF cannot initiate shutdown.
+    const stopped = once(child, "close", { signal: t.signal });
+    assert.ok(child.kill(signal));
+    assert.deepEqual(await stopped, [0, null]);
+    assert.deepEqual(
+      requests,
+      ["upload", "probe", "business", "cleanup"].map((method) => [method, ownUrl]),
+    );
+    assert.equal(hcm.installed, undefined);
+    assert.equal(stderr, "");
+  });
 }
 
 test("concurrent CLI requests restore a removed helper once at the original URL", { timeout: 5000 }, async (t) => {

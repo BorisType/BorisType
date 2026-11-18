@@ -255,20 +255,12 @@ export class WshcmPackages {
           operation: result.operation,
         };
       } catch (error) {
-        const failure =
-          error instanceof WshcmPackageError
-            ? error
-            : new WshcmPackageError(
-                {
-                  operationId,
-                  code: "ArchiveError",
-                  message: String(error).slice(0, 2000),
-                  phase: "archive",
-                  status: "unknown",
-                },
-                { cause: error },
-              );
-        failure.details.lastKnownOperation ??= structuredClone(result.operation);
+        const failure = packageStepError(error, {
+          operationId,
+          code: "ArchiveError",
+          phase: "archive",
+          lastKnownOperation: structuredClone(result.operation),
+        });
         const cleanupError = await cleanup();
         if (cleanupError) failure.details.cleanupError = cleanupError;
         throw failure;
