@@ -14,7 +14,7 @@
 
 - Baseline fa022038b8cfd840d1cea82cbd2e1a81dcf7af1d, dedicated feat/mcp-resilient-connection; preserve unrelated code and native evidence.
 - MCP initialize/tools/list/ping perform zero HCM requests; inventory27; no background polling or new tool.
-- One WshcmApi/stable evaluator facade per MCP lifetime; preserve read grants, package handles and operation IDs across transport recovery; local artifact operations stay available offline.
+- One WshcmApi/stable evaluator facade per MCP lifetime; preserve read grants, package handles and operation IDs across transport recovery; pure filesystem artifact-store operations stay available offline. Existing inspectPackage native preview/context still requires HCM.
 - Setup/probe timeout5000ms per HTTP request, ordinary request30000ms unchanged; optional connectionTimeoutMs/--connection-timeout-ms strictly positive integer.
 - One shared setup promise, clear it after failure; at most one repair/probe of owned evaluator before user dispatch. Safe probe return1, user BS dispatched at most once.
 - Pre-dispatch single-operation outcomes not_started/not_attempted; after dispatch unknown without replay. Preserve saved/knownIDs/multi-step receipts and native business errors.
