@@ -19,6 +19,8 @@ export interface McpServerOptions {
   https: boolean;
   /** Deadline per login, evaluator setup, probe and cleanup request. */
   connectionTimeoutMs?: number;
+  /** Absolute local directory for package ZIP snapshots and metadata. */
+  packageArtifactDirectory?: string;
 }
 
 /**

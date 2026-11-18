@@ -2,11 +2,16 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { once } from "node:events";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { PackageArtifactStore } from "../../ws-client/build/hcm/packages/artifacts.js";
+import { objectPackage } from "../../ws-client/test/helpers/package-fixtures.mjs";
 
 const cli = fileURLToPath(new URL("../build/cli.js", import.meta.url));
 const result = (type, text) => `<ResultData><Result VALUE-TYPE="${type}">${text}</Result></ResultData>`;
@@ -355,6 +360,47 @@ test("real CLI remains usable through offline boot, auth and repeated service ou
   assert.equal(calls.cleanup, 1);
 });
 
+test("CLI isolates ZIP capture even when a new inspection fails before dispatch", { timeout: 5000 }, async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "bt-cli-artifacts-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const artifactDirectory = join(root, "private artifacts");
+  const source = join(root, "outside-store.zip");
+  const bytes = objectPackage();
+  await writeFile(source, bytes);
+  const store = new PackageArtifactStore(artifactDirectory);
+  const exported = await store.capture(source);
+  const before = await readdir(artifactDirectory);
+  const requests = [];
+  const server = createServer((req, res) => {
+    requests.push(req.url);
+    res.writeHead(503).end();
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const { client, call } = await openSession(t, server.address().port, "--package-artifact-directory", artifactDirectory);
+  assert.deepEqual(requests, []);
+  const error = await call("wshcm_inspect_package", { artifactId: exported.artifactId }, true);
+  assert.equal(error.error.code, "HcmUnavailable");
+  assert.equal(error.artifact, undefined);
+  assert.equal(error.artifactId, undefined);
+  assert.deepEqual(requests, ["/spxml_web/main.htm"]);
+
+  const additions = (await readdir(artifactDirectory)).filter((file) => !before.includes(file));
+  assert.equal(additions.length, 2);
+  const sidecar = additions.find((file) => file.endsWith(".json"));
+  const { artifactId, localPath, sha256 } = JSON.parse(await readFile(join(artifactDirectory, sidecar), "utf8"));
+  assert.notEqual(artifactId, exported.artifactId);
+  assert.equal(localPath, join(artifactDirectory, artifactId + ".zip"));
+  assert.equal(sha256, exported.sha256);
+  assert.deepEqual(await readFile(localPath), bytes);
+
+  await client.close();
+  await rm(artifactDirectory, { recursive: true });
+  await assert.rejects(readdir(artifactDirectory), { code: "ENOENT" });
+  assert.deepEqual(await readFile(source), bytes);
+});
+
 test("CLI EOF before any tool makes zero backend requests", { timeout: 5000 }, async (t) => {
   const server = createServer((_req, res) => {
     res.end();
@@ -381,6 +427,17 @@ test("invalid connection options fail before starting stdio", () => {
     assert.match(proc.stderr, /must be|invalid/i);
     assert.doesNotMatch(proc.stderr, /user:secret/);
   }
+});
+
+test("CLI rejects a relative package artifact directory before stdio starts", () => {
+  const proc = spawnSync(process.execPath, [cli, "--package-artifact-directory", "relative/path"], {
+    input: "",
+    encoding: "utf8",
+    timeout: 4000,
+  });
+  assert.equal(proc.status, 1);
+  assert.equal(proc.stdout, "");
+  assert.match(proc.stderr, /Artifact directory must be absolute/);
 });
 
 test("CLI recovers when a previously refused TCP port begins serving HCM", { timeout: 10000 }, async (t) => {

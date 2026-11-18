@@ -205,8 +205,10 @@ Object IDs всегда десятичные строки. `includeCategories`, 
 Результат экспорта содержит status, проверку `archive_membership`, страницу objects,
 missingIds/missingCount и artifact с artifactId/localPath/mimeType/sizeBytes/sha256/expiresAt.
 Файлы живут на **машине SDK**, в `~/.boristype/package-artifacts`, переживают сеанс;
-handle действует 24 часа. `new WshcmPackages(evaluator,{artifactDirectory})` позволяет
-выделить абсолютный каталог. Удаление expired файлов и native receipt/temp/report
+handle действует 24 часа. Абсолютный каталог можно задать через
+`new WshcmPackages(evaluator, { artifactDirectory })` или через третий аргумент
+`new WshcmApi(evaluator, runtimeOptions, { artifactDirectory })`.
+Удаление expired файлов и native receipt/temp/report
 автоматически не выполняется. Чтение localPath не разрешает перезапись оригинала.
 
 Inspect создаёт неизменяемую копию ZIP и native preview. `inspectionId` связывает

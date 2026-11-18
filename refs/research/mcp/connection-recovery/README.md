@@ -16,10 +16,11 @@ script привязаны отдельными SHA-256. `wire` содержит 
 | Отклонение авторизации на proxy                     | Инъекции HTTP 401 и 403 классифицируются как `HcmAuthenticationFailed`, `retryable: false`.                                                                                                                                                                                                                                         |
 | Потеря ответа на первую загрузку evaluator          | Реальный HCM сохранил helper. Ответ CLI сообщает `not_started`. Два параллельных execute в том же MCP процессе разделяют login и safe probe, используют этот файл и выполняют оба скрипта.                                                                                                                                          |
 | Повторный offline/online и package handles          | ZIP и sidecar доступны на диске MCP без запроса к proxy. Native проверка существующего inspection возвращает `HcmUnavailable` и сохраняет известный receipt. После восстановления действуют прежние artifactId, inspectionId и operationId.                                                                                         |
+| Новый inspect при offline                           | CLI успел сохранить локальную копию ZIP и sidecar. Native preflight вернул `HcmUnavailable` без artifact ID. Копия обнаружена по файлам в каталоге этого запуска и вошла в подтверждённую очистку.                                                                                                                                  |
 | Удаление только собственного evaluator              | HCM исполнил safe probe и пользовательский read-only код при отсутствующем файле. Затем proxy однократно подал SOAP Fault на safe probe и пропустил восстановление через HCM. Wire фиксирует одну повторную загрузку того же модуля по его URL и успешную проверку перед новым бизнес-вызовом. Readback файла совпадает по SHA-256. |
 | Read grant и managed file                           | XML patch использовал token до outage и сохранил comment и custom field. Уже установленный FileSystem API 2 был готов и прочитал тот же файл. DLL и active marker сохранили byte hashes.                                                                                                                                            |
 | Native ошибка и потерянный ответ мутации            | Исключение скрипта осталось native ошибкой. Отдельный скрипт дописал суффикс к имени собственного объекта. Proxy получил полный upstream response и оборвал ответ CLI. Исход в MCP `unknown`, прямой readback подтверждает ровно один суффикс, wire — один dispatch.                                                                |
-| EOF и точная очистка                                | CLI вызвал `drop_self` один раз. Сверены восемь исходных evaluator и три удалённых локальных ZIP/sidecar. Удалены owned cost_center, report и operation directories. `irsd` / `novyy` с нулём объектов и байты XML схем сохранились.                                                                                                |
+| EOF и точная очистка                                | CLI вызвал `drop_self` один раз. Сверены восемь исходных evaluator. Удалён отдельный временный каталог с четырьмя парами ZIP/sidecar. Удалены owned cost_center, report и operation directories. `irsd` / `novyy` с нулём объектов и байты XML схем сохранились.                                                                    |
 
 Proxy моделирует доступность HTTP и классы ошибок без изменения сервиса.
 После удаления файла выполнение из cache продолжалось. Инъекция доказывает
@@ -50,7 +51,11 @@ pnpm --filter @boristype/mcp-server test:e2e:connection-recovery
 `WSHCM_USERNAME` и `WSHCM_PASSWORD` должны быть заранее заданы в окружении.
 Прямой SDK направляет контрольные вызовы на HCM и очищает только ресурсы
 текущего запуска. Бизнес-вызовы CLI идут через loopback proxy. Cleanup использует
-точные UUID, имя helper и marker объекта. Package schema XML сравнивается
-до и после. SQL fallback, import и редактирование package schema не нужны.
+точные UUID, имя helper и marker объекта. CLI получает отдельный каталог
+`mkdtemp` через `--package-artifact-directory`. Очистка удаляет этот каталог
+целиком. ZIP из обычного пользовательского каталога не участвуют в пробе.
+Package schema XML сравнивается до и после. Native cleanup не удаляет download
+records по ID из архива. SQL fallback, import и редактирование package schema
+не нужны.
 Сохранённые [исторические XML receipts](../object-patch/README.md) относятся
 к своим ревизиям.

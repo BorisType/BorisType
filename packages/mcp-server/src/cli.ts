@@ -18,12 +18,22 @@ program
   .requiredOption("--password <password>", "Password for authentication", process.env["WSHCM_PASSWORD"] ?? "user1")
   .option("--https", "Use HTTPS instead of HTTP", process.env["WSHCM_HTTPS"] === "true")
   .option("--connection-timeout-ms <ms>", "Deadline per HCM connection setup/probe request (default 5000 ms)")
+  .option("--package-artifact-directory <path>", "Absolute local directory for package ZIPs and metadata")
   .action(
-    async (options: { host: string; port: string; username: string; password: string; https: boolean; connectionTimeoutMs?: string }) => {
+    async (options: {
+      host: string;
+      port: string;
+      username: string;
+      password: string;
+      https: boolean;
+      connectionTimeoutMs?: string;
+      packageArtifactDirectory?: string;
+    }) => {
       await startServer({
         host: options.host,
         port: decimal(options.port),
         connectionTimeoutMs: options.connectionTimeoutMs === undefined ? undefined : decimal(options.connectionTimeoutMs),
+        packageArtifactDirectory: options.packageArtifactDirectory,
         username: options.username,
         password: options.password,
         https: options.https,

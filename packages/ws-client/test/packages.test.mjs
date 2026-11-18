@@ -80,9 +80,35 @@ test("lost native acknowledgement exposes durable receipt identity and never rep
   assert.equal(p.saves, 1);
 });
 import { mkdtemp, writeFile, readFile, rm, mkdir, chmod, readdir } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
+test("WshcmApi honors its package artifact directory and preserves the default", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "bt-api-artifacts-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const evaluator = { eval: () => assert.fail("Local store lookup must not need HCM") };
+  const artifactId = randomUUID();
+  const defaultDirectory = join(homedir(), ".boristype", "package-artifacts");
+  const configuredDirectory = join(root, "custom artifacts");
+  const defaultApi = new sdk.WshcmApi(evaluator);
+  const configuredApi = new sdk.WshcmApi(
+    evaluator,
+    { installationName: "existing-runtime-option" },
+    {
+      artifactDirectory: configuredDirectory,
+    },
+  );
+  await assert.rejects(defaultApi.packages.artifacts.get(artifactId), {
+    code: "ENOENT",
+    path: join(defaultDirectory, artifactId + ".json"),
+  });
+  await assert.rejects(configuredApi.packages.artifacts.get(artifactId), {
+    code: "ENOENT",
+    path: join(configuredDirectory, artifactId + ".json"),
+  });
+  assert.throws(() => new sdk.WshcmApi(evaluator, {}, { artifactDirectory: "relative/path" }), /must be absolute/);
+});
+
 test("product transfer preserves binary across exclusive 256 KiB boundaries and seals uploads", async () => {
   const { uploadPackage, downloadPackage } = await import("../build/hcm/packages/transfer.js");
   const dir = await mkdtemp(join(tmpdir(), "bt-transfer-"));

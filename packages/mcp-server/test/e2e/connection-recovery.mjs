@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { access, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
+import { access, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -15,7 +15,6 @@ import { sha256, withStand } from "../../../../refs/research/mcp/object-patch/st
 import { openRecoveryProxy } from "./connection-recovery-proxy.mjs";
 
 const root = fileURLToPath(new URL("../../../../", import.meta.url));
-const artifactsDirectory = join(homedir(), ".boristype", "package-artifacts");
 const schemaXml = "return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();";
 const formUrl = "x-local://wtv/wtv_cost_center.xmd";
 const xml = (body) => "<cost_center>" + body + "</cost_center>";
@@ -34,15 +33,6 @@ async function buildFiles(packageName) {
 
 function git(...args) {
   return execFileSync("git", args, { cwd: root, encoding: "utf8", timeout: 10_000 }).trim();
-}
-
-async function localArtifacts() {
-  return (
-    await readdir(artifactsDirectory).catch((error) => {
-      if (error.code === "ENOENT") return [];
-      throw error;
-    })
-  ).sort();
 }
 
 function openStand() {
@@ -122,7 +112,16 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
   const stand = openStand();
   const platform = stand.inspect();
   const evaluatorBaseline = stand.inventory();
-  const artifactBaseline = await localArtifacts();
+  let privateDirectory;
+  const cleanArtifacts = async () => {
+    if (!privateDirectory) return;
+    await rm(privateDirectory, { recursive: true, force: true });
+    await assert.rejects(access(privateDirectory), { code: "ENOENT" });
+    privateDirectory = undefined;
+  };
+  t.after(cleanArtifacts);
+  privateDirectory = await mkdtemp(join(tmpdir(), "boristype-recovery-artifacts-"));
+  const artifactsDirectory = privateDirectory;
   const runtime = await installedRuntime(stand);
   const sourcePaths = [
     ...git("ls-files", "--", "packages/ws-client/src", "packages/ws-client/resources", "packages/mcp-server/src").split("\n"),
@@ -144,9 +143,7 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
     const beforeCli = stand.inventory();
     const marker = "bt-packages-" + record.marker;
     const operations = [];
-    const packageIds = new Set();
-    const knownArtifacts = new Set();
-    const artifactStore = new PackageArtifactStore();
+    const artifactStore = new PackageArtifactStore(artifactsDirectory);
     const query = `for $c in cost_centers where $c/code = "${marker}" return $c`;
     const ownedObjects = async () =>
       JSON.parse(await ev.eval(`var ids=[];var c;for(c in XQuery('${query}')) ids.push(StrInt(c.id));return EncodeJson(ids);`));
@@ -159,7 +156,7 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
     const client = new Client({ name: "mcp-native-recovery", version: "1" }, { supportedProtocolVersions: ["2025-11-25"] });
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: [join(root, "packages/mcp-server/build/cli.js")],
+      args: [join(root, "packages/mcp-server/build/cli.js"), "--package-artifact-directory", artifactsDirectory],
       env: {
         NODE_USE_ENV_PROXY: "0",
         WSHCM_HOST: "127.0.0.1",
@@ -193,17 +190,10 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
       const response = await client.callTool({ name: "wshcm_" + name, arguments: args }, { timeout: 35_000 });
       assert.equal(response.content.length, 1);
       const body = JSON.parse(response.content[0].text);
-      if (name === "inspect_package" && !response.isError) {
-        for (const item of body.items) {
-          if (item.kind === "package") packageIds.add(item.packageId);
-        }
-      }
       if (body.artifact) {
         const { artifactId, localPath } = body.artifact;
         assert.match(artifactId, /^[a-f0-9-]{36}$/);
         assert.equal(localPath, join(artifactsDirectory, artifactId + ".zip"));
-        assert.ok(!artifactBaseline.includes(artifactId + ".zip") && !artifactBaseline.includes(artifactId + ".json"));
-        knownArtifacts.add(artifactId);
       }
       assert.equal(response.isError === true, error, JSON.stringify(body));
       return body;
@@ -229,10 +219,11 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
       assert.ok(pid);
       const { tools } = await client.listTools({}, { timeout: 5000 });
       assert.equal(tools.length, 27);
+      const toolNames = tools.map(({ name }) => name).sort();
       assert.deepEqual(await client.ping({ timeout: 5000 }), {});
       assert.equal(mark(), 0);
       assert.deepEqual(stand.inventory(), beforeCli);
-      record.startup = { ...client.getServerVersion(), toolCount: tools.length, ping: "ok", httpRequests: mark(), pid };
+      record.startup = { ...client.getServerVersion(), toolCount: tools.length, toolNames, ping: "ok", httpRequests: mark(), pid };
 
       const offline = await execute("return 7;", true);
       assert.equal(offline.executionStatus, "not_started");
@@ -331,6 +322,32 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
         status: cachedOffline.status,
       };
       assert.deepEqual(wireSince(offlineStart), ["probe"]);
+
+      const beforeCapture = new Set(await readdir(artifactsDirectory));
+      const captureStart = mark();
+      const failedInspectionId = operationId();
+      const failedCapture = await call("inspect_package", { artifactId: diskArtifact.artifactId, operationId: failedInspectionId }, true);
+      assert.equal(failedCapture.operationId, failedInspectionId);
+      assert.equal(failedCapture.artifact, undefined);
+      assert.equal(failedCapture.artifactId, undefined);
+      const unacknowledgedFailure = connectionError(failedCapture, "http", 503);
+      assert.deepEqual(wireSince(captureStart), ["login"]);
+      const newFiles = (await readdir(artifactsDirectory)).filter((file) => !beforeCapture.has(file)).sort();
+      assert.equal(newFiles.length, 2);
+      const [metadataPath, zipPath] = newFiles;
+      assert.match(metadataPath, /^[a-f0-9-]{36}\.json$/);
+      const unacknowledgedId = metadataPath.slice(0, -5);
+      assert.equal(zipPath, unacknowledgedId + ".zip");
+      const unacknowledged = await artifactStore.get(unacknowledgedId);
+      assert.equal(unacknowledged.sha256, diskArtifact.sha256);
+      assert.deepEqual(await readFile(unacknowledged.localPath), zip);
+      record.unacknowledgedArtifact = {
+        artifactIdFromStore: unacknowledgedId,
+        toolReturnedArtifactId: false,
+        files: newFiles,
+        operationId: failedInspectionId,
+        ...unacknowledgedFailure,
+      };
       proxy.mode = "online";
 
       const startRepair = mark();
@@ -440,7 +457,7 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
       const dispatches = proxy.exchanges.filter(({ requestSha256 }) => requestSha256 === mutation.requestSha256).length;
       assert.equal(dispatches, 1);
       assert.equal(transport.pid, pid);
-      assert.equal((await client.listTools()).tools.length, tools.length);
+      assert.deepEqual((await client.listTools()).tools.map(({ name }) => name).sort(), toolNames);
       assert.deepEqual(await client.ping(), {});
       record.lostMutation = {
         ...connectionError(lost, "network"),
@@ -500,7 +517,9 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
         record.cleanup.ownedMarkerAbsent = true;
       });
       await clean(async () => {
-        const nativeCleanup = await cleanupPackageFixtures(ev, { marker, ids: [], operations, packageIds: [...packageIds] }, null);
+        // Export and preview allocate no download records. Archive package IDs are not cleanup authority.
+        const nativeCleanup = await cleanupPackageFixtures(ev, { marker, ids: [], operations, packageIds: [] }, null);
+        assert.deepEqual(nativeCleanup.cleanup.downloadsDeleted, []);
         record.cleanup.package = nativeCleanup.cleanup;
       });
       await clean(async () => {
@@ -509,14 +528,12 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
         record.cleanup.packageSchema = { beforeSha256: sha256(baseline), afterSha256: sha256(after) };
       });
       await clean(async () => {
-        record.cleanup.artifactIds = [...knownArtifacts];
-        for (const id of knownArtifacts) {
-          for (const path of [join(artifactsDirectory, id + ".zip"), join(artifactsDirectory, id + ".json")]) {
-            await rm(path, { force: true });
-            await assert.rejects(access(path), { code: "ENOENT" });
-          }
+        const files = (await readdir(artifactsDirectory)).sort();
+        if (record.unacknowledgedArtifact) {
+          for (const file of record.unacknowledgedArtifact.files) assert.ok(files.includes(file));
         }
-        assert.deepEqual(await localArtifacts(), artifactBaseline);
+        await cleanArtifacts();
+        record.cleanup.artifactNamespace = { directory: artifactsDirectory, files, removed: true };
       });
       await clean(() => proxy.close());
       if (cleanupErrors.length) {

@@ -65,7 +65,9 @@ HTTP 401/403 дают `HcmAuthenticationFailed`; обновите учётные
 Потеря ответа после отправки оставляет исход неизвестным. BorisScript
 инструмента автоматически не повторяется. Для записи сначала проверьте
 результат на HCM, а для package operation запросите сохранённый receipt по
-`operationId`. Таймаут не отменяет серверную работу.
+`operationId`. Сбой подготовки к очередному шагу пакета оставляет ранее
+подтверждённые шаги в силе. Общий исход может остаться `unknown` с
+`lastKnownOperation`. Таймаут не отменяет серверную работу.
 
 При EOF, SIGINT или SIGTERM сервер пытается удалить свою временную библиотеку,
 если её создание уже было начато. Неподтверждённая очистка выводится в stderr.
@@ -163,8 +165,10 @@ includeMetadata удалён; edit требует readToken, write по умол
 tool response не помещается; export не создаёт `upload_package` в базе.
 
 `localPath` — абсолютный путь **на машине процесса MCP**, а не на HCM или
-удалённом клиенте. Файлы находятся в `~/.boristype/package-artifacts`, переживают
-закрытие сеанса, handle действует 24 часа. Автоматическая уборка серверных receipt,
+удалённом клиенте. По умолчанию ZIP и метаданные находятся в
+`~/.boristype/package-artifacts`. Чтобы выбрать другой абсолютный каталог,
+передайте `--package-artifact-directory <path>`. Файлы переживают закрытие
+сеанса, handle действует 24 часа. Автоматическая уборка серверных receipt,
 native report/temp и старых локальных файлов пока не реализована. Исходный
 пользовательский ZIP не перезаписывается; чтение не разрешает его перезапись.
 Resources/attachment upload на этом шаге не зарегистрированы.
@@ -751,14 +755,15 @@ x-local://wt/myapp/src/index.bs   — файл проекта
 
 Параметры можно передать через CLI-аргументы или переменные окружения (CLI приоритетнее):
 
-| CLI аргумент              | Env переменная   | Описание                            | По умолчанию |
-| ------------------------- | ---------------- | ----------------------------------- | ------------ |
-| `--host`                  | `WSHCM_HOST`     | Хост сервера                        | `localhost`  |
-| `--port`                  | `WSHCM_PORT`     | Порт сервера                        | `80`         |
-| `--username`              | `WSHCM_USERNAME` | Имя пользователя                    | `user1`      |
-| `--password`              | `WSHCM_PASSWORD` | Пароль                              | `user1`      |
-| `--https`                 | `WSHCM_HTTPS`    | Использовать HTTPS                  | `false`      |
-| `--connection-timeout-ms` | —                | Deadline setup/probe на HTTP-запрос | `5000`       |
+| CLI аргумент                   | Env переменная   | Описание                                      | По умолчанию                     |
+| ------------------------------ | ---------------- | --------------------------------------------- | -------------------------------- |
+| `--host`                       | `WSHCM_HOST`     | Хост сервера                                  | `localhost`                      |
+| `--port`                       | `WSHCM_PORT`     | Порт сервера                                  | `80`                             |
+| `--username`                   | `WSHCM_USERNAME` | Имя пользователя                              | `user1`                          |
+| `--password`                   | `WSHCM_PASSWORD` | Пароль                                        | `user1`                          |
+| `--https`                      | `WSHCM_HTTPS`    | Использовать HTTPS                            | `false`                          |
+| `--package-artifact-directory` | —                | Абсолютный каталог локальных ZIP и метаданных | `~/.boristype/package-artifacts` |
+| `--connection-timeout-ms`      | —                | Deadline setup/probe на HTTP-запрос           | `5000`                           |
 
 ### VS Code
 
@@ -834,6 +839,8 @@ pnpm --filter @boristype/mcp-server inspector --host localhost --port 80 --usern
 `createServer(connection)` создаёт MCP server без открытия транспорта и HCM
 connection; вызывающий код управляет их lifecycle. `startServer(options)`
 запускает stdio и готовит HCM при первой операции, которой он нужен.
+Обе функции принимают опцию `packageArtifactDirectory`: у
+`createServer(connection, options)` она находится во втором аргументе.
 `createConnection(options)` выполняет подключение сразу, а
 `closeConnection(connection)` отвечает за очистку этой библиотеки.
 

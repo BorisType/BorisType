@@ -79,6 +79,11 @@ interface Inspection {
   operation: z.infer<typeof operationResult>;
   attempted: boolean;
 }
+export interface WshcmPackageOptions {
+  /** Absolute local directory for archived ZIP snapshots and metadata. */
+  artifactDirectory?: string;
+}
+
 export class WshcmPackages {
   private tail: Promise<unknown> = Promise.resolve();
   private readonly snapshots = new Map<string, string>();
@@ -87,7 +92,7 @@ export class WshcmPackages {
   readonly artifacts: PackageArtifactStore;
   constructor(
     private readonly evaluator: WshcmEvaluator,
-    options: { artifactDirectory?: string } = {},
+    options: WshcmPackageOptions = {},
   ) {
     this.artifacts = new PackageArtifactStore(options.artifactDirectory);
   }

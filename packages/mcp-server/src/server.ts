@@ -29,9 +29,13 @@ import {
  * Соединение и транспорт принадлежат вызывающему коду. Эта функция не открывает
  * сетевые соединения и позволяет проверять MCP protocol без HCM.
  * @param connection - инициализированное соединение или test double
+ * @param options - локальный каталог package artifacts
  * @returns сервер без подключённого транспорта
  */
-export function createServer(connection: WshcmConnection | { evaluator: WshcmEvaluator }): McpServer {
+export function createServer(
+  connection: WshcmConnection | { evaluator: WshcmEvaluator },
+  options: Pick<McpServerOptions, "packageArtifactDirectory"> = {},
+): McpServer {
   const server = new McpServer(
     {
       name: "boristype-wshcm",
@@ -52,7 +56,7 @@ export function createServer(connection: WshcmConnection | { evaluator: WshcmEva
     },
   );
 
-  const api = new WshcmApi(connection.evaluator);
+  const api = new WshcmApi(connection.evaluator, undefined, { artifactDirectory: options.packageArtifactDirectory });
   registerReadFileTool(server, api);
   registerWriteFileTool(server, api);
   registerListDirectoryTool(server, api);
@@ -111,7 +115,7 @@ export async function startServer(options: McpServerOptions): Promise<void> {
   process.on("SIGTERM", onSignal);
 
   try {
-    server = createServer({ evaluator: connection });
+    server = createServer({ evaluator: connection }, { packageArtifactDirectory: options.packageArtifactDirectory });
     server.server.onclose = () => {
       void shutdown();
     };
