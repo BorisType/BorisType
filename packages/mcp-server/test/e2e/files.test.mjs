@@ -57,13 +57,7 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
       hashes,
     }),
   );
-  try {
-    await client.connect(transport, { timeout: 35_000 });
-  } finally {
-    const added = stand.evaluators().filter((name) => !baseline.has(name));
-    if (added.length === 1) ownedEvaluator = added[0];
-  }
-  assert.ok(ownedEvaluator, "Expected exactly one new CLI evaluator; use an exclusive stand");
+  await client.connect(transport, { timeout: 35_000 });
 
   /** Stop issuing native calls after the first failure; HTTP timeout does not cancel C execution. */
   async function check(name, callback) {
@@ -107,12 +101,31 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
         "wshcm_get_object",
         "wshcm_save_object",
         "wshcm_runtime_status",
+        "wshcm_execute",
+        "wshcm_get_system_info",
+        "wshcm_patch_object",
+        "wshcm_list_package_schemas",
+        "wshcm_get_package_schema",
+        "wshcm_save_package_schema",
+        "wshcm_delete_package_schema",
+        "wshcm_add_package_objects",
+        "wshcm_remove_package_objects",
+        "wshcm_export_package",
+        "wshcm_inspect_package",
+        "wshcm_import_package",
+        "wshcm_get_package_operation",
       ].sort(),
     );
   });
 
   await check("bundled runtime is installed, loaded and independently hash-verified", async () => {
-    t.diagnostic(JSON.stringify({ runtime: await stand.runtime(client) }));
+    try {
+      t.diagnostic(JSON.stringify({ runtime: await stand.runtime(client) }));
+    } finally {
+      const added = stand.evaluators().filter((name) => !baseline.has(name));
+      if (added.length === 1) ownedEvaluator = added[0];
+    }
+    assert.ok(ownedEvaluator, "Expected exactly one new CLI evaluator; use an exclusive stand");
   });
 
   await check("empty directory lists as an empty JSON array", async () => {
@@ -197,32 +210,20 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
   });
 
   for (const signal of ["SIGTERM", "SIGINT"]) {
-    await check(`CLI removes its evaluator after ${signal} plus EOF`, async () => {
+    await check(`CLI uses no evaluator before ${signal} plus EOF`, async () => {
       const { client: signalClient, transport: signalTransport } = stand.createClient();
-      let owned;
       try {
-        try {
-          await signalClient.connect(signalTransport, { timeout: 35_000 });
-        } finally {
-          const added = stand.evaluators().filter((name) => !baseline.has(name));
-          if (added.length === 1) owned = added[0];
-        }
-        assert.ok(owned, "Expected exactly one new CLI evaluator; use an exclusive stand");
+        await signalClient.connect(signalTransport, { timeout: 35_000 });
+        assert.deepEqual(stand.evaluators(), [...baseline]);
         const stopped = new Promise((resolve) => {
           signalClient.onclose = resolve;
         });
         process.kill(signalTransport.pid, signal);
-        // A concurrent EOF must share cleanup rather than attempt another drop_self.
         await signalClient.close();
         await stopped;
       } finally {
         await signalClient.close();
-        const added = stand.evaluators().filter((name) => !baseline.has(name));
-        if (owned && added.length === 1 && added[0] === owned) {
-          stand.removeEvaluator(owned);
-          t.diagnostic(`Fallback removed this run's leaked evaluator: ${owned}`);
-        }
-        assert.deepEqual(added, [], "Signal shutdown must remove its evaluator without fallback");
+        assert.deepEqual(stand.evaluators(), [...baseline], "An unused CLI must leave the evaluator inventory unchanged");
       }
     });
   }

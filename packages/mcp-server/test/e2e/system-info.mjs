@@ -36,16 +36,19 @@ test("system information through CLI/stdio/SOAP on the existing local stand", { 
   const version = await soap.callMethod("tools", "get_version", ["wtv"]);
   const nativeReport = await soap.callMethod("tools_report", "gather_system_info", []);
   assert.equal(typeof nativeReport, "string");
-  try {
-    await client.connect(transport, { timeout: 35000 });
-  } finally {
-    const added = stand.evaluators().filter((name) => !baseline.has(name));
-    if (added.length === 1) ownedEvaluator = added[0];
-  }
-  assert.ok(ownedEvaluator, "Expected exactly one new evaluator; use an exclusive stand");
+  await client.connect(transport, { timeout: 35000 });
 
   async function collect(args) {
-    const response = await client.callTool({ name: "wshcm_get_system_info", arguments: args }, { timeout: 35000 });
+    let response;
+    try {
+      response = await client.callTool({ name: "wshcm_get_system_info", arguments: args }, { timeout: 35000 });
+    } finally {
+      if (!ownedEvaluator) {
+        const added = stand.evaluators().filter((name) => !baseline.has(name));
+        if (added.length === 1) ownedEvaluator = added[0];
+      }
+    }
+    assert.ok(ownedEvaluator, "Expected exactly one new evaluator; use an exclusive stand");
     // Do not print report contents or arbitrary server diagnostics on failure.
     assert.notEqual(response.isError, true, "System information tool returned an error");
     return JSON.parse(response.content[0].text);

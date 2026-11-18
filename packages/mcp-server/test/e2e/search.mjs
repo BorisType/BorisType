@@ -49,14 +49,14 @@ test("MCP search → BS path resolver → installed .NET DLL", { timeout: 120_00
         .digest("hex"),
     }),
   );
+  await client.connect(transport, { timeout: 35_000 });
   try {
-    await client.connect(transport, { timeout: 35_000 });
+    t.diagnostic(JSON.stringify({ runtime: await stand.runtime(client) }));
   } finally {
     const added = stand.evaluators().filter((name) => !baseline.has(name));
     if (added.length === 1) owned = added[0];
   }
   assert.ok(owned, "Exclusive stand required: expected one new evaluator");
-  t.diagnostic(JSON.stringify({ runtime: await stand.runtime(client) }));
   async function search(options) {
     const result = await client.callTool({ name: "wshcm_search_files", arguments: { path: stand.url, ...options } }, { timeout: 20_000 });
     assert.notEqual(result.isError, true, JSON.stringify(result.content));

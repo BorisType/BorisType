@@ -36,6 +36,41 @@ TypeScript CLI: версия 7 использует новый native compiler �
 npm install -g @boristype/mcp-server@next
 ```
 
+## Доступность HCM
+
+С корректной конфигурацией stdio-сервер запускается при выключенном HCM.
+`initialize`, `tools/list` (27 tools) и `ping` обходятся без запросов к HCM.
+Первый вызов инструмента, которому нужен HCM, открывает соединение.
+Следующая явно запрошенная операция может восстановить его в том же процессе
+MCP. Фоновых проверок нет. Read tokens, package handles и локальные ZIP
+сохраняются по обычным правилам срока действия. `wshcm_inspect_package` требует
+HCM для preview или проверки полученного ранее inspection.
+
+Если подготовка или запрос к HCM завершаются ошибкой, инструмент возвращает
+`isError: true` с JSON. `HcmUnavailable` содержит состояние соединения
+(network, timeout, http или evaluator), target и признак `retryable`.
+HTTP 401/403 дают `HcmAuthenticationFailed`; обновите учётные данные в
+конфигурации клиента и перезапустите MCP. Соединение для параллельных вызовов
+готовится один раз. Если временная библиотека этого процесса перестала
+отвечать, сервер может восстановить её по тому же URL и проверить до
+отправки пользовательского кода.
+
+`--connection-timeout-ms <ms>` задаёт положительное целое число, по умолчанию
+5000 мс на каждый HTTP-запрос подготовки или проверки. Обычный запрос к HCM
+сохраняет socket timeout 30000 мс. MCP-клиент может задавать собственный таймаут
+вызова инструмента.
+
+До отправки кода одиночный execute или XML write получает соответственно
+`executionStatus: "not_started"` или `writeStatus: "not_attempted"`.
+Потеря ответа после отправки оставляет исход неизвестным. BorisScript
+инструмента автоматически не повторяется. Для записи сначала проверьте
+результат на HCM, а для package operation запросите сохранённый receipt по
+`operationId`. Таймаут не отменяет серверную работу.
+
+При EOF, SIGINT или SIGTERM сервер пытается удалить свою временную библиотеку,
+если её создание уже было начато. Неподтверждённая очистка выводится в stderr.
+[Native-проверка восстановления](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/connection-recovery/README.md).
+
 ## Руководство для агента
 
 Сервер передаёт короткие общие `instructions` при MCP initialization: связи
@@ -716,13 +751,14 @@ x-local://wt/myapp/src/index.bs   — файл проекта
 
 Параметры можно передать через CLI-аргументы или переменные окружения (CLI приоритетнее):
 
-| CLI аргумент | Env переменная   | Описание           | По умолчанию |
-| ------------ | ---------------- | ------------------ | ------------ |
-| `--host`     | `WSHCM_HOST`     | Хост сервера       | `localhost`  |
-| `--port`     | `WSHCM_PORT`     | Порт сервера       | `80`         |
-| `--username` | `WSHCM_USERNAME` | Имя пользователя   | `user1`      |
-| `--password` | `WSHCM_PASSWORD` | Пароль             | `user1`      |
-| `--https`    | `WSHCM_HTTPS`    | Использовать HTTPS | `false`      |
+| CLI аргумент              | Env переменная   | Описание                            | По умолчанию |
+| ------------------------- | ---------------- | ----------------------------------- | ------------ |
+| `--host`                  | `WSHCM_HOST`     | Хост сервера                        | `localhost`  |
+| `--port`                  | `WSHCM_PORT`     | Порт сервера                        | `80`         |
+| `--username`              | `WSHCM_USERNAME` | Имя пользователя                    | `user1`      |
+| `--password`              | `WSHCM_PASSWORD` | Пароль                              | `user1`      |
+| `--https`                 | `WSHCM_HTTPS`    | Использовать HTTPS                  | `false`      |
+| `--connection-timeout-ms` | —                | Deadline setup/probe на HTTP-запрос | `5000`       |
 
 ### VS Code
 
@@ -797,7 +833,9 @@ pnpm --filter @boristype/mcp-server inspector --host localhost --port 80 --usern
 
 `createServer(connection)` создаёт MCP server без открытия транспорта и HCM
 connection; вызывающий код управляет их lifecycle. `startServer(options)`
-инициализирует соединение с HCM и запускает stdio transport.
+запускает stdio и готовит HCM при первой операции, которой он нужен.
+`createConnection(options)` выполняет подключение сразу, а
+`closeConnection(connection)` отвечает за очистку этой библиотеки.
 
 ### E2E на установленном локальном Docker-стенде
 

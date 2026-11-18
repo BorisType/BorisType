@@ -65,18 +65,19 @@ EOF/SIGINT/SIGTERM используют один idempotent shutdown. До пе�
 Созданный/возможно созданный собственный evaluator учитывается для cleanup;
 неподтверждённый cleanup остаётся явным. Shutdown не обещает отмены server BS.
 
-Нужны SDK HTTP tests, unit lifecycle races, настоящий MCP client и CLI/stdio
-со scripted HTTP fixture: offline initialize/list/ping, понятная ошибка, появление
-стенда без замены MCP процесса, параллельная подготовка, down/up, утраченный helper,
-auth error, native business failure, неподтверждённая запись без replay, shutdown
-до/во время/после setup. Проверять сохранение object/execute/package outcomes.
+Локальные SDK HTTP, unit lifecycle и CLI/stdio тесты проверяют offline startup,
+повторную подготовку, конкуренцию, deadlines, SOAP/auth ошибки, helper repair,
+неподтверждённую запись и shutdown до, во время и после setup. SDK и MCP results
+сохраняют известные object/execute/package outcomes.
 
-Native acceptance использует existing Linux C HCM 2025.2.1333 через собственный
-управляемый HTTP proxy. Proxy меняет доступность без restart/reconfigure HCM;
-отдельно удаляется только собственный evaluator для проверки его восстановления.
-Own fixtures, exact cleanup, evaluator inventory и package schema baseline
-проверяются с source/build hashes. Native process restart этой пробой не доказан.
-Оригинально остановленные WT/PostgreSQL после всех запусков снова останавливаются.
+[Native acceptance](../research/mcp/connection-recovery/README.md) использует
+Linux C HCM 2025.2.1333 через управляемый loopback proxy. Физическое удаление
+своего evaluator проверяется отдельно от возможного code cache. Если cache
+сохраняет исполнение, proxy однократно отвечает SOAP Fault на safe probe и
+пропускает загрузку и проверку восстановленного файла на реальный HCM.
+Source/build hashes, трасса запросов и точная очистка принадлежат этому запуску.
+Воспроизведение перезапуска HCM, Windows/MSSQL и нескольких процессов не
+входит в этот evidence.
 
 ## Основания и установка в клиенты
 
@@ -103,3 +104,4 @@ Own fixtures, exact cleanup, evaluator inventory и package schema baseline
 сценарий. В этой реализации клиентские конфиги не меняются. Исследуются штатные
 `codex mcp add`, `claude mcp add`, явные client/scope/name, preview и сохранение
 соседних записей; набор поддержанных клиентов ещё не утверждён.
+[Варианты регистрации и источники](../research/mcp/connection-recovery/installer-research.md).
