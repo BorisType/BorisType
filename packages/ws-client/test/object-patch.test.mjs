@@ -172,6 +172,7 @@ function platformFixture(extra = {}) {
         StrXmlDate: (x) => x.toISOString().replace(".000Z", "+00:00"),
         StrCharCount: (s) => s.length,
         StrLen: (s) => Buffer.byteLength(s),
+        StrOptSubStrPos: (s, sub) => s.indexOf(sub),
         StrLeftCharRange: (s, n) => s.slice(0, n),
         ArrayCount: (a) => a.children?.length ?? a.length,
         CreateElemByFormElem: (f) => new Elem(f),
@@ -412,4 +413,49 @@ test("native XML date clock accepts zero offset, rejects nonzero offsets without
   for (const suffix of ["Z", "+00:00", "-00:00", ""])
     assert.equal((await patch("<stamp>2025-02-03T04:05:06" + suffix + "</stamp>")).changed, false);
   assert.equal(platform.saveCount, 0);
+});
+
+test("whole-group replacement can repair old duplicate keys and keeps other groups", async () => {
+  const { patch, platform } = platformFixture({
+    row: [
+      { key: "dup", secret: "first" },
+      { key: "dup", secret: "second" },
+    ],
+  });
+  for (const malformed of ['<row bt-mode="replace-array"/>', '<row bt-mode="replace-array"><key>x</key></row><row><key>x</key></row>']) {
+    await assert.rejects(patch(malformed), /explicitly non-empty|Duplicate input/);
+  }
+  const body = '<row bt-mode="replace-array"><key>x</key></row><row><key>y</key></row>';
+  const saved = await patch(body);
+  assert.equal(saved.changed, true);
+  assert.equal(saved.writeStatus, "saved");
+  assert.match(saved.xml, /<key>x<\/key>.*<key>y<\/key>/);
+  assert.match(saved.xml, /<tag>one<\/tag><tag>two<\/tag>/);
+  assert.match(saved.xml, /<keep>sentinel<\/keep>/);
+  assert.doesNotMatch(saved.xml, /dup|first|second/);
+  const repeated = await patch(body);
+  assert.equal(repeated.changed, false);
+  assert.equal(repeated.xml, saved.xml);
+  assert.equal(platform.saveCount, 1);
+});
+test("early calendar years accept the native unpadded readback clock and reject other abbreviated forms", async () => {
+  const { patch, platform } = platformFixture();
+  for (const [padded, rendered] of [
+    ["0001", "1"],
+    ["0099", "99"],
+    ["0999", "999"],
+    ["1000", "1000"],
+    ["0400", "400"],
+  ]) {
+    const calendar = padded === "0400" ? "02-29" : "01-02";
+    const canonical = padded + "-" + calendar + "T12:34:56Z";
+    const native = rendered + "-" + calendar + "T12:34:56+00:00";
+    assert.equal((await patch("<stamp>" + canonical + "</stamp>")).changed, true);
+    const repeated = await patch("<stamp>" + native + "</stamp>");
+    assert.equal(repeated.changed, false);
+    assert.equal(repeated.writeStatus, "not_attempted");
+  }
+  for (const value of ["0-01-02T12:34:56+00:00", "001-01-02T12:34:56+00:00", "1-01-02", "99-01-02T12:34:56Z", "999-02-29T12:34:56+00:00"])
+    await assert.rejects(patch("<stamp>" + value + "</stamp>"), /date/);
+  assert.equal(platform.saveCount, 5);
 });

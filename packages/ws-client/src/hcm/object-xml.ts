@@ -38,7 +38,9 @@ export interface ObjectPatchNode extends ObjectXmlNode {
 
 /** Native XML wall clock at whole-second precision. Z and zero offsets are accepted XML spellings. */
 function patchDate(text: string): string {
-  const match = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}:\d{2})(?:\.(0+))?(Z|[+-]00:00)?)?$/.exec(text);
+  // The native serializer drops leading year zeroes only in its full XML clock.
+  const normalized = text.replace(/^([1-9]\d{0,2})(?=-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$)/, (year) => year.padStart(4, "0"));
+  const match = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}:\d{2})(?:\.(0+))?(Z|[+-]00:00)?)?$/.exec(normalized);
   if (!match || match[1]!.startsWith("0000")) return "";
   const clock = match[1] + "T" + (match[2] ?? "00:00:00");
   const local = new Date(clock + "Z");

@@ -8,7 +8,7 @@ import { buildScript } from "../../build/hcm/load.js";
 import { sha256, withStand } from "../../../../refs/research/mcp/object-patch/stand.mjs";
 const helper = await readFile(new URL("../../resources/object-patch.bs", import.meta.url), "utf8");
 const schema =
-  '<SPXML-FORM><probe><id TYPE="integer"/><name TYPE="string"/><keep TYPE="string"/><n TYPE="integer"/><default_s TYPE="string" DEFAULT="initial"/><r TYPE="real"/><flag TYPE="bool"/><stamp TYPE="date"/><row MULTIPLE="1" PRIMARY-KEY="key"><key TYPE="string"/><v TYPE="string"/><secret TYPE="string"/><d TYPE="integer" DEFAULT="7"/></row><tag TYPE="string" MULTIPLE="1"/><nested><stamp TYPE="date"/><d TYPE="integer" DEFAULT="7"/><part MULTIPLE="1"><v TYPE="string"/><label TYPE="string" MULTIPLE="1"/></part></nested><keyed MULTIPLE="1" PRIMARY-KEY="n"><n TYPE="integer"/><v TYPE="string"/></keyed><default_key MULTIPLE="1" PRIMARY-KEY="k"><k TYPE="string" DEFAULT="default"/></default_key><bad_key MULTIPLE="1" PRIMARY-KEY="compound"><compound><v TYPE="string"/></compound></bad_key><constructor TYPE="string"/><entry MULTIPLE="1" PRIMARY-KEY="key"><key TYPE="date"/><v TYPE="string"/></entry><hook_count TYPE="integer" DEFAULT="0"/></probe><OnBeforeSave PROPERTY="1" EXPR="TopElem.hook_count = TopElem.hook_count + 1;"/></SPXML-FORM>';
+  '<SPXML-FORM><probe><id TYPE="integer"/><name TYPE="string"/><keep TYPE="string"/><n TYPE="integer"/><default_s TYPE="string" DEFAULT="initial"/><r TYPE="real"/><flag TYPE="bool"/><stamp TYPE="date"/><row MULTIPLE="1" PRIMARY-KEY="key"><key TYPE="string"/><v TYPE="string"/><secret TYPE="string"/><d TYPE="integer" DEFAULT="7"/></row><tag TYPE="string" MULTIPLE="1"/><members><memo TYPE="string"/><member MULTIPLE="1" PRIMARY-KEY="key"><key TYPE="string"/></member></members><nested><stamp TYPE="date"/><d TYPE="integer" DEFAULT="7"/><part MULTIPLE="1"><v TYPE="string"/><label TYPE="string" MULTIPLE="1"/></part></nested><keyed MULTIPLE="1" PRIMARY-KEY="n"><n TYPE="integer"/><v TYPE="string"/></keyed><default_key MULTIPLE="1" PRIMARY-KEY="k"><k TYPE="string" DEFAULT="default"/></default_key><bad_key MULTIPLE="1" PRIMARY-KEY="compound"><compound><v TYPE="string"/></compound></bad_key><constructor TYPE="string"/><entry MULTIPLE="1" PRIMARY-KEY="key"><key TYPE="date"/><v TYPE="string"/></entry><hook_count TYPE="integer" DEFAULT="0"/></probe><OnBeforeSave PROPERTY="1" EXPR="TopElem.hook_count = TopElem.hook_count + 1;"/></SPXML-FORM>';
 async function generic(ev, receipt) {
   const formUrl = "x-local://wt/bt_patch_" + receipt.marker + ".xmd";
   const fileUrl = "x-local://wt/bt_patch_" + receipt.marker + ".xml";
@@ -19,7 +19,7 @@ async function generic(ev, receipt) {
   try {
     await evaluate(
       buildScript(
-        "RegisterFormFromStr(f,'${schema}');var d=OpenNewDoc(f);d.TopElem.LoadData('<probe><keep>sentinel</keep><row><key>a</key><secret>retain</secret></row><row><key>b</key></row><tag>keep-tag</tag></probe>');d.Save(u);return EncodeJson(true);",
+        "RegisterFormFromStr(f,'${schema}');var d=OpenNewDoc(f);d.TopElem.LoadData('<probe><keep>sentinel</keep><row><key>a</key><secret>retain</secret></row><row><key>b</key></row><tag>keep-tag</tag><members><memo>old memo</memo><member><key>old member A</key></member><member><key>old member B</key></member></members></probe>');d.Save(u);return EncodeJson(true);",
         { schema },
       ),
     );
@@ -47,6 +47,13 @@ return EncodeJson({changed:changed,xml:xml,persisted:read.TopElem.Xml,hooks:StrI
       return result;
     };
     const cases = [
+      [
+        "replace populated keyed container",
+        '<members bt-mode="replace"><memo>keep memo</memo><member><key>new member B</key></member><member><key>new member A</key></member></members>',
+        /<memo>keep memo<\/memo>[\s\S]*<key>new member B<\/key>[\s\S]*<key>new member A<\/key>/,
+        /old member|old memo/,
+      ],
+      ["clear only keyed MULTIPLE group", '<members><member bt-mode="clear"/></members>', /<memo>keep memo<\/memo>/, /<member>/],
       ["Unicode/CDATA/CRLF", "<name>  Ω\r\n<![CDATA[<&]]>  </name>", /  Ω&#10;&lt;&amp;<\/name>/],
       ["defaulted scalar assigned", "<nested><d>9</d></nested>", /<d>9<\/d>/],
       ["durable scalar clear", '<nested><d bt-mode="clear"/></nested>', /<d>7<\/d>/, /<d>9<\/d>/],
@@ -114,7 +121,7 @@ return EncodeJson({changed:changed,xml:xml,persisted:read.TopElem.Xml,hooks:StrI
       ["canonical date key", "<entry><key>2025-02-28T23:30:00+00:00</key><v>first</v></entry>", /<key>2025-02-28T23:30:00\+00:00<\/key>/],
       ["upsert equal date key", "<entry><key>2025-02-28T23:30:00Z</key><v>second</v></entry>", /<v>second<\/v>/, /<v>first<\/v>/],
     ];
-    for (const [name, body, present, absent] of cases) {
+    async function checkChange(name, body, present, absent) {
       const before = await evaluate("return EncodeJson(StrInt(OpenDoc(u).TopElem.hook_count.Value));");
       const a = await run(body);
       assert.equal(a.changed, true, name);
@@ -132,6 +139,37 @@ return EncodeJson({changed:changed,xml:xml,persisted:read.TopElem.Xml,hooks:StrI
         repeatChanged: b.changed,
         hookCount: a.hooks,
         persistedSha256: sha256(a.persisted),
+      });
+      return a;
+    }
+    for (const c of cases) await checkChange(...c);
+    receipt.generic.earlyYears = [];
+    for (const [input, renderedYear] of [
+      ["0001-01-02", "1"],
+      ["0099-03-04", "99"],
+      ["0999-04-05", "999"],
+      ["1000-05-06", "1000"],
+      ["0400-02-29", "400"],
+    ]) {
+      const body = "<stamp>" + input + "T12:34:56Z</stamp>";
+      const clock = renderedYear + input.slice(4) + "T12:34:56+00:00";
+      const xml = "<stamp>" + clock + "</stamp>";
+      const saved = await checkChange("native year " + input, body);
+      assert.ok(saved.persisted.includes(xml));
+      const reopened = await evaluate(
+        "var elem=OpenDoc(u).TopElem.stamp;return EncodeJson({formatted:StrXmlDate(elem.Value,true,true),xml:elem.Xml});",
+      );
+      assert.equal(reopened.formatted, clock);
+      const copy = await run(reopened.xml);
+      assert.equal(copy.changed, false);
+      assert.equal(copy.hooks, saved.hooks);
+      assert.equal(copy.persisted, saved.persisted);
+      receipt.generic.earlyYears.push({
+        input,
+        formatted: reopened.formatted,
+        reopenedXml: reopened.xml,
+        copyChanged: copy.changed,
+        copyHooks: copy.hooks,
       });
     }
     const prev = await evaluate("return EncodeJson(OpenDoc(u).TopElem.Xml);");
@@ -163,7 +201,7 @@ return EncodeJson({changed:changed,xml:xml,persisted:read.TopElem.Xml,hooks:StrI
     for (const body of ["<nested/>", '<row bt-mode="remove"><key>absent</key></row>']) assert.equal((await run(body)).changed, false);
     assert.equal(await evaluate("return EncodeJson(OpenDoc(u).TopElem.Xml);"), prev);
     await evaluate(
-      "var d=OpenDoc(u);var row=CreateElemByFormElem(d.TopElem.FormElem.Child('row'));d.TopElem.AddChildElem(row);row.Child('key').Value='only';d.Save();return EncodeJson(true);",
+      "var d=OpenDoc(u);var tag=CreateElemByFormElem(d.TopElem.FormElem.Child('tag'));d.TopElem.AddChildElem(tag);tag.Value='between';var row=CreateElemByFormElem(d.TopElem.FormElem.Child('row'));d.TopElem.AddChildElem(row);row.Child('key').Value='only';tag=CreateElemByFormElem(d.TopElem.FormElem.Child('tag'));d.TopElem.AddChildElem(tag);tag.Value='after';d.Save();return EncodeJson(true);",
     );
     const duplicateBefore = await evaluate("return EncodeJson(OpenDoc(u).TopElem.Xml);");
     await assert.rejects(run("<row><key>only</key></row>"), /Ambiguous target array primary key/);
@@ -173,6 +211,13 @@ return EncodeJson({changed:changed,xml:xml,persisted:read.TopElem.Xml,hooks:StrI
     assert.equal(preview.changed, true);
     assert.match(preview.xml, /preview/);
     assert.equal(preview.persisted, duplicateBefore);
+    assert.match(duplicateBefore, /<key>only<\/key>[\s\S]*<tag>between<\/tag>[\s\S]*<key>only<\/key>[\s\S]*<tag>after<\/tag>/);
+    await checkChange(
+      "replace-array repairs duplicate old keys in interleaved slots",
+      '<row bt-mode="replace-array"><key>new first</key></row><row><key>new last</key></row>',
+      /<key>new first<\/key>[\s\S]*<tag>between<\/tag>[\s\S]*<key>new last<\/key>[\s\S]*<tag>after<\/tag>/,
+      /<key>only<\/key>/,
+    );
     receipt.generic.invalidCount = invalidInputs.length;
     receipt.generic.previewAndInvalidPreserved = true;
   } finally {
