@@ -1,3 +1,4 @@
+import { connectionDiagnostic } from "../connection-error.js";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { wshcmSchemas, WshcmObjectError, type WshcmApi } from "@boristype/ws-client";
 
@@ -8,7 +9,7 @@ async function objectResult(action: () => Promise<unknown>) {
   try {
     return output(await action());
   } catch (error) {
-    if (error instanceof WshcmObjectError) return output(error.details, true);
+    if (error instanceof WshcmObjectError) return output({ ...error.details, ...connectionDiagnostic(error) }, true);
     throw error;
   }
 }

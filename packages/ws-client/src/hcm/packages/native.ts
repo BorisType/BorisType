@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
+import { WshcmDispatchError } from "../../exceptions.js";
 import { buildScript } from "../load.js";
 import type { WshcmEvaluator } from "../types.js";
 import { WshcmPackageError } from "./contracts.js";
@@ -15,7 +16,7 @@ const envelope = z.discriminatedUnion("ok", [
     status: z.enum(["not_attempted", "unknown", "failed"]),
   }),
 ]);
-/** Exactly one dispatch. A malformed carrier after dispatch is an unknown outcome. */
+/** Invoke the evaluator once. A malformed carrier after dispatch is an unknown outcome. */
 export async function packageNative<T>(evaluator: WshcmEvaluator, request: Record<string, unknown>, schema: z.ZodType<T>): Promise<T> {
   const operationId = typeof request.operationId === "string" ? request.operationId : undefined;
   const json = JSON.stringify(request);
@@ -31,12 +32,15 @@ export async function packageNative<T>(evaluator: WshcmEvaluator, request: Recor
     return schema.parse(result.body);
   } catch (error) {
     if (error instanceof WshcmPackageError) throw error;
-    throw new WshcmPackageError({
-      code: "TransportError",
-      message: String(error).slice(0, 2000),
-      phase: "transport",
-      status: "unknown",
-      ...(operationId ? { operationId } : {}),
-    });
+    throw new WshcmPackageError(
+      {
+        code: "TransportError",
+        message: String(error).slice(0, 2000),
+        phase: "transport",
+        status: request.operation === "import" && error instanceof WshcmDispatchError && !error.dispatched ? "not_attempted" : "unknown",
+        ...(operationId ? { operationId } : {}),
+      },
+      { cause: error },
+    );
   }
 }

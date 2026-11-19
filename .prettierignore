@@ -21,5 +21,6 @@ schemas/
 # Test sources — preserve explicit parens and formatting for BS parser safety tests
 tests/src/bsParserSafety/
 
-# Native managed-runtime receipts are exact observations, not generated prose.
+# Native acceptance receipts preserve the bytes emitted by the runners.
 refs/research/ws-client-runtime/observed/
+refs/research/mcp/connection-recovery/acceptance.json

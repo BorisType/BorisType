@@ -1,5 +1,5 @@
 import { XMLParser, XMLBuilder, XMLValidator } from "fast-xml-parser";
-import { WshcmException } from "./exceptions.js";
+import { WshcmException, WshcmSoapFault } from "./exceptions.js";
 import type { WshcmValue } from "./types.js";
 
 const INT64_MIN = -(1n << 63n);
@@ -184,6 +184,29 @@ function findElement(obj: unknown, key: string): unknown {
   return undefined;
 }
 
+/** A SOAP fault must belong to the envelope body. HTTP error pages can also contain a field named Fault. */
+function responseFault(parsed: unknown): unknown {
+  const soapNamespaces = ["http://schemas.xmlsoap.org/soap/envelope/", "http://www.w3.org/2003/05/soap-envelope"];
+  function child(local: string, scope: Record<string, unknown>[], expected?: string) {
+    for (const [name, value] of Object.entries(scope[0])) {
+      const colon = name.indexOf(":");
+      if (name.startsWith("@_") || name.slice(colon + 1) !== local || !value || typeof value !== "object" || Array.isArray(value)) continue;
+      const declaration = colon < 0 ? "@_xmlns" : `@_xmlns:${name.slice(0, colon)}`;
+      const nested = [value as Record<string, unknown>, ...scope];
+      const namespace = nested.find((element) => Object.hasOwn(element, declaration))?.[declaration];
+      if (typeof namespace === "string" && (expected === undefined ? soapNamespaces.includes(namespace) : namespace === expected)) {
+        return { scope: nested, namespace };
+      }
+    }
+    return undefined;
+  }
+  if (!parsed || typeof parsed !== "object") return undefined;
+  const envelope = child("Envelope", [parsed as Record<string, unknown>]);
+  if (!envelope) return undefined;
+  const body = child("Body", envelope.scope, envelope.namespace);
+  return body && child("Fault", body.scope, envelope.namespace)?.scope[0];
+}
+
 /** Extract direct XML element children, excluding attributes and text. */
 function children(element: Record<string, unknown>): [string, unknown][] {
   return Object.entries(element).filter(([key]) => !key.startsWith("@_") && key !== "#text");
@@ -253,11 +276,11 @@ export function parseResponse(responseText: string): WshcmValue {
   } catch (error) {
     throw new WshcmException(`Malformed SOAP XML: ${error instanceof Error ? error.message : String(error)}`);
   }
-  const fault = findElement(parsed, "Fault");
+  const soapFault = responseFault(parsed);
+  const fault = soapFault ?? findElement(parsed, "Fault");
   if (fault && typeof fault === "object") {
-    throw new WshcmException(
-      `ERR: (${findElement(fault, "faultcode") ?? "UNKNOWN"}) ${findElement(fault, "faultstring") ?? "Unknown error"}`,
-    );
+    const Fault = soapFault ? WshcmSoapFault : WshcmException;
+    throw new Fault(`ERR: (${findElement(fault, "faultcode") ?? "UNKNOWN"}) ${findElement(fault, "faultstring") ?? "Unknown error"}`);
   }
   const resultData = findElement(parsed, "ResultData");
   if (!resultData || typeof resultData !== "object" || Array.isArray(resultData))

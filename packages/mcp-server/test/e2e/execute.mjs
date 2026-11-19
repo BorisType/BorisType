@@ -24,13 +24,7 @@ test("BorisScript execution through CLI/stdio/SOAP on the existing local stand",
       assert.equal(stand.exists(stand.directory), false);
     }
   });
-  try {
-    await client.connect(transport, { timeout: 35000 });
-  } finally {
-    const added = stand.evaluators().filter((name) => !baseline.has(name));
-    if (added.length === 1) ownedEvaluator = added[0];
-  }
-  assert.ok(ownedEvaluator, "Expected exactly one new evaluator; use an exclusive stand");
+  await client.connect(transport, { timeout: 35000 });
   t.diagnostic(JSON.stringify({ image: stand.image, imageId: stand.imageId, carrier: "CLI/stdio/SOAP; no BorisType DLL" }));
   async function check(name, body) {
     await t.test(name, { skip: failed ? "Earlier native failure; series stopped" : false }, async () => {
@@ -43,7 +37,16 @@ test("BorisScript execution through CLI/stdio/SOAP on the existing local stand",
     });
   }
   async function execute(code, error = false) {
-    const result = await client.callTool({ name: "wshcm_execute", arguments: { code } }, { timeout: 35000 });
+    let result;
+    try {
+      result = await client.callTool({ name: "wshcm_execute", arguments: { code } }, { timeout: 35000 });
+    } finally {
+      if (!ownedEvaluator) {
+        const added = stand.evaluators().filter((name) => !baseline.has(name));
+        if (added.length === 1) ownedEvaluator = added[0];
+      }
+    }
+    assert.ok(ownedEvaluator, "Expected exactly one new evaluator; use an exclusive stand");
     assert.equal(result.isError === true, error, JSON.stringify(result));
     return JSON.parse(result.content[0].text);
   }

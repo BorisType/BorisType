@@ -23,13 +23,7 @@ test("XQuery passthrough through CLI/stdio/SOAP on the existing local stand", { 
       }
     }
   });
-  try {
-    await client.connect(transport, { timeout: 35000 });
-  } finally {
-    const added = stand.evaluators().filter((name) => !baseline.has(name));
-    if (added.length === 1) ownedEvaluator = added[0];
-  }
-  assert.ok(ownedEvaluator, "Expected exactly one new evaluator; use an exclusive stand");
+  await client.connect(transport, { timeout: 35000 });
 
   // All acceptance queries are read-only and small. Never retry after a failed native request.
   async function check(name, body) {
@@ -43,7 +37,16 @@ test("XQuery passthrough through CLI/stdio/SOAP on the existing local stand", { 
     });
   }
   async function query(query, maxRows = 10) {
-    const result = await client.callTool({ name: "wshcm_xquery", arguments: { query, maxRows } }, { timeout: 35000 });
+    let result;
+    try {
+      result = await client.callTool({ name: "wshcm_xquery", arguments: { query, maxRows } }, { timeout: 35000 });
+    } finally {
+      if (!ownedEvaluator) {
+        const added = stand.evaluators().filter((name) => !baseline.has(name));
+        if (added.length === 1) ownedEvaluator = added[0];
+      }
+    }
+    assert.ok(ownedEvaluator, "Expected exactly one new evaluator; use an exclusive stand");
     assert.notEqual(result.isError, true, JSON.stringify(result));
     return { text: result.content[0].text, body: JSON.parse(result.content[0].text) };
   }

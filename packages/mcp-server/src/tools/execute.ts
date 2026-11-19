@@ -1,3 +1,4 @@
+import { connectionDiagnostic } from "../connection-error.js";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { wshcmSchemas, WshcmExecutionError, type WshcmApi } from "@boristype/ws-client";
 
@@ -39,7 +40,7 @@ export function registerExecuteTool(server: McpServer, api: WshcmApi): void {
       } catch (cause) {
         const body =
           cause instanceof WshcmExecutionError
-            ? { ok: false, ...cause.details }
+            ? { ok: false, ...cause.details, ...connectionDiagnostic(cause) }
             : {
                 ok: false,
                 phase: "response",

@@ -132,3 +132,29 @@ test("SDK execute reports transport failure as unknown and never retries", async
   });
   assert.equal(calls, 1);
 });
+
+test("explicit pre-dispatch failure preserves a known unstarted execute/save", async () => {
+  const sdk = await import("../build/index.js");
+  assert.equal(typeof sdk.WshcmDispatchError, "function");
+  for (const dispatched of [false, true]) {
+    const cause = new sdk.WshcmDispatchError("HCM unavailable", dispatched);
+    const api = new WshcmApi({
+      eval: async () => {
+        throw cause;
+      },
+    });
+    await assert.rejects(api.execute({ code: "return 1;" }), (err) => {
+      assert.equal(err.details.executionStatus, dispatched ? "unknown" : "not_started");
+      assert.equal(err.cause, cause);
+      return true;
+    });
+    await assert.rejects(
+      api.objects.save({ mode: "create", formUrl: "x-local://wtv/wtv_cost_center.xmd", xml: "<cost_center/>" }),
+      (err) => {
+        assert.equal(err.details.writeStatus, dispatched ? "unknown" : "not_attempted");
+        assert.equal(err.cause, cause);
+        return true;
+      },
+    );
+  }
+});

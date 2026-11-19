@@ -39,14 +39,14 @@ test("managed edit preserves bytes and refuses stale or ambiguous patches throug
         .digest("hex"),
     }),
   );
+  await client.connect(transport, { timeout: 35_000 });
   try {
-    await client.connect(transport, { timeout: 35_000 });
+    t.diagnostic(JSON.stringify({ runtime: await stand.runtime(client) }));
   } finally {
     const added = stand.evaluators().filter((name) => !baseline.has(name));
     if (added.length === 1) owned = added[0];
   }
   assert.ok(owned, "Use an exclusive stand; expected exactly one evaluator");
-  t.diagnostic(JSON.stringify({ runtime: await stand.runtime(client) }));
   async function call(tool, name, args = {}) {
     return client.callTool({ name: `wshcm_${tool}`, arguments: { path: stand.url + name, ...args } }, { timeout: 20_000 });
   }

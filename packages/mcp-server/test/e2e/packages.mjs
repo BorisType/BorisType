@@ -101,13 +101,17 @@ test(
       receipt.baselineSha256 = hash(baseline);
       const beforeCLI = evaluators();
       await client.connect(transport, { timeout: 35000 });
-      const added = evaluators().filter((name) => !beforeCLI.includes(name));
-      assert.equal(added.length, 1);
-      cliEvaluator = added[0];
-      receipt.cliEvaluator = cliEvaluator;
       receipt.toolCount = (await client.listTools()).tools.length;
-      assert.equal(receipt.toolCount, 26);
-      const schemas = await call("list_package_schemas", { limit: 1 });
+      assert.equal(receipt.toolCount, 27);
+      let schemas;
+      try {
+        schemas = await call("list_package_schemas", { limit: 1 });
+      } finally {
+        const added = evaluators().filter((name) => !beforeCLI.includes(name));
+        if (added.length === 1) cliEvaluator = added[0];
+      }
+      assert.ok(cliEvaluator, "Use an exclusive stand; expected exactly one CLI evaluator");
+      receipt.cliEvaluator = cliEvaluator;
       receipt.baselineSchemas = schemas.items.map(({ schemaId, name, objectCount }) => ({ schemaId, name, objectCount }));
       const createId = operationId();
       const created = await call("save_package_schema", { name: marker, operationId: createId.toUpperCase() });

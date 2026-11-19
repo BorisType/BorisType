@@ -8,8 +8,11 @@ export interface WshcmObjectErrorDetails {
 }
 
 export class WshcmObjectError extends Error {
-  constructor(public readonly details: WshcmObjectErrorDetails) {
-    super(`${details.error.code}: ${details.error.message}`);
+  constructor(
+    public readonly details: WshcmObjectErrorDetails,
+    options?: ErrorOptions,
+  ) {
+    super(`${details.error.code}: ${details.error.message}`, options);
     this.name = "WshcmObjectError";
   }
 }

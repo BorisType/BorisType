@@ -7,7 +7,7 @@
 
 `createServer(connection)` создаёт server с внешним connection без сетевого
 подключения. Caller владеет connection/transport. CLI `startServer` создаёт
-connection, подключает StdioServerTransport и обслуживает shutdown.
+стабильный evaluator facade, подключает StdioServerTransport и обслуживает shutdown.
 [server.ts](../../packages/mcp-server/src/server.ts) регистрирует девять файловых
 tools, XQuery, четыре XML tools, execute, system info, runtime status и десять
 tools пакетов объектов. Общий API и grants принадлежат
@@ -41,18 +41,27 @@ empty string. Нынешние files проходят strict UTF-8 DLL; стар
 
 ## Lifetime и неизвестный исход
 
-Даже read-only session загружает временный evaluator в `x-local://wt/`.
-Закрытие удаляет его через `drop_self`. EOF, SIGINT/SIGTERM и transport startup
-failure после создания connection используют общий idempotent shutdown.
-`Evaluator.close() == false` — ошибка и ненулевой exit. Одновременный EOF/signal
-не должен повторять cleanup. Эти случаи проверены в native lifecycle серии.
+`initialize`, `tools/list` и `ping` не открывают HCM connection. Первый запрос
+к HCM запускает подготовку evaluator в `x-local://wt/`. Каждый следующий eval
+проверяет библиотеку безопасным вызовом. Параллельные eval разделяют незавершённую
+подготовку. Потеря библиотеки допускает одну загрузку точно по своему URL
+и ещё одну проверку до отправки пользовательского кода. Через evaluator
+facade тот же `WshcmApi` продолжает обслуживать grants, inspections и ZIP.
+[Контракт восстановления](resilient-connection.md).
 
-**Не закрыты** partial evaluator initialization и shutdown во время активного
-SOAP request. Cleanup connection не является отменой уже выполняющегося BS.
-После timeout/lost response сначала установить результат и состояние fixtures;
-blind retry mutation не безопасен по самому факту ошибки клиента.
-[Filesystem checkpoint](../research/mcp/08-filesystem-checkpoint.md) сохраняет
-проверенный commit, независимый cleanup и эти открытые условия.
+EOF, SIGINT/SIGTERM и ошибка запуска транспорта используют общий idempotent
+shutdown. Если была попытка загрузки evaluator, cleanup ожидает завершения
+подготовки и вызывает `drop_self`. `Evaluator.close() == false` даёт диагностику
+и ненулевой exit. Таймаут или потерянный ответ cleanup оставляют состояние
+неподтверждённым. Запросы к уже отправленному серверному коду могут продолжать
+выполняться. При потере ответа пользовательский BS не отправляется повторно.
+
+[Native-проверка через управляемый proxy](../research/mcp/connection-recovery/README.md)
+подтверждает отсутствие upstream traffic при старте, восстановление в том же
+процессе, сохранение grants и ZIP handles, cleanup и отсутствие повторной
+записи. Локальные HTTP/stdio тесты проверяют отказ порта, deadlines и гонки
+shutdown. [Filesystem checkpoint](../research/mcp/08-filesystem-checkpoint.md)
+сохраняет результаты предыдущего native lifecycle.
 
 ## SDK/dependencies и опубликованный artifact
 
@@ -108,8 +117,8 @@ contract. [ObtainDirectory](https://wshcm-docs.boristype.dev/datex/common/562027
 Старая feature-ветка также содержала duplicate htmlEntities в object literal
 (TS1117), отсутствовавший в тогдашнем main. Перенос scoped MCP на новый main
 предпочтён переносу старого root lockfile. Это исправленный исторический дефект,
-а не текущее нарушение. Общий strict SOAP envelope, partial startup и in-flight
-shutdown не объявлены решёнными самим dependency refresh.
+а не текущее нарушение. Ограничения общего SOAP parser сохраняются. Состояние partial setup и shutdown
+проверяются отдельно от обновлений зависимостей.
 
 [Доставка managed runtime](../dotnet/managed-runtime.md) описывает bundle,
 cache/MVID и scope status. File gate выполняется отдельным SOAP вызовом перед

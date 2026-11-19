@@ -149,9 +149,11 @@
 
 - **Datex callback и lifecycle остаются отдельными исследованиями.** Причина
   `DatexGlobal.EncodeJson` exit 139 неизвестна; нужны native stack/context/version
-  данные, crash probe изолирован от smoke. Partial evaluator initialization и
-  shutdown с активным SOAP требуют deterministic cleanup/outcome tests.
-  [Bridge evidence](refs/dotnet/bridge.md), [transport](refs/mcp/transport-and-lifecycle.md).
+  данные, crash probe изолирован от smoke. Для MCP остаётся native shutdown
+  во время длительного пользовательского BS. Локальные race tests покрывают
+  partial setup, а native proxy подтверждает восстановление после потери ответа
+  на загрузку evaluator. [Bridge evidence](refs/dotnet/bridge.md),
+  [native recovery](refs/research/mcp/connection-recovery/README.md).
 - **Объектные ресурсы и cache coherence.** Related documents/binary cleanup,
   trash/restore и form-cache eviction/cluster invalidation не доказаны простым
   cost_center lifecycle. Нужны отдельные resource/business adapters и bounded

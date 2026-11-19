@@ -80,9 +80,35 @@ test("lost native acknowledgement exposes durable receipt identity and never rep
   assert.equal(p.saves, 1);
 });
 import { mkdtemp, writeFile, readFile, rm, mkdir, chmod, readdir } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
+test("WshcmApi honors its package artifact directory and preserves the default", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "bt-api-artifacts-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const evaluator = { eval: () => assert.fail("Local store lookup must not need HCM") };
+  const artifactId = randomUUID();
+  const defaultDirectory = join(homedir(), ".boristype", "package-artifacts");
+  const configuredDirectory = join(root, "custom artifacts");
+  const defaultApi = new sdk.WshcmApi(evaluator);
+  const configuredApi = new sdk.WshcmApi(
+    evaluator,
+    { installationName: "existing-runtime-option" },
+    {
+      artifactDirectory: configuredDirectory,
+    },
+  );
+  await assert.rejects(defaultApi.packages.artifacts.get(artifactId), {
+    code: "ENOENT",
+    path: join(defaultDirectory, artifactId + ".json"),
+  });
+  await assert.rejects(configuredApi.packages.artifacts.get(artifactId), {
+    code: "ENOENT",
+    path: join(configuredDirectory, artifactId + ".json"),
+  });
+  assert.throws(() => new sdk.WshcmApi(evaluator, {}, { artifactDirectory: "relative/path" }), /must be absolute/);
+});
+
 test("product transfer preserves binary across exclusive 256 KiB boundaries and seals uploads", async () => {
   const { uploadPackage, downloadPackage } = await import("../build/hcm/packages/transfer.js");
   const dir = await mkdtemp(join(tmpdir(), "bt-transfer-"));
@@ -214,6 +240,105 @@ test("immutable inspection rejects outside selection, repeat/version/type confli
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("import can reuse an inspection after preflight failure but guards a dispatched unknown outcome", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "bt-import-dispatch-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const localPath = join(directory, "source.zip");
+  const bytes = objectPackage();
+  await writeFile(localPath, bytes);
+
+  let applied = 0;
+  const reads = [];
+  const p = platform({
+    CodeLiteral: JSON.stringify,
+    FileSize: (path) => Buffer.byteLength(p.files.get(path)),
+    Base64Encode: (data) => Buffer.from(data).toString("base64"),
+    Base64Decode: (data) => Buffer.from(data, "base64"),
+    LoadFileDataRange: (path, start, end) => {
+      const chunk = Buffer.from(p.files.get(path)).subarray(start, end);
+      reads.push(chunk);
+      return chunk;
+    },
+    PutFileDataRange: (path, _start, _end, chunk) => p.files.set(path, Buffer.concat([Buffer.from(p.files.get(path)), chunk])),
+    DeleteDirectory: () => {},
+    OpenDoc: () => ({ TopElem: { basic: { server_version: "2025.2.1333" } } }),
+    XQuery: () => [],
+    tools: {
+      get_version: () => "2025.2.1333",
+      get_package_log: () => ({
+        error: 0,
+        temp_package_url: "file:///tmp/owned-preview",
+        GetXml: () => "<view_package/>",
+        download_packages: [
+          {
+            id: "pkg-one",
+            type: "objects",
+            url: "objects.zip",
+            temp_package_url: "file:///tmp/owned-part",
+            objects: [{ id: "9007199254740993", type: "cost_center", selected: true }],
+          },
+        ],
+      }),
+      uni_process_package: () => {
+        applied++;
+        return { error: 0, error_text: "", progress_count: 1 };
+      },
+    },
+  });
+  const unavailable = new sdk.WshcmDispatchError("Probe failed before dispatch", false);
+  const lostAck = new sdk.WshcmDispatchError("Import response was lost", true);
+  let preflightDown = false;
+  let loseImportResponse = false;
+  const service = new sdk.WshcmPackages(
+    {
+      eval: async (code) => {
+        if (preflightDown && /\\"operation\\":\\"(import|status)\\"/.test(code)) throw unavailable;
+        const response = await p.evaluator.eval(code);
+        if (loseImportResponse && code.includes('\\"operation\\":\\"import\\"')) throw lostAck;
+        return response;
+      },
+    },
+    { artifactDirectory: join(directory, "artifacts") },
+  );
+  const { inspectionId } = await service.inspectPackage({ localPath });
+  reads.length = 0;
+  const operationId = randomUUID();
+  preflightDown = true;
+  await assert.rejects(service.importPackage({ inspectionId, operationId }), (error) => {
+    assert.ok(error instanceof sdk.WshcmPackageError);
+    assert.equal(error.details.operationId, operationId);
+    assert.equal(error.details.status, "not_attempted");
+    assert.equal(error.cause, unavailable);
+    return true;
+  });
+  assert.deepEqual(Buffer.concat(reads), bytes);
+  assert.equal(applied, 0);
+  await assert.rejects(service.getOperation({ operationId }), (error) => {
+    assert.equal(error.details.operationId, operationId);
+    assert.equal(error.details.status, "unknown");
+    assert.equal(error.cause, unavailable);
+    return true;
+  });
+  preflightDown = false;
+  assert.equal((await service.importPackage({ inspectionId, operationId })).status, "completed");
+  assert.equal(applied, 1);
+
+  const next = await service.inspectPackage({ localPath });
+  const unknownId = randomUUID();
+  loseImportResponse = true;
+  await assert.rejects(service.importPackage({ inspectionId: next.inspectionId, operationId: unknownId }), (error) => {
+    assert.equal(error.details.operationId, unknownId);
+    assert.equal(error.details.status, "unknown");
+    assert.equal(error.cause, lostAck);
+    return true;
+  });
+  assert.equal(applied, 2);
+  await assert.rejects(service.importPackage({ inspectionId: next.inspectionId }), /Reimport/);
+  assert.equal(applied, 2);
+  assert.equal((await service.getOperation({ operationId: unknownId })).status, "completed");
+});
+
 test("direct export preserves common schema and retains partial artifact for missing IDs", async () => {
   const dir = await mkdtemp(join(tmpdir(), "bt-export-"));
   let p;
@@ -245,6 +370,52 @@ test("direct export preserves common schema and retains partial artifact for mis
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("a native finish rejection preserves the acknowledged export and its artifact", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "bt-export-receipt-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const p = exportingPlatform();
+  const operationId = randomUUID();
+  const receiptPath = `x-local://trash/boristype_packages/${operationId}/receipt.json`;
+  let acknowledged;
+  const service = new sdk.WshcmPackages(
+    {
+      eval: async (code) => {
+        if (code.includes('\\"operation\\":\\"finish_export\\"')) {
+          const receipt = p.files.get(receiptPath);
+          // Simulate the native finish check seeing an already finalized receipt.
+          p.files.set(receiptPath, JSON.stringify({ ...JSON.parse(receipt), phase: "downloaded" }));
+          try {
+            return await p.evaluator.eval(code);
+          } finally {
+            p.files.set(receiptPath, receipt);
+          }
+        }
+        const response = await p.evaluator.eval(code);
+        if (code.includes('\\"operation\\":\\"export\\"')) acknowledged = JSON.parse(JSON.parse(response)).body.operation;
+        return response;
+      },
+    },
+    { artifactDirectory: directory },
+  );
+  await assert.rejects(service.exportPackage({ objectIds: ["9007199254740993"], operationId }), (error) => {
+    assert.ok(error instanceof sdk.WshcmPackageError);
+    assert.equal(error.details.operationId, operationId);
+    assert.equal(error.details.code, "Conflict");
+    assert.equal(error.details.status, "unknown");
+    assert.equal(error.details.stepStatus, "not_attempted");
+    assert.equal(acknowledged.phase, "exported");
+    assert.deepEqual(error.details.lastKnownOperation, acknowledged);
+    assert.ok(error.cause instanceof sdk.WshcmPackageError);
+    assert.equal(error.cause.details.status, "not_attempted");
+    assert.match(error.cause.message, /Export already finalized/);
+    return true;
+  });
+  const { artifact, ...receipt } = await service.getOperation({ operationId });
+  assert.deepEqual(receipt, acknowledged);
+  assert.deepEqual(await readFile(artifact.localPath), objectPackage());
+});
+
 test("reused operation IDs and changed account/target reject before mutation or receipt disclosure", async () => {
   let user = 1n;
   const p = platform({ tools: { get_cur_user_id: () => user } });
@@ -617,4 +788,106 @@ test("invalid new mutation input stays not dispatched, independently of historic
   assert.equal(p.calls, 1);
   assert.equal(p.saves, 0);
   assert.equal(p.files.size, 0);
+});
+
+test("preflight on schema readback retains the mutation receipt and cause", async () => {
+  const p = platform();
+  const failure = new sdk.WshcmDispatchError("probe did not complete", false);
+  const service = new sdk.WshcmPackages({
+    eval: async (code) => {
+      if (p.saves === 1) throw failure;
+      return p.evaluator.eval(code);
+    },
+  });
+  const operationId = randomUUID();
+  await assert.rejects(service.saveSchema({ name: "own", operationId }), (error) => {
+    assert.equal(error.details.operationId, operationId);
+    assert.ok(error.details.schemaId);
+    assert.equal(error.details.lastKnownOperation?.status, "completed");
+    assert.equal(error.details.lastKnownOperation.operationId, operationId);
+    assert.equal(error.cause.cause, failure);
+    assert.equal(error.details.status, "unknown");
+    return true;
+  });
+  assert.equal(p.saves, 1);
+});
+
+test("inspection failures retain the latest acknowledged native receipt", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "bt-inspection-receipt-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const localPath = join(directory, "input.zip");
+  await writeFile(localPath, objectPackage());
+  for (const failedStep of [
+    "write_chunk",
+    "read_chunk",
+    "seal_upload",
+    "preview",
+    "mismatched preview",
+    "malformed preview",
+    "wrong receipt",
+    "preview rejected",
+  ]) {
+    await t.test(failedStep, async () => {
+      const operationId = randomUUID();
+      const unavailable = new sdk.WshcmDispatchError("Probe failed", false);
+      const p = platform({
+        FileSize: (path) => Buffer.byteLength(p.files.get(path)),
+        Base64Encode: (bytes) => Buffer.from(bytes).toString("base64"),
+        Base64Decode: (data) => Buffer.from(data, "base64"),
+        LoadFileDataRange: (path, start, end) => Buffer.from(p.files.get(path)).subarray(start, end),
+        PutFileDataRange: (path, _start, _end, bytes) => p.files.set(path, Buffer.concat([Buffer.from(p.files.get(path)), bytes])),
+      });
+      let acknowledged;
+      const service = new sdk.WshcmPackages(
+        {
+          eval: async (code) => {
+            const step = code.match(/\\"operation\\":\\"(\w+)\\"/)?.[1];
+            assert.ok(step);
+            if (step === failedStep) throw unavailable;
+            if (step === "preview") {
+              if (failedStep === "preview rejected") {
+                return JSON.stringify(
+                  JSON.stringify({ ok: false, code: "Conflict", message: "Context changed", phase: "validate", status: "not_attempted" }),
+                );
+              }
+              const receipt = { ...acknowledged, operation: "preview", phase: "inspected", status: "completed", reportIds: ["77"] };
+              if (failedStep === "wrong receipt") receipt.operationId = randomUUID();
+              else acknowledged = receipt;
+              return JSON.stringify(
+                JSON.stringify({
+                  ok: true,
+                  body: { operation: receipt, serverVersion: "fixture", parts: failedStep === "malformed preview" ? null : [] },
+                }),
+              );
+            }
+            const wire = await p.evaluator.eval(code);
+            if (step === "upload" || step === "seal_upload") acknowledged = JSON.parse(JSON.parse(wire)).body;
+            return wire;
+          },
+        },
+        { artifactDirectory: join(directory, "artifacts") },
+      );
+      await assert.rejects(service.inspectPackage({ operationId, localPath }), (error) => {
+        assert.ok(acknowledged);
+        assert.ok(error instanceof sdk.WshcmPackageError);
+        assert.equal(error.details.operationId, operationId);
+        assert.equal(error.details.status, "unknown");
+        assert.deepEqual(error.details.lastKnownOperation, acknowledged);
+        if (failedStep === "mismatched preview") assert.match(error.cause.message, /Native inspection identity mismatch/);
+        else if (failedStep === "preview rejected") {
+          assert.equal(error.details.code, "Conflict");
+          assert.equal(error.details.phase, "validate");
+          assert.equal(error.details.stepStatus, "not_attempted");
+          assert.equal(error.cause.details.status, "not_attempted");
+        } else if (failedStep === "malformed preview" || failedStep === "wrong receipt") {
+          assert.equal(error.details.code, "TransportError");
+          assert.equal(error.cause.name, "ZodError");
+        } else {
+          assert.equal(error.details.code, "TransportError");
+          assert.equal(error.cause, unavailable);
+        }
+        return true;
+      });
+    });
+  }
 });

@@ -14,7 +14,8 @@ delete_file, create_directory, move_file и get_file_info с префиксом 
 
 ## Установка и подключение
 
-Требуются Node.js >=24.22.2 и доступ к серверу HCM. Для файловых tools DLL
+Для запуска stdio-сервера требуется Node.js >=24.22.2.
+Доступ к HCM требуется при вызове серверной операции. Для файловых tools DLL
 входит в npm dependency ws-client; [подготовка происходит автоматически](./dotnet).
 Execute, system info, XQuery, XML и package tools не зависят от готовности DLL.
 
@@ -23,6 +24,10 @@ Execute, system info, XQuery, XML и package tools не зависят от го
 ```sh
 npm install -g @boristype/mcp-server@next
 ```
+
+Для Codex CLI и Claude Code используйте штатные команды `codex mcp add` и
+`claude mcp add`. Готовые примеры с параметрами HCM находятся в
+[README пакета](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#установка).
 
 Например, для VS Code добавьте в `.vscode/mcp.json`:
 
@@ -63,6 +68,32 @@ UTF-8 файл через `wshcm_read_file`; результат должен с�
 и readToken. Параметры URL и ограничения — в
 [описании tools](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#tools).
 
+## Восстановление соединения
+
+С корректной конфигурацией MCP инициализируется, показывает все 27 tools и
+отвечает на `ping` при выключенном HCM. Эти действия не обращаются к HCM.
+При вызове инструмента `isError: true` и код `HcmUnavailable` означают проблему
+доступности. Следующий вызов, которому нужен HCM, сам проверит готовность.
+Read tokens и package handles в том же процессе MCP сохраняют обычные сроки
+действия. Локальный ZIP остаётся доступен на диске MCP. Preview и страницы
+`wshcm_inspect_package` требуют соединения для проверки на HCM.
+При `HcmAuthenticationFailed` (HTTP 401/403) измените учётные данные и
+перезапустите MCP через клиент.
+
+Подготовка использует 5000 мс на каждый HTTP-запрос. Значение можно изменить
+через `--connection-timeout-ms <ms>`. Обычный запрос сохраняет
+30000 мс socket timeout. У MCP-клиента может быть отдельный таймаут.
+Фоновых запросов для восстановления нет.
+
+Если подготовка прервалась до отправки кода, одиночный execute сообщает
+`not_started`, одиночная XML-запись — `not_attempted`. При потерянном
+ответе после отправки исход неизвестен. Восстановление не повторяет
+предыдущую операцию. Перед новой записью проверьте её результат, а для пакета
+используйте `wshcm_get_package_operation` с сохранённым ID. Если подготовка
+сорвалась на очередном шаге пакета, результаты предыдущих шагов сохраняются.
+Общий статус может остаться `unknown` с `lastKnownOperation`. При закрытии
+MCP пытается удалить свою временную библиотеку. Сбой очистки виден в stderr.
+
 ## Руководство для агента
 
 Сервер передаёт короткие общие `instructions` при MCP initialization, а каждый
@@ -90,8 +121,10 @@ Skill не устанавливает сервер или DLL и не добав
 запрещены. Ответ содержит artifactId/localPath/sizeBytes/sha256 внутри `artifact`,
 status и missingCount. ZIP/base64 в контекст не попадает.
 `localPath` находится **на машине MCP**; файл клиента в другой среде недоступен
-по одному имени. Каталог `~/.boristype/package-artifacts` переживает сеанс, handle
-действует 24 часа; автоматической уборки expired/native файлов пока нет.
+по одному имени. По умолчанию ZIP и метаданные хранятся в
+`~/.boristype/package-artifacts`. Флаг `--package-artifact-directory <path>`
+выбирает другой абсолютный каталог на стороне MCP. Файлы переживают сеанс,
+handle действует 24 часа. Автоматической уборки expired/native файлов пока нет.
 
 Просмотрите `wshcm_inspect_package({artifactId})` либо
 `wshcm_inspect_package({localPath:"/absolute/path/on-mcp-host/input.zip"})`.

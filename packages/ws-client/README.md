@@ -10,16 +10,18 @@ npm install @boristype/ws-client@next
 
 Публичные exports:
 
-| Export                                  | Назначение                                                          |
-| --------------------------------------- | ------------------------------------------------------------------- |
-| `WshcmClient`                           | Подключение и `callMethod(object, method, args)` через SP-XML SOAP  |
-| `WshcmApi`                              | Файловые операции, XML объекты, XQuery, сведения о стенде и runtime |
-| `WshcmRuntimeError`, `WshcmObjectError` | Ошибки с `.status` / `.details`                                     |
-| `wshcmSchemas`                          | Входные schemas общего SDK                                          |
-| `Evaluator`                             | Временный серверный модуль для выполнения BorisScript               |
-| `WshcmUploader`                         | Пакетная загрузка файлов через серверные BS resources               |
-| `WshcmException`, `UnauthorizedError`   | Ошибки SOAP/аутентификации                                          |
-| `renderRequest`, `parseResponse`        | Низкоуровневая сериализация SOAP                                    |
+| Export                                   | Назначение                                                          |
+| ---------------------------------------- | ------------------------------------------------------------------- |
+| `WshcmClient`                            | Подключение и `callMethod(object, method, args)` через SP-XML SOAP  |
+| `WshcmApi`                               | Файловые операции, XML объекты, XQuery, сведения о стенде и runtime |
+| `WshcmRuntimeError`, `WshcmObjectError`  | Ошибки с `.status` / `.details`                                     |
+| `wshcmSchemas`                           | Входные schemas общего SDK                                          |
+| `Evaluator`                              | Временный серверный модуль для выполнения BorisScript               |
+| `WshcmUploader`                          | Пакетная загрузка файлов через серверные BS resources               |
+| `WshcmRequestError`, `UnauthorizedError` | Ошибки HTTP, сети, timeout и аутентификации                         |
+| `WshcmSoapFault`, `WshcmException`       | SOAP fault с серверной диагностикой и общая ошибка SDK              |
+| `WshcmDispatchError`                     | Ошибка evaluator с признаком отправки кода                          |
+| `renderRequest`, `parseResponse`         | Низкоуровневая сериализация SOAP                                    |
 
 Типы опций экспортируются вместе с JavaScript declarations. Минимальный пример
 для доверенного тестового стенда, с реквизитами из environment:
@@ -57,6 +59,29 @@ Evaluator создаёт временный `.bs` файл на сервере �
 Ограничения чисел/SQL/XML целевой платформы этим не устраняются. HTTP timeout
 не отменяет выполняемый серверный код и не гарантирует rollback: операции
 с изменениями нельзя автоматически повторять после неизвестного результата.
+
+### Таймауты и состояние evaluator
+
+`WshcmRequestOptions.timeoutMs` ограничивает один HTTP-запрос целиком,
+включая получение тела ответа. Опции принимают `client.initialize(options)`,
+`client.callMethod(lib, method, args, options)` и
+`evaluator.initialize` / `eval` / `probe` / `close`. Без индивидуального
+deadline действует настроенный `requestTimeout`, по умолчанию 30000 мс
+socket timeout.
+
+В `WshcmRequestError.kind` доступны `authentication` (HTTP 401/403),
+`http`, `network` и `timeout`. У HTTP-ошибок есть `statusCode`.
+Валидный SOAP Fault сохраняет серверную диагностику, в том числе при
+HTTP 500. Если вызывающий код использует свой evaluator, он может передать
+`WshcmDispatchError` с `dispatched: false` для однозначного сбоя подготовки.
+Одиночный execute или XML write тогда сообщает, что отправки не было.
+Причины ошибок и результаты уже подтверждённых шагов сохраняются.
+
+`await evaluator.probe(options)` проверяет только собственную библиотеку
+кодом `return 1;`. `evaluator.initialize({ force: true, timeoutMs })`
+загружает её снова по прежнему URL. Клиент SDK управляет подготовкой и
+очисткой самостоятельно. Если результат загрузки потерян, `close` всё
+равно пытается удалить возможно созданную библиотеку.
 
 ## Общий API
 
@@ -180,8 +205,10 @@ Object IDs всегда десятичные строки. `includeCategories`, 
 Результат экспорта содержит status, проверку `archive_membership`, страницу objects,
 missingIds/missingCount и artifact с artifactId/localPath/mimeType/sizeBytes/sha256/expiresAt.
 Файлы живут на **машине SDK**, в `~/.boristype/package-artifacts`, переживают сеанс;
-handle действует 24 часа. `new WshcmPackages(evaluator,{artifactDirectory})` позволяет
-выделить абсолютный каталог. Удаление expired файлов и native receipt/temp/report
+handle действует 24 часа. Абсолютный каталог можно задать через
+`new WshcmPackages(evaluator, { artifactDirectory })` или через третий аргумент
+`new WshcmApi(evaluator, runtimeOptions, { artifactDirectory })`.
+Удаление expired файлов и native receipt/temp/report
 автоматически не выполняется. Чтение localPath не разрешает перезапись оригинала.
 
 Inspect создаёт неизменяемую копию ZIP и native preview. `inspectionId` связывает

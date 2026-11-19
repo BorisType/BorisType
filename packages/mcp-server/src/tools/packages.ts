@@ -1,3 +1,4 @@
+import { connectionDiagnostic } from "../connection-error.js";
 import type { McpServer, StandardSchemaWithJSON } from "@modelcontextprotocol/server";
 import { packageSchemas, WshcmPackageError, type WshcmApi } from "@boristype/ws-client";
 
@@ -161,7 +162,7 @@ async function packageResult(action: () => Promise<unknown>, method: string, inp
     return output(
       present(
         error instanceof WshcmPackageError
-          ? error.details
+          ? { ...error.details, ...connectionDiagnostic(error) }
           : {
               code: "PackageToolError",
               phase: "adapter",

@@ -1,9 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import type { McpServerOptions } from "./types.js";
-import { createConnection, closeConnection } from "./connection.js";
+import { ConnectionManager } from "./connection-manager.js";
 import type { WshcmConnection } from "./connection.js";
-import { WshcmApi } from "@boristype/ws-client";
+import { WshcmApi, type WshcmEvaluator } from "@boristype/ws-client";
 import { packageVersion } from "./version.js";
 import {
   registerReadFileTool,
@@ -29,9 +29,13 @@ import {
  * Соединение и транспорт принадлежат вызывающему коду. Эта функция не открывает
  * сетевые соединения и позволяет проверять MCP protocol без HCM.
  * @param connection - инициализированное соединение или test double
+ * @param options - локальный каталог package artifacts
  * @returns сервер без подключённого транспорта
  */
-export function createServer(connection: WshcmConnection): McpServer {
+export function createServer(
+  connection: WshcmConnection | { evaluator: WshcmEvaluator },
+  options: Pick<McpServerOptions, "packageArtifactDirectory"> = {},
+): McpServer {
   const server = new McpServer(
     {
       name: "boristype-wshcm",
@@ -52,7 +56,7 @@ export function createServer(connection: WshcmConnection): McpServer {
     },
   );
 
-  const api = new WshcmApi(connection.evaluator);
+  const api = new WshcmApi(connection.evaluator, undefined, { artifactDirectory: options.packageArtifactDirectory });
   registerReadFileTool(server, api);
   registerWriteFileTool(server, api);
   registerListDirectoryTool(server, api);
@@ -73,19 +77,11 @@ export function createServer(connection: WshcmConnection): McpServer {
 }
 
 /**
- * Подключается к HCM и запускает MCP сервер через stdin/stdout.
+ * Запускает MCP через stdin/stdout; первая операция с HCM открывает соединение.
  * @param options - параметры подключения к WSHCM
  */
 export async function startServer(options: McpServerOptions): Promise<void> {
-  let connection: WshcmConnection;
-  try {
-    connection = await createConnection(options);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`Failed to connect to WSHCM server: ${message}\n`);
-    process.exit(1);
-  }
-
+  const connection = new ConnectionManager(options);
   let server: McpServer | undefined;
   let shutdownPromise: Promise<void> | undefined;
   let exitCode = 0;
@@ -95,18 +91,17 @@ export async function startServer(options: McpServerOptions): Promise<void> {
   const shutdown = (code = 0): Promise<void> => {
     exitCode = Math.max(exitCode, code);
     shutdownPromise ??= Promise.resolve().then(async () => {
+      const cleanup = connection.close().catch((error: unknown) => {
+        exitCode = 1;
+        process.stderr.write(`Failed to clean up WSHCM connection: ${String(error)}\n`);
+      });
       try {
         await server?.close();
       } catch (error) {
         exitCode = 1;
         process.stderr.write(`Failed to close MCP transport: ${String(error)}\n`);
       }
-      try {
-        await closeConnection(connection);
-      } catch (error) {
-        exitCode = 1;
-        process.stderr.write(`Failed to clean up WSHCM connection: ${String(error)}\n`);
-      }
+      await cleanup;
       process.off("SIGINT", onSignal);
       process.off("SIGTERM", onSignal);
       process.exit(exitCode);
@@ -120,7 +115,7 @@ export async function startServer(options: McpServerOptions): Promise<void> {
   process.on("SIGTERM", onSignal);
 
   try {
-    server = createServer(connection);
+    server = createServer({ evaluator: connection }, { packageArtifactDirectory: options.packageArtifactDirectory });
     server.server.onclose = () => {
       void shutdown();
     };

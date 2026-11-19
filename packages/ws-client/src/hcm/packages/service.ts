@@ -10,6 +10,8 @@ import type { WshcmEvaluator } from "../types.js";
 import { packageSchemas } from "./schemas.js";
 import {
   operationResult,
+  packageStepError,
+  type PackageOperation,
   schemaResult,
   schemaSummary,
   WshcmPackageError,
@@ -77,6 +79,11 @@ interface Inspection {
   operation: z.infer<typeof operationResult>;
   attempted: boolean;
 }
+export interface WshcmPackageOptions {
+  /** Absolute local directory for archived ZIP snapshots and metadata. */
+  artifactDirectory?: string;
+}
+
 export class WshcmPackages {
   private tail: Promise<unknown> = Promise.resolve();
   private readonly snapshots = new Map<string, string>();
@@ -85,7 +92,7 @@ export class WshcmPackages {
   readonly artifacts: PackageArtifactStore;
   constructor(
     private readonly evaluator: WshcmEvaluator,
-    options: { artifactDirectory?: string } = {},
+    options: WshcmPackageOptions = {},
   ) {
     this.artifacts = new PackageArtifactStore(options.artifactDirectory);
   }
@@ -154,13 +161,18 @@ export class WshcmPackages {
       const fresh = await this.read({ schemaId: body.schemaId, offset: 0, limit: 100 });
       return { ...body, revision: fresh.revision };
     } catch (error) {
-      throw new WshcmPackageError({
-        code: "ReadbackError",
-        message: String(error).slice(0, 2000),
-        operationId: body.operation.operationId,
-        phase: "readback",
-        status: "unknown",
-      });
+      throw new WshcmPackageError(
+        {
+          code: "ReadbackError",
+          message: String(error).slice(0, 2000),
+          operationId: body.operation.operationId,
+          schemaId: body.schemaId,
+          phase: "readback",
+          status: "unknown",
+          lastKnownOperation: body.operation,
+        },
+        { cause: error },
+      );
     }
   }
   saveSchema(input: Input<"saveSchema">) {
@@ -243,17 +255,12 @@ export class WshcmPackages {
           operation: result.operation,
         };
       } catch (error) {
-        const failure =
-          error instanceof WshcmPackageError
-            ? error
-            : new WshcmPackageError({
-                operationId,
-                code: "ArchiveError",
-                message: String(error).slice(0, 2000),
-                phase: "archive",
-                status: "unknown",
-              });
-        failure.details.lastKnownOperation ??= structuredClone(result.operation);
+        const failure = packageStepError(error, {
+          operationId,
+          code: "ArchiveError",
+          phase: "archive",
+          lastKnownOperation: structuredClone(result.operation),
+        });
         const cleanupError = await cleanup();
         if (cleanupError) failure.details.cleanupError = cleanupError;
         throw failure;
@@ -361,6 +368,7 @@ export class WshcmPackages {
   }
   async inspectPackage(input: Input<"inspectPackage">) {
     const args = canonicalHandles(packageSchemas.inspectPackage.parse(input));
+    let lastKnownOperation: PackageOperation | undefined;
     return this.run(async () => {
       let inspectionId = args.inspectionId;
       let state: Inspection | undefined;
@@ -373,6 +381,7 @@ export class WshcmPackages {
             phase: "input",
             status: "not_attempted",
           });
+        lastKnownOperation = structuredClone(state.operation);
         await this.artifacts.get(state.artifact.artifactId);
         const receipt = await this.getOperation({ operationId: inspectionId });
         if (receipt.accountId !== state.operation.accountId || receipt.targetId !== state.operation.targetId)
@@ -388,12 +397,30 @@ export class WshcmPackages {
           archive,
           sourceId,
         };
-        await uploadPackage(this.evaluator, sourceId, artifact);
-        const preview = await packageNative(
+        lastKnownOperation = await uploadPackage(this.evaluator, sourceId, artifact);
+        const body = await packageNative(
           this.evaluator,
           { operation: "preview", operationId: inspectionId, ...this.previewRequest(draft) },
-          nativePreview,
+          z.looseObject({
+            operation: operationResult.extend({
+              operationId: z.literal(inspectionId),
+              operation: z.literal("preview"),
+              accountId: z.literal(lastKnownOperation.accountId),
+              targetId: z.literal(lastKnownOperation.targetId),
+            }),
+          }),
         );
+        // The operation receipt can be valid even when the preview data is malformed.
+        lastKnownOperation = body.operation;
+        const parsed = nativePreview.safeParse(body);
+        if (!parsed.success)
+          throw packageStepError(parsed.error, {
+            code: "TransportError",
+            phase: "transport",
+            operationId: inspectionId,
+            lastKnownOperation,
+          });
+        const preview = parsed.data;
         state = { ...draft, operation: preview.operation, items: [], attempted: false };
         for (const part of archive.packages) {
           const native = preview.parts.find((p) => p.id === part.id);
@@ -436,6 +463,14 @@ export class WshcmPackages {
         limit: args.limit,
         total: state.items.length,
       };
+    }).catch((error: unknown) => {
+      if (!lastKnownOperation) throw error;
+      throw packageStepError(error, {
+        operationId: lastKnownOperation.operationId,
+        code: "InspectionError",
+        phase: "readback",
+        lastKnownOperation,
+      });
     });
   }
   async importPackage(input: Input<"importPackage">) {

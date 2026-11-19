@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { WshcmEvaluator } from "../types.js";
 import type { PackageArtifact } from "./artifacts.js";
 import { packageNative } from "./native.js";
-import { WshcmPackageError, operationResult } from "./contracts.js";
+import { packageStepError, operationResult, type PackageOperation } from "./contracts.js";
 const chunkBytes = 262144;
 const chunk = z.strictObject({
   data: z
@@ -29,9 +29,11 @@ export async function uploadPackage(
   e: WshcmEvaluator,
   operationId: string,
   artifact: Pick<PackageArtifact, "localPath" | "sizeBytes" | "sha256">,
-): Promise<void> {
+): Promise<PackageOperation> {
+  let lastKnownOperation: PackageOperation | undefined;
+  const uploadReceipt = operationResult.extend({ operationId: z.literal(operationId), operation: z.literal("upload") });
   try {
-    await packageNative(e, { operation: "upload", operationId }, operationResult);
+    lastKnownOperation = await packageNative(e, { operation: "upload", operationId }, uploadReceipt);
     const file = await open(artifact.localPath, "r");
     try {
       for (let start = 0; start < artifact.sizeBytes; start += chunkBytes) {
@@ -50,20 +52,13 @@ export async function uploadPackage(
       await file.close();
     }
     if ((await hashRemotePackage(e, operationId, artifact.sizeBytes)) !== artifact.sha256) throw new Error("Package upload hash mismatch");
-    await packageNative(
+    return await packageNative(
       e,
       { operation: "seal_upload", operationId, sizeBytes: artifact.sizeBytes, sha256: artifact.sha256 },
-      operationResult,
+      uploadReceipt.extend({ accountId: z.literal(lastKnownOperation.accountId), targetId: z.literal(lastKnownOperation.targetId) }),
     );
   } catch (error) {
-    if (error instanceof WshcmPackageError) throw error;
-    throw new WshcmPackageError({
-      operationId,
-      code: "TransferError",
-      message: String(error).slice(0, 2000),
-      phase: "transfer",
-      status: "unknown",
-    });
+    throw packageStepError(error, { operationId, code: "TransferError", phase: "transfer", lastKnownOperation });
   }
 }
 export async function downloadPackage(e: WshcmEvaluator, operationId: string, sizeBytes: number, directory: string): Promise<string> {
