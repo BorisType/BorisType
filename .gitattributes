@@ -35,3 +35,6 @@ refs/research/mcp/10-object-model/xml-evidence-manifest.json -text
 refs/research/ws-client-runtime/primitives.bs -text
 refs/research/ws-client-runtime/native-runtime-probe.mjs -text
 refs/research/ws-client-runtime/observed/** -text
+
+# MCP connection recovery acceptance receipt.
+refs/research/mcp/connection-recovery/acceptance.json -text
