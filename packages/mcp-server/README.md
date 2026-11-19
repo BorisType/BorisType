@@ -36,6 +36,41 @@ TypeScript CLI: версия 7 использует новый native compiler �
 npm install -g @boristype/mcp-server@next
 ```
 
+Выберите свой клиент и выполните команды в Bash. Замените `hcm.example`,
+`443` и `hcm-user` на адрес, порт и имя пользователя вашего HCM. Для HTTP
+уберите `--https` и укажите HTTP-порт. Пароль вводится без отображения и
+сохраняется в личной конфигурации клиента через `--env`.
+
+### Codex CLI
+
+```bash
+read -r -s -p 'Пароль HCM: ' hcm_password
+printf '\n'
+codex mcp add wshcm --env "WSHCM_PASSWORD=$hcm_password" -- \
+  boristype-mcp --host hcm.example --port 443 --https --username hcm-user
+unset hcm_password
+codex mcp list
+```
+
+Команда добавляет `wshcm` в пользовательскую конфигурацию Codex.
+[Документация Codex CLI](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+### Claude Code
+
+Выполните команды из каталога проекта. `--scope local` добавляет личную
+запись для текущего проекта. Чтобы использовать её во всех проектах,
+выберите `--scope user`.
+[Документация Claude Code](https://code.claude.com/docs/en/mcp#scope).
+
+```bash
+read -r -s -p 'Пароль HCM: ' hcm_password
+printf '\n'
+claude mcp add --env "WSHCM_PASSWORD=$hcm_password" --transport stdio --scope local wshcm -- \
+  boristype-mcp --host hcm.example --port 443 --https --username hcm-user
+unset hcm_password
+claude mcp list
+```
+
 ## Доступность HCM
 
 С корректной конфигурацией stdio-сервер запускается при выключенном HCM.

@@ -25,6 +25,10 @@ Execute, system info, XQuery, XML и package tools не зависят от го
 npm install -g @boristype/mcp-server@next
 ```
 
+Для Codex CLI и Claude Code используйте штатные команды `codex mcp add` и
+`claude mcp add`. Готовые примеры с параметрами HCM находятся в
+[README пакета](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#установка).
+
 Например, для VS Code добавьте в `.vscode/mcp.json`:
 
 ```json
