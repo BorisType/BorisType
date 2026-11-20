@@ -5,7 +5,7 @@
 Наблюдения 2026-11-07/08 относятся к Linux x64 HCM 2025.2.1333, C-runtime,
 CLR 9.0.11, managed assembly 2.25.12.4 [202512041524]. Carrier — authenticated
 server-side eval во временной BS-библиотеке; SQL проверен на PostgreSQL 16.
-Windows HCM, WebTutorAdmin, supplied JS runtime и MSSQL не проверялись.
+Windows HCM, WebTutorAdmin, supplied JS runtime и MSSQL не входили в эту серию.
 Это результаты отдельных входов, не аттестация всего signed 64-bit диапазона.
 
 ## Отрицательное число и его строковое представление
@@ -96,6 +96,27 @@ lossless parser-ом. Numeric token `9007199254740993` вне safe integer range
 обычный `JSON.parse` в Number может округлить его. Последующий String/BigInt
 не восстанавливает цифры. Передача encoder-ом корректного JSON ещё не доказывает
 сохранение точности каждым потребителем.
+
+## Значимые пробелы в SQL→XML
+
+В исходной пробе на Linux HCM 2025.2.1333, C-runtime, с MSSQL
+`tools.xquery` преобразовал `N' Тест '` в XML-значение `' Тест'`.
+Проекция `N'[ Тест ]'` сохранила оба пробела внутри скобок.
+В новой проверке на PostgreSQL 16 те же значения через `CAST(... AS varchar)`
+дали такое же поведение. Сравнение выполнено по `.Value` до SOAP.
+Для повтора на PostgreSQL замени SQL в примере на
+`SELECT CAST(' Тест ' AS varchar) AS unwrapped, CAST('[ Тест ]' AS varchar) AS wrapped`.
+
+```js
+var row = ArrayOptFirstElem(tools.xquery("sql: SELECT N' Тест ' AS unwrapped, N'[ Тест ]' AS wrapped"));
+return { plain: "[" + String(row.unwrapped.Value) + "]", framed: String(row.wrapped.Value) };
+```
+
+Для значимых краевых пробелов добавь пару фиксированных ограничителей в SQL
+и сними ровно по одному с каждой стороны после чтения `.Value`. Сохраняй
+признак `NULL` отдельно, если он нужен. Этот пример проверяет константы и
+не устанавливает поведение всех текстовых типов или драйверов.
+[Исходная проба MSSQL](https://github.com/BorisType/BorisType/issues/83)
 
 ## Пробы и воспроизводимость
 
