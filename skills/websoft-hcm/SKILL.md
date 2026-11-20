@@ -1,13 +1,11 @@
 ---
 name: websoft-hcm
-description: Use when developing or troubleshooting WebSoft HCM and BorisScript integrations involving x-local/x-app/file URLs, filesystem paths, SQL blobs, LoadUrlData, storage hooks, numeric formatting, StrSignedInt, large IDs, XQuery SQL-to-XML conversion, or behavior that differs between server, administrator, operating systems and runtimes.
+description: Use when developing or troubleshooting WebSoft HCM and BorisScript integrations involving x-local/x-app/file URLs, filesystem paths, SQL blobs, LoadUrlData, storage hooks, numeric formatting, StrSignedInt, large IDs, XQuery SQL-to-XML conversion, BorisScript string comparison, OpenCodeLib caching, server logs and auth-events, .NET calls, or XLSX import and editing.
 ---
 
 # WebSoft HCM
 
 Применяй сведения о платформе с учётом версии, ОС и места выполнения.
-Справочники покрывают пути, конфигурацию, маршрутизацию URL в хранилища,
-числовое форматирование и SQL→XML.
 
 ## Выбор сведений
 
@@ -16,12 +14,21 @@ description: Use when developing or troubleshooting WebSoft HCM and BorisScript 
 Там же доступны ограниченные probes и условия их выполнения.
 Для операций с файлами, `LoadUrlData`, `PutUrlData`, `DeleteUrl`, `DB-STORE-HOOK`
 и `spxml_blobs` прочитай [URL storage и blobs](references/url-storage-and-blobs.md).
-Другие темы исследуй по доступным источникам; справочник постепенно пополняется.
 
 Для отрицательных чисел, `StrInt`/`StrSignedInt`/`StrReal`, точных больших ID
 и потерь SQL→XML прочитай [числа и SQL mapping](references/numbers-and-sql.md).
 Там различаются формат вывода, арифметика, JSON и значение XML-поля до SOAP;
 есть проверенные результаты и самостоятельные ограниченные probes.
+
+- Для префиксов, регистра и неразрывных пробелов прочитай
+  [строки BorisScript](references/strings.md).
+- Для JS-библиотек и устаревшего кода по прежнему URL прочитай
+  [OpenCodeLib](references/code-libraries.md).
+- Для `EnableLog`, `LogEvent`, `FileStream` и `auth-events` прочитай
+  [журналы агентов](references/agents-and-logs.md).
+- Для загрузки доступной DLL и выбора типов аргументов прочитай
+  [вызовы .NET](references/managed-calls.md). Для XLSX прочитай
+  [импорт, отчёты и правку книги](references/excel.md).
 
 ## Операции с файлами
 

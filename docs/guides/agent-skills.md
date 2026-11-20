@@ -2,8 +2,8 @@
 
 Репозиторий содержит независимо устанавливаемые agent skills в каталоге
 [`skills/`](https://github.com/BorisType/BorisType/tree/main/skills). Первый — `websoft-hcm`: знания о платформе,
-URL, конфигурации путей, SQL storage и числах, с указанием источников и границ проверок.
-`boristype-mcp` — отдельный skill для файловых tools и серверного XQuery/SQL.
+URL и хранилищах, строках и SQL→XML, библиотеках, журналах, вызовах .NET и XLSX.
+`boristype-mcp` — skill для файловых tools, XQuery/SQL, XML-объектов и запуска серверных агентов.
 `websoft-hcm-admin` — работа в веб-администраторе через браузер: поиск сотрудника
 и проверка его карточки.
 
