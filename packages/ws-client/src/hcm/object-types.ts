@@ -20,7 +20,7 @@ export const objectTypesInputSchema = z
     includeCustomFields: z
       .boolean()
       .optional()
-      .describe("Include configured field definitions and their template IDs for one exact document type."),
+      .describe("Include common field summaries and all registered templates for one exact document type."),
   })
   .refine((input) => !input.includeCustomFields || (input.objectType !== undefined && input.kind !== "catalog"), {
     path: ["includeCustomFields"],
@@ -36,13 +36,15 @@ const customField = z.strictObject({
 });
 const customFields = z.strictObject({
   typeFieldCount: z.number().int().nonnegative(),
+  typePageCount: z.number().int().nonnegative(),
+  templateCount: z.number().int().nonnegative().max(4096),
   templatesWithFields: z.number().int().nonnegative().max(4096),
   templateType: z.string().min(1).optional(),
   templateSelector: z.string().min(1).optional(),
   fields: z.array(customField).max(2048).optional(),
   templates: z
-    .array(z.strictObject({ id: objectIdSchema, fields: z.array(customField).min(1).max(2048) }))
-    .max(2048)
+    .array(z.strictObject({ id: objectIdSchema, fields: z.array(customField).max(2048), pageCount: z.number().int().nonnegative() }))
+    .max(4096)
     .optional(),
 });
 

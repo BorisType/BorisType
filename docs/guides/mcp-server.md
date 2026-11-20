@@ -289,7 +289,11 @@ string, integer, bool, real и date. Binary, TEMP и методы исключе
 Для просмотра настроенных полей передайте
 `{ "objectType": "request", "includeCustomFields": true }`.
 `customFields.fields` перечисляет общие поля, а `customFields.templates`
-группирует поля по ID шаблона. В обычной выдаче видны количества.
+содержит все зарегистрированные шаблоны, включая пустые. Для `request`
+инструмент возвращает `templateType: "request_type"` и
+`templateSelector: "request_type_id"`. Для полных определений выбранного
+шаблона вызовите `wshcm_get_custom_field_definitions` с `scope.objectType`
+из `templateType` и `scope.templateId` из `templates[].id`.
 
 `wshcm_delete_object({id,readToken})` перемещает один документ в корзину HCM.
 Возьмите точный ID и свежий токен из `wshcm_get_object`. Если XML объекта или

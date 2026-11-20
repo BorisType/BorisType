@@ -618,18 +618,22 @@ writer может изменить документ между проверко�
 
 `supportsCustomFields` показывает наличие элемента `custom_elems` в XMD
 документа. При наличии записи в `custom_templates` ответ также содержит
-`customFields.typeFieldCount` для общих определений и
-`customFields.templatesWithFields` для числа шаблонов с полями. Например,
+`customFields.typeFieldCount` и `typePageCount` для общих определений,
+`templateCount` для всех зарегистрированных шаблонов и
+`templatesWithFields` для шаблонов с полями. Например,
 у `request` шаблон выбирается полем `request_type_id`. В ответе это
 `templateType: "request_type"` и `templateSelector: "request_type_id"`.
 
 Добавьте `includeCustomFields: true` к запросу по точному `objectType`.
-`customFields.fields` содержит определения, общие для типа, а
-`customFields.templates` — определения по отдельным шаблонам в формате
-`{id,fields}`. ID шаблона передаётся точной десятичной строкой. Определение
-содержит `name`, `type`, `required` и доступные `title`, `catalog`.
-Выдача содержит метаданные конфигурации полей. Значения документа и
-вычисление условий или формул в неё не входят.
+`customFields.fields` содержит краткие определения общих полей.
+`customFields.templates` перечисляет все зарегистрированные шаблоны
+в формате `{id,fields,pageCount}`, в том числе шаблоны с одними
+страницами и пустые. ID шаблона передаётся точной десятичной строкой.
+Краткое определение поля содержит `name`, `type`, `required` и доступные
+`title`, `catalog`. Чтобы получить полные определения и страницы, передайте
+`scope: { objectType: templateType, templateId: template.id }`
+в `wshcm_get_custom_field_definitions`. На карточке объекта значение по
+`templateSelector` указывает на нужный `templateId`.
 
 `sources` содержит статусы `exchangeObjectTypes` и `registeredCatalogs`.
 `not_requested` означает, что источник исключён фильтром. На сборке без

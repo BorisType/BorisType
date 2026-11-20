@@ -26,7 +26,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_list_object_types",
     {
       description:
-        "List HCM document types and catalog forms, including registered cc_* types. Catalog entries report their native objectType (null when HCM declares none). Filter by kind or exact objectType, and page with offset/limit. Object entries can summarize configured custom fields. Match one objectType and set includeCustomFields to read field definitions and template IDs.",
+        "List HCM document types and catalog forms, including registered cc_* types. Catalog entries report their native objectType (null when HCM declares none). Filter by kind or exact objectType, and page with offset/limit. Object entries can report custom field and template counts, templateType and templateSelector. Match one objectType and set includeCustomFields to list every registered template, including empty ones. For full definitions, pass templateType as scope.objectType and the template id as scope.templateId to wshcm_get_custom_field_definitions.",
       inputSchema: wshcmSchemas.objects.listTypes,
       annotations: readAnnotations,
     },

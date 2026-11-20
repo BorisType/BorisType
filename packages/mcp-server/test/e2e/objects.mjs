@@ -134,11 +134,12 @@ test("XML object MVP through CLI/stdio/SOAP on an exclusive local stand", { time
     assert.equal(subdivision.fields.length, subdivision.typeFieldCount);
     const request = (await call("list_object_types", { kind: "object", objectType: "request", includeCustomFields: true })).items[0]
       .customFields;
-    assert.equal(request.templates.length, request.templatesWithFields);
+    assert.equal(request.templates.length, request.templateCount);
+    assert.equal(request.templates.filter(({ fields }) => fields.length > 0).length, request.templatesWithFields);
     assert.equal(request.templateType, "request_type");
     assert.equal(request.templateSelector, "request_type_id");
-    assert.ok(request.templates.every(({ id, fields }) => /^[1-9]\d*$/.test(id) && fields.length > 0));
-    t.diagnostic(JSON.stringify({ subdivisionFields: subdivision.typeFieldCount, requestTemplates: request.templatesWithFields }));
+    assert.ok(request.templates.every(({ id, pageCount }) => /^[1-9]\d*$/.test(id) && Number.isInteger(pageCount)));
+    t.diagnostic(JSON.stringify({ subdivisionFields: subdivision.typeFieldCount, requestTemplates: request.templateCount }));
   });
   await check("expanded native form without inherited file traversal", async () => {
     const form = await call("get_form", { formUrl });

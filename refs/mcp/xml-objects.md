@@ -69,11 +69,20 @@ validation запрос handler не вызывает. Локальная object
 Настроенные поля берутся из `custom_templates`. В поставляемом
 `wtv_tools.xml` метод `get_custom_template` читает общие `fields` и
 по контексту выбирает запись из `items` или переходит через
-`template_field`. Для реестра читаются определения в обоих слоях.
+`template_field`. Реестр типов выдаёт общие поля и все зарегистрированные
+строки `items`, включая пустые и строки только со страницами.
+Выбранная строка адресуется в инструменте определений через
+`scope.objectType = templateType` и `scope.templateId = templates[].id`.
 На стенде у `subdivision` есть общее поле `is_department`, а у
 `request` — 16 шаблонов типа `request_type` с полями. На C-runtime
 `template_field_id` читается напрямую как свойство, `ChildExists`
 его не обнаруживает. [Datex get_custom_template](https://wshcm-docs.boristype.dev/news/monolith/6680799737529721815.html#get-custom-template)
+
+На HCM 2025.2.1333 нативный CLI/stdio тест создал шаблон типа заявки с
+одной страницей и без полей. Список для `request` вернул его точный ID
+и `pageCount: 1`. Чтение области по возвращённым типу и ID показало ту
+же страницу. После очистки реестр восстановлен побайтно.
+[Проверка через CLI](../../packages/mcp-server/test/e2e/custom-fields.mjs)
 
 [Исследование настраиваемых полей](../research/mcp/custom-field-templates.md)
 разбирает общий документ, привязку формы заявки к конкретному `request_type`

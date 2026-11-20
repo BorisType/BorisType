@@ -409,6 +409,27 @@ return EncodeJson(EncodeJson(root.Xml == custom_templates.Xml));
   assert.deepEqual(absent.pages, []);
   await call("patch", { ...removeTemplate, revision: absent.revision }, "NotFound");
 
+  const pageOnly = await call("patch", {
+    scope,
+    revision: absent.revision,
+    operations: [{ op: "upsertPage", id: names.page, set: { title: "Страница без полей" } }],
+  });
+  const list = await client.callTool({
+    name: "wshcm_list_object_types",
+    arguments: { kind: "object", objectType: "request", includeCustomFields: true },
+  });
+  assert.notEqual(list.isError, true, list.content[0].text);
+  const { customFields } = JSON.parse(list.content[0].text).items[0];
+  assert.equal(customFields.templateType, "request_type");
+  assert.equal(customFields.templateSelector, "request_type_id");
+  assert.equal(customFields.templates.length, customFields.templateCount);
+  const listed = customFields.templates.find(({ id }) => id === templateId);
+  assert.deepEqual(listed, { id: templateId, fields: [], pageCount: 1 });
+  const exact = await call("get", { scope: { objectType: customFields.templateType, templateId: listed.id } });
+  assert.deepEqual(exact.fields, pageOnly.fields);
+  assert.deepEqual(exact.pages, pageOnly.pages);
+  await call("patch", { ...removeTemplate, revision: exact.revision });
+
   const nowCommon = await call("get", { scope: common });
   await call("patch", { ...removeTemplate, scope: common, revision: nowCommon.revision }, "InvalidScope");
   const removed = await call("patch", {

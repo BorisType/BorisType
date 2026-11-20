@@ -30,17 +30,21 @@ function BtDescribeTemplateFields(fields) {
 function BtReadTypeCustomFields(registry, objectType, includeDetails) {
     var config = registry.OptChild(objectType);
     if (config == undefined) return undefined;
-    var result = {typeFieldCount:0,templatesWithFields:0};
+    var result = {typeFieldCount:0,typePageCount:0,templateCount:0,templatesWithFields:0};
     var fields = config.OptChild('fields');
+    var pages = config.OptChild('sheets');
     var owner = config;
     var templateType = objectType;
     var selector;
     var item;
     var itemFields;
+    var itemPages;
+    var itemFieldCount;
     var fieldCount = 0;
     var items;
     var index;
     if (fields != undefined) result.typeFieldCount = fields.ChildNum;
+    if (pages != undefined) result.typePageCount = pages.ChildNum;
     if (!config.ChildExists('items') && config.ChildExists('template_field')) {
         templateType = String(config.template_field.Value);
         if (templateType != '') owner = registry.OptChild(templateType);
@@ -63,17 +67,20 @@ function BtReadTypeCustomFields(registry, objectType, includeDetails) {
     }
     if (owner != undefined && owner.ChildExists('items')) {
         result.templateType = templateType;
-        if (owner.items.ChildNum > 4096) throw 'OutputLimit: Custom field templates exceed 4096 entries';
+        result.templateCount = owner.items.ChildNum;
+        if (result.templateCount > 4096) throw 'OutputLimit: Custom field templates exceed 4096 entries';
         items = ArraySelectAll(owner.items);
-        for (index = 0; index < owner.items.ChildNum; index++) {
+        for (index = 0; index < result.templateCount; index++) {
             item = items[index];
             itemFields = item.OptChild('fields');
-            if (itemFields == undefined || itemFields.ChildNum == 0) continue;
-            result.templatesWithFields++;
+            itemFieldCount = itemFields == undefined ? 0 : itemFields.ChildNum;
+            if (itemFieldCount > 0) result.templatesWithFields++;
             if (includeDetails) {
-                fieldCount += itemFields.ChildNum;
+                fieldCount += itemFieldCount;
                 if (fieldCount > 2048) throw 'OutputLimit: Configured field details exceed 2048 definitions';
-                result.templates.push({id:StrInt(item.id.Value),fields:BtDescribeTemplateFields(itemFields)});
+                itemPages = item.OptChild('sheets');
+                result.templates.push({id:StrInt(item.id.Value),fields:(itemFieldCount == 0 ? [] : BtDescribeTemplateFields(itemFields)),
+                    pageCount:(itemPages == undefined ? 0 : itemPages.ChildNum)});
             }
         }
     }
