@@ -207,7 +207,7 @@ export function registerPackageTools(server: McpServer, api: WshcmApi): void {
   register(
     "save_package_schema",
     "saveSchema",
-    "Create a named schema or change name/settings/editable flags using schemaId/revision. Rechecks the shared document before saving; other schemas and UI selection are preserved.",
+    "Create a named schema or change name/settings/editable flags using schemaId/revision. To include custom field definitions, set settings.processCustomTemplates to true and list native object types in settings.customTemplates. Rechecks the shared document before saving; other schemas and UI selection are preserved.",
   );
   register(
     "delete_package_schema",
@@ -227,14 +227,14 @@ export function registerPackageTools(server: McpServer, api: WshcmApi): void {
   register(
     "export_package",
     "exportPackage",
-    "Build a ZIP from exactly one source: schemaId/revision OR objectIds. Returns artifactId/localPath/sizeBytes/sha256 on the MCP host, never archive base64. Native temporary files/reports are side effects; direct IDs do not save a schema. Verify status/missingCount." +
+    "Build a ZIP from schemaId/revision or directly from objectIds and/or customTemplates. Direct export does not save a schema. customTemplates selects native object types and includes all their configured templates, for example all request_type templates. Returns artifactId/localPath/sizeBytes/sha256 on the MCP host. Native temporary files/reports are side effects. Check missingCount, customTemplateTypes and missingCustomTemplates." +
       links,
     temporary,
   );
   register(
     "inspect_package",
     "inspectPackage",
-    "Preview an artifactId OR absolute localPath on the MCP host, or page an existing inspectionId. Captures an immutable copy and uploads it for native preview; does not apply target objects. Handles last 24 hours; inspection bindings belong to this instance. ZIP 128 MiB, expanded 512 MiB, 10000 entries, depth 2, XML 32 MiB; page limit 1–1000.",
+    "Preview an artifactId OR absolute localPath on the MCP host, or page an existing inspectionId. Package rows report the customTemplateTypes found in the ZIP. Captures an immutable copy and uploads it for native preview; does not apply target objects. Handles last 24 hours; inspection bindings belong to this instance. ZIP 128 MiB, expanded 512 MiB, 10000 entries, depth 2, XML 32 MiB; page limit 1–1000.",
     temporary,
   );
   register(

@@ -59,11 +59,16 @@ test(
       stderrBytes += chunk.length;
     });
     const marker = "bt-packages-" + randomUUID();
+    const customScope = { objectType: "cost_center" };
+    const fieldName = marker.replaceAll("-", "_");
+    const pageId = fieldName + "_page";
     const receipt = { marker, carrier: "CLI/stdio/SOAP; no BorisType DLL", operations: [], artifacts: [], fixtureIds: [] };
     const packageIds = [];
     let schemaId;
     let cliEvaluator;
     let baseline;
+    let customBaseline;
+    const readCustomRegistry = () => e.eval("return OpenDoc(custom_templates.Doc.Url).TopElem.Xml;");
     async function call(name, args = {}) {
       const result = await client.callTool({ name: "wshcm_" + name, arguments: args }, { timeout: 60000 });
       assert.notEqual(result.isError, true, JSON.stringify(result).slice(0, 3000));
@@ -91,6 +96,7 @@ test(
         "packages/mcp-server/src/server.ts",
         "packages/ws-client/src/hcm/packages/service.ts",
         "packages/ws-client/src/hcm/packages/schemas.ts",
+        "packages/ws-client/src/hcm/packages/archive.ts",
         "packages/ws-client/test/helpers/package-native-recovery.mjs",
         "packages/ws-client/resources/package-operation.bs",
         "packages/mcp-server/test/e2e/packages.mjs",
@@ -145,9 +151,35 @@ test(
       });
       schema = await call("get_package_schema", { schemaId });
       assert.equal(schema.objectCount, 1);
-      await call("save_package_schema", { schemaId, revision: schema.revision, name: marker + "-renamed", operationId: operationId() });
+      const empty = await call("get_custom_field_definitions", { scope: customScope });
+      assert.deepEqual(empty.fields, [], "Custom template import requires that cost_center have no existing fields");
+      assert.deepEqual(empty.pages, [], "Custom template import requires that cost_center have no existing pages");
+      customBaseline = await readCustomRegistry();
+      const definitions = await call("patch_custom_field_definitions", {
+        scope: customScope,
+        revision: empty.revision,
+        operations: [
+          { op: "upsertPage", id: pageId, set: { title: "Package fixture" } },
+          { op: "upsertField", name: fieldName, set: { title: "Office", type: "combo", pageId, options: ["One", "Two"] } },
+        ],
+      });
+      assert.equal(definitions.writeStatus, "saved");
+      const templateTypes = ["cost_center"];
+      if (await ev("return EncodeJson(custom_templates.request_type.items.ChildNum > 0);")) templateTypes.push("request_type");
+      await call("save_package_schema", {
+        schemaId,
+        revision: schema.revision,
+        name: marker + "-renamed",
+        settings: { customTemplates: templateTypes, processCustomTemplates: true },
+        operationId: operationId(),
+      });
       schema = await call("get_package_schema", { schemaId });
       assert.equal(schema.name, marker + "-renamed");
+      assert.equal(schema.settings.processCustomTemplates, true);
+      assert.deepEqual(schema.settings.customTemplates, templateTypes);
+      const configured = await call("export_package", { schemaId, revision: schema.revision, operationId: operationId() });
+      assert.equal(configured.objects.total, 1);
+      assert.deepEqual(configured.customTemplateTypes.slice().sort(), templateTypes);
       await call("delete_package_schema", { schemaId, revision: schema.revision, operationId: operationId() });
       schemaId = undefined;
       assert.equal(await e.eval("return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();"), baseline);
@@ -191,6 +223,50 @@ test(
       );
       receipt.status = await call("get_package_operation", { operationId: applied.operationId });
       assert.equal(receipt.status.status, "completed");
+
+      const mixed = await call("export_package", {
+        objectIds: [receipt.fixtureIds[0]],
+        customTemplates: ["cost_center", fieldName],
+        operationId: operationId(),
+      });
+      assert.equal(mixed.status, "partial");
+      assert.deepEqual(
+        mixed.objects.items.map((item) => item.id),
+        [receipt.fixtureIds[0]],
+      );
+      assert.deepEqual(mixed.customTemplateTypes, ["cost_center"]);
+      assert.deepEqual(mixed.missingCustomTemplates, [fieldName]);
+
+      const templateExport = await call("export_package", { customTemplates: ["cost_center"], operationId: operationId() });
+      assert.equal(templateExport.status, "completed");
+      assert.equal(templateExport.objects.total, 0);
+      assert.deepEqual(templateExport.customTemplateTypes, ["cost_center"]);
+      assert.deepEqual(templateExport.missingCustomTemplates, []);
+      const templatePreview = await call("inspect_package", { artifactId: templateExport.artifact.artifactId, operationId: operationId() });
+      assert.equal(templatePreview.total, 1);
+      assert.equal(templatePreview.items[0].hasCustomTemplates, true);
+      assert.deepEqual(templatePreview.items[0].customTemplateTypes, ["cost_center"]);
+      packageIds.push(templatePreview.items[0].packageId);
+      const cleared = await call("patch_custom_field_definitions", {
+        scope: customScope,
+        revision: definitions.revision,
+        operations: [
+          { op: "removeField", name: fieldName },
+          { op: "removePage", id: pageId },
+        ],
+      });
+      assert.deepEqual(cleared.fields, []);
+      assert.deepEqual(cleared.pages, []);
+      const templateImport = await call("import_package", {
+        inspectionId: templatePreview.inspectionId,
+        includeCustomTemplates: true,
+        operationId: operationId(),
+      });
+      assert.equal(templateImport.status, "completed");
+      const restored = await call("get_custom_field_definitions", { scope: customScope });
+      assert.deepEqual(restored.fields, definitions.fields);
+      assert.deepEqual(restored.pages, definitions.pages);
+      receipt.customTemplates = { configured, mixed, templateExport, templatePreview, templateImport };
       receipt.schemaUnchanged =
         (await e.eval("return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();")) === baseline;
       assert.equal(receipt.schemaUnchanged, true);
@@ -199,16 +275,36 @@ test(
       throw error;
     } finally {
       try {
-        if (schemaId) {
-          const api = new WshcmPackages(e);
-          const schema = await api.getSchema({ schemaId });
-          assert.ok(schema.name.startsWith(marker));
-          await api.deleteSchema({ schemaId, revision: schema.revision, operationId: operationId() });
+        try {
+          if (schemaId) {
+            const api = new WshcmPackages(e);
+            const schema = await api.getSchema({ schemaId });
+            assert.ok(schema.name.startsWith(marker));
+            await api.deleteSchema({ schemaId, revision: schema.revision, operationId: operationId() });
+          }
+          Object.assign(
+            receipt,
+            await cleanupPackageFixtures(e, { marker, ids: receipt.fixtureIds, packageIds, operations: receipt.operations }),
+          );
+        } finally {
+          if (customBaseline !== undefined) {
+            const restored = await ev(`
+var doc = OpenDoc(custom_templates.Doc.Url);
+var node = doc.TopElem.cost_center;
+var field = node.fields.GetOptChildByKey('${fieldName}');
+var page = node.sheets.GetOptChildByKey('${pageId}');
+if (field != undefined || page != undefined) {
+    if (field != undefined) field.Delete();
+    if (page != undefined) page.Delete();
+    ms_tools.save_cached_doc(doc);
+}
+return EncodeJson(OpenDoc(doc.Url).TopElem.Xml == custom_templates.Xml);
+`);
+            assert.equal(restored, true);
+            receipt.customRegistryRestored = (await readCustomRegistry()) === customBaseline;
+            assert.equal(receipt.customRegistryRestored, true, "Custom template cleanup must restore the exact original registry");
+          }
         }
-        Object.assign(
-          receipt,
-          await cleanupPackageFixtures(e, { marker, ids: receipt.fixtureIds, packageIds, operations: receipt.operations }),
-        );
         receipt.schemaUnchangedAfterCleanup =
           (await e.eval("return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();")) === baseline;
         assert.equal(receipt.schemaUnchangedAfterCleanup, true);
@@ -244,6 +340,7 @@ test(
           fixtureIds: receipt.fixtureIds,
           cleanup: receipt.cleanup,
           schemaUnchanged: receipt.schemaUnchangedAfterCleanup,
+          customRegistryRestored: receipt.customRegistryRestored,
           artifactHashes: receipt.artifacts.map((a) => a.sha256),
           stderrBytes,
         }),

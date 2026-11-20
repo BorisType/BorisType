@@ -196,11 +196,23 @@ includeMetadata удалён; edit требует readToken, write по умол
 { "objectIds": ["9007199254740993"], "operationId": "11111111-1111-4111-8111-111111111111" }
 ```
 
-Альтернатива — `{schemaId, revision}` из чтения схемы в этом MCP instance.
-Нужно передать ровно один источник: schemaId/revision или objectIds.
+У прямого экспорта можно указать `objectIds`, `customTemplates` или оба
+параметра. Для ZIP только с определениями достаточно
+`{ "customTemplates": ["subdivision", "request_type"] }`.
+Коды относятся к разделам реестра настраиваемых полей. Например,
+`request_type` включает все настроенные шаблоны этого типа с их полями и
+страницами. Сами записи типов заявок включаются отдельно через `objectIds`.
+Для экспорта сохранённой схемы передайте только `{schemaId, revision}`
+из чтения схемы в этом MCP instance.
+
 Ответ содержит `artifact: {artifactId,localPath,mimeType,sizeBytes,sha256,expiresAt}`,
 `operationId`, `status`, `verification: "archive_membership"`, страницу `objects`,
-`missingIds/missingCount`, diagnostics и native `operation`. Частичный состав
+`missingIds/missingCount`, diagnostics и native `operation`. `customTemplateTypes`
+перечисляет типы, реально попавшие в ZIP. Для прямого экспорта
+`missingCustomTemplates` перечисляет запрошенные типы, которые HCM пропустил.
+В HCM 2025.2.1333 тип попадает в ZIP, если у него есть хотя бы одно общее
+поле или одна запись шаблона. Тип с одними общими страницами пропускается.
+Частичный состав
 возвращает `partial`, даже если штатная сборка сообщила успех. ZIP/base64 в текст
 tool response не помещается; export не создаёт `upload_package` в базе.
 
@@ -222,7 +234,8 @@ Resources/attachment upload на этом шаге не зарегистриро
 Этот input для `wshcm_inspect_package` можно заменить на
 `{"localPath":"/absolute/path/on-mcp-host/input.zip"}`. SDK копирует ZIP в собственный
 артефакт и передаёт его для native preview. Ответ содержит `inspectionId`, `artifact`,
-страницу `items`, `offset/limit/total` и receipt. Следующая страница:
+страницу `items`, `offset/limit/total` и receipt. Строка вложенного
+пакета с определениями содержит `customTemplateTypes`. Следующая страница:
 `{inspectionId,offset:100,limit:100}`. Просмотр может создавать временные файлы и
 отчёты; целевые объекты ещё не применяются.
 
@@ -240,15 +253,19 @@ Resources/attachment upload на этом шаге не зарегистриро
 `skipConflictingIds`; remap IDs отсутствует. Первый релиз допускает типы пакета
 `objects`, `courses`, `web`, `custom_file`, остальные отклоняет до native применения.
 Для `custom_file` требуется безопасный destination ниже `x-local://custom/`.
-Реальная native acceptance дополнительных типов/шаблонов/ролей/файлов/списков/удалений
-ещё не выполнена; подтверждён объектный путь cost_center на Linux C/PostgreSQL.
+На Linux C/PostgreSQL подтверждён перенос объектов `cost_center` и
+определений настраиваемых полей со страницами. Для импорта определений
+передайте `includeCustomTemplates: true`. HCM добавляет или обновляет
+поля по ключу и страницы по ID.
 
 Схемы: `list_package_schemas({offset?,limit?})` → `items/offset/limit/total`;
 `get_package_schema({schemaId,offset?,limit?})` → name/settings/revision/objectCount/objects.
 Для создания: `save_package_schema({name})`; для изменения:
 `{schemaId,revision,name?,settings?,editable?:[{id,editable}]}`.
 Settings: `customTemplates`, `processCustomTemplates`, `processAccessRoles`,
-`files:[{code,type,url,baseUrl?}]`. Добавление/исключение:
+`files:[{code,type,url,baseUrl?}]`. Чтобы включить определения в ZIP из схемы,
+передайте, например, `settings: { processCustomTemplates: true, customTemplates: ["subdivision"] }`.
+Добавление/исключение:
 `add_package_objects` / `remove_package_objects` с `{schemaId,revision,objectIds}`;
 удаление схемы: `delete_package_schema({schemaId,revision})`. Во всех именах tools
 нужен префикс `wshcm_`. Общий документ перечитывается перед Save; это не atomic CAS

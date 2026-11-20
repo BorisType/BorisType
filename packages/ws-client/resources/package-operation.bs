@@ -46,6 +46,11 @@ function BtPackageOperation(r) {
         }
         return x;
     }
+    function setCustomTemplates(schema, types) {
+        schema.custom_templates.Clear();
+        var k;
+        for(k = 0; k < ArrayCount(types); k++) schema.custom_templates.AddChild().catalog_name = types[k];
+    }
     function add(v) {
         var k; var res;
         for(k = 0; k < ArrayCount(r.objectIds); k++) {
@@ -138,14 +143,20 @@ function BtPackageOperation(r) {
             if (opt(r,'schemaId') != undefined && snapshot != r.expected) fail('Conflict','Common schema document changed; read again');
             if (opt(r,'schemaId') != undefined) p = d.TopElem.GetChildByKey(r.schemaId);
             else {p = d.TopElem.AddChild();p.id = r.operationId;}
-        } else p = OpenNewDoc('x-local://wtv/wtv_package_objects.xmd').TopElem.AddChild();
+        } else {
+            p = OpenNewDoc('x-local://wtv/wtv_package_objects.xmd').TopElem.AddChild();
+            if (opt(r,'customTemplates') != undefined && ArrayCount(r.customTemplates) > 0) {
+                p.process_custom_templates = true;
+                setCustomTemplates(p,r.customTemplates);
+            }
+        }
         if (r.operation == 'save') {
             if(opt(r,'name') != undefined) p.name = r.name;
             if(opt(r,'settings') != undefined) {
                 settings = r.settings;
                 if(opt(settings,'processCustomTemplates') != undefined) p.process_custom_templates = settings.processCustomTemplates;
                 if(opt(settings,'processAccessRoles') != undefined) p.process_access_roles = settings.processAccessRoles;
-                if(opt(settings,'customTemplates') != undefined) {p.custom_templates.Clear();for(i = 0; i < ArrayCount(settings.customTemplates); i++) p.custom_templates.AddChild().catalog_name = settings.customTemplates[i];}
+                if(opt(settings,'customTemplates') != undefined) setCustomTemplates(p,settings.customTemplates);
                 if(opt(settings,'files') != undefined) {
                     p.files.Clear();for(i = 0; i < ArrayCount(settings.files); i++) {
                         o = p.files.AddChild();o.code = settings.files[i].code;o.type = settings.files[i].type;o.url = settings.files[i].url;

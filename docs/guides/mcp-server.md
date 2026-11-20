@@ -119,10 +119,15 @@ Skill не устанавливает сервер или DLL и не добав
 { "objectIds": ["9007199254740993"], "operationId": "11111111-1111-4111-8111-111111111111" }
 ```
 
-Вызовите `wshcm_export_package` с этими параметрами. Альтернатива — только
-`{schemaId,revision}` из `wshcm_get_package_schema`; одновременно оба источника
-запрещены. Ответ содержит artifactId/localPath/sizeBytes/sha256 внутри `artifact`,
-status и missingCount. ZIP/base64 в контекст не попадает.
+Вызовите `wshcm_export_package` с этими параметрами. Чтобы включить определения
+полей и страниц, добавьте `customTemplates: ["subdivision", "request_type"]`.
+Можно передать только `customTemplates`. `request_type` включает все
+настроенные шаблоны типов заявок. Для сохранённой схемы передайте отдельно
+`{schemaId,revision}` из `wshcm_get_package_schema`, а список типов задайте
+в настройках схемы через `processCustomTemplates: true` и `customTemplates`.
+Ответ содержит artifactId/localPath/sizeBytes/sha256 внутри `artifact`,
+status, missingCount и `customTemplateTypes` из фактически собранного ZIP.
+ZIP/base64 в контекст не попадает.
 `localPath` находится **на машине MCP**; файл клиента в другой среде недоступен
 по одному имени. По умолчанию ZIP и метаданные хранятся в
 `~/.boristype/package-artifacts`. Флаг `--package-artifact-directory <path>`
@@ -143,8 +148,8 @@ handle действует 24 часа. Автоматической уборки
 includeFiles/includeAssessmentItems. Related использует штатные XMD/foreign связи;
 ссылки в wvars и mode → web_mode ещё не разрешаются. Поддерживаются objects/courses/
 web/custom_file, остальные типы отклоняются; custom_file destination ограничен
-`x-local://custom/`. Native acceptance пока покрывает objects/cost_center на Linux
-C/PostgreSQL; дополнительные типы и extras остаются непроверенными.
+`x-local://custom/`. На Linux C/PostgreSQL проверены пакеты объектов
+`cost_center` и импорт определений с явным `includeCustomTemplates: true`.
 
 Схемы: создайте через `wshcm_save_package_schema({name})`, читайте по schemaId,
 изменяйте/добавляйте/исключайте с `{schemaId,revision,...}`. Удаление схемы не удаляет

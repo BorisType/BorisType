@@ -96,7 +96,7 @@ preview → import/status без браузера. Объектный путь �
 | `add_package_objects`    | Добавить objectIds в schemaId с явными опциями категорий и связанных объектов      |
 | `remove_package_objects` | Удалить перечисленные objectIds из schemaId, сохранив сами объекты в базе          |
 | `delete_package_schema`  | Удалить явно указанную прочитанную схему                                           |
-| `export_package`         | schemaId или objectIds → штатный ZIP → локальный artifact и отчёт сборки           |
+| `export_package`         | schemaId или objectIds/customTemplates → штатный ZIP → локальный artifact и отчёт  |
 | `inspect_package`        | artifactId/localPath → неизменяемая копия ZIP → состав, конфликты, inspectionId    |
 | `import_package`         | inspectionId + optional subset → импорт объектов и отчёт                           |
 | `get_package_operation`  | Состояние операции, известные этапы, native ids/reports, артефакт                  |
@@ -139,12 +139,13 @@ preview → import/status без браузера. Объектный путь �
 
 ## Прямая выгрузка по IDs
 
-`export_package` принимает ровно один источник: `schemaId` **или** `objectIds`.
-Для одноразовой выгрузки агент передаёт IDs непосредственно и получает ZIP без
+`export_package` принимает сохранённую схему по `schemaId` и ревизии или прямой
+список `objectIds` и/или `customTemplates`. Для одноразовой выгрузки агент
+передаёт IDs объектов или коды типов непосредственно и получает ZIP без
 промежуточных create/add/save/delete схемы. Отдельный дублирующий tool не требуется;
 при необходимости SDK может предоставить удобный wrapper с тем же исполнителем.
 
-В режиме `objectIds` используется несохранённый native XML-элемент схемы. Он явно
+В прямом режиме используется несохранённый native XML-элемент схемы. Он явно
 передаётся в `tools.add_object_to_package` и `tools.create_list_package`; код не
 обращается к текущей схеме для выбора состава и не меняет `local_settings.package_id`.
 Общий документ схем не сохраняется; запись `upload_package` не создаётся.
@@ -166,13 +167,48 @@ preview → import/status без браузера. Объектный путь �
 экспорт: нужны отдельные проверки больших наборов, отсутствующих IDs, частичной
 сборки, памяти, timeout и очистки.
 
+## Пакеты с настраиваемыми полями
+
+В `wtv_package_objects.xms` вкладка «Настраиваемые поля» записывает выбранные
+коды в `custom_templates/catalog_name` и ставит `process_custom_templates`.
+В сохранённой схеме им соответствуют `settings.customTemplates` и
+`settings.processCustomTemplates`. При прямом экспорте SDK задаёт флаг
+автоматически для непустого `customTemplates`.
+[Формирование пакета данных](https://wshcm-docs.boristype.dev/news/monolith/6738779645850949369.html)
+
+В `wtv_tools.xml` метод `create_inst_package` берёт узел
+`custom_templates.OptChild(catalog_name)` и передаёт его целиком в
+`set_field_to_form_upload_data`. Для `request_type` это весь список
+`items`, включая поля и страницы каждой записи шаблона. Для включения
+типа достаточно одного поля в общем блоке или одной записи в `items`.
+Штатный экспорт пропускает тип с одними общими страницами. SDK перечисляет
+дочерние типы из `data/custom_templates` внутри `update.xml`, а для прямого
+экспорта сверяет их с запрошенными. Отсутствующий тип отмечается в
+`missingCustomTemplates`, receipt и ответ получают статус `partial`.
+
+`includeCustomTemplates: true` включает штатную обработку этого раздела
+при импорте. `obtain_custom_templates` обновляет поля по `name`, страницы
+по `id` и запись шаблона по ID владельца. Секцию определений можно
+перенести отдельно от объектов.
+
+На Linux HCM 2025.2.1333/PostgreSQL [нативный CLI/stdio тест](../../packages/mcp-server/test/e2e/packages.mjs)
+проверил именованную схему с объектом и двумя типами определений, прямой
+смешанный экспорт с пропущенным типом и ZIP только с определениями
+`cost_center`. После удаления пробных определений импорт вернул поле
+`combo` с вариантами и его страницу. Свежее чтение сравнилось с исходной
+конфигурацией. Для прогона на отдельном стенде область `cost_center`
+должна быть пустой. Исходные XML реестра определений и схем пакетов
+восстановлены побайтно. Временные записи, собственные архивы и каталоги
+очищены по идентификаторам прогона.
+
 ## Область первой версии
 
 Полный цикл первой версии относится к пакетам, формируемым «Содержимым пакета».
 Это не универсальный установщик обновлений платформы, приложений и компонентов.
 Неподдерживаемый тип вложенного пакета нужно назвать и отклонить до применения,
-не пропускать молча. Объектный путь принят отдельно; custom templates, access roles и файловые
-вложения ещё требуют своей acceptance; исходный ZIP сохраняется целиком.
+не пропускать молча. Объекты и настраиваемые поля проверены отдельно,
+access roles и файловые вложения ещё требуют своей acceptance.
+Исходный ZIP сохраняется целиком.
 
 ## Реализованный контракт SDK/MCP
 
@@ -283,7 +319,7 @@ SQL cleanup не выполняет; MCP acceptance с обновлением н
 [общих наблюдениях платформы](../platform/object-model.md#открытая-находка-строка-каталога-после-удаления-импортированного-объекта)
 и корневом TODO.
 
-Остаются native acceptance courses/web/custom_file/templates/roles/files/lists/
+Остаются native acceptance courses/web/custom_file/roles/files/lists/
 deletions/related traversal, cross-client lost update, другие аккаунты, native
 package timeout, большие нагрузки и иные платформы. Нет доказательства полного
 замыкания зависимостей, UI permission equivalence или каждой бизнес-валидации.

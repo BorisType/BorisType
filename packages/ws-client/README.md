@@ -238,14 +238,19 @@ Settings поддерживают `customTemplates`, `processCustomTemplates`,
 `processAccessRoles`, `files:[{code,type,url,baseUrl?}]`. После мутации перечитайте
 revision. Снимок и recheck общего XML не дают atomic CAS между клиентами.
 
-Экспорт требует ровно один источник: `{schemaId,revision}` или `{objectIds}`.
-Object IDs всегда десятичные строки. `includeCategories`, `includeRelatedObjects`,
+Для экспорта схемы укажите `{schemaId,revision}`. Для разового архива
+передайте `objectIds`, `customTemplates` или оба параметра. Например,
+`exportPackage({customTemplates:["request_type"]})` собирает ZIP с определениями
+всех настроенных типов заявок. Object IDs всегда десятичные строки.
+`includeCategories`, `includeRelatedObjects`,
 `includeFiles`, `includeAssessmentItems` выключены по умолчанию. Related использует
 только native XMD/foreign связи: `wvars`/`mode` resolvers отсутствуют; полное
 транзитивное замыкание не обещается.
 
 Результат экспорта содержит status, проверку `archive_membership`, страницу objects,
 missingIds/missingCount и artifact с artifactId/localPath/mimeType/sizeBytes/sha256/expiresAt.
+`customTemplateTypes` перечисляет типы, вошедшие в архив. Отсутствующие
+типы прямого экспорта попадают в `missingCustomTemplates` и дают `partial`.
 Файлы живут на **машине SDK**, в `~/.boristype/package-artifacts`, переживают сеанс;
 handle действует 24 часа. Абсолютный каталог можно задать через
 `new WshcmPackages(evaluator, { artifactDirectory })` или через третий аргумент
@@ -264,7 +269,8 @@ Import флаги `skipConflictingIds`, `allowVersionMismatch`, `allowReimport`,
 `includeCustomTemplates`, `includeAccessRoles`, `includeFiles`, `includeDeletions`,
 `includeLists` по умолчанию false. Поддерживаются objects/courses/web/custom_file;
 остальные типы отклоняются до применения. custom_file требует destination ниже
-`x-local://custom/`. Дополнительные типы и extras ещё не прошли native acceptance.
+`x-local://custom/`. На Linux C/PostgreSQL проверен импорт объектов и
+пакета только с определениями через `includeCustomTemplates: true`.
 
 ZIP ≤128 MiB; expanded bytes ≤512 MiB; ≤10000 entries; ZIP depth ≤2; XML ≤32 MiB;
 input objectIds ≤10000; страницы default 100, limit 1–1000; chunk 256 KiB.
