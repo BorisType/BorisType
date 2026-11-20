@@ -219,6 +219,13 @@ function BtCfApply(owner, node, req, role) {
     var pageId;
     var fieldOp;
     for (op in req.operations) {
+        if (op.op == 'removeTemplate') {
+            if (!req.scope.HasProperty('templateId')) throw 'InvalidScope: Removing a template requires a per-record scope';
+            if (node == undefined) throw 'NotFound: Template is not configured';
+            node.Delete();
+            node = undefined;
+            continue;
+        }
         if (node == undefined) {
             if (op.op != 'upsertField' && op.op != 'upsertPage') throw 'NotFound: Template is not configured';
             node = owner.items.ObtainChildByKey(Int(req.scope.templateId));
@@ -240,6 +247,7 @@ function BtCfApply(owner, node, req, role) {
             else BtCfMove(list, item, op);
         }
     }
+    if (node == undefined) return node;
     for (field in node.fields) {
         pageId = BtCfText(field.sheet_id);
         if (pageId != '' && node.sheets.GetOptChildByKey(pageId) == undefined)

@@ -178,7 +178,8 @@ platform code. При неизвестном исходе установите �
 
 `api.customFields.patch({scope, revision, operations, dryRun?})` применяет
 операции `upsertField`, `renameField`, `moveField`, `removeField`,
-`upsertPage`, `movePage` и `removePage`. Оба контракта доступны
+`upsertPage`, `movePage`, `removePage` и `removeTemplate`. Последняя
+удаляет конфигурацию одной записи по `scope.templateId`. Оба контракта доступны
 в `wshcmSchemas.customFields`. Чтение и запись включают заданные формулы,
 условия видимости и проверки значения, фильтр каталога, оформление и доступ
 к страницам по роли и точному ID группы. Пропущенные свойства сохраняются.

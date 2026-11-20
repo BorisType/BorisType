@@ -105,6 +105,7 @@ const operationSchema = z
     z.strictObject({ op: z.literal("upsertPage"), id: key, set: pagePatch }),
     z.strictObject({ op: z.literal("removePage"), id: key }),
     z.strictObject({ op: z.literal("movePage"), id: key, ...moveAnchor }),
+    z.strictObject({ op: z.literal("removeTemplate") }).describe("Remove the configured template selected by scope.templateId."),
   ])
   .superRefine((op, context) => {
     if (op.op === "renameField" && op.name === op.newName) {

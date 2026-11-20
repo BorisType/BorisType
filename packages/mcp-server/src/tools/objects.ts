@@ -46,7 +46,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_patch_custom_field_definitions",
     {
       description:
-        "Edit one definition scope using ordered upsert, renameField, move, or remove operations. Use revision from wshcm_get_custom_field_definitions in this session. dryRun previews without Save. Omitted settings are preserved. Use null to clear advanced text or page access and [] to clear options or visibilityConditions. Formulas and filters are stored as text. Page access changes require the HCM admin role. Use wshcm_patch_object to migrate stored values after changing a field key. If a write conflicts or the outcome is unknown, reread before trying again.",
+        "Edit one definition scope using ordered upsert, renameField, move, or remove operations. removeTemplate deletes the configured fields and pages for scope.templateId. Use revision from wshcm_get_custom_field_definitions in this session. dryRun previews without Save. Omitted settings are preserved. Use null to clear advanced text or page access and [] to clear options or visibilityConditions. Formulas and filters are stored as text. Page access changes require the HCM admin role. Use wshcm_patch_object to migrate stored values after changing a field key. If a write conflicts or the outcome is unknown, reread before trying again.",
       inputSchema: wshcmSchemas.customFields.patch,
       annotations: writeAnnotations,
     },

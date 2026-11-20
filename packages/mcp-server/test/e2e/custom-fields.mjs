@@ -382,7 +382,35 @@ return EncodeJson(EncodeJson(root.Xml == custom_templates.Xml));
   });
   assert.deepEqual(removedField.fields, [cleared.fields[0]]);
 
+  const removeTemplate = { scope, revision: removedField.revision, operations: [{ op: "removeTemplate" }] };
+  await call("patch", { ...removeTemplate, revision: current.revision }, "Conflict");
+  const beforeRemoval = await read();
+  const removalPreview = await call("patch", { ...removeTemplate, dryRun: true });
+  assert.equal(removalPreview.exists, false);
+  assert.deepEqual(removalPreview.fields, []);
+  assert.deepEqual(removalPreview.pages, []);
+  assert.equal(removalPreview.changed, true);
+  assert.equal(removalPreview.writeStatus, "not_attempted");
+  assert.equal(removalPreview.revision, removedField.revision);
+  assert.ok((await read()).xml === beforeRemoval.xml, "Removing a template in preview must leave storage intact");
+
+  const removedTemplate = await call("patch", removeTemplate);
+  assert.equal(removedTemplate.exists, false);
+  assert.equal(removedTemplate.writeStatus, "saved");
+  assert.notEqual(removedTemplate.revision, removedField.revision);
+  const afterRemoval = await read();
+  assert.equal(afterRemoval.hasTemplate, false);
+  assert.equal(afterRemoval.cacheMatches, true);
+  assert.equal(afterRemoval.owner, original.owner);
+  assert.equal(afterRemoval.hasShared, true);
+  const absent = await call("get", { scope });
+  assert.equal(absent.exists, false);
+  assert.deepEqual(absent.fields, []);
+  assert.deepEqual(absent.pages, []);
+  await call("patch", { ...removeTemplate, revision: absent.revision }, "NotFound");
+
   const nowCommon = await call("get", { scope: common });
+  await call("patch", { ...removeTemplate, scope: common, revision: nowCommon.revision }, "InvalidScope");
   const removed = await call("patch", {
     scope: common,
     revision: nowCommon.revision,
@@ -395,7 +423,7 @@ return EncodeJson(EncodeJson(root.Xml == custom_templates.Xml));
       imageId: stand.imageId,
       templateId,
       carrier: "CLI/stdio/SOAP",
-      verified: "preview, save, advanced settings, visibility evaluation, page access, rename, order, conflict, remove, no-op",
+      verified: "preview, save, advanced settings, visibility evaluation, page access, rename, order, conflict, remove template, no-op",
     }),
   );
 });
