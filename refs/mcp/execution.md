@@ -127,3 +127,23 @@ Transport error messages дополнительно ограничены 2000 UT
 затем прошла после исправления. Независимое ревью не оставило блокирующих findings.
 Windows HCM, другие версии/локализации, arbitrary long-running code и полное
 перехватывание штатных журналов этой проверкой не аттестованы.
+
+## Запуск существующего серверного агента
+
+`wshcm_run_agent` использует метод формы `TopElem.run_agent` и проверяет
+`TopElem.obj.Object.IsRunning` у потока этого вызова для синхронного ожидания.
+Метод в поставляемом `wtv_server_agent.xmd` переносит `wvars` в параметры
+потока. Для конкретного запуска SDK обновляет объявленные значения в открытом
+документе без Save. В `wtv_server_agent.xms` встречаются прямой вызов метода
+формы и `tools.start_agent`. Второй маршрут может ставить запуск в очередь
+на web-role. Текущий инструмент поддерживает standalone HCM.
+[Datex start_agent](https://wshcm-docs.boristype.dev/news/monolith/6680802585513428903.html#start-agent)
+[wshcmx/types, серверный агент](https://github.com/wshcmx/types/blob/1d76d40c87ad6a9c249bd16f1bfea035dd815940/lib/xml/server_agent/index.d.ts#L25)
+
+Native проверка 2026-11-19 на Linux C-runtime 2025.2.1333 через SDK и
+MCP stdio: sync вернул `ended`, асинхронный вызов вернул `accepted`.
+При ожидании 100 мс MCP вернул `wait_timeout` через 106 мс, затем агент
+записал маркер окончания. Маркеры подтвердили точные ID больше `2^53`,
+Unicode, CRLF и апостроф в параметре. Необъявленный параметр отклонён до
+запуска. XML агента совпал до и после вызовов. Тестовый агент, маркеры и
+временные evaluator удалены.

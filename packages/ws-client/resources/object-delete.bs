@@ -1,0 +1,29 @@
+function BtDeleteObject(req) {
+    var phase = 'read';
+    var code = 'PlatformError';
+    var status = 'not_attempted';
+    var url;
+    var doc;
+    var message;
+    try {
+        url = UrlFromDocID(Int(req.id));
+        doc = OpenDoc(url);
+        phase = 'validate';
+        code = 'Conflict';
+        if (StrInt(doc.DocID) != req.id || doc.FormUrl != req.formUrl ||
+            doc.TopElem.Xml != req.xml || FetchForm(doc.FormUrl).TopElem.Xml != req.schemaXml)
+            throw 'Object or form changed since the full read';
+
+        phase = 'delete';
+        code = 'PlatformError';
+        status = 'unknown';
+        DeleteDoc(url, false);
+        return {ok:true,id:req.id,mode:'trash',deleteStatus:'deleted'};
+    }
+    catch (error) {
+        message = String(error);
+        if (StrCharCount(message) > 2000) message = StrLeftCharRange(message, 2000);
+        return {ok:false,id:req.id,phase:phase,deleteStatus:status,error:{code:code,message:message}};
+    }
+}
+return EncodeJson(EncodeJson(BtDeleteObject(ParseJson('${request}'))));

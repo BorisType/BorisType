@@ -6,9 +6,11 @@ import { buildScript } from "./load.js";
 import { inspectObjectPatchXml, inspectObjectXml, objectRequestBytes, objectXmlBytes } from "./object-xml.js";
 import { ObjectReadState } from "./object-state.js";
 import { wshcmSchemas } from "./schemas.js";
-import { WshcmObjectError } from "./object-error.js";
+import { WshcmObjectDeleteError, WshcmObjectError } from "./object-error.js";
+import { listObjectTypes, type ObjectTypesResult } from "./object-types.js";
 const template = readFileSync(new URL("../../resources/object-operation.bs", import.meta.url), "utf8");
 const patchHelper = readFileSync(new URL("../../resources/object-patch.bs", import.meta.url), "utf8");
+const deleteTemplate = readFileSync(new URL("../../resources/object-delete.bs", import.meta.url), "utf8");
 const { id: objectId } = wshcmSchemas.objects.get.shape;
 const { formUrl } = wshcmSchemas.objects.getForm.shape;
 const boundedXml = z
@@ -43,19 +45,35 @@ const failure = z.strictObject({
   // message cannot discard a valid identity/phase/save acknowledgement.
   error: z.strictObject({ code: z.string().max(100), message: z.string() }),
 });
+const deleteResponse = z.strictObject({ ok: z.literal(true), id: objectId, mode: z.literal("trash"), deleteStatus: z.literal("deleted") });
+const deleteFailure = z.strictObject({
+  ok: z.literal(false),
+  id: objectId,
+  phase: z.enum(["read", "validate", "delete"]),
+  deleteStatus: z.enum(["not_attempted", "unknown"]),
+  error: z.strictObject({ code: z.string().max(100), message: z.string() }),
+});
 
-/** Call the native operation once, checking both string carriers before parsing its envelope. */
-async function execute(evaluator: WshcmEvaluator, request: Record<string, unknown>): Promise<unknown> {
+function encodeRequest(request: Record<string, unknown>): string {
   const json = JSON.stringify(request);
   if (Buffer.byteLength(json, "utf8") > objectRequestBytes)
     throw new Error("InputLimit: XML and validation metadata exceed the 2 MiB request budget");
-  const operation = request.operation === "patch_object" ? patchHelper + "\n" + template : template;
-  const wire: unknown = await evaluator.eval(buildScript(operation, { request: json }));
+  return json;
+}
+
+/** Check both string carriers before parsing the native envelope. */
+function decodeObjectResponse(wire: unknown): unknown {
   if (typeof wire !== "string" || Buffer.byteLength(wire, "utf8") > 4 * 1048576 * 6 + 2)
     throw new Error("Invalid platform object response carrier");
   const text: unknown = JSON.parse(wire);
   if (typeof text !== "string" || Buffer.byteLength(text, "utf8") > 4 * 1048576) throw new Error("Invalid platform object response size");
-  const result: unknown = JSON.parse(text);
+  return JSON.parse(text) as unknown;
+}
+
+async function execute(evaluator: WshcmEvaluator, request: Record<string, unknown>): Promise<unknown> {
+  const operation = request.operation === "patch_object" ? patchHelper + "\n" + template : template;
+  const wire = await evaluator.eval(buildScript(operation, { request: encodeRequest(request) }));
+  const result = decodeObjectResponse(wire);
   if (request.operation === "patch_object") {
     if (typeof result !== "object" || result === null || !("id" in result) || result.id !== request.id)
       throw new Error("Object patch response identity mismatch");
@@ -169,6 +187,50 @@ export class WshcmObjects {
             phase,
             writeStatus: phase === "transport" && error instanceof WshcmDispatchError && !error.dispatched ? "not_attempted" : writeStatus,
           },
+          { cause: error },
+        );
+      }
+    });
+  }
+
+  listTypes(input: Input<"listTypes"> = {}): Promise<ObjectTypesResult> {
+    return listObjectTypes(this.evaluator, input);
+  }
+
+  async delete(input: Input<"delete">) {
+    const { id, readToken } = wshcmSchemas.objects.delete.parse(input);
+    return this.reads.run(async () => {
+      let phase: "input" | "transport" | "response" = "input";
+      try {
+        const { formUrl, xml, schemaXml } = this.reads.consume(id, readToken);
+        const script = buildScript(deleteTemplate, { request: encodeRequest({ id, formUrl, xml, schemaXml }) });
+        phase = "transport";
+        const wire = await this.evaluator.eval(script);
+        phase = "response";
+        const response = decodeObjectResponse(wire);
+        if (typeof response !== "object" || response === null || !("id" in response) || response.id !== id)
+          throw new Error("Object deletion response identity mismatch");
+        const failed = deleteFailure.safeParse(response);
+        if (failed.success) {
+          const { error, ...body } = failed.data;
+          throw new WshcmObjectDeleteError({ ...body, error: { ...error, message: error.message.slice(0, 2000) } });
+        }
+        const { ok: _, ...body } = deleteResponse.parse(response);
+        return body;
+      } catch (error) {
+        if (error instanceof WshcmObjectDeleteError) throw error;
+        const notAttempted = phase === "input" || (error instanceof WshcmDispatchError && !error.dispatched);
+        const message = String(error).slice(0, 2000).toWellFormed();
+        const code =
+          phase === "input"
+            ? message.includes("ReadRequired:")
+              ? "ReadRequired"
+              : "InvalidInput"
+            : phase === "transport"
+              ? "TransportError"
+              : "InvalidResponse";
+        throw new WshcmObjectDeleteError(
+          { id, phase, deleteStatus: notAttempted ? "not_attempted" : "unknown", error: { code, message } },
           { cause: error },
         );
       }

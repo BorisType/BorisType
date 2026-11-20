@@ -7,7 +7,7 @@ HCM, объявляет инструменты и восстанавливает
 ## Поведение
 
 - При корректной конфигурации initialize, tools/list и MCP ping не выполняют
-  запросов к HCM. Список остаётся равным 27 tools. Фонового polling в первой
+  запросов к HCM. Состав tools не зависит от его доступности. Фонового polling в первой
   версии нет; следующая явно запрошенная операция сама проверяет готовность.
 - У CLI есть стабильный evaluator facade и один WshcmApi на весь процесс.
   Connection recovery не теряет package handles/operation IDs, read grants или

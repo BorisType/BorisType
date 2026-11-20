@@ -1,8 +1,9 @@
 # XML object tools: почему XML, как проверяется запись
 
 Принятое решение — [нативный XML](../decisions/2026-11-10-native-xml-object-tools.md).
-Четыре tools получают раскрытую форму, читают полный объект, выполняют явный
-create/replace и применяют [частичный XML patch](xml-object-patch.md). JSON несёт
+Инструменты получают раскрытую форму, читают полный объект, выполняют явный
+create/replace, применяют [частичный XML patch](xml-object-patch.md), читают
+реестр и перемещают документы в корзину. JSON несёт
 XML **строкой**, exact decimal ID и metadata.
 Node проверяет вход, но не строит редактируемую XML→JS→XML модель.
 Работа с документом выполняется BS XML API; BorisType DLL не требуется.
@@ -43,10 +44,49 @@ Replace ID в XML может отсутствовать либо совпада�
 для всех object tools этого createServer. Хранятся 32 snapshots с TTL 30 минут,
 новый полный read меняет token. Snapshot включает весь XML,
 actual form URL и раскрытый schema root. Oversized/partial result отклоняется
-целиком без grant. Попытка patch или replace, дошедшая до handler после schema validation,
+целиком без grant. Попытка patch, replace или delete, дошедшая до handler после schema validation,
 расходует token, включая rejected XML/conflict/transport loss. Не прошедший schema
 validation запрос handler не вызывает. Локальная object queue сериализует операции;
 это отдельная очередь от file reads, не lock всех HCM writers/чатов.
+
+## Реестр типов и каталогов
+
+На Linux C-runtime 2025.2.1333 `common.exchange_object_types` содержит 414
+типов. `DefaultDb.GetRegisteredCatalogs()` возвращает 730 XMD URL. Метод
+обнаружен в dispatch базы в `xhttp.out`. `FetchForm` раскрывает имя корня,
+`IsHier` и `ObjectName`. На этой сборке `ObjectName` задан у 410
+каталогов, у 320 он пуст. Например, `cost_centers.ObjectName` равен
+`cost_center`, а у проекции `group_collaborators` он пуст. Результат
+отражает эту связь в `objectType`. Свойство `BaseObjectName` было пустым
+для всех каталогов, XML раскрытой формы опускал `OBJECT-NAME`.
+[Каталоги-связки](https://wshcm-docs.boristype.dev/news/platform/7117695660488129329.html#%D0%BA%D0%B0%D1%82%D0%B0%D0%BB%D0%BE%D0%B3%D0%B8-%D1%81%D0%B2%D1%8F%D0%B7%D0%BA%D0%B8)
+
+На демостенде отсутствовали `cc_*`. Их регистрация в
+`common.exchange_object_types` найдена в поставляемом `wtv_tools.xml`,
+обработка проверена локальной моделью. `supportsCustomFields` отражает
+наличие `custom_elems` в форме на момент запроса.
+
+Настроенные поля берутся из `custom_templates`. В поставляемом
+`wtv_tools.xml` метод `get_custom_template` читает общие `fields` и
+по контексту выбирает запись из `items` или переходит через
+`template_field`. Для реестра читаются определения в обоих слоях.
+На стенде у `subdivision` есть общее поле `is_department`, а у
+`request` — 16 шаблонов типа `request_type` с полями. На C-runtime
+`template_field_id` читается напрямую как свойство, `ChildExists`
+его не обнаруживает. [Datex get_custom_template](https://wshcm-docs.boristype.dev/news/monolith/6680799737529721815.html#get-custom-template)
+
+## Перемещение в корзину
+
+Delete повторно открывает документ и сравнивает точный ID, форму, полный XML
+и раскрытую схему. Затем вызывает `DeleteDoc(url, false)`. Сравнение и
+удаление выполняются последовательно. Успешный ответ означает возврат из
+нативного вызова. При потере ответа SDK сохраняет `deleteStatus: "unknown"`.
+
+На Linux C-runtime 2025.2.1333 после MCP-вызова собственный `cost_center`
+исчез из основного каталога и открывался из корзины. Тест подтвердил, что
+токен уже израсходован, восстановил fixture для очистки и удалил его. Проверка
+связанных данных и binary cleanup требует прикладного сценария.
+[Native e2e](../../packages/mcp-server/test/e2e/objects.mjs)
 
 ## Validate → load → bind → Save → readback
 

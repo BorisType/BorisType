@@ -1,0 +1,197 @@
+function BtCatalogObjectName(form) {
+    try {
+        return form.ObjectName;
+    } catch (error) {
+        if (!StrContains(String(error), 'Unknown object property: ObjectName')) throw error;
+        return undefined;
+    }
+}
+
+function BtDescribeTemplateFields(fields) {
+    var descriptions = [];
+    var field;
+    var description;
+    var title;
+    var catalog;
+    var entries = ArraySelectAll(fields);
+    var index;
+    for (index = 0; index < fields.ChildNum; index++) {
+        field = entries[index];
+        description = {name:String(field.name.Value),type:String(field.type.Value),required:field.is_required.Value == true};
+        title = String(field.title.Value);
+        catalog = String(field.catalog.Value);
+        if (title != '') description.title = title;
+        if (catalog != '') description.catalog = catalog;
+        descriptions.push(description);
+    }
+    return descriptions;
+}
+
+function BtReadTypeCustomFields(registry, objectType, includeDetails) {
+    var config = registry.OptChild(objectType);
+    if (config == undefined) return undefined;
+    var result = {typeFieldCount:0,templatesWithFields:0};
+    var fields = config.OptChild('fields');
+    var owner = config;
+    var templateType = objectType;
+    var selector;
+    var item;
+    var itemFields;
+    var fieldCount = 0;
+    var items;
+    var index;
+    if (fields != undefined) result.typeFieldCount = fields.ChildNum;
+    if (!config.ChildExists('items') && config.ChildExists('template_field')) {
+        templateType = String(config.template_field.Value);
+        if (templateType != '') owner = registry.OptChild(templateType);
+    }
+    if (templateType != objectType && templateType != '') {
+        result.templateType = templateType;
+        try {
+            // PROPERTY accessors do not appear in ChildExists on the C runtime.
+            selector = String(config.template_field_id);
+            if (selector != '' && selector != 'undefined') result.templateSelector = selector;
+        } catch (error) {
+            if (!StrContains(String(error), 'Unknown object property: template_field_id')) throw error;
+        }
+    }
+    if (includeDetails) {
+        fieldCount = result.typeFieldCount;
+        if (fieldCount > 2048) throw 'OutputLimit: Configured field details exceed 2048 definitions';
+        result.fields = fields == undefined ? [] : BtDescribeTemplateFields(fields);
+        result.templates = [];
+    }
+    if (owner != undefined && owner.ChildExists('items')) {
+        result.templateType = templateType;
+        if (owner.items.ChildNum > 4096) throw 'OutputLimit: Custom field templates exceed 4096 entries';
+        items = ArraySelectAll(owner.items);
+        for (index = 0; index < owner.items.ChildNum; index++) {
+            item = items[index];
+            itemFields = item.OptChild('fields');
+            if (itemFields == undefined || itemFields.ChildNum == 0) continue;
+            result.templatesWithFields++;
+            if (includeDetails) {
+                fieldCount += itemFields.ChildNum;
+                if (fieldCount > 2048) throw 'OutputLimit: Configured field details exceed 2048 definitions';
+                result.templates.push({id:StrInt(item.id.Value),fields:BtDescribeTemplateFields(itemFields)});
+            }
+        }
+    }
+    return result;
+}
+
+// Enumerate metadata provided by HCM. Document names and catalog names are independent.
+function BtListObjectTypes(_btTypesReq) {
+    var _btTypesMaxSource = 4096;
+    var _btTypesItems = [];
+    var _btTypesPage = [];
+    var _btTypesSources = {exchangeObjectTypes:'not_requested',registeredCatalogs:'not_requested'};
+    var _btTypesCode = 'RegistryError';
+    var _btTypesRecords;
+    var _btTypesCount;
+    var _btTypesRecord;
+    var _btTypesForm;
+    var _btTypesUrl;
+    var _btTypesName;
+    var _btTypesIndex;
+    var _btTypesItem;
+    var _btCatalogObjectType;
+    var _btTemplateRegistry;
+    var _btCustomFields;
+    try {
+        if (_btTypesReq.kind != 'catalog') {
+            _btTypesCount = ArrayCount(common.exchange_object_types);
+            if (_btTypesCount > _btTypesMaxSource) {
+                _btTypesCode = 'OutputLimit';
+                throw 'The exchange object type registry exceeds 4096 entries';
+            }
+            _btTypesRecords = ArraySelectAll(common.exchange_object_types);
+            for (_btTypesIndex = 0; _btTypesIndex < _btTypesCount; _btTypesIndex++) {
+                _btTypesRecord = _btTypesRecords[_btTypesIndex];
+                _btTypesName = String(_btTypesRecord.name.Value);
+                if (_btTypesName == '') throw 'The exchange object type registry contains an unnamed entry';
+                if (_btTypesReq.objectType != '' && _btTypesName != _btTypesReq.objectType) continue;
+                _btTypesItems.push({kind:'object',name:_btTypesName,
+                    isCustom:_btTypesRecord.is_custom.Value == true || StrBegins(_btTypesName, 'cc_'),
+                    isHier:_btTypesRecord.is_hier.Value == true,
+                    title:String(_btTypesRecord.title.Value),formUrl:String(_btTypesRecord.form_url.Value)});
+            }
+            _btTypesSources.exchangeObjectTypes = 'available';
+        }
+        if (_btTypesReq.kind != 'object') {
+            _btTypesSources.registeredCatalogs = 'available';
+            try {
+                _btTypesRecords = DefaultDb.GetRegisteredCatalogs();
+            } catch (_btTypesUnsupported) {
+                if (!StrContains(String(_btTypesUnsupported), 'Unknown method: GetRegisteredCatalogs')) throw _btTypesUnsupported;
+                _btTypesSources.registeredCatalogs = 'unavailable';
+            }
+            if (_btTypesSources.registeredCatalogs == 'available') {
+                _btTypesCount = ArrayCount(_btTypesRecords);
+                if (_btTypesCount > _btTypesMaxSource) {
+                    _btTypesCode = 'OutputLimit';
+                    throw 'The registered catalog registry exceeds 4096 entries';
+                }
+                for (_btTypesIndex = 0; _btTypesIndex < _btTypesCount; _btTypesIndex++) {
+                    _btTypesUrl = _btTypesRecords[_btTypesIndex];
+                    if (DataType(_btTypesUrl) != 'string' || _btTypesUrl == '') throw 'The registered catalog registry contains an invalid form URL';
+                    _btTypesForm = FetchForm(_btTypesUrl);
+                    _btTypesName = String(_btTypesForm.TopElem.Name);
+                    if (_btTypesName == '') throw 'The registered catalog has no form root name';
+                    _btCatalogObjectType = BtCatalogObjectName(_btTypesForm);
+                    if (_btTypesReq.objectType != '' && _btCatalogObjectType != _btTypesReq.objectType) continue;
+                    _btTypesItems.push({kind:'catalog',name:_btTypesName,isCustom:StrBegins(_btTypesName, 'cc_'),
+                        isHier:_btTypesForm.IsHier,title:'',formUrl:_btTypesUrl,objectType:_btCatalogObjectType});
+                }
+            }
+        }
+        _btTypesCount = ArrayCount(_btTypesItems);
+        if (_btTypesReq.offset < _btTypesCount) {
+            if (_btTypesReq.kind != 'catalog') {
+                try {
+                    _btTemplateRegistry = custom_templates;
+                } catch (_btMissingTemplates) {
+                    // The registry may be absent on installations without legacy templates.
+                }
+            }
+            // Descending kind puts objects first. Exact names and URLs break ties within each source.
+            _btTypesItems = ArraySort(_btTypesItems, 'This.kind', '-', 'This.name', '+', 'This.formUrl', '+');
+            for (_btTypesIndex = _btTypesReq.offset; _btTypesIndex < _btTypesCount && ArrayCount(_btTypesPage) < _btTypesReq.limit; _btTypesIndex++) {
+                _btTypesRecord = _btTypesItems[_btTypesIndex];
+                _btTypesItem = {kind:_btTypesRecord.kind,name:_btTypesRecord.name,isCustom:_btTypesRecord.isCustom};
+                if (_btTypesRecord.title != '') _btTypesItem.title = _btTypesRecord.title;
+                if (_btTypesRecord.formUrl != '') _btTypesItem.formUrl = _btTypesRecord.formUrl;
+                // A positive exchange flag is informative. Its default false can hide catalog hierarchies.
+                if (_btTypesRecord.kind == 'catalog' || _btTypesRecord.isHier) _btTypesItem.isHier = _btTypesRecord.isHier;
+                if (_btTypesRecord.kind == 'catalog' && DataType(_btTypesRecord.objectType) == 'string')
+                    _btTypesItem.objectType = _btTypesRecord.objectType == '' ? null : _btTypesRecord.objectType;
+                if (_btTypesRecord.kind == 'object' && _btTemplateRegistry != undefined) {
+                    _btCustomFields = BtReadTypeCustomFields(_btTemplateRegistry, _btTypesRecord.name, _btTypesReq.includeCustomFields);
+                    if (_btCustomFields != undefined) _btTypesItem.customFields = _btCustomFields;
+                }
+                if (_btTypesRecord.kind == 'object' && _btTypesRecord.formUrl != '') {
+                    try {
+                        _btTypesForm = FetchForm(_btTypesRecord.formUrl);
+                        if (!_btTypesForm.IsCatalog && _btTypesForm.TopElem.Name == _btTypesRecord.name)
+                            _btTypesItem.supportsCustomFields = _btTypesForm.TopElem.OptChild('custom_elems') != undefined;
+                    } catch (_btTypesMetadataUnavailable) {
+                        // The exchange entry is still available even if its form cannot be reflected.
+                    }
+                }
+                _btTypesPage.push(_btTypesItem);
+            }
+        }
+        var _btTypesJson = EncodeJson({ok:true,total:_btTypesCount,offset:_btTypesReq.offset,limit:_btTypesReq.limit,
+            items:_btTypesPage,sources:_btTypesSources});
+        if (StrLen(_btTypesJson) <= 262144) return _btTypesJson;
+        _btTypesCode = 'OutputLimit';
+        throw 'The object type page exceeds 256 KiB. Request a smaller page';
+    } catch (_btTypesError) {
+        var _btTypesMessage = String(_btTypesError);
+        if (StrBegins(_btTypesMessage, 'OutputLimit:')) _btTypesCode = 'OutputLimit';
+        if (StrCharCount(_btTypesMessage) > 2000) _btTypesMessage = StrLeftCharRange(_btTypesMessage, 2000);
+        return EncodeJson({ok:false,error:{code:_btTypesCode,message:_btTypesMessage}});
+    }
+}
+
+return EncodeJson(BtListObjectTypes(ParseJson('${request}')));

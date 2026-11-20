@@ -10,18 +10,19 @@ npm install @boristype/ws-client@next
 
 Публичные exports:
 
-| Export                                   | Назначение                                                          |
-| ---------------------------------------- | ------------------------------------------------------------------- |
-| `WshcmClient`                            | Подключение и `callMethod(object, method, args)` через SP-XML SOAP  |
-| `WshcmApi`                               | Файловые операции, XML объекты, XQuery, сведения о стенде и runtime |
-| `WshcmRuntimeError`, `WshcmObjectError`  | Ошибки с `.status` / `.details`                                     |
-| `wshcmSchemas`                           | Входные schemas общего SDK                                          |
-| `Evaluator`                              | Временный серверный модуль для выполнения BorisScript               |
-| `WshcmUploader`                          | Пакетная загрузка файлов через серверные BS resources               |
-| `WshcmRequestError`, `UnauthorizedError` | Ошибки HTTP, сети, timeout и аутентификации                         |
-| `WshcmSoapFault`, `WshcmException`       | SOAP fault с серверной диагностикой и общая ошибка SDK              |
-| `WshcmDispatchError`                     | Ошибка evaluator с признаком отправки кода                          |
-| `renderRequest`, `parseResponse`         | Низкоуровневая сериализация SOAP                                    |
+| Export                                         | Назначение                                                         |
+| ---------------------------------------------- | ------------------------------------------------------------------ |
+| `WshcmClient`                                  | Подключение и `callMethod(object, method, args)` через SP-XML SOAP |
+| `WshcmApi`                                     | Файлы, XML объекты, XQuery, запуск агентов и сведения о стенде     |
+| `WshcmRuntimeError`, `WshcmObjectError`        | Ошибки с `.status` / `.details`                                    |
+| `WshcmObjectDeleteError`, `WshcmRunAgentError` | Ошибки удаления и запуска с известным ID, фазой и статусом         |
+| `wshcmSchemas`                                 | Входные schemas общего SDK                                         |
+| `Evaluator`                                    | Временный серверный модуль для выполнения BorisScript              |
+| `WshcmUploader`                                | Пакетная загрузка файлов через серверные BS resources              |
+| `WshcmRequestError`, `UnauthorizedError`       | Ошибки HTTP, сети, timeout и аутентификации                        |
+| `WshcmSoapFault`, `WshcmException`             | SOAP fault с серверной диагностикой и общая ошибка SDK             |
+| `WshcmDispatchError`                           | Ошибка evaluator с признаком отправки кода                         |
+| `renderRequest`, `parseResponse`               | Низкоуровневая сериализация SOAP                                   |
 
 Типы опций экспортируются вместе с JavaScript declarations. Минимальный пример
 для доверенного тестового стенда, с реквизитами из environment:
@@ -95,6 +96,17 @@ HTTP 500. Если вызывающий код использует свой eva
 - `objects.getForm/get/save/patch(input)` — раскрытая XMD и XML объектов. ID
   передаётся строкой, replace и patch требуют token полного чтения. `.details` у `WshcmObjectError`
   сохраняет phase/writeStatus/id, включая неизвестный исход Save.
+- `objects.listTypes({kind?,objectType?,offset?,limit?,includeCustomFields?})` —
+  реестр типов и каталогов с нативной связью между ними. При запросе
+  по точному `objectType` можно получить определения настроенных полей
+  и шаблонов.
+- `objects.delete({id,readToken})` — перемещение одного документа в корзину
+  после проверки полного XML и формы из чтения. `WshcmObjectDeleteError.details`
+  сохраняет известный ID и исход попытки.
+- `runAgent({agentId,mode?,waitTimeoutMs?,params?,objectId?,objectIds?})` —
+  запуск существующего BorisScript-агента на standalone HCM. `async` сообщает
+  о запуске, `sync` ждёт окончания потока в пределах указанного времени.
+  При `wait_timeout` поток может продолжать работу.
 - `xquery({query,maxRows?})` возвращает typed `XQueryResult`: integer как bigint,
   real как number, XML-поля проецируются на сервере. SQL префикс передаётся без
   read-only проверки. XML/XQuery не требуют подготовки DLL.

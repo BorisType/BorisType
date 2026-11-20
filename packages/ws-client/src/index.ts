@@ -18,9 +18,12 @@ export { WshcmApi } from "./hcm/api.js";
 export type { SystemInfoResult, SystemInfoSummary } from "./hcm/system-info.js";
 export { WshcmExecutionError } from "./hcm/execute.js";
 export type { ExecutionResult, ExecutionErrorDetails } from "./hcm/execute.js";
+export { WshcmRunAgentError } from "./hcm/run-agent.js";
+export type { RunAgentErrorDetails, RunAgentInput, RunAgentResult } from "./hcm/run-agent.js";
+export type { ObjectTypesInput, ObjectTypesResult } from "./hcm/object-types.js";
 export { wshcmSchemas } from "./hcm/schemas.js";
-export { WshcmObjectError } from "./hcm/object-error.js";
-export type { WshcmObjectErrorDetails } from "./hcm/object-error.js";
+export { WshcmObjectDeleteError, WshcmObjectError } from "./hcm/object-error.js";
+export type { WshcmObjectDeleteErrorDetails, WshcmObjectErrorDetails } from "./hcm/object-error.js";
 export type { WshcmEvaluator } from "./hcm/types.js";
 
 export { WshcmRuntime } from "./hcm/runtime/runtime.js";

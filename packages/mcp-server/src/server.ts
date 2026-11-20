@@ -21,6 +21,7 @@ import {
   registerRuntimeStatusTool,
   registerSystemInfoTool,
   registerExecuteTool,
+  registerRunAgentTool,
 } from "./tools/index.js";
 
 /**
@@ -52,6 +53,8 @@ export function createServer(
         "On the tested Linux C/PostgreSQL path, negative SQL integers can become null before SOAP; CAST them to text in SQL to preserve the value. SQL NULL and empty text may be indistinguishable. Preserve exact IDs as text or with lossless JSON parsing; JavaScript Number can round large integer tokens.",
         "Package tools manage explicitly addressed schemas and immutable ZIP snapshots on the MCP host. IDs remain decimal strings; includeRelatedObjects follows native XMD/foreign links only, without wvars/mode resolution. Inspect before import; pagination does not limit the default full-snapshot import. Export/inspect write temporary files/reports, import can modify data. Select a UUID operationId before long calls (public UUID handles are canonicalized to lowercase), use get_package_operation after timeout, and never retry automatically; timeout does not cancel native work. No atomic CAS or rollback guarantee.",
         "Object tools use native XML strings: get_form returns expanded schema, get_object returns a full document and readToken, save_object explicitly creates or fully replaces it, and patch_object applies partial edits. Whole replace removes omitted data; patch preserves unmentioned fields and follows keyed or unkeyed array rules. Read the complete object in this MCP instance before patch or replace and reread after every handled attempt, including a patch dryRun or no-op. Preserve exact IDs as decimal strings. Platform types/defaults/hooks still apply. Form loading may execute code. Save errors/timeouts can leave persisted changes; no atomic CAS, rollback, UI permission equivalence or blind retry guarantee.",
+        "Use wshcm_list_object_types to discover registered object types and catalog names. wshcm_delete_object moves one object to the platform trash after a full read and snapshot comparison. The delete attempt consumes the token. Check the actual outcome if deletion acknowledgement is lost.",
+        "wshcm_run_agent launches an existing server agent. Choose async for a dispatch receipt or sync for a bounded wait for the thread to end. The receipt describes the thread lifecycle. Wait expiry and lost responses can leave an agent running; establish its effects before retrying.",
       ].join("\n"),
     },
   );
@@ -72,6 +75,7 @@ export function createServer(
   registerRuntimeStatusTool(server, api);
   registerSystemInfoTool(server, api);
   registerExecuteTool(server, api);
+  registerRunAgentTool(server, api);
 
   return server;
 }
