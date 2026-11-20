@@ -9,7 +9,7 @@
 подключения. Caller владеет connection/transport. CLI `startServer` создаёт
 стабильный evaluator facade, подключает StdioServerTransport и обслуживает shutdown.
 [server.ts](../../packages/mcp-server/src/server.ts) регистрирует девять файловых
-tools, XQuery, четыре XML tools, execute, system info, runtime status и десять
+tools, XQuery, шесть tools для форм и объектов, запуск агентов, execute, system info, runtime status и десять
 tools пакетов объектов. Общий API и grants принадлежат
 ws-client/WshcmApi; MCP handlers — в
 [tools](../../packages/mcp-server/src/tools/), templates — в

@@ -4,11 +4,11 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Использует [@boristype/ws-client](https://github.com/BorisType/BorisType/tree/main/packages/ws-client) для соединения с WSHCM сервером.
 
-Экспериментальный сервер предоставляет 27 tools. В их числе девять файловых,
-десять для пакетов объектов и четыре для XML объектов, включая частичное редактирование.
+Экспериментальный сервер предоставляет 30 tools. В их числе девять файловых,
+десять для пакетов объектов, шесть для форм и объектов и запуск серверных агентов.
 Требуется Node.js >=24.22.2; для файловых tools — net9 HCM с доступным dotnetcore/shared. Общий API
 `ws-client` включает production DLL и автоматически подготавливает FileSystem
-**0.1.0-alpha.4 / API 2** для девяти файловых tools; execute, XQuery, system info, object и package tools её не используют.
+**0.1.0-alpha.4 / API 2** для девяти файловых tools; execute, XQuery, system info, object, package и agent tools её не используют.
 MCP остаётся адаптером этого SDK, пригодного также для CLI.
 Файловые операции используют BS URL resolver и managed filesystem API, без Datex
 callbacks. Девять файловых tools и защита чтений прошли native e2e на Linux
@@ -74,7 +74,7 @@ claude mcp list
 ## Доступность HCM
 
 С корректной конфигурацией stdio-сервер запускается при выключенном HCM.
-`initialize`, `tools/list` (27 tools) и `ping` обходятся без запросов к HCM.
+`initialize`, `tools/list` (30 tools) и `ping` обходятся без запросов к HCM.
 Первый вызов инструмента, которому нужен HCM, открывает соединение.
 Следующая явно запрошенная операция может восстановить его в том же процессе
 MCP. Фоновых проверок нет. Read tokens, package handles и локальные ZIP
@@ -146,10 +146,13 @@ instructions и skill не добавляют гарантий чтения, и�
 | `wshcm_xquery`                 | Серверный XQuery, включая прямой SQL через `sql:`         |
 | `wshcm_get_system_info`        | Сводка стенда и опциональный штатный системный отчёт      |
 | `wshcm_execute`                | Серверный BorisScript: результат, диагностика и ошибки    |
+| `wshcm_run_agent`              | Запуск серверного агента с опциональным ожиданием         |
+| `wshcm_list_object_types`      | Типы объектов и отдельно зарегистрированные каталоги      |
 | `wshcm_get_form`               | XML раскрытого root загруженной XMD                       |
 | `wshcm_get_object`             | Полный экспортируемый XML объекта и readToken             |
 | `wshcm_save_object`            | Create либо полная замена объекта из XML                  |
 | `wshcm_patch_object`           | Частичная правка существующего объекта из XML             |
+| `wshcm_delete_object`          | Перемещение одного объекта в корзину после полного чтения |
 | `wshcm_list_package_schemas`   | Страница сохранённых схем и общая revision                |
 | `wshcm_get_package_schema`     | Схема по id, настройки и страница объектов                |
 | `wshcm_save_package_schema`    | Создание схемы или изменение имени/settings/editable      |
@@ -575,6 +578,78 @@ writer может изменить документ между проверко�
 
 [Полный контракт и границы](https://github.com/BorisType/BorisType/blob/main/refs/mcp/xml-object-patch.md).
 
+### Реестр типов объектов и каталогов
+
+`wshcm_list_object_types` возвращает `{total,offset,limit,items,sources}`.
+Параметры `offset` и `limit` по умолчанию равны 0 и 100, максимальный размер
+страницы 250. Передайте `kind: "object"` или `kind: "catalog"`, чтобы
+читать только один реестр. При общем запросе сначала идут типы объектов,
+затем каталоги. Порядок внутри каждого реестра определяется именем и URL формы.
+
+Запись содержит `kind`, `name`, `isCustom` и доступные метаданные
+`title`, `formUrl`, `isHier`, `supportsCustomFields`. Объекты берутся из
+`common.exchange_object_types`, включая зарегистрированные `cc_*`. Каталоги
+берутся из `DefaultDb.GetRegisteredCatalogs()`. Поэтому, например,
+`cost_center` и `cost_centers` имеют отдельные записи. Каталог может
+представлять производную проекцию. В записи каталога `objectType` содержит
+тип документа из `XmlForm.ObjectName`. Значение `null` означает, что HCM не
+объявляет для каталога собственного типа документа. Поля нет, когда сборка
+не предоставляет это свойство. Передайте `{ "objectType": "cost_center" }`,
+чтобы получить точный тип и все каталоги, которые HCM связал с ним.
+
+`supportsCustomFields` показывает наличие элемента `custom_elems` в XMD
+документа. При наличии записи в `custom_templates` ответ также содержит
+`customFields.typeFieldCount` для общих определений и
+`customFields.templatesWithFields` для числа шаблонов с полями. Например,
+у `request` шаблон выбирается полем `request_type_id`. В ответе это
+`templateType: "request_type"` и `templateSelector: "request_type_id"`.
+
+Добавьте `includeCustomFields: true` к запросу по точному `objectType`.
+`customFields.fields` содержит определения, общие для типа, а
+`customFields.templates` — определения по отдельным шаблонам в формате
+`{id,fields}`. ID шаблона передаётся точной десятичной строкой. Определение
+содержит `name`, `type`, `required` и доступные `title`, `catalog`.
+Выдача содержит метаданные конфигурации полей. Значения документа и
+вычисление условий или формул в неё не входят.
+
+`sources` содержит статусы `exchangeObjectTypes` и `registeredCatalogs`.
+`not_requested` означает, что источник исключён фильтром. На сборке без
+`GetRegisteredCatalogs` второй статус будет `unavailable`. Лимиты
+составляют 4096 записей на источник и 256 KiB UTF-8 на страницу.
+Для детализации действует предел 2048 определений, для шаблонов одного
+типа — 4096 записей.
+
+### Удаление объекта
+
+`wshcm_delete_object({id,readToken})` принимает точный десятичный ID и
+токен из полного чтения документа через `wshcm_get_object`. Сервер расходует
+токен, повторно сравнивает XML документа и формы и вызывает штатное
+`DeleteDoc(url, false)`. Ответ `{id,mode:"trash",deleteStatus:"deleted"}`
+подтверждает вызов перемещения в корзину HCM. Сравнение и удаление идут
+последовательно. Очистка связанных данных и бинарных ресурсов зависит от
+платформы и прикладных сценариев.
+
+При ошибке `deleteStatus: "not_attempted"` означает, что вызов удаления
+ещё не выполнялся. При `"unknown"` проверьте наличие документа в основном
+каталоге и корзине перед повтором. Для нового вызова перечитайте документ.
+
+### Запуск серверного агента
+
+`wshcm_run_agent` запускает существующий BorisScript-агент по `agentId` на
+standalone HCM. `objectId` передаётся как `OBJECT_ID`, `objectIds` как
+`OBJECTS_ID_STR`. Значения идентификаторов передаются точными десятичными
+строками. `params` содержит строковые значения объявленных параметров,
+которые подставляются на один запуск.
+
+Режим `async` по умолчанию возвращает `{agentId,status:"accepted"}`.
+`mode: "sync"` ждёт завершения потока до `waitTimeoutMs` (по умолчанию
+5000, от 1 до 20000 мс) и возвращает `ended` или `wait_timeout`.
+`ended` подтверждает завершение потока. Успех прикладной работы проверяется
+по эффектам агента. Окончание ожидания или разрыв связи не отменяют запуск.
+Ошибки сохраняют `agentId`, фазу и `executionStatus` со значением
+`not_started` или `unknown`. При неизвестном исходе проверьте эффекты перед
+новым запуском.
+
 ### Серверный XQuery и SQL
 
 `wshcm_xquery` принимает `query` и optional `maxRows` (по умолчанию 100, от 1 до 1000):
@@ -988,7 +1063,7 @@ pnpm --filter @boristype/mcp-server build
 NODE_USE_ENV_PROXY=0 pnpm --filter @boristype/mcp-server test:e2e:object-patch
 ```
 
-Stdio acceptance проверяет 27 tools, partial Save/readback, repeat без Save,
+Stdio acceptance проверяет состав tools, partial Save/readback, repeat без Save,
 preview, invalid mode, расходование token и конфликт с независимым writer.
 Проверка очистки охватывает только собственный `cost_center`, инвентарь
 evaluator и XML списка пакетов. [Хеши и результаты Linux C HCM 2025.2.1333](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/object-patch/stdio-acceptance.json).

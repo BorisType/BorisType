@@ -1,0 +1,62 @@
+function BtRunAgentFailure(agentId, phase, executionStatus, code, message) {
+    return {agentId:agentId, phase:phase, executionStatus:executionStatus, error:{code:code, message:message}};
+}
+
+function BtRunAgent(request) {
+    var agentId = request.agentId;
+    var phase = 'validation';
+    var agent;
+    try {
+        if (!LdsIsServer || (tools.sys_db_capability & (tools.UNI_CAP_WEB_ROLE | tools.UNI_CAP_CLUSTER)) != 0) {
+            return BtRunAgentFailure(agentId, phase, 'not_started', 'UnsupportedServerRole', 'Agent launch requires a standalone HCM server');
+        }
+        var doc = tools.open_doc(Int(agentId));
+        if (doc == undefined || doc.TopElem.Name != 'server_agent') {
+            return BtRunAgentFailure(agentId, phase, 'not_started', 'AgentNotFound', 'Could not open the existing server agent');
+        }
+        agent = doc.TopElem;
+        if (agent.type != 'code' || agent.exec_code.code_type == 'cs') {
+            return BtRunAgentFailure(agentId, phase, 'not_started', 'UnsupportedAgentType', 'Agent launch requires a BorisScript server agent');
+        }
+        var param;
+        for (param in request.params) {
+            if (agent.wvars.GetOptChildByKey(param.name) == undefined) {
+                return BtRunAgentFailure(agentId, phase, 'not_started', 'UnknownParameter', 'Agent parameter is undeclared');
+            }
+        }
+        // The form copies each .value.Value into Thread.Param before launching.
+        // These changes are local to the opened document and are never saved.
+        for (param in request.params) {
+            agent.wvars.GetOptChildByKey(param.name).value = param.value;
+        }
+        var objectId = request.objectId == null ? undefined : Int(request.objectId);
+        phase = 'launch';
+        if (!agent.run_agent(objectId, request.objectsIds, Date(), false, 'Release')) {
+            return BtRunAgentFailure(agentId, phase, 'not_started', 'LaunchRejected', 'HCM rejected the agent launch');
+        }
+        if (request.mode == 'async') {
+            return {agentId:agentId, status:'accepted'};
+        }
+        phase = 'wait';
+        var worker = agent.obj.Object;
+        var waitStart = GetCurTicks();
+        var remaining = request.waitTimeoutMs;
+        var interval;
+        while (remaining > 0 && worker.IsRunning) {
+            interval = Min(50, remaining);
+            Sleep(interval);
+            remaining = Min(remaining - interval, request.waitTimeoutMs - (GetCurTicks() - waitStart));
+        }
+        return {agentId:agentId, status:worker.IsRunning ? 'wait_timeout' : 'ended'};
+    } catch (err) {
+        if (phase == 'validation') {
+            return BtRunAgentFailure(agentId, phase, 'not_started', 'ValidationFailed', 'HCM could not prepare the agent launch');
+        }
+        if (phase == 'wait') {
+            return BtRunAgentFailure(agentId, phase, 'unknown', 'WaitFailed', 'HCM could not observe the launched agent thread');
+        }
+        return BtRunAgentFailure(agentId, phase, 'unknown', 'LaunchFailed', 'HCM could not confirm the agent launch');
+    }
+}
+
+return EncodeJson(BtRunAgent(ParseJson('${request}')));

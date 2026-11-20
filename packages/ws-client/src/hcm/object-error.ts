@@ -16,3 +16,21 @@ export class WshcmObjectError extends Error {
     this.name = "WshcmObjectError";
   }
 }
+
+export interface WshcmObjectDeleteErrorDetails {
+  ok?: false;
+  id: string;
+  phase: "input" | "transport" | "response" | "read" | "validate" | "delete";
+  deleteStatus: "not_attempted" | "unknown";
+  error: { code: string; message: string };
+}
+
+export class WshcmObjectDeleteError extends Error {
+  constructor(
+    public readonly details: WshcmObjectDeleteErrorDetails,
+    options?: ErrorOptions,
+  ) {
+    super(`${details.error.code}: ${details.error.message}`, options);
+    this.name = "WshcmObjectDeleteError";
+  }
+}

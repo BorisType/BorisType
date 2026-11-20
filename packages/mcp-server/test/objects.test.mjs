@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
+import { WshcmDispatchError } from "@boristype/ws-client";
 import { createServer } from "../build/index.js";
 
 const formUrl = "x-local://wtv/wtv_cost_center.xmd";
@@ -27,6 +28,7 @@ function platform() {
     value: xml,
     schema: '<cost_center><name TYPE="string"/><n TYPE="integer"/></cost_center>',
     saves: 0,
+    deletes: [],
     calls: 0,
     parsed: [],
     saveError: false,
@@ -88,6 +90,10 @@ function platform() {
         if (state.readbackError && state.saves) throw Error("readback-failure");
         return doc(state.value);
       },
+      DeleteDoc(url, permanent) {
+        assert.equal(url, "object:" + id);
+        state.deletes.push({ url, permanent });
+      },
       UrlFromDocID: (value) => "object:" + value,
       Int: BigInt,
       StrInt: String,
@@ -115,6 +121,21 @@ test("object tools expose XML transport and honest mutation annotations", async 
   assert.equal(save.annotations.destructiveHint, true);
   assert.equal(save.annotations.idempotentHint, false);
   assert.match(save.description, /replace|omitted/);
+});
+
+test("list_object_types exposes separate object and catalog entries with registry coverage", async (t) => {
+  const page = {
+    total: 2,
+    offset: 0,
+    limit: 100,
+    items: [
+      { kind: "object", name: "cost_center", isCustom: false, formUrl },
+      { kind: "catalog", name: "cost_centers", isCustom: false, isHier: true },
+    ],
+    sources: { exchangeObjectTypes: "available", registeredCatalogs: "available" },
+  };
+  const client = await connect(t, () => JSON.stringify(JSON.stringify({ ok: true, ...page })));
+  assert.deepEqual(await call(client, "list_object_types", {}), page);
 });
 
 test("form/get/create/replace execute native API with original XML", async (t) => {
@@ -172,6 +193,46 @@ test("stale full XML and stale schema both prevent replace", async (t) => {
     assert.equal(result.writeStatus, "not_attempted");
   }
   assert.equal(state.saves, 0);
+});
+
+test("delete checks the fresh XML snapshot and moves only the selected object to trash", async (t) => {
+  const state = platform();
+  const client = await connect(t, state.evaluate);
+  const first = await call(client, "get_object", { id });
+  state.value += " ";
+  const conflict = await call(client, "delete_object", { id, readToken: first.readToken }, true);
+  assert.equal(conflict.error.code, "Conflict");
+  assert.equal(conflict.deleteStatus, "not_attempted");
+  assert.deepEqual(state.deletes, []);
+
+  const fresh = await call(client, "get_object", { id });
+  const args = { id, readToken: fresh.readToken };
+  assert.deepEqual(await call(client, "delete_object", args), { id, mode: "trash", deleteStatus: "deleted" });
+  const callsAfterDelete = state.calls;
+  const consumed = await call(client, "delete_object", args, true);
+  assert.equal(consumed.deleteStatus, "not_attempted");
+  assert.equal(state.calls, callsAfterDelete);
+  assert.deepEqual(state.deletes, [{ url: "object:" + id, permanent: false }]);
+});
+
+test("delete distinguishes failed preparation from an unacknowledged native mutation", async (t) => {
+  const state = platform();
+  let failure;
+  const client = await connect(t, (script) => {
+    if (!failure) return state.evaluate(script);
+    if (failure === "preflight") throw new WshcmDispatchError("Unavailable", false);
+    state.evaluate(script);
+    throw new WshcmDispatchError("Response lost", true);
+  });
+  for (const failedPhase of ["preflight", "response"]) {
+    failure = undefined;
+    const read = await call(client, "get_object", { id });
+    failure = failedPhase;
+    const error = await call(client, "delete_object", { id, readToken: read.readToken }, true);
+    assert.equal(error.id, id);
+    assert.equal(error.deleteStatus, failedPhase === "preflight" ? "not_attempted" : "unknown");
+  }
+  assert.deepEqual(state.deletes, [{ url: "object:" + id, permanent: false }]);
 });
 
 test("multiple elements remain valid with the same schema path", async (t) => {

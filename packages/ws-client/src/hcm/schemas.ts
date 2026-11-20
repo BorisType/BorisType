@@ -3,6 +3,9 @@ import { z } from "zod";
 import { fileUrl, fileText } from "./file-contract.js";
 import { searchInput } from "./search-contract.js";
 import { objectXmlBytes } from "./object-xml.js";
+import { objectIdSchema as objectId } from "./object-id.js";
+import { objectTypesInputSchema } from "./object-types.js";
+import { runAgentInputSchema } from "./run-agent.js";
 
 const read = z
   .strictObject({
@@ -41,11 +44,6 @@ const formUrl = z
   .max(2048)
   .regex(/^x-(?:local|app):\/\/[A-Za-z0-9._~!$&()+,@%/-]+\.xmd$/)
   .describe("Full local platform XMD URL; no open options or alternate database");
-const objectId = z
-  .string()
-  .regex(/^[1-9]\d{0,19}$/)
-  .refine((id) => /^[1-9]\d{0,19}$/.test(id) && BigInt(id) <= 18446744073709551615n)
-  .describe("Exact positive decimal object ID as a string, never a JSON number");
 const boundedXml = z
   .string()
   .max(objectXmlBytes)
@@ -92,8 +90,16 @@ const xquery = z.strictObject({
 export const wshcmSchemas = {
   packages: packageSchemas,
   files: { read, write, edit, list, delete: deleteInput, mkdir, move, info, search: searchInput },
-  objects: { getForm: z.strictObject({ formUrl }), get: z.strictObject({ id: objectId }), save: saveInput, patch: patchInput },
+  objects: {
+    listTypes: objectTypesInputSchema,
+    getForm: z.strictObject({ formUrl }),
+    get: z.strictObject({ id: objectId }),
+    save: saveInput,
+    patch: patchInput,
+    delete: z.strictObject({ id: objectId, readToken: z.uuid() }),
+  },
   xquery,
+  runAgent: runAgentInputSchema,
   execute: z.strictObject({
     code: z
       .string()

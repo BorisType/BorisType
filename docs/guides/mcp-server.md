@@ -7,8 +7,9 @@
 
 Доступны read_file, write_file, edit_file, list_directory, search_files,
 delete_file, create_directory, move_file и get_file_info с префиксом `wshcm_`.
-Также доступны `wshcm_execute`, `wshcm_get_system_info`, `wshcm_xquery` и XML object tools `wshcm_get_form`,
-`wshcm_get_object`, `wshcm_save_object`, `wshcm_patch_object`, а также десять package tools. Эти tools работают без BorisType DLL.
+Также доступны `wshcm_execute`, `wshcm_run_agent`, `wshcm_get_system_info`,
+`wshcm_xquery`, инструменты для реестра типов, чтения форм, редактирования и
+удаления объектов и десять package tools. Эти tools работают без BorisType DLL.
 Конфигурация CLI/env и клиента, installation и точные options — в
 [package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
 
@@ -53,7 +54,9 @@ npm install -g @boristype/mcp-server@next
 [конфигурации package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#конфигурация).
 
 Запустите сервер средствами MCP-клиента и проверьте список tools: девять
-файловых, `wshcm_execute`, `wshcm_get_system_info`, `wshcm_xquery`, четыре XML tools, десять package tools и `wshcm_runtime_status` — всего 27. Затем выполните операцию чтения,
+файловых, `wshcm_execute`, `wshcm_run_agent`, `wshcm_get_system_info`,
+`wshcm_xquery`, шесть tools для форм и объектов, десять package tools и
+`wshcm_runtime_status`. Всего 30. Затем выполните операцию чтения,
 например `wshcm_get_form` с формой, существующей на вашей установке:
 
 ```json
@@ -70,7 +73,7 @@ UTF-8 файл через `wshcm_read_file`; результат должен с�
 
 ## Восстановление соединения
 
-С корректной конфигурацией MCP инициализируется, показывает все 27 tools и
+С корректной конфигурацией MCP инициализируется, показывает все 30 tools и
 отвечает на `ping` при выключенном HCM. Эти действия не обращаются к HCM.
 При вызове инструмента `isError: true` и код `HcmUnavailable` означают проблему
 доступности. Следующий вызов, которому нужен HCM, сам проверит готовность.
@@ -264,6 +267,39 @@ string, integer, bool, real и date. Binary, TEMP и методы исключе
 `1-01-02T12:34:56+00:00`. Суффикс `+00:00` здесь не означает UTC instant.
 Ненулевое смещение и ненулевые дробные секунды отклоняются.
 [Режимы, примеры и границы](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#частичное-редактирование-xml).
+
+### Реестр типов и удаление объекта
+
+`wshcm_list_object_types({})` возвращает страницу реестра. Записи
+`kind: "object"` включают зарегистрированные стандартные и `cc_*` типы, а
+`kind: "catalog"` даёт зарегистрированные каталоги для XQuery, в том числе
+проекции. Просматривайте отдельно через `kind` и листайте через `offset` и
+`limit`. `sources` показывает, какие реестры дали результат.
+
+Чтобы найти каталог для конкретного типа, передайте
+`{ "objectType": "cost_center" }`. В ответе будет тип `cost_center` и
+каталог `cost_centers` со ссылкой на этот тип. У каталогов без объявленного
+типа документа `objectType` равен `null`.
+
+Для просмотра настроенных полей передайте
+`{ "objectType": "request", "includeCustomFields": true }`.
+`customFields.fields` перечисляет общие поля, а `customFields.templates`
+группирует поля по ID шаблона. В обычной выдаче видны количества.
+
+`wshcm_delete_object({id,readToken})` перемещает один документ в корзину HCM.
+Возьмите точный ID и свежий токен из `wshcm_get_object`. Если XML объекта или
+формы изменился, операция вернёт `Conflict`. Сравнение и удаление выполняются
+последовательно. Вызов расходует токен. При `deleteStatus: "unknown"`
+проверьте фактическое состояние объекта и корзины перед повтором.
+
+## Запуск серверного агента
+
+`wshcm_run_agent({agentId})` запускает существующий BorisScript-агент и
+возвращает `status: "accepted"`. Для ожидания окончания потока передайте
+`mode: "sync"` и при необходимости `waitTimeoutMs` от 1 до 20000 мс.
+Ответ `ended` сообщает о завершении потока. Результат работы проверяется по
+эффектам агента. После `wait_timeout` поток может продолжать работу.
+Инструмент рассчитан на standalone HCM. [Параметры и статусы](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#запуск-серверного-агента)
 
 ## Выполнение BorisScript
 

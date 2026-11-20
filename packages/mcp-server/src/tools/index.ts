@@ -12,4 +12,5 @@ export { registerObjectTools } from "./objects.js";
 export { registerRuntimeStatusTool } from "./runtime-status.js";
 export { registerSystemInfoTool } from "./system-info.js";
 export { registerExecuteTool } from "./execute.js";
+export { registerRunAgentTool } from "./run-agent.js";
 export { registerPackageTools } from "./packages.js";

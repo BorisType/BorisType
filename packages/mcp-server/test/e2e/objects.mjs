@@ -52,7 +52,7 @@ test("XML object MVP through CLI/stdio/SOAP on an exclusive local stand", { time
         assert.match(id, /^[1-9]\d{0,19}$/);
         const result = JSON.parse(
           await evaluator.eval(
-            `var id = Int('${id}'); DeleteDoc(UrlFromDocID(id), true); var opened = false; try {OpenDoc(UrlFromDocID(id)); opened = true;} catch(e) {} return EncodeJson({id:StrInt(id),rows:ArrayCount(XQuery('for $c in cost_centers where $c/id = ${id} return $c')),trash:ArrayCount(XQuery('for $t in trash_docs where $t/id = ${id} return $t')),opened:opened});`,
+            `var id = Int('${id}'); if (ArrayCount(XQuery('for $t in trash_docs where $t/id = ${id} return $t')) != 0) tools.restore_doc(id); DeleteDoc(UrlFromDocID(id), true); var opened = false; try {OpenDoc(UrlFromDocID(id)); opened = true;} catch(e) {} return EncodeJson({id:StrInt(id),rows:ArrayCount(XQuery('for $c in cost_centers where $c/id = ${id} return $c')),trash:ArrayCount(XQuery('for $t in trash_docs where $t/id = ${id} return $t')),opened:opened});`,
           ),
         );
         assert.deepEqual(result, { id, rows: 0, trash: 0, opened: false });
@@ -102,6 +102,44 @@ test("XML object MVP through CLI/stdio/SOAP on an exclusive local stand", { time
   }
   const formUrl = "x-local://wtv/wtv_cost_center.xmd";
   let id;
+  await check("registry exposes independently named object types and catalog forms", async () => {
+    const objects = await call("list_object_types", { kind: "object", limit: 250 });
+    const catalogs = await call("list_object_types", { kind: "catalog", limit: 250 });
+    assert.deepEqual(objects.sources, { exchangeObjectTypes: "available", registeredCatalogs: "not_requested" });
+    assert.deepEqual(catalogs.sources, { exchangeObjectTypes: "not_requested", registeredCatalogs: "available" });
+    const object = objects.items.find(({ name }) => name === "cost_center");
+    let catalog = catalogs.items.find(({ name }) => name === "cost_centers");
+    for (let offset = catalogs.limit; !catalog && offset < catalogs.total; offset += catalogs.limit) {
+      const page = await call("list_object_types", { kind: "catalog", limit: catalogs.limit, offset });
+      catalog = page.items.find(({ name }) => name === "cost_centers");
+    }
+    assert.equal(object?.kind, "object");
+    assert.equal(object.formUrl, formUrl);
+    assert.equal(catalog?.kind, "catalog");
+    assert.equal(catalog.isHier, true);
+    assert.equal(catalog.objectType, "cost_center");
+    const linked = await call("list_object_types", { objectType: "cost_center" });
+    assert.deepEqual(linked.items, [object, catalog]);
+    const boundary = await call("list_object_types", { offset: objects.total - 1, limit: 2 });
+    assert.equal(boundary.total, objects.total + catalogs.total);
+    assert.deepEqual(
+      boundary.items.map(({ kind }) => kind),
+      ["object", "catalog"],
+    );
+    t.diagnostic(JSON.stringify({ objectTypes: objects.total, catalogs: catalogs.total, object, catalog }));
+  });
+  await check("configured field definitions include type fields and field groups per template", async () => {
+    const subdivision = (await call("list_object_types", { kind: "object", objectType: "subdivision", includeCustomFields: true })).items[0]
+      .customFields;
+    assert.equal(subdivision.fields.length, subdivision.typeFieldCount);
+    const request = (await call("list_object_types", { kind: "object", objectType: "request", includeCustomFields: true })).items[0]
+      .customFields;
+    assert.equal(request.templates.length, request.templatesWithFields);
+    assert.equal(request.templateType, "request_type");
+    assert.equal(request.templateSelector, "request_type_id");
+    assert.ok(request.templates.every(({ id, fields }) => /^[1-9]\d*$/.test(id) && fields.length > 0));
+    t.diagnostic(JSON.stringify({ subdivisionFields: subdivision.typeFieldCount, requestTemplates: request.templatesWithFields }));
+  });
   await check("expanded native form without inherited file traversal", async () => {
     const form = await call("get_form", { formUrl });
     assert.equal(form.root, "cost_center");
@@ -187,5 +225,20 @@ test("XML object MVP through CLI/stdio/SOAP on an exclusive local stand", { time
     assert.equal(missing.writeStatus, "not_attempted");
     const noRead = await call("save_object", { mode: "replace", id: "1", readToken: randomUUID(), xml: "<cost_center/>" }, true);
     assert.equal(noRead.writeStatus, "not_attempted");
+  });
+  await check("fresh read permits one move to trash and consumes the token", async () => {
+    const read = await call("get_object", { id });
+    const input = { id, readToken: read.readToken };
+    assert.deepEqual(await call("delete_object", input), { id, mode: "trash", deleteStatus: "deleted" });
+    const reused = await call("delete_object", input, true);
+    assert.equal(reused.deleteStatus, "not_attempted");
+    assert.equal(reused.error.code, "ReadRequired");
+    await call("get_object", { id }, true);
+    const trashed = JSON.parse(
+      await evaluator.eval(
+        `var id = Int('${id}'); var d = OpenDoc(UrlFromDocID(id, 'trash')); return EncodeJson({code:String(d.TopElem.code),rows:ArrayCount(XQuery('for $c in cost_centers where $c/id = ${id} return $c')),trash:ArrayCount(XQuery('for $t in trash_docs where $t/id = ${id} return $t'))});`,
+      ),
+    );
+    assert.deepEqual(trashed, { code: marker, rows: 0, trash: 1 });
   });
 });

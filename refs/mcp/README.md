@@ -2,8 +2,8 @@
 
 Пользовательский вход — [гайд](../../docs/guides/mcp-server.md), точный контракт —
 [README пакета](../../packages/mcp-server/README.md) и schemas tools. Текущий
-сервер предоставляет девять физических file tools, XQuery, четыре XML tools
-и execute/system info/runtime status, а также десять tools пакетов объектов. Общий [SDK/runtime](../dotnet/managed-runtime.md) владеет
+сервер предоставляет девять физических file tools, XQuery, шесть tools для форм и объектов,
+запуск агентов, execute/system info/runtime status и десять tools пакетов объектов. Общий [SDK/runtime](../dotnet/managed-runtime.md) владеет
 платформенной логикой; MCP — адаптер.
 Node tsc/BS resources независимы от TS→BS compiler и script/module ABI.
 
@@ -27,7 +27,8 @@ immutable артефакты и точные границы native acceptance; �
 | Что Save делает относительно XMD/XMS/UI/claims                            | [Object model/lifecycle](../platform/object-model.md)   | [XMS source audit](../research/mcp/10-object-model/xms-and-business-logic.md)                                                                  |
 
 Серверный BorisScript: [execution, диагностика и неизвестный исход](execution.md),
-включая [native timeout acceptance](execution.md#native-проверка-2026-11-17).
+[native timeout acceptance](execution.md#native-проверка-2026-11-17) и
+[запуск существующего агента](execution.md#запуск-существующего-серверного-агента).
 
 ## Проверять изменённый слой
 

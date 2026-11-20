@@ -52,13 +52,14 @@ async function primed(t, evaluate, content = "abc") {
   return { client, readToken: JSON.parse(result.content[0].text).readToken };
 }
 
-test("MCP advertises all 27 tools", async (t) => {
+test("MCP advertises all 30 tools", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
     "wshcm_add_package_objects",
     "wshcm_create_directory",
     "wshcm_delete_file",
+    "wshcm_delete_object",
     "wshcm_delete_package_schema",
     "wshcm_edit_file",
     "wshcm_execute",
@@ -72,11 +73,13 @@ test("MCP advertises all 27 tools", async (t) => {
     "wshcm_import_package",
     "wshcm_inspect_package",
     "wshcm_list_directory",
+    "wshcm_list_object_types",
     "wshcm_list_package_schemas",
     "wshcm_move_file",
     "wshcm_patch_object",
     "wshcm_read_file",
     "wshcm_remove_package_objects",
+    "wshcm_run_agent",
     "wshcm_runtime_status",
     "wshcm_save_object",
     "wshcm_save_package_schema",
@@ -91,7 +94,7 @@ test("MCP advertises all 27 tools", async (t) => {
       assert.equal(tool.annotations.readOnlyHint, false);
       continue;
     }
-    if (tool.name === "wshcm_get_system_info") {
+    if (tool.name === "wshcm_get_system_info" || tool.name === "wshcm_list_object_types") {
       assert.equal(tool.annotations.readOnlyHint, true);
       continue;
     }
@@ -100,12 +103,14 @@ test("MCP advertises all 27 tools", async (t) => {
       tool.inputSchema.required.includes(
         {
           wshcm_get_form: "formUrl",
+          wshcm_delete_object: "id",
           wshcm_get_object: "id",
           wshcm_patch_object: "xml",
           wshcm_save_object: "xml",
           wshcm_xquery: "query",
           wshcm_move_file: "source",
           wshcm_execute: "code",
+          wshcm_run_agent: "agentId",
         }[tool.name] ?? "path",
       ),
     );
@@ -115,6 +120,23 @@ test("MCP advertises all 27 tools", async (t) => {
 test("unknown tools reject with a protocol error", async (t) => {
   const client = await connect(t);
   await assert.rejects(client.callTool({ name: "wshcm_unknown", arguments: {} }), { code: ProtocolErrorCode.InvalidParams });
+});
+
+test("run_agent returns the native wait receipt without replaying the launch", async (t) => {
+  const agentId = "7349577710243911718";
+  const receipt = { agentId, status: "wait_timeout" };
+  let calls = 0;
+  const client = await connect(t, () => {
+    calls++;
+    return JSON.stringify(receipt);
+  });
+  const result = await client.callTool({
+    name: "wshcm_run_agent",
+    arguments: { agentId, mode: "sync", waitTimeoutMs: 100 },
+  });
+  assert.notEqual(result.isError, true);
+  assert.deepEqual(JSON.parse(result.content[0].text), receipt);
+  assert.equal(calls, 1);
 });
 
 const path = "x-local://wt/a$&'\\${other}.bs";

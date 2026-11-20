@@ -7,6 +7,7 @@ import { WshcmObjects } from "./objects.js";
 import { executeXQuery } from "./xquery.js";
 import { getSystemInfo, type SystemInfoResult } from "./system-info.js";
 import { executeBorisScript, type ExecutionResult } from "./execute.js";
+import { runAgent, type RunAgentInput, type RunAgentResult } from "./run-agent.js";
 import type { XQueryResult } from "../xquery.js";
 import type { wshcmSchemas } from "./schemas.js";
 import type { WshcmEvaluator } from "./types.js";
@@ -50,5 +51,10 @@ export class WshcmApi {
   /** Execute BorisScript once; native failures retain print output, transport failures have an unknown outcome. */
   execute(input: z.input<typeof wshcmSchemas.execute>): Promise<ExecutionResult> {
     return executeBorisScript(this.evaluator, input);
+  }
+
+  /** Launch an existing agent with an optional bounded wait for its thread to end. */
+  runAgent(input: RunAgentInput): Promise<RunAgentResult> {
+    return runAgent(this.evaluator, input);
   }
 }
