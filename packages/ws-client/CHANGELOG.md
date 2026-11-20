@@ -1,5 +1,15 @@
 # @boristype/ws-client
 
+## 0.1.0-alpha.9
+
+### Minor Changes
+
+- 84e6b68: Discover registered object types and catalog forms with `wshcm_list_object_types`, launch existing BorisScript server agents with `wshcm_run_agent`, and move one document to the HCM trash using `wshcm_delete_object` and a fresh full-read token.
+
+  The type registry includes native document associations and configured custom-field summaries. An exact type lookup can also return field definitions grouped by their templates.
+
+- 78ed795: Read and edit custom field and page definitions for a common object type or a template owner such as a specific request type. The SDK and MCP tools support upsert, explicit removal, moving fields and pages, and preview. Writes check the shared document revision and preserve settings outside the requested operations. Edit values on individual objects through the existing XML patch tool.
+
 ## 0.1.0-alpha.8
 
 ### Minor Changes
