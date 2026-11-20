@@ -177,8 +177,13 @@ platform code. При неизвестном исходе установите �
 адресует один существующий тип заявки. У ненастроенного шаблона `exists: false`.
 
 `api.customFields.patch({scope, revision, operations, dryRun?})` применяет
-операции `upsertField`, `moveField`, `removeField`, `upsertPage`, `movePage`
-и `removePage`. Оба контракта доступны в `wshcmSchemas.customFields`.
+операции `upsertField`, `renameField`, `moveField`, `removeField`,
+`upsertPage`, `movePage` и `removePage`. Оба контракта доступны
+в `wshcmSchemas.customFields`. Чтение и запись включают заданные формулы,
+условия видимости и проверки значения, фильтр каталога, оформление и доступ
+к страницам по роли и точному ID группы. Пропущенные свойства сохраняются.
+[Параметры расширенных настроек](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#настраиваемые-поля)
+
 Revision нужно получить чтением этой области в том же экземпляре SDK.
 Изменение любой области общего документа конфликтует с устаревшей ревизией.
 Хранятся до 16 снимков с ограничением 512 KiB UTF-8 на XML реестра и

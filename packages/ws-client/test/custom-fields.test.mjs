@@ -119,6 +119,67 @@ test("native definitions can be read even when old text exceeds writable propert
   );
 });
 
+test("advanced settings and ordered visibility rows round-trip through the SDK contract", async () => {
+  const settings = {
+    defaultValueFormula: "GEnv.curObject.name",
+    validationCondition: "oValue != ''",
+    catalogFilter: "$elem/is_dismiss = false()",
+    comment: "Подсказка",
+    width: "100%",
+    height: "3gr",
+    visualClass: "hint",
+    maxChars: "120",
+    visibilityConditions: [
+      { field: "name", operator: "eq", value: "Иван", bracket: "(" },
+      { field: "office", operator: "cn", isCustomField: true, join: "or", value: "Два", bracket: ")" },
+    ],
+  };
+  const page = { id: "details", title: "Детали", accessRole: "hr", accessGroupId: "6357946981604418316" };
+  const definition = { ...empty, exists: true, fields: [{ ...field, ...settings }], pages: [page] };
+  const changes = [
+    { op: "upsertField", name, set: { ...settings, comment: null, visibilityConditions: [] } },
+    { op: "upsertPage", id: page.id, set: { accessRole: null, accessGroupId: page.accessGroupId } },
+  ];
+  const sdk = api((request) => {
+    if (request.operation === "get") return wire({ ok: true, snapshot, definition });
+    assert.deepEqual(request.operations, changes);
+    return wire({ ok: true, snapshot, definition, changed: true, writeStatus: "not_attempted" });
+  });
+  const before = await sdk.get({ scope });
+  assert.deepEqual(before.fields, definition.fields);
+  assert.deepEqual(before.pages, definition.pages);
+  await sdk.patch({ scope, revision: before.revision, operations: changes, dryRun: true });
+});
+
+test("unsafe group IDs and unbalanced visibility brackets are rejected before dispatch", async () => {
+  const sdk = api(() => assert.fail("unexpected evaluator call"));
+  const revision = "a".repeat(64);
+  await assert.rejects(
+    sdk.patch({ scope, revision, operations: [{ op: "upsertPage", id: "details", set: { accessGroupId: 6357946981604418316 } }] }),
+    /accessGroupId/,
+  );
+  await assert.rejects(
+    sdk.patch({
+      scope,
+      revision,
+      operations: [{ op: "upsertField", name, set: { visibilityConditions: [{ field: "name", bracket: ")" }] } }],
+    }),
+    /bracket/,
+  );
+});
+
+test("legacy visibility lists and zero group references remain readable", async () => {
+  const values = Array.from({ length: 257 }, (_, index) => String(index));
+  const visibilityConditions = values.map((value) => ({ field: "name", value }));
+  visibilityConditions[0].values = values;
+  const pages = [{ id: "details", title: "Детали", accessGroupId: "0" }];
+  const definition = { ...empty, exists: true, fields: [{ ...field, visibilityConditions }], pages };
+  const sdk = api(() => wire({ ok: true, snapshot, definition }));
+  const result = await sdk.get({ scope });
+  assert.deepEqual(result.fields[0].visibilityConditions, visibilityConditions);
+  assert.deepEqual(result.pages, pages);
+});
+
 test("a native readback failure retains the acknowledged save", async () => {
   const sdk = api((request) => {
     if (request.operation === "get") return wire({ ok: true, snapshot, definition: empty });

@@ -17,6 +17,8 @@ const key = z
   .max(128)
   .refine((value) => value.trim().length > 0 && validText(value) && !/[\r\n\t]/.test(value));
 const text = z.string().max(4096).refine(validText);
+// Existing native strings can exceed the editor's input limits. Bound the entire read projection.
+const nativeText = z.string().refine(validText);
 const scopeSchema = z.strictObject({
   objectType: z.string().regex(/^[A-Za-z_][A-Za-z0-9_.-]{0,127}$/),
   templateId: objectIdSchema.optional(),
@@ -30,17 +32,84 @@ const fieldProperties = z.strictObject({
   options: z.array(text).max(256),
   catalog: key.nullable(),
 });
+const advancedFieldText = <T extends z.ZodType<string | null | undefined>>(string: T) => ({
+  catalogFilter: string.describe("XQuery qualification used by a foreign_elem selector"),
+  validationCondition: string.describe("Native validation expression with oValue"),
+  comment: string,
+  defaultValueFormula: string.describe("Native default-value formula with GEnv.curUser and GEnv.curObject"),
+  width: string,
+  height: string,
+  visualClass: string,
+  maxChars: string.describe("Maximum characters, stored as native text"),
+});
+const conditionSchema = (string: typeof text) =>
+  z.strictObject({
+    field: string.optional(),
+    topElement: string.optional(),
+    title: string.optional(),
+    value: string.optional(),
+    type: string.optional(),
+    operator: string.describe("Native operator code such as eq, neq, gt, lt, gte, lte, cn or ncn").optional(),
+    isCustomField: z.boolean().optional(),
+    join: string.optional(),
+    isMultiple: z.boolean().optional(),
+    values: z.array(string).optional(),
+    bracket: string.optional(),
+  });
+const visibilityConditions = z
+  .array(
+    conditionSchema(text)
+      .extend({
+        join: z.enum(["and", "or"]).optional(),
+        bracket: z.enum(["(", ")"]).optional(),
+        values: z.array(text).max(256).optional(),
+      })
+      .refine(({ field, topElement }) => Boolean(field?.trim() || topElement?.trim()), "A condition needs a field or topElement"),
+  )
+  .max(256)
+  .refine((conditions) => {
+    let open = 0;
+    for (const row of conditions) {
+      if (row.bracket === "(") open++;
+      if (row.bracket === ")") open--;
+      if (open < 0) return false;
+    }
+    return open === 0;
+  }, "Visibility brackets must be balanced")
+  .describe("Replace the ordered native visibility conditions. Use [] to clear them.");
+const fieldPatch = fieldProperties
+  .extend({
+    ...advancedFieldText(text.nullable()),
+    visibilityConditions,
+  })
+  .partial();
+const pagePatch = z.strictObject({
+  title: text.optional(),
+  accessRole: key.nullable().optional().describe("Admin role code. Use null to clear the restriction."),
+  accessGroupId: objectIdSchema.nullable().optional().describe("Exact decimal group ID. Use null to clear the restriction."),
+});
 const moveAnchor = { before: key.optional(), after: key.optional() };
 const operationSchema = z
   .discriminatedUnion("op", [
-    z.strictObject({ op: z.literal("upsertField"), name: key, set: fieldProperties.partial() }),
+    z.strictObject({ op: z.literal("upsertField"), name: key, set: fieldPatch }),
+    z.strictObject({
+      op: z.literal("renameField"),
+      name: key,
+      newName: z
+        .string()
+        .max(128)
+        .regex(/^[A-Za-z][A-Za-z0-9_]*$/),
+    }),
     z.strictObject({ op: z.literal("removeField"), name: key }),
     z.strictObject({ op: z.literal("moveField"), name: key, ...moveAnchor }),
-    z.strictObject({ op: z.literal("upsertPage"), id: key, set: z.strictObject({ title: text }) }),
+    z.strictObject({ op: z.literal("upsertPage"), id: key, set: pagePatch }),
     z.strictObject({ op: z.literal("removePage"), id: key }),
     z.strictObject({ op: z.literal("movePage"), id: key, ...moveAnchor }),
   ])
   .superRefine((op, context) => {
+    if (op.op === "renameField" && op.name === op.newName) {
+      context.addIssue({ code: "custom", path: ["newName"], message: "The new field name must differ from the current name." });
+    }
     if (op.op !== "moveField" && op.op !== "movePage") return;
     const target = op.op === "moveField" ? op.name : op.id;
     if ((op.before === undefined) === (op.after === undefined) || (op.before ?? op.after) === target) {
@@ -66,8 +135,6 @@ const snapshotSchema = z.strictObject({
   url: z.string().min(1).max(2048),
   xml: z.string().min(1).max(registryBytes),
 });
-// Existing native strings can exceed the editor's input limits. Bound the entire read projection.
-const nativeText = z.string().refine(validText);
 const definitionSchema = z.strictObject({
   exists: z.boolean(),
   fields: z
@@ -79,10 +146,25 @@ const definitionSchema = z.strictObject({
         pageId: nativeText.nullable(),
         catalog: nativeText.nullable(),
         options: z.array(nativeText).max(256),
+        ...advancedFieldText(nativeText.optional()),
+        visibilityConditions: z.array(conditionSchema(nativeText)).optional(),
       }),
     )
     .max(1000),
-  pages: z.array(z.strictObject({ id: nativeText, title: nativeText })).max(1000),
+  pages: z
+    .array(
+      z.strictObject({
+        id: nativeText,
+        title: nativeText,
+        accessRole: nativeText.optional(),
+        // Keep imported integer values readable so an administrator can clear them.
+        accessGroupId: z
+          .string()
+          .regex(/^-?\d{1,20}$/)
+          .optional(),
+      }),
+    )
+    .max(1000),
   fieldTypes: z.array(z.strictObject({ id: nativeText, title: nativeText })).max(128),
 });
 const phase = z.enum(["input", "read", "validate", "save", "readback"]);

@@ -11,7 +11,14 @@ test("custom field definitions work through stdio and preserve the shared regist
   assert.match(templateId, /^[1-9]\d{0,19}$/, "Set WSHCM_E2E_TEMPLATE_ID to an unused request_type without a configured template");
   assert.ok(BigInt(templateId) <= 18446744073709551615n);
   const prefix = "bt_cf_" + randomUUID().replaceAll("-", "");
-  const names = { shared: prefix + "_g", first: prefix + "_a", second: prefix + "_b", page: prefix + "_p", other: prefix + "_q" };
+  const names = {
+    shared: prefix + "_g",
+    first: prefix + "_a",
+    second: prefix + "_b",
+    renamed: prefix + "_r",
+    page: prefix + "_p",
+    other: prefix + "_q",
+  };
   const scope = { objectType: "request_type", templateId };
   const common = { objectType: "subdivision" };
   const { client, transport } = stand.createClient();
@@ -43,8 +50,10 @@ var shared = root.subdivision.fields.GetOptChildByKey('${names.shared}');
   const run = async (code) => JSON.parse(JSON.parse(await evaluator.eval(prelude + code)));
   const read = () =>
     run(`
+var group = ArrayOptFirstElem(XQuery('for $g in groups return $g'));
 return EncodeJson(EncodeJson({xml:root.Xml,cacheMatches:root.Xml == custom_templates.Xml,
     hasTemplate:item != undefined,hasShared:shared != undefined,
+    groupId:(group == undefined ? '' : StrInt(group.id.Value)),
     owner:OpenDoc(UrlFromDocID(id)).TopElem.Name,
     inUse:ArrayOptFirstElem(XQuery('for $e in requests where $e/request_type_id = ' + StrInt(id) + ' return $e')) != undefined}));
 `);
@@ -101,6 +110,7 @@ return EncodeJson(EncodeJson({xml:fresh.Xml,cacheMatches:fresh.Xml == custom_tem
   assert.equal(original.inUse, false);
   assert.equal(original.hasTemplate, false, "Acceptance requires an unused request type");
   assert.equal(original.hasShared, false);
+  assert.match(original.groupId, /^[1-9]\d*$/, "Acceptance requires an existing group for the page restriction");
   baseline = original;
   await client.connect(transport, { timeout: 15_000 });
 
@@ -123,18 +133,55 @@ return EncodeJson(EncodeJson({xml:fresh.Xml,cacheMatches:fresh.Xml == custom_tem
   assert.ok(empty.fieldTypes.some(({ id }) => id === "combo"));
   await call("get", { scope: { objectType: "request_type" } }, "InvalidScope");
 
+  const filter = "$elem/is_dismiss = false()";
+  const access = { accessRole: "user", accessGroupId: original.groupId };
+  const settings = {
+    comment: "Поле O'фиса\nПодсказка",
+    defaultValueFormula: "throw 'This formula must not run during definition edits'",
+    validationCondition: "oValue != ''",
+    width: "45zr",
+    height: "3gr",
+    visualClass: "hint",
+    maxChars: "120",
+    visibilityConditions: [
+      { field: "status_id", value: "active", operator: "eq", type: "string", join: "and", bracket: "(" },
+      {
+        field: names.first,
+        title: "Ссылка",
+        type: "integer",
+        value: original.groupId,
+        isCustomField: true,
+        operator: "eq",
+        values: [original.groupId, "2", original.groupId],
+        join: "or",
+        bracket: ")",
+      },
+    ],
+  };
   const req = {
     scope,
     revision: empty.revision,
     operations: [
-      { op: "upsertPage", id: names.page, set: { title: "Детали" } },
+      { op: "upsertPage", id: names.page, set: { title: "Детали", ...access } },
       { op: "upsertPage", id: names.other, set: { title: "Ещё" } },
       { op: "movePage", id: names.page, after: names.other },
-      { op: "upsertField", name: names.first, set: { type: "foreign_elem", catalog: "subdivision", pageId: names.other } },
+      {
+        op: "upsertField",
+        name: names.first,
+        set: { type: "foreign_elem", catalog: "collaborator", pageId: names.other, catalogFilter: filter },
+      },
       {
         op: "upsertField",
         name: names.second,
-        set: { title: "Выбор O'фиса", type: "combo", required: true, showOnPortal: false, pageId: names.page, options: ["Один", "Два"] },
+        set: {
+          title: "Выбор O'фиса",
+          type: "combo",
+          required: true,
+          showOnPortal: false,
+          pageId: names.page,
+          options: ["Один", "Два"],
+          ...settings,
+        },
       },
       { op: "moveField", name: names.second, before: names.first },
     ],
@@ -151,6 +198,9 @@ return EncodeJson(EncodeJson({xml:fresh.Xml,cacheMatches:fresh.Xml == custom_tem
     preview.pages.map(({ id }) => id),
     [names.other, names.page],
   );
+  for (const [key, value] of Object.entries(settings)) assert.deepEqual(preview.fields[0][key], value);
+  assert.equal(preview.fields[1].catalogFilter, filter);
+  assert.deepEqual(preview.pages[1], { id: names.page, title: "Детали", ...access });
   assert.ok((await read()).xml === baseline.xml, "A preview must not write to the registry");
 
   const saved = await call("patch", req);
@@ -159,57 +209,145 @@ return EncodeJson(EncodeJson({xml:fresh.Xml,cacheMatches:fresh.Xml == custom_tem
   assert.deepEqual(saved.pages, preview.pages);
   assert.notEqual(saved.revision, empty.revision);
   assert.ok((await read()).cacheMatches);
+  const native = await run(`
+var field = item.fields.GetChildByKey('${names.second}');
+var selector = item.fields.GetChildByKey('${names.first}');
+var page = item.sheets.GetChildByKey('${names.page}');
+var target = OpenNewDoc('x-local://wtv/wtv_request.xmd').TopElem;
+var expr = tools.create_filter_javascript(field.view.conditions);
+target.status_id = 'active';
+var active = SafeEval(expr, [{curObject:target}]);
+target.status_id = 'fixture_other_status';
+var inactive = SafeEval(expr, [{curObject:target}]);
+return EncodeJson(EncodeJson({formula:String(field.default_value_eval.Value),qual:String(selector.xquery_qual.Value),
+    role:String(page.user_access_role.Value),groupId:StrInt(page.user_group_id.Value),active:active,inactive:inactive}));
+`);
+  assert.deepEqual(native, {
+    formula: settings.defaultValueFormula,
+    qual: filter,
+    role: access.accessRole,
+    groupId: access.accessGroupId,
+    active: true,
+    inactive: false,
+  });
+  const replay = await call("patch", {
+    scope,
+    revision: saved.revision,
+    operations: [
+      { op: "upsertField", name: names.second, set: settings },
+      { op: "upsertPage", id: names.page, set: access },
+    ],
+  });
+  assert.equal(replay.changed, false);
+  assert.equal(replay.writeStatus, "not_attempted");
+  assert.equal(replay.revision, saved.revision);
+  await call(
+    "patch",
+    { scope, revision: saved.revision, operations: [{ op: "upsertPage", id: names.page, set: { accessRole: prefix } }] },
+    "InvalidAccessRole",
+  );
+  await call(
+    "patch",
+    { scope, revision: saved.revision, operations: [{ op: "upsertPage", id: names.page, set: { accessGroupId: templateId } }] },
+    "InvalidAccessGroup",
+  );
+  await call(
+    "patch",
+    {
+      scope,
+      revision: saved.revision,
+      operations: [{ op: "upsertField", name: names.second, set: { visibilityConditions: [{ field: "status_id", operator: prefix }] } }],
+    },
+    "InvalidVisibilityOperator",
+  );
+  await call(
+    "patch",
+    { scope, revision: saved.revision, operations: [{ op: "renameField", name: names.second, newName: names.first }] },
+    "FieldExists",
+  );
   await call("patch", { scope, revision: saved.revision, operations: [{ op: "removePage", id: names.page }] }, "InvalidPage");
 
-  const addShared = [{ op: "upsertField", name: names.shared, set: { title: "Проба" } }];
+  const addShared = [{ op: "upsertField", name: names.shared, set: { title: "Проба", comment: "Для всех подразделений" } }];
   await call("patch", { scope: common, revision: regular.revision, operations: addShared }, "Conflict");
   const freshCommon = await call("get", { scope: common });
   const savedCommon = await call("patch", { scope: common, revision: freshCommon.revision, operations: addShared });
   assert.deepEqual(savedCommon.fields.slice(0, -1), regular.fields);
   assert.equal(savedCommon.fields.at(-1).type, "string");
   assert.equal(savedCommon.fields.at(-1).name, names.shared);
+  assert.equal(savedCommon.fields.at(-1).comment, "Для всех подразделений");
 
-  // An advanced property outside the public editor is added only to our fixture.
+  // The shared conditions schema has an XQuery qualification the custom-field dialog does not edit.
   await run(`
 if (item == undefined) throw 'Owned template missing';
 var field = item.fields.GetOptChildByKey('${names.second}');
-field.comment = 'Keep the unexposed native setting';
+field.view.conditions_qual = 'keep_native_qual';
 ms_tools.save_cached_doc(doc);
 return EncodeJson(EncodeJson(true));
 `);
   const editable = await call("get", { scope });
+  assert.deepEqual(editable.fields, saved.fields);
+  assert.deepEqual(editable.pages, saved.pages);
   await call("patch", { scope, revision: saved.revision, operations: [{ op: "removeField", name: names.first }] }, "Conflict");
   const edited = await call("patch", {
     scope,
     revision: editable.revision,
     operations: [
       { op: "upsertField", name: names.second, set: { title: "После правки", pageId: null, options: ["Два", "Один"] } },
-      { op: "removePage", id: names.page },
-      { op: "removeField", name: names.first },
+      { op: "upsertPage", id: names.page, set: { accessRole: null, accessGroupId: null } },
+      { op: "renameField", name: names.second, newName: names.renamed },
     ],
   });
   assert.equal(edited.writeStatus, "saved");
+  assert.deepEqual(edited.pages[1], { id: names.page, title: "Детали" });
+  assert.deepEqual(edited.fields[0], {
+    ...saved.fields[0],
+    name: names.renamed,
+    title: "После правки",
+    pageId: null,
+    options: ["Два", "Один"],
+  });
+  const clearedSettings = {
+    comment: null,
+    defaultValueFormula: null,
+    validationCondition: null,
+    width: null,
+    height: null,
+    visualClass: null,
+    maxChars: null,
+    visibilityConditions: [],
+  };
+  const cleared = await call("patch", {
+    scope,
+    revision: edited.revision,
+    operations: [
+      { op: "upsertField", name: names.renamed, set: clearedSettings },
+      { op: "upsertField", name: names.first, set: { catalogFilter: null } },
+      { op: "removePage", id: names.page },
+    ],
+  });
+  assert.equal(cleared.writeStatus, "saved");
   assert.deepEqual(
-    edited.pages.map(({ id }) => id),
+    cleared.pages.map(({ id }) => id),
     [names.other],
   );
-  assert.deepEqual(edited.fields, [{ ...saved.fields[0], title: "После правки", pageId: null, options: ["Два", "Один"] }]);
+  for (const key of Object.keys(clearedSettings)) assert.equal(Object.hasOwn(cleared.fields[0], key), false);
+  assert.equal(Object.hasOwn(cleared.fields[1], "catalogFilter"), false);
   assert.equal(
-    await run(`return EncodeJson(EncodeJson(String(item.fields.GetOptChildByKey('${names.second}').comment.Value)));`),
-    "Keep the unexposed native setting",
+    await run(`return EncodeJson(EncodeJson(String(item.fields.GetChildByKey('${names.renamed}').view.conditions_qual.Value)));`),
+    "keep_native_qual",
   );
   const unchanged = await call("patch", {
     scope,
-    revision: edited.revision,
-    operations: [{ op: "upsertField", name: names.second, set: { title: "После правки" } }],
+    revision: cleared.revision,
+    operations: [{ op: "upsertField", name: names.renamed, set: { title: "После правки", ...clearedSettings } }],
   });
   assert.equal(unchanged.changed, false);
   assert.equal(unchanged.writeStatus, "not_attempted");
-  assert.equal(unchanged.revision, edited.revision);
+  assert.equal(unchanged.revision, cleared.revision);
 
   // Reproduce the intermediate state of save_cached_doc without forcing a storage write failure.
   const beforeFault = await read();
-  const patchCache = `item.fields.GetOptChildByKey('${names.second}').comment = '${prefix}_cache_only';`;
+  const patchCache = `item.fields.GetChildByKey('${names.renamed}').comment = '${prefix}_cache_only';`;
   const cacheOnly = await run(`${patchCache} return EncodeJson(EncodeJson(root.Xml));`);
   assert.notEqual(cacheOnly, beforeFault.xml);
   try {
@@ -223,7 +361,7 @@ return EncodeJson(EncodeJson(true));
     assert.equal(diverged.cacheMatches, false);
     assert.ok(diverged.xml === beforeFault.xml, "Cache probe must not write to storage");
     await call("get", { scope }, "CacheMismatch");
-    await call("patch", { ...req, revision: edited.revision }, "CacheMismatch");
+    await call("patch", { ...req, revision: cleared.revision }, "CacheMismatch");
   } finally {
     const repaired = await run(`
 if (root.Xml != ${JSON.stringify(beforeFault.xml)}) throw 'Storage changed during cache probe';
@@ -235,7 +373,14 @@ return EncodeJson(EncodeJson(root.Xml == custom_templates.Xml));
 `);
     assert.equal(repaired, true);
   }
-  assert.equal((await call("get", { scope })).revision, edited.revision);
+  const current = await call("get", { scope });
+  assert.equal(current.revision, cleared.revision);
+  const removedField = await call("patch", {
+    scope,
+    revision: current.revision,
+    operations: [{ op: "removeField", name: names.first }],
+  });
+  assert.deepEqual(removedField.fields, [cleared.fields[0]]);
 
   const nowCommon = await call("get", { scope: common });
   const removed = await call("patch", {
@@ -250,7 +395,7 @@ return EncodeJson(EncodeJson(root.Xml == custom_templates.Xml));
       imageId: stand.imageId,
       templateId,
       carrier: "CLI/stdio/SOAP",
-      verified: "preview, save, order, conflict, remove, no-op",
+      verified: "preview, save, advanced settings, visibility evaluation, page access, rename, order, conflict, remove, no-op",
     }),
   );
 });
