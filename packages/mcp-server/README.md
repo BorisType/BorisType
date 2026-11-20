@@ -4,7 +4,7 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Использует [@boristype/ws-client](https://github.com/BorisType/BorisType/tree/main/packages/ws-client) для соединения с WSHCM сервером.
 
-Экспериментальный сервер предоставляет 30 tools. В их числе девять файловых,
+Экспериментальный сервер предоставляет 32 tools. В их числе девять файловых,
 десять для пакетов объектов, шесть для форм и объектов и запуск серверных агентов.
 Требуется Node.js >=24.22.2; для файловых tools — net9 HCM с доступным dotnetcore/shared. Общий API
 `ws-client` включает production DLL и автоматически подготавливает FileSystem
@@ -74,7 +74,7 @@ claude mcp list
 ## Доступность HCM
 
 С корректной конфигурацией stdio-сервер запускается при выключенном HCM.
-`initialize`, `tools/list` (30 tools) и `ping` обходятся без запросов к HCM.
+`initialize`, `tools/list` (32 tools) и `ping` обходятся без запросов к HCM.
 Первый вызов инструмента, которому нужен HCM, открывает соединение.
 Следующая явно запрошенная операция может восстановить его в том же процессе
 MCP. Фоновых проверок нет. Read tokens, package handles и локальные ZIP
@@ -131,38 +131,40 @@ instructions и skill не добавляют гарантий чтения, и�
 
 ## Tools
 
-| Tool                           | Назначение                                                |
-| ------------------------------ | --------------------------------------------------------- |
-| `wshcm_read_file`              | UTF-8 текст или диапазон строк, hash и readToken          |
-| `wshcm_write_file`             | Create-only либо перезапись после полного чтения          |
-| `wshcm_edit_file`              | Точные замены внутри прочитанных диапазонов               |
-| `wshcm_list_directory`         | Immediate entries, без recursion                          |
-| `wshcm_search_files`           | Поиск по именам и UTF-8 содержимому                       |
-| `wshcm_delete_file`            | Удаление отдельного файла                                 |
-| `wshcm_create_directory`       | Создание каталога и missing parents                       |
-| `wshcm_move_file`              | Rename без overwrite и copy/delete fallback               |
-| `wshcm_get_file_info`          | Metadata файла/каталога без чтения содержимого            |
-| `wshcm_runtime_status`         | Автоподготовка DLL и expected/installed/loaded identity   |
-| `wshcm_xquery`                 | Серверный XQuery, включая прямой SQL через `sql:`         |
-| `wshcm_get_system_info`        | Сводка стенда и опциональный штатный системный отчёт      |
-| `wshcm_execute`                | Серверный BorisScript: результат, диагностика и ошибки    |
-| `wshcm_run_agent`              | Запуск серверного агента с опциональным ожиданием         |
-| `wshcm_list_object_types`      | Типы объектов и отдельно зарегистрированные каталоги      |
-| `wshcm_get_form`               | XML раскрытого root загруженной XMD                       |
-| `wshcm_get_object`             | Полный экспортируемый XML объекта и readToken             |
-| `wshcm_save_object`            | Create либо полная замена объекта из XML                  |
-| `wshcm_patch_object`           | Частичная правка существующего объекта из XML             |
-| `wshcm_delete_object`          | Перемещение одного объекта в корзину после полного чтения |
-| `wshcm_list_package_schemas`   | Страница сохранённых схем и общая revision                |
-| `wshcm_get_package_schema`     | Схема по id, настройки и страница объектов                |
-| `wshcm_save_package_schema`    | Создание схемы или изменение имени/settings/editable      |
-| `wshcm_delete_package_schema`  | Удаление одной схемы, без удаления объектов               |
-| `wshcm_add_package_objects`    | Добавление IDs и явно выбранных зависимостей в схему      |
-| `wshcm_remove_package_objects` | Исключение IDs из схемы, без удаления объектов            |
-| `wshcm_export_package`         | ZIP из одной схемы либо точных IDs                        |
-| `wshcm_inspect_package`        | Неизменяемая копия ZIP, native preview и страницы состава |
-| `wshcm_import_package`         | Применение просмотренного пакета с явными опциями         |
-| `wshcm_get_package_operation`  | Сохранённое серверное состояние операции                  |
+| Tool                                   | Назначение                                                |
+| -------------------------------------- | --------------------------------------------------------- |
+| `wshcm_read_file`                      | UTF-8 текст или диапазон строк, hash и readToken          |
+| `wshcm_write_file`                     | Create-only либо перезапись после полного чтения          |
+| `wshcm_edit_file`                      | Точные замены внутри прочитанных диапазонов               |
+| `wshcm_list_directory`                 | Immediate entries, без recursion                          |
+| `wshcm_search_files`                   | Поиск по именам и UTF-8 содержимому                       |
+| `wshcm_delete_file`                    | Удаление отдельного файла                                 |
+| `wshcm_create_directory`               | Создание каталога и missing parents                       |
+| `wshcm_move_file`                      | Rename без overwrite и copy/delete fallback               |
+| `wshcm_get_file_info`                  | Metadata файла/каталога без чтения содержимого            |
+| `wshcm_runtime_status`                 | Автоподготовка DLL и expected/installed/loaded identity   |
+| `wshcm_xquery`                         | Серверный XQuery, включая прямой SQL через `sql:`         |
+| `wshcm_get_system_info`                | Сводка стенда и опциональный штатный системный отчёт      |
+| `wshcm_execute`                        | Серверный BorisScript: результат, диагностика и ошибки    |
+| `wshcm_run_agent`                      | Запуск серверного агента с опциональным ожиданием         |
+| `wshcm_list_object_types`              | Типы объектов и отдельно зарегистрированные каталоги      |
+| `wshcm_get_custom_field_definitions`   | Поля и страницы одного общего или индивидуального шаблона |
+| `wshcm_patch_custom_field_definitions` | Точечная правка полей и страниц с проверкой ревизии       |
+| `wshcm_get_form`                       | XML раскрытого root загруженной XMD                       |
+| `wshcm_get_object`                     | Полный экспортируемый XML объекта и readToken             |
+| `wshcm_save_object`                    | Create либо полная замена объекта из XML                  |
+| `wshcm_patch_object`                   | Частичная правка существующего объекта из XML             |
+| `wshcm_delete_object`                  | Перемещение одного объекта в корзину после полного чтения |
+| `wshcm_list_package_schemas`           | Страница сохранённых схем и общая revision                |
+| `wshcm_get_package_schema`             | Схема по id, настройки и страница объектов                |
+| `wshcm_save_package_schema`            | Создание схемы или изменение имени/settings/editable      |
+| `wshcm_delete_package_schema`          | Удаление одной схемы, без удаления объектов               |
+| `wshcm_add_package_objects`            | Добавление IDs и явно выбранных зависимостей в схему      |
+| `wshcm_remove_package_objects`         | Исключение IDs из схемы, без удаления объектов            |
+| `wshcm_export_package`                 | ZIP из одной схемы либо точных IDs                        |
+| `wshcm_inspect_package`                | Неизменяемая копия ZIP, native preview и страницы состава |
+| `wshcm_import_package`                 | Применение просмотренного пакета с явными опциями         |
+| `wshcm_get_package_operation`          | Сохранённое серверное состояние операции                  |
 
 Read/list/search/info помечены readOnlyHint. Write/edit/delete/move имеют
 `destructiveHint: true`, `idempotentHint: false`; create_directory —
@@ -618,6 +620,51 @@ writer может изменить документ между проверко�
 составляют 4096 записей на источник и 256 KiB UTF-8 на страницу.
 Для детализации действует предел 2048 определений, для шаблонов одного
 типа — 4096 записей.
+
+### Настраиваемые поля
+
+`wshcm_get_custom_field_definitions` читает `fields`, `pages` в порядке HCM,
+`fieldTypes` (коды и названия), `exists` и `revision`. Пример общей области:
+`{"scope":{"objectType":"subdivision"}}`. Для формы заявки передайте
+`{"scope":{"objectType":"request_type","templateId":"6405466310999430311"}}`.
+Замените ID на десятичную строку ID существующего **типа** заявки. Чтение
+ненастроенного шаблона возвращает `exists: false` и пустые списки.
+
+Правки идут в порядке `operations`. Используйте ревизию из чтения той же
+области в текущем экземпляре MCP. Пример предварительного просмотра:
+
+```json
+{
+  "scope": { "objectType": "subdivision" },
+  "revision": "<revision из чтения>",
+  "dryRun": true,
+  "operations": [
+    { "op": "upsertPage", "id": "details", "set": { "title": "Детали" } },
+    { "op": "upsertField", "name": "office", "set": { "title": "Офис", "type": "string", "pageId": "details" } },
+    { "op": "moveField", "name": "office", "before": "is_department" }
+  ]
+}
+```
+
+Доступны `upsertField`, `moveField`, `removeField` по `name` и
+`upsertPage`, `movePage`, `removePage` по `id`. Upsert добавляет в конец
+или меняет на месте. Для move нужен один из `before` или `after`.
+Поля поддерживают `title`, `type`, `required`, `showOnPortal`, `pageId`,
+`options` и `catalog`. `pageId: null` отвязывает поле от страницы.
+Для удаления страницы все привязки должны быть сняты в той же пачке.
+Список `options` целиком заменяет варианты в переданном порядке.
+Формулы, условия, оформление и права на страницы сохраняются при правке
+оставшихся определений. Значения объектов записывайте через `wshcm_patch_object`.
+
+Ревизия относится ко всему реестру. Если его изменила другая операция или
+админка, прочитайте область снова. `dryRun` и no-op возвращают
+`writeStatus: "not_attempted"` без Save. Сохранённая правка возвращает
+`"saved"`, новую ревизию и свежую конфигурацию. При потере ответа статус
+`"unknown"` требует перечитать конфигурацию перед повтором. При
+`CacheMismatch` кэш и сохранённый документ расходятся, нужна сверка на
+стороне HCM. Сравнение
+перед сохранением выполняется отдельно от Save. Процесс проверяет общий
+кэш и свежеоткрытый документ, кластерный сценарий отдельно не проверялся.
 
 ### Удаление объекта
 
