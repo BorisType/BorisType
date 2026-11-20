@@ -338,7 +338,7 @@ test("real CLI remains usable through offline boot, auth and repeated service ou
   );
   const port = server.address().port;
   const { client, call } = await openSession(t, port);
-  assert.equal((await client.listTools()).tools.length, 30);
+  assert.equal((await client.listTools()).tools.length, 32);
   await client.ping();
   assert.deepEqual(Object.values(calls), [0, 0, 0, 0, 0]);
   const execute = () => call("wshcm_execute", { code: "return 7;" }, true);

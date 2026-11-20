@@ -75,6 +75,10 @@ validation запрос handler не вызывает. Локальная object
 `template_field_id` читается напрямую как свойство, `ChildExists`
 его не обнаруживает. [Datex get_custom_template](https://wshcm-docs.boristype.dev/news/monolith/6680799737529721815.html#get-custom-template)
 
+[Исследование настраиваемых полей](../research/mcp/custom-field-templates.md)
+разбирает общий документ, привязку формы заявки к конкретному `request_type`
+и нативный путь сохранения с обновлением общего кэша.
+
 ## Перемещение в корзину
 
 Delete повторно открывает документ и сравнивает точный ID, форму, полный XML

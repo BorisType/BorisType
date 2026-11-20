@@ -6,6 +6,7 @@ import { objectXmlBytes } from "./object-xml.js";
 import { objectIdSchema as objectId } from "./object-id.js";
 import { objectTypesInputSchema } from "./object-types.js";
 import { runAgentInputSchema } from "./run-agent.js";
+import { customFieldSchemas } from "./custom-fields.js";
 
 const read = z
   .strictObject({
@@ -89,6 +90,7 @@ const xquery = z.strictObject({
 /** Shared SDK and MCP input contracts; defaults are applied by every SDK operation. */
 export const wshcmSchemas = {
   packages: packageSchemas,
+  customFields: customFieldSchemas,
   files: { read, write, edit, list, delete: deleteInput, mkdir, move, info, search: searchInput },
   objects: {
     listTypes: objectTypesInputSchema,

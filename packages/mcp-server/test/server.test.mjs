@@ -52,7 +52,7 @@ async function primed(t, evaluate, content = "abc") {
   return { client, readToken: JSON.parse(result.content[0].text).readToken };
 }
 
-test("MCP advertises all 30 tools", async (t) => {
+test("MCP advertises all 32 tools", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
@@ -64,6 +64,7 @@ test("MCP advertises all 30 tools", async (t) => {
     "wshcm_edit_file",
     "wshcm_execute",
     "wshcm_export_package",
+    "wshcm_get_custom_field_definitions",
     "wshcm_get_file_info",
     "wshcm_get_form",
     "wshcm_get_object",
@@ -76,6 +77,7 @@ test("MCP advertises all 30 tools", async (t) => {
     "wshcm_list_object_types",
     "wshcm_list_package_schemas",
     "wshcm_move_file",
+    "wshcm_patch_custom_field_definitions",
     "wshcm_patch_object",
     "wshcm_read_file",
     "wshcm_remove_package_objects",
@@ -88,6 +90,8 @@ test("MCP advertises all 30 tools", async (t) => {
     "wshcm_xquery",
   ]);
   assert.equal(tools.find(({ name }) => name === "wshcm_edit_file").annotations.idempotentHint, false);
+  assert.equal(tools.find(({ name }) => name === "wshcm_get_custom_field_definitions").annotations.readOnlyHint, true);
+  assert.equal(tools.find(({ name }) => name === "wshcm_patch_custom_field_definitions").annotations.destructiveHint, true);
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, "object");
     if (tool.name === "wshcm_runtime_status") {
@@ -103,9 +107,11 @@ test("MCP advertises all 30 tools", async (t) => {
       tool.inputSchema.required.includes(
         {
           wshcm_get_form: "formUrl",
+          wshcm_get_custom_field_definitions: "scope",
           wshcm_delete_object: "id",
           wshcm_get_object: "id",
           wshcm_patch_object: "xml",
+          wshcm_patch_custom_field_definitions: "revision",
           wshcm_save_object: "xml",
           wshcm_xquery: "query",
           wshcm_move_file: "source",

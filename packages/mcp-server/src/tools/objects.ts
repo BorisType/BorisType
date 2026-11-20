@@ -33,6 +33,26 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     (input) => objectResult(() => api.objects.listTypes(input)),
   );
   server.registerTool(
+    "wshcm_get_custom_field_definitions",
+    {
+      description:
+        "Read field and page definitions in their native order, available field type codes, and a revision. Use scope.objectType for common definitions, or scope.objectType and the exact templateId of an existing owner record such as request_type. An unconfigured template returns exists:false. Values on instances are read with wshcm_get_object.",
+      inputSchema: wshcmSchemas.customFields.get,
+      annotations: readAnnotations,
+    },
+    (input) => objectResult(() => api.customFields.get(input)),
+  );
+  server.registerTool(
+    "wshcm_patch_custom_field_definitions",
+    {
+      description:
+        "Apply ordered upsert, move or remove operations to one definition scope. Use revision from wshcm_get_custom_field_definitions in this session. dryRun previews without Save. Unspecified settings and other scopes are preserved. Move uses a before or after key. Updating or removing a definition leaves stored object values alone. Any concurrent registry change can cause Conflict. If the write outcome is unknown, reread before trying again.",
+      inputSchema: wshcmSchemas.customFields.patch,
+      annotations: writeAnnotations,
+    },
+    (input) => objectResult(() => api.customFields.patch(input)),
+  );
+  server.registerTool(
     "wshcm_get_form",
     {
       description:

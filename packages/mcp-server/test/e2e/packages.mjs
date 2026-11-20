@@ -102,7 +102,7 @@ test(
       const beforeCLI = evaluators();
       await client.connect(transport, { timeout: 35000 });
       receipt.toolCount = (await client.listTools()).tools.length;
-      assert.equal(receipt.toolCount, 30);
+      assert.equal(receipt.toolCount, 32);
       let schemas;
       try {
         schemas = await call("list_package_schemas", { limit: 1 });

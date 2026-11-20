@@ -4,6 +4,7 @@ import type { z } from "zod";
 import { WshcmFiles } from "./files.js";
 import { WshcmPackages, type WshcmPackageOptions } from "./packages/service.js";
 import { WshcmObjects } from "./objects.js";
+import { WshcmCustomFieldDefinitions } from "./custom-fields.js";
 import { executeXQuery } from "./xquery.js";
 import { getSystemInfo, type SystemInfoResult } from "./system-info.js";
 import { executeBorisScript, type ExecutionResult } from "./execute.js";
@@ -16,6 +17,7 @@ import type { WshcmEvaluator } from "./types.js";
 export class WshcmApi {
   readonly files: WshcmFiles;
   readonly objects: WshcmObjects;
+  readonly customFields: WshcmCustomFieldDefinitions;
   readonly packages: WshcmPackages;
   readonly runtime: WshcmRuntime;
 
@@ -35,6 +37,7 @@ export class WshcmApi {
       },
     });
     this.objects = new WshcmObjects(evaluator);
+    this.customFields = new WshcmCustomFieldDefinitions(evaluator);
     this.packages = new WshcmPackages(evaluator, packageOptions);
   }
 

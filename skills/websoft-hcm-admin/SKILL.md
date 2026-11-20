@@ -1,6 +1,6 @@
 ---
 name: websoft-hcm-admin
-description: Use when navigating the WebSoft HCM web administrator in a browser, locating employees, checking employee cards or contact details, taking administrator screenshots, or troubleshooting newly created records missing from text search.
+description: Use when navigating the WebSoft HCM web administrator in a browser, locating employees, checking employee cards or contact details, configuring custom fields or request type forms, taking screenshots, or troubleshooting records missing from text search.
 ---
 
 # WebSoft HCM: веб-администратор
@@ -11,6 +11,10 @@ MCP. Используй доступный browser tool и адрес целев
 Для поиска сотрудника, открытия карточки и сверки полей прочитай
 [сотрудники](references/employees.md). Там же описаны задержка полнотекстового
 индекса, обычные фильтры и границы проверенного сценария.
+
+Для общих полей типа и отдельных шаблонов заявок прочитай
+[настраиваемые поля](references/custom-fields.md). Там описаны выбор
+области, поле со списком значений на новой странице, сохранение и очистка пробы.
 
 ## Работа с интерфейсом
 
