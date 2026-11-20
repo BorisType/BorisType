@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { z } from "zod";
 import { buildScript } from "./load.js";
 import { WshcmObjectError } from "./object-error.js";
-import { objectIdSchema } from "./object-id.js";
 import type { WshcmEvaluator } from "./types.js";
 
 const template = readFileSync(new URL("../../resources/object-types.bs", import.meta.url), "utf8");
@@ -11,41 +10,11 @@ const kind = z.enum(["object", "catalog"]);
 const offset = z.number().int().nonnegative();
 const limit = z.number().int().min(1).max(250);
 
-export const objectTypesInputSchema = z
-  .strictObject({
-    offset: offset.default(0).describe("Number of matching entries to skip"),
-    limit: limit.default(100).describe("Maximum entries in the page"),
-    kind: kind.optional().describe("Filter by exact registry entry kind"),
-    objectType: z.string().min(1).max(256).optional().describe("Exact document type. Matches that type and its registered catalogs."),
-    includeCustomFields: z
-      .boolean()
-      .optional()
-      .describe("Include common field summaries and all registered templates for one exact document type."),
-  })
-  .refine((input) => !input.includeCustomFields || (input.objectType !== undefined && input.kind !== "catalog"), {
-    path: ["includeCustomFields"],
-    error: "Field definitions require objectType and a result that includes object entries",
-  });
-
-const customField = z.strictObject({
-  name: z.string().min(1),
-  type: z.string().min(1),
-  title: z.string().min(1).optional(),
-  required: z.boolean(),
-  catalog: z.string().min(1).optional(),
-});
-const customFields = z.strictObject({
-  typeFieldCount: z.number().int().nonnegative(),
-  typePageCount: z.number().int().nonnegative(),
-  templateCount: z.number().int().nonnegative().max(4096),
-  templatesWithFields: z.number().int().nonnegative().max(4096),
-  templateType: z.string().min(1).optional(),
-  templateSelector: z.string().min(1).optional(),
-  fields: z.array(customField).max(2048).optional(),
-  templates: z
-    .array(z.strictObject({ id: objectIdSchema, fields: z.array(customField).max(2048), pageCount: z.number().int().nonnegative() }))
-    .max(4096)
-    .optional(),
+export const objectTypesInputSchema = z.strictObject({
+  offset: offset.default(0).describe("Number of matching entries to skip"),
+  limit: limit.default(100).describe("Maximum entries in the page"),
+  kind: kind.optional().describe("Filter by exact registry entry kind"),
+  objectType: z.string().min(1).max(256).optional().describe("Exact document type. Matches that type and its registered catalogs."),
 });
 
 const response = z.discriminatedUnion("ok", [
@@ -65,7 +34,6 @@ const response = z.discriminatedUnion("ok", [
           isHier: z.boolean().optional(),
           supportsCustomFields: z.boolean().optional(),
           objectType: z.string().min(1).nullable().optional(),
-          customFields: customFields.optional(),
         }),
       )
       .max(250),
@@ -97,7 +65,6 @@ export async function listObjectTypes(evaluator: WshcmEvaluator, input: ObjectTy
         ...request,
         kind: request.kind ?? "",
         objectType: request.objectType ?? "",
-        includeCustomFields: request.includeCustomFields ?? false,
       }),
     }),
   );

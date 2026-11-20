@@ -90,7 +90,6 @@ test("MCP advertises all 32 tools", async (t) => {
     "wshcm_xquery",
   ]);
   assert.equal(tools.find(({ name }) => name === "wshcm_edit_file").annotations.idempotentHint, false);
-  assert.equal(tools.find(({ name }) => name === "wshcm_get_custom_field_definitions").annotations.readOnlyHint, true);
   assert.equal(tools.find(({ name }) => name === "wshcm_patch_custom_field_definitions").annotations.destructiveHint, true);
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, "object");
@@ -98,7 +97,7 @@ test("MCP advertises all 32 tools", async (t) => {
       assert.equal(tool.annotations.readOnlyHint, false);
       continue;
     }
-    if (tool.name === "wshcm_get_system_info" || tool.name === "wshcm_list_object_types") {
+    if (["wshcm_get_system_info", "wshcm_list_object_types", "wshcm_get_custom_field_definitions"].includes(tool.name)) {
       assert.equal(tool.annotations.readOnlyHint, true);
       continue;
     }
@@ -107,7 +106,6 @@ test("MCP advertises all 32 tools", async (t) => {
       tool.inputSchema.required.includes(
         {
           wshcm_get_form: "formUrl",
-          wshcm_get_custom_field_definitions: "scope",
           wshcm_delete_object: "id",
           wshcm_get_object: "id",
           wshcm_patch_object: "xml",

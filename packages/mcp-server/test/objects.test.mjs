@@ -136,6 +136,57 @@ test("list_object_types exposes separate object and catalog entries with registr
   };
   const client = await connect(t, () => JSON.stringify(JSON.stringify({ ok: true, ...page })));
   assert.deepEqual(await call(client, "list_object_types", {}), page);
+  const { tools } = await client.listTools();
+  const registry = tools.find((tool) => tool.name === "wshcm_list_object_types");
+  assert.equal(Object.hasOwn(registry.inputSchema.properties, "includeCustomFields"), false);
+});
+
+test("custom field lookup advertises a compact list and accepts a direct scope", async (t) => {
+  const listing = {
+    objectType: "request",
+    common: null,
+    templateType: "request_type",
+    templateSelector: "request_type_id",
+    offset: 0,
+    limit: 50,
+    total: 1,
+    templates: [{ templateId: id, fieldCount: 0, pageCount: 1 }],
+  };
+  let calls = 0;
+  const client = await connect(t, (script) => {
+    calls++;
+    const invocation = script.match(/ParseJson\(\s*('[\s\S]*')\s*\)\)\)\);\s*$/);
+    const input = JSON.parse(runInNewContext(invocation[1]));
+    if (input.operation === "list") {
+      assert.deepEqual(input, { operation: "list", objectType: "request", offset: 0, limit: 50 });
+      return JSON.stringify(JSON.stringify({ ok: true, listing }));
+    }
+    assert.deepEqual(input, { operation: "get", scope: { objectType: "request_type", templateId: id } });
+    return JSON.stringify(
+      JSON.stringify({
+        ok: true,
+        snapshot: { url: "x-local://wt_data/lists/wtv_custom_templates.xml", xml: "<custom_templates/>" },
+        definition: { exists: true, fields: [], pages: [{ id: "main", title: "Details" }], fieldTypes: [] },
+      }),
+    );
+  });
+  const { tools } = await client.listTools();
+  const lookup = tools.find((tool) => tool.name === "wshcm_get_custom_field_definitions");
+  assert.equal(lookup.inputSchema.type, "object");
+  assert.ok(lookup.inputSchema.properties.mode);
+  const mixed = await client.callTool({
+    name: lookup.name,
+    arguments: { mode: "list", objectType: "request", scope: { objectType: "request_type", templateId: id } },
+  });
+  assert.equal(mixed.isError, true);
+  assert.equal(calls, 0);
+  const found = await call(client, "get_custom_field_definitions", { mode: "list", objectType: "request" });
+  assert.deepEqual(found, listing);
+  const definitions = await call(client, "get_custom_field_definitions", {
+    scope: { objectType: found.templateType, templateId: found.templates[0].templateId },
+  });
+  assert.deepEqual(definitions.pages, [{ id: "main", title: "Details" }]);
+  assert.match(definitions.revision, /^[a-f0-9]{64}$/);
 });
 
 test("form/get/create/replace execute native API with original XML", async (t) => {

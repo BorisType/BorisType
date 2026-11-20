@@ -26,7 +26,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_list_object_types",
     {
       description:
-        "List HCM document types and catalog forms, including registered cc_* types. Catalog entries report their native objectType (null when HCM declares none). Filter by kind or exact objectType, and page with offset/limit. Object entries can report custom field and template counts, templateType and templateSelector. Match one objectType and set includeCustomFields to list every registered template, including empty ones. For full definitions, pass templateType as scope.objectType and the template id as scope.templateId to wshcm_get_custom_field_definitions.",
+        "Find registered HCM document types and catalog forms, including cc_* types. Filter by kind or exact objectType, and page with offset/limit. Use formUrl for wshcm_get_form and catalog names for wshcm_xquery. Catalog entries report their native objectType when HCM provides it. Object entries can report whether their XMD contains custom_elems. Use wshcm_get_custom_field_definitions for configured fields and templates.",
       inputSchema: wshcmSchemas.objects.listTypes,
       annotations: readAnnotations,
     },
@@ -36,11 +36,16 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_get_custom_field_definitions",
     {
       description:
-        "Read field and page definitions in native order, including configured formulas, visibility, style and page access, plus available field types and a revision. Use scope.objectType for common definitions, or also supply the exact templateId of an existing owner record such as request_type. An unconfigured template returns exists:false. Values on instances are read with wshcm_get_object.",
-      inputSchema: wshcmSchemas.customFields.get,
+        "Discover or read configured custom field and page definitions. Choose one input form: {mode:'list',objectType,offset?,limit?} for a page of registered template IDs and their selector, or {scope} for full definitions. Use scope.objectType for common fields. For a template, use the returned templateType as scope.objectType and the exact templateId from the list or selector. Only a full scope read supplies the revision for wshcm_patch_custom_field_definitions. Read instance values with wshcm_get_object.",
+      inputSchema: wshcmSchemas.customFields.lookup,
       annotations: readAnnotations,
     },
-    (input) => objectResult(() => api.customFields.get(input)),
+    (input) =>
+      objectResult(() => {
+        if ("scope" in input) return api.customFields.get(input);
+        const { mode: _, ...list } = input;
+        return api.customFields.list(list);
+      }),
   );
   server.registerTool(
     "wshcm_patch_custom_field_definitions",
@@ -56,7 +61,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_get_form",
     {
       description:
-        "Get the loaded, expanded XMD root as XML, with root and actual form URL. Inheritance is resolved by the platform; remaining dependencies/cache freshness are not guaranteed." +
+        "Get the loaded, expanded XMD root as XML, with root and actual form URL. Inheritance is resolved by the platform; remaining dependencies/cache freshness are not guaranteed. For configured custom fields and pages use wshcm_get_custom_field_definitions." +
         description,
       inputSchema: wshcmSchemas.objects.getForm,
       annotations: readAnnotations,

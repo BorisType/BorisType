@@ -33,6 +33,27 @@ function api(handler) {
   }).customFields;
 }
 
+test("SDK template discovery sends page bounds and returns a compact list", async () => {
+  const listing = {
+    objectType: "request",
+    common: null,
+    templateType: "request_type",
+    templateSelector: "request_type_id",
+    offset: 1,
+    limit: 1,
+    total: 2,
+    templates: [{ templateId: scope.templateId, title: "Тип заявки", fieldCount: 0, pageCount: 1 }],
+  };
+  const calls = [];
+  const sdk = api((request) => {
+    calls.push(request);
+    return wire({ ok: true, listing });
+  });
+  assert.deepEqual(await sdk.list({ objectType: "request", offset: 1, limit: 1 }), listing);
+  assert.deepEqual(calls, [{ operation: "list", objectType: "request", offset: 1, limit: 1 }]);
+  await assert.rejects(sdk.list({ objectType: "subdivision", offset: 1, limit: 1 }), /response/);
+});
+
 test("missing request type template carries a revision, and preview neither changes nor consumes it", async () => {
   const calls = [];
   const sdk = api((request) => {

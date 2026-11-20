@@ -127,6 +127,29 @@ return EncodeJson(EncodeJson({xml:fresh.Xml,cacheMatches:fresh.Xml == custom_tem
 
   const regular = await call("get", { scope: common });
   assert.equal(regular.exists, true);
+  const regularListing = await call("get", { mode: "list", objectType: common.objectType });
+  assert.deepEqual(regularListing.common, { fieldCount: regular.fields.length, pageCount: regular.pages.length });
+  assert.equal(regularListing.templateType, null);
+  assert.deepEqual(regularListing.templates, []);
+  const alias = await call("get", { mode: "list", objectType: "interval_schedule" });
+  assert.equal(alias.templateType, "presence_state_interval_schedule");
+  assert.equal(alias.templateSelector, "presence_state_id");
+  const presenceStateId = await run(`
+var state = ArrayOptFirstElem(XQuery('for $e in presence_states return $e'));
+return EncodeJson(EncodeJson((state == undefined ? '' : StrInt(state.id.Value))));
+`);
+  assert.match(presenceStateId, /^[1-9]\d*$/);
+  const aliasScope = { objectType: alias.templateType, templateId: presenceStateId };
+  const aliasDefinitions = await call("get", { scope: aliasScope });
+  const aliasPreview = await call("patch", {
+    scope: aliasScope,
+    revision: aliasDefinitions.revision,
+    dryRun: true,
+    operations: [{ op: "upsertPage", id: names.page, set: { title: "Интервалы" } }],
+  });
+  assert.equal(aliasPreview.writeStatus, "not_attempted");
+  assert.equal(aliasPreview.pages.at(-1).id, names.page);
+  await call("get", { scope: { ...aliasScope, templateId } }, "InvalidScope");
   const empty = await call("get", { scope });
   assert.equal(empty.exists, false);
   assert.deepEqual(empty.pages, []);
@@ -361,6 +384,7 @@ return EncodeJson(EncodeJson(true));
     assert.equal(diverged.cacheMatches, false);
     assert.ok(diverged.xml === beforeFault.xml, "Cache probe must not write to storage");
     await call("get", { scope }, "CacheMismatch");
+    await call("get", { mode: "list", objectType: "request" }, "CacheMismatch");
     await call("patch", { ...req, revision: cleared.revision }, "CacheMismatch");
   } finally {
     const repaired = await run(`
@@ -414,18 +438,24 @@ return EncodeJson(EncodeJson(root.Xml == custom_templates.Xml));
     revision: absent.revision,
     operations: [{ op: "upsertPage", id: names.page, set: { title: "Страница без полей" } }],
   });
-  const list = await client.callTool({
-    name: "wshcm_list_object_types",
-    arguments: { kind: "object", objectType: "request", includeCustomFields: true },
-  });
-  assert.notEqual(list.isError, true, list.content[0].text);
-  const { customFields } = JSON.parse(list.content[0].text).items[0];
-  assert.equal(customFields.templateType, "request_type");
-  assert.equal(customFields.templateSelector, "request_type_id");
-  assert.equal(customFields.templates.length, customFields.templateCount);
-  const listed = customFields.templates.find(({ id }) => id === templateId);
-  assert.deepEqual(listed, { id: templateId, fields: [], pageCount: 1 });
-  const exact = await call("get", { scope: { objectType: customFields.templateType, templateId: listed.id } });
+  const listing = await call("get", { mode: "list", objectType: "request" });
+  assert.equal(listing.templateType, "request_type");
+  assert.equal(listing.templateSelector, "request_type_id");
+  assert.equal(listing.common, null);
+  const offset = listing.templates.findIndex((entry) => entry.templateId === templateId);
+  assert.ok(offset >= 0);
+  const listed = listing.templates[offset];
+  assert.equal(listed.fieldCount, 0);
+  assert.equal(listed.pageCount, 1);
+  assert.match(listed.title, /\S/);
+  const nextPage = await call("get", { mode: "list", objectType: "request", offset, limit: 1 });
+  assert.equal(nextPage.total, listing.total);
+  assert.deepEqual(nextPage.templates, [listed]);
+  const ownerPage = await call("get", { mode: "list", objectType: listing.templateType, offset, limit: 1 });
+  assert.equal(ownerPage.templateType, listing.templateType);
+  assert.equal(ownerPage.templateSelector, null);
+  assert.deepEqual(ownerPage.templates, [listed]);
+  const exact = await call("get", { scope: { objectType: listing.templateType, templateId: listed.templateId } });
   assert.deepEqual(exact.fields, pageOnly.fields);
   assert.deepEqual(exact.pages, pageOnly.pages);
   await call("patch", { ...removeTemplate, revision: exact.revision });
@@ -444,7 +474,8 @@ return EncodeJson(EncodeJson(root.Xml == custom_templates.Xml));
       imageId: stand.imageId,
       templateId,
       carrier: "CLI/stdio/SOAP",
-      verified: "preview, save, advanced settings, visibility evaluation, page access, rename, order, conflict, remove template, no-op",
+      verified:
+        "preview, save, advanced settings, visibility evaluation, page access, rename, order, conflict, template discovery and removal, no-op",
     }),
   );
 });

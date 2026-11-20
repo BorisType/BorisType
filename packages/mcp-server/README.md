@@ -616,40 +616,45 @@ writer может изменить документ между проверко�
 не предоставляет это свойство. Передайте `{ "objectType": "cost_center" }`,
 чтобы получить точный тип и все каталоги, которые HCM связал с ним.
 
-`supportsCustomFields` показывает наличие элемента `custom_elems` в XMD
-документа. При наличии записи в `custom_templates` ответ также содержит
-`customFields.typeFieldCount` и `typePageCount` для общих определений,
-`templateCount` для всех зарегистрированных шаблонов и
-`templatesWithFields` для шаблонов с полями. Например,
-у `request` шаблон выбирается полем `request_type_id`. В ответе это
-`templateType: "request_type"` и `templateSelector: "request_type_id"`.
-
-Добавьте `includeCustomFields: true` к запросу по точному `objectType`.
-`customFields.fields` содержит краткие определения общих полей.
-`customFields.templates` перечисляет все зарегистрированные шаблоны
-в формате `{id,fields,pageCount}`, в том числе шаблоны с одними
-страницами и пустые. ID шаблона передаётся точной десятичной строкой.
-Краткое определение поля содержит `name`, `type`, `required` и доступные
-`title`, `catalog`. Чтобы получить полные определения и страницы, передайте
-`scope: { objectType: templateType, templateId: template.id }`
-в `wshcm_get_custom_field_definitions`. На карточке объекта значение по
-`templateSelector` указывает на нужный `templateId`.
+`supportsCustomFields` показывает наличие контейнера `custom_elems` в XMD
+документа. Используйте `formUrl` для `wshcm_get_form` и код каталога для
+`wshcm_xquery`. Чтобы узнать настроенные поля или шаблоны, вызовите
+`wshcm_get_custom_field_definitions`.
 
 `sources` содержит статусы `exchangeObjectTypes` и `registeredCatalogs`.
 `not_requested` означает, что источник исключён фильтром. На сборке без
 `GetRegisteredCatalogs` второй статус будет `unavailable`. Лимиты
 составляют 4096 записей на источник и 256 KiB UTF-8 на страницу.
-Для детализации действует предел 2048 определений, для шаблонов одного
-типа — 4096 записей.
 
 ### Настраиваемые поля
 
-`wshcm_get_custom_field_definitions` читает `fields`, `pages` в порядке HCM,
-`fieldTypes` (коды и названия), `exists` и `revision`. Пример общей области:
-`{"scope":{"objectType":"subdivision"}}`. Для формы заявки передайте
-`{"scope":{"objectType":"request_type","templateId":"6405466310999430311"}}`.
-Замените ID на десятичную строку ID существующего **типа** заявки. Чтение
-ненастроенного шаблона возвращает `exists: false` и пустые списки.
+Если область уже известна, вызовите `wshcm_get_custom_field_definitions`
+с `scope`. Для общих полей подразделения передайте
+`{"scope":{"objectType":"subdivision"}}`. Для шаблона формы заявки
+передайте `{"scope":{"objectType":"request_type","templateId":"6405466310999430311"}}`,
+подставив точный десятичный ID существующего типа заявки. Ответ содержит
+`fields`, `pages` в порядке HCM, `fieldTypes`, `exists` и `revision`.
+Чтение ненастроенного шаблона возвращает `exists: false` и пустые списки.
+
+Чтобы найти шаблон, вызовите тот же инструмент с
+`{"mode":"list","objectType":"request"}`. Для заявки ответ содержит
+`templateType: "request_type"` и `templateSelector: "request_type_id"`.
+В `templates` находятся зарегистрированные шаблоны, включая пустые.
+Каждая строка содержит `templateId`, `fieldCount`, `pageCount` и доступное
+название `title` длиной до 256 символов. `common` содержит счётчики
+общей области или `null`, если её нет. `offset` по умолчанию 0,
+`limit` — 50, максимум 100. `total` относится к текущему реестру.
+Между запросами страниц реестр может измениться.
+
+Для выбранной строки передайте `templateType` в `scope.objectType` и
+`templateId` в `scope.templateId`. Берите тип из списка, поскольку
+код раздела шаблонов может отличаться от корня XML владельца.
+При чтении `scope` проверяется существование записи владельца.
+Если работаете с существующей заявкой,
+нужный ID лежит в поле `request_type_id` из `wshcm_get_object`.
+Возьмите его точное десятичное представление, если XML показывает ID в hex.
+Ревизию для правки даёт чтение `scope`. Инструмент правки значений
+конкретного документа использует XML и readToken из чтения объекта.
 
 Правки идут в порядке `operations`. Используйте ревизию из чтения той же
 области в текущем экземпляре MCP. Пример предварительного просмотра:

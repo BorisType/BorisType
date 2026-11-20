@@ -41,7 +41,6 @@ function platform({
   objects = [exchange("cost_center", costForm, { title: "Центр затрат" }), exchange("cc_fixture", customForm, { isCustom: true })],
   catalogs = [groupCatalog, costCatalog, customCatalog],
   getCatalogs = () => catalogs,
-  customTemplates,
   fetchForm = (url) => {
     if (!mappings.has(url)) throw new Error("Catalog form failed to load");
     return mappings.get(url);
@@ -52,7 +51,6 @@ function platform({
       assert.doesNotMatch(code, /\b(?:OpenDoc|OpenNewDoc|XQuery|RunSql|RegisterCatalog|Save)\s*\(/);
       return runInNewContext(`(function () { ${code}\n})()`, {
         common: { exchange_object_types: objects },
-        custom_templates: customTemplates,
         DefaultDb: { GetRegisteredCatalogs: getCatalogs },
         ArrayCount: (collection) => collection.length,
         ArraySelectAll: (collection) => [...collection],
@@ -143,63 +141,6 @@ test("catalog associations use only native ObjectName and exact filtering", asyn
     filtered.items.map(({ name }) => name),
     ["cost_center", "cost_centers"],
   );
-});
-
-test("template discovery reports registered templates with fields, only pages, or neither", async () => {
-  const field = (name, type, title, required = false) => ({
-    name: { Value: name },
-    type: { Value: type },
-    title: { Value: title },
-    is_required: { Value: required },
-    catalog: { Value: "" },
-  });
-  const fields = (...entries) => Object.assign(entries, { ChildNum: entries.length });
-  const node = (children) => ({ ...children, OptChild: (name) => children[name], ChildExists: (name) => Object.hasOwn(children, name) });
-  const evaluator = platform({
-    objects: [exchange("request", ""), exchange("request_type", "")],
-    customTemplates: node({
-      request: node({
-        fields: fields(field("tag", "string", "Метка")),
-        sheets: fields({ id: "general" }),
-        template_field: { Value: "request_type" },
-        template_field_id: "request_type_id",
-      }),
-      request_type: node({
-        items: fields(
-          {
-            ...node({ fields: fields(field("comment", "string", "Комментарий", true)), sheets: fields() }),
-            id: { Value: 9007199254740993n },
-          },
-          { ...node({ fields: fields(), sheets: fields({ id: "details" }) }), id: { Value: 1n } },
-          { ...node({ fields: fields(), sheets: fields() }), id: { Value: 2n } },
-        ),
-      }),
-    }),
-  });
-  const summary = {
-    typeFieldCount: 1,
-    typePageCount: 1,
-    templateCount: 3,
-    templatesWithFields: 1,
-    templateType: "request_type",
-    templateSelector: "request_type_id",
-  };
-  assert.deepEqual((await listObjectTypes(evaluator, { kind: "object" })).items[0].customFields, summary);
-  const detailed = await listObjectTypes(evaluator, { kind: "object", objectType: "request", includeCustomFields: true });
-  const templates = [
-    { id: "9007199254740993", fields: [{ name: "comment", type: "string", title: "Комментарий", required: true }], pageCount: 0 },
-    { id: "1", fields: [], pageCount: 1 },
-    { id: "2", fields: [], pageCount: 0 },
-  ];
-  assert.deepEqual(detailed.items[0].customFields, {
-    ...summary,
-    fields: [{ name: "tag", type: "string", title: "Метка", required: false }],
-    templates,
-  });
-  const owner = (await listObjectTypes(evaluator, { kind: "object", objectType: "request_type", includeCustomFields: true })).items[0];
-  assert.equal(owner.customFields.templateType, "request_type");
-  assert.deepEqual(owner.customFields.templates, templates);
-  await assert.rejects(listObjectTypes(evaluator, { includeCustomFields: true }));
 });
 
 test("unavailable catalog enumeration is explicit and actual registry errors are surfaced", async () => {

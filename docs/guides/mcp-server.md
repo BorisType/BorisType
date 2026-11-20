@@ -286,15 +286,6 @@ string, integer, bool, real и date. Binary, TEMP и методы исключе
 каталог `cost_centers` со ссылкой на этот тип. У каталогов без объявленного
 типа документа `objectType` равен `null`.
 
-Для просмотра настроенных полей передайте
-`{ "objectType": "request", "includeCustomFields": true }`.
-`customFields.fields` перечисляет общие поля, а `customFields.templates`
-содержит все зарегистрированные шаблоны, включая пустые. Для `request`
-инструмент возвращает `templateType: "request_type"` и
-`templateSelector: "request_type_id"`. Для полных определений выбранного
-шаблона вызовите `wshcm_get_custom_field_definitions` с `scope.objectType`
-из `templateType` и `scope.templateId` из `templates[].id`.
-
 `wshcm_delete_object({id,readToken})` перемещает один документ в корзину HCM.
 Возьмите точный ID и свежий токен из `wshcm_get_object`. Если XML объекта или
 формы изменился, операция вернёт `Conflict`. Сравнение и удаление выполняются
@@ -303,9 +294,18 @@ string, integer, bool, real и date. Binary, TEMP и методы исключе
 
 ### Настраиваемые поля
 
-`wshcm_get_custom_field_definitions` читает поля и страницы. Для общих
-полей передайте `scope: {objectType: "subdivision"}`. Для формы заявки
-передайте `scope: {objectType: "request_type", templateId: "<ID типа заявки>"}`.
+`wshcm_get_custom_field_definitions` читает поля и страницы. Если область
+известна, передайте её сразу. Общие поля подразделения адресуются
+`scope: {objectType: "subdivision"}`, а шаблон формы заявки —
+`scope: {objectType: "request_type", templateId: "<ID типа заявки>"}`.
+
+Чтобы найти шаблон, сначала передайте `{mode:"list",objectType:"request"}`
+в тот же инструмент. Он вернёт страницу зарегистрированных шаблонов,
+тип владельца `templateType: "request_type"` и поле-селектор
+`templateSelector: "request_type_id"`. Для чтения полного шаблона передайте
+`templateType` в `scope.objectType` и выбранный `templateId` в
+`scope.templateId`. У существующей заявки селектор можно прочитать
+через `wshcm_get_object`.
 
 Передайте полученную `revision` и нужные операции в
 `wshcm_patch_custom_field_definitions`. Можно добавить, править, перемещать

@@ -19,8 +19,9 @@ const key = z
 const text = z.string().max(4096).refine(validText);
 // Existing native strings can exceed the editor's input limits. Bound the entire read projection.
 const nativeText = z.string().refine(validText);
+const objectType = z.string().regex(/^[A-Za-z_][A-Za-z0-9_.-]{0,127}$/);
 const scopeSchema = z.strictObject({
-  objectType: z.string().regex(/^[A-Za-z_][A-Za-z0-9_.-]{0,127}$/),
+  objectType,
   templateId: objectIdSchema.optional(),
 });
 const fieldProperties = z.strictObject({
@@ -118,12 +119,24 @@ const operationSchema = z
     }
   });
 
+const getInput = z.strictObject({
+  scope: scopeSchema.describe("For full definitions, pass the common object type or the template owner type and exact templateId."),
+});
+const listOffset = z.number().int().nonnegative();
+const listLimit = z.number().int().min(1).max(100);
+const listInput = z.strictObject({
+  objectType: objectType.describe("Document type or template owner type to look up in the shared custom field registry"),
+  offset: listOffset.optional().describe("Number of registered templates to skip, default 0"),
+  limit: listLimit.optional().describe("Maximum templates on this page, default 50"),
+});
+const listMode = z.literal("list").describe("Use list to discover templates. For a full read, pass scope.");
+
 export const customFieldSchemas = {
-  get: z.strictObject({
-    scope: scopeSchema.describe(
-      "Use objectType for a common definition or objectType and exact templateId for an existing template owner.",
-    ),
-  }),
+  get: getInput,
+  lookup: z
+    .strictObject({ ...listInput.partial().shape, mode: listMode.optional(), scope: getInput.shape.scope.optional() })
+    .pipe(z.union([getInput, listInput.extend({ mode: listMode })])),
+  list: listInput,
   patch: z.strictObject({
     scope: scopeSchema,
     revision: z.string().regex(/^[a-f0-9]{64}$/),
@@ -170,24 +183,36 @@ const definitionSchema = z.strictObject({
 });
 const phase = z.enum(["input", "read", "validate", "save", "readback"]);
 const writeStatus = z.enum(["not_attempted", "unknown", "saved"]);
-const carrier = z.discriminatedUnion("ok", [
-  z.strictObject({
-    ok: z.literal(true),
-    snapshot: snapshotSchema,
-    definition: definitionSchema,
-    changed: z.boolean().optional(),
-    writeStatus: z.enum(["not_attempted", "saved"]).optional(),
-  }),
-  z.strictObject({
-    ok: z.literal(false),
-    phase,
-    writeStatus,
-    error: z.strictObject({ code: z.string().min(1).max(80), message: z.string().max(2000) }),
-  }),
-]);
+const definitionResponse = z.strictObject({
+  ok: z.literal(true),
+  snapshot: snapshotSchema,
+  definition: definitionSchema,
+  changed: z.boolean().optional(),
+  writeStatus: z.enum(["not_attempted", "saved"]).optional(),
+});
+const counts = z.strictObject({ fieldCount: z.number().int().nonnegative(), pageCount: z.number().int().nonnegative() });
+const listingSchema = z.strictObject({
+  objectType,
+  common: counts.nullable(),
+  templateType: objectType.nullable(),
+  templateSelector: nativeText.min(1).max(512).nullable(),
+  offset: listOffset,
+  limit: listLimit,
+  total: z.number().int().nonnegative(),
+  templates: z.array(counts.extend({ templateId: objectIdSchema, title: nativeText.max(512).optional() })).max(100),
+});
+const listResponse = z.strictObject({ ok: z.literal(true), listing: listingSchema });
+const errorResponse = z.strictObject({
+  ok: z.literal(false),
+  phase,
+  writeStatus,
+  error: z.strictObject({ code: z.string().min(1).max(80), message: z.string().max(2000) }),
+});
 
 export type CustomFieldScope = z.output<typeof scopeSchema>;
-export type GetCustomFieldDefinitionsInput = z.input<typeof customFieldSchemas.get>;
+export type GetCustomFieldDefinitionsInput = z.input<typeof getInput>;
+export type ListCustomFieldTemplatesInput = z.input<typeof listInput>;
+export type CustomFieldTemplateList = z.output<typeof listingSchema>;
 export type PatchCustomFieldDefinitionsInput = z.input<typeof customFieldSchemas.patch>;
 export type CustomFieldDefinitions = z.output<typeof definitionSchema> & { scope: CustomFieldScope; revision: string };
 export type CustomFieldPatchResult = CustomFieldDefinitions & {
@@ -198,7 +223,9 @@ export type CustomFieldPatchResult = CustomFieldDefinitions & {
 
 type Snapshot = z.output<typeof snapshotSchema>;
 type Patch = z.output<typeof customFieldSchemas.patch>;
-type Request = { operation: "get"; scope: CustomFieldScope } | ({ operation: "patch"; expected: Snapshot } & Omit<Patch, "revision">);
+type DefinitionRequest =
+  { operation: "get"; scope: CustomFieldScope } | ({ operation: "patch"; expected: Snapshot } & Omit<Patch, "revision">);
+type ListRequest = { operation: "list"; objectType: string; offset: number; limit: number };
 type Status = WshcmObjectErrorDetails["writeStatus"];
 
 function failure(
@@ -237,7 +264,7 @@ export class WshcmCustomFieldDefinitions {
     return revision;
   }
 
-  private async invoke(request: Request) {
+  private async invoke<T>(request: DefinitionRequest | ListRequest, parse: (value: unknown) => T): Promise<T> {
     if (request.operation === "patch") {
       let size = 0;
       for (const op of request.operations) {
@@ -257,29 +284,19 @@ export class WshcmCustomFieldDefinitions {
       throw failure("TransportError", "Custom field request failed", "transport", maySave && !unsent ? "unknown" : "not_attempted", cause);
     }
 
-    let result: z.output<typeof carrier>;
     try {
-      const maxDecoded = (registryBytes + definitionBytes) * 2;
+      const maxDecoded = request.operation === "list" ? definitionBytes : (registryBytes + definitionBytes) * 2;
       if (typeof wire !== "string" || Buffer.byteLength(wire, "utf8") > maxDecoded * 6 + 2) throw new Error("Invalid native carrier");
       const payload: unknown = JSON.parse(wire);
       if (typeof payload !== "string" || !payload.isWellFormed() || Buffer.byteLength(payload, "utf8") > maxDecoded)
         throw new Error("Invalid native envelope");
-      result = carrier.parse(JSON.parse(payload));
-      if (result.ok) {
-        if (
-          !result.snapshot.xml.isWellFormed() ||
-          Buffer.byteLength(result.snapshot.xml, "utf8") > registryBytes ||
-          Buffer.byteLength(JSON.stringify(result.definition), "utf8") > definitionBytes ||
-          (!result.definition.exists && (result.definition.fields.length > 0 || result.definition.pages.length > 0))
-        )
-          throw new Error("Invalid native definition bounds or presence");
-        if (request.operation === "get") {
-          if (result.changed !== undefined || result.writeStatus !== undefined) throw new Error("Unexpected mutation result");
-        } else if (result.changed === undefined || result.writeStatus !== (maySave && result.changed ? "saved" : "not_attempted")) {
-          throw new Error("Inconsistent mutation result");
-        }
-      }
+      const value: unknown = JSON.parse(payload);
+      const failed = errorResponse.safeParse(value);
+      if (failed.success)
+        throw new WshcmObjectError({ phase: failed.data.phase, writeStatus: failed.data.writeStatus, error: failed.data.error });
+      return parse(value);
     } catch (cause) {
+      if (cause instanceof WshcmObjectError) throw cause;
       throw failure(
         "InvalidResponse",
         "Custom field response could not be verified",
@@ -288,14 +305,50 @@ export class WshcmCustomFieldDefinitions {
         cause,
       );
     }
-    if (!result.ok) throw new WshcmObjectError({ phase: result.phase, writeStatus: result.writeStatus, error: result.error });
-    return result;
+  }
+
+  private invokeDefinition(request: DefinitionRequest) {
+    return this.invoke(request, (value) => {
+      const result = definitionResponse.parse(value);
+      if (
+        !result.snapshot.xml.isWellFormed() ||
+        Buffer.byteLength(result.snapshot.xml, "utf8") > registryBytes ||
+        Buffer.byteLength(JSON.stringify(result.definition), "utf8") > definitionBytes ||
+        (!result.definition.exists && (result.definition.fields.length > 0 || result.definition.pages.length > 0))
+      )
+        throw new Error("Invalid native definition bounds or presence");
+      if (request.operation === "get") {
+        if (result.changed !== undefined || result.writeStatus !== undefined) throw new Error("Unexpected mutation result");
+      } else if (result.changed === undefined || result.writeStatus !== (!request.dryRun && result.changed ? "saved" : "not_attempted")) {
+        throw new Error("Inconsistent mutation result");
+      }
+      return result;
+    });
+  }
+
+  async list(input: ListCustomFieldTemplatesInput): Promise<CustomFieldTemplateList> {
+    const { objectType, offset = 0, limit = 50 } = listInput.parse(input);
+    return this.run(() =>
+      this.invoke({ operation: "list", objectType, offset, limit }, (value) => {
+        const { listing } = listResponse.parse(value);
+        const expectedSize = Math.min(limit, Math.max(0, listing.total - offset));
+        if (
+          listing.objectType !== objectType ||
+          listing.offset !== offset ||
+          listing.limit !== limit ||
+          listing.templates.length !== expectedSize ||
+          (listing.templateType === null && (listing.total !== 0 || listing.templateSelector !== null))
+        )
+          throw new Error("Inconsistent custom field template page");
+        return listing;
+      }),
+    );
   }
 
   async get(input: GetCustomFieldDefinitionsInput): Promise<CustomFieldDefinitions> {
-    const { scope } = customFieldSchemas.get.parse(input);
+    const { scope } = getInput.parse(input);
     return this.run(async () => {
-      const { snapshot, definition } = await this.invoke({ operation: "get", scope });
+      const { snapshot, definition } = await this.invokeDefinition({ operation: "get", scope });
       return { ...definition, scope, revision: this.record(scope, snapshot) };
     });
   }
@@ -306,7 +359,7 @@ export class WshcmCustomFieldDefinitions {
       const key = snapshotKey(args.scope, revision);
       const expected = this.snapshots.get(key);
       if (!expected) throw failure("ReadRequired", "Read this custom field scope in this SDK instance first", "input", "not_attempted");
-      const result = await this.invoke({ ...args, operation: "patch", expected }).catch((error: unknown) => {
+      const result = await this.invokeDefinition({ ...args, operation: "patch", expected }).catch((error: unknown) => {
         if (error instanceof WshcmObjectError && error.details.writeStatus !== "not_attempted") this.snapshots.delete(key);
         throw error;
       });

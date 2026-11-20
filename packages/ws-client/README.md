@@ -96,10 +96,9 @@ HTTP 500. Если вызывающий код использует свой eva
 - `objects.getForm/get/save/patch(input)` — раскрытая XMD и XML объектов. ID
   передаётся строкой, replace и patch требуют token полного чтения. `.details` у `WshcmObjectError`
   сохраняет phase/writeStatus/id, включая неизвестный исход Save.
-- `objects.listTypes({kind?,objectType?,offset?,limit?,includeCustomFields?})` —
-  реестр типов и каталогов с нативной связью между ними. При запросе
-  по точному `objectType` можно получить определения настроенных полей
-  и шаблонов.
+- `objects.listTypes({kind?,objectType?,offset?,limit?})` — реестр типов
+  и каталогов с нативной связью между ними. Для поиска настраиваемых полей
+  и шаблонов используйте `customFields.list`.
 - `objects.delete({id,readToken})` — перемещение одного документа в корзину
   после проверки полного XML и формы из чтения. `WshcmObjectDeleteError.details`
   сохраняет известный ID и исход попытки.
@@ -171,6 +170,12 @@ platform code. При неизвестном исходе установите �
 
 ## Определения настраиваемых полей
 
+`api.customFields.list({objectType, offset?, limit?})` даёт компактную
+страницу зарегистрированных шаблонов. Для `request` ответ содержит
+`templateType: "request_type"` и `templateSelector: "request_type_id"`.
+У строки есть `templateId`, доступное название и счётчики полей и страниц.
+Для полного чтения передайте тип владельца и точный ID в `scope`.
+
 `api.customFields.get({scope})` читает поля, страницы и коды типов из общего
 документа HCM. Область `{objectType: "subdivision"}` адресует общие определения.
 Область `{objectType: "request_type", templateId: "6405466310999430311"}`
@@ -179,7 +184,7 @@ platform code. При неизвестном исходе установите �
 `api.customFields.patch({scope, revision, operations, dryRun?})` применяет
 операции `upsertField`, `renameField`, `moveField`, `removeField`,
 `upsertPage`, `movePage`, `removePage` и `removeTemplate`. Последняя
-удаляет конфигурацию одной записи по `scope.templateId`. Оба контракта доступны
+удаляет конфигурацию одной записи по `scope.templateId`. Схемы доступны
 в `wshcmSchemas.customFields`. Чтение и запись включают заданные формулы,
 условия видимости и проверки значения, фильтр каталога, оформление и доступ
 к страницам по роли и точному ID группы. Пропущенные свойства сохраняются.

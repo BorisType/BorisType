@@ -115,6 +115,8 @@ test("XML object MVP through CLI/stdio/SOAP on an exclusive local stand", { time
     }
     assert.equal(object?.kind, "object");
     assert.equal(object.formUrl, formUrl);
+    assert.equal(object.supportsCustomFields, true);
+    assert.equal(Object.hasOwn(object, "customFields"), false);
     assert.equal(catalog?.kind, "catalog");
     assert.equal(catalog.isHier, true);
     assert.equal(catalog.objectType, "cost_center");
@@ -127,19 +129,6 @@ test("XML object MVP through CLI/stdio/SOAP on an exclusive local stand", { time
       ["object", "catalog"],
     );
     t.diagnostic(JSON.stringify({ objectTypes: objects.total, catalogs: catalogs.total, object, catalog }));
-  });
-  await check("configured field definitions include type fields and field groups per template", async () => {
-    const subdivision = (await call("list_object_types", { kind: "object", objectType: "subdivision", includeCustomFields: true })).items[0]
-      .customFields;
-    assert.equal(subdivision.fields.length, subdivision.typeFieldCount);
-    const request = (await call("list_object_types", { kind: "object", objectType: "request", includeCustomFields: true })).items[0]
-      .customFields;
-    assert.equal(request.templates.length, request.templateCount);
-    assert.equal(request.templates.filter(({ fields }) => fields.length > 0).length, request.templatesWithFields);
-    assert.equal(request.templateType, "request_type");
-    assert.equal(request.templateSelector, "request_type_id");
-    assert.ok(request.templates.every(({ id, pageCount }) => /^[1-9]\d*$/.test(id) && Number.isInteger(pageCount)));
-    t.diagnostic(JSON.stringify({ subdivisionFields: subdivision.typeFieldCount, requestTemplates: request.templateCount }));
   });
   await check("expanded native form without inherited file traversal", async () => {
     const form = await call("get_form", { formUrl });

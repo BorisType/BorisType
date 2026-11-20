@@ -25,8 +25,10 @@ export { WshcmCustomFieldDefinitions } from "./hcm/custom-fields.js";
 export type {
   CustomFieldScope,
   CustomFieldDefinitions,
+  CustomFieldTemplateList,
   CustomFieldPatchResult,
   GetCustomFieldDefinitionsInput,
+  ListCustomFieldTemplatesInput,
   PatchCustomFieldDefinitionsInput,
 } from "./hcm/custom-fields.js";
 export { wshcmSchemas } from "./hcm/schemas.js";

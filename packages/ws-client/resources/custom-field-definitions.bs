@@ -49,8 +49,15 @@ function BtCfOwner(root, scope) {
         } catch (err) {
             throw 'InvalidScope: The template owner record could not be opened';
         }
-        if (document.DocID != id || document.TopElem.Name != scope.objectType)
+        if (document.DocID != id) throw 'InvalidScope: The template owner document ID does not match';
+        if (document.TopElem.Name != scope.objectType) {
+            // Some registry types use a different owner document type declared on item.id.
+            var reference = CreateElemByFormElem(owner.items.FormElem.Child('item').Child('id'));
+            reference.Value = id;
+            var entry = reference.OptForeignElem;
+            if (entry == undefined || entry == null || entry.id.Value != id || entry.Name != document.TopElem.Name)
             throw 'InvalidScope: The ID must belong to the requested template owner type';
+        }
     }
     return owner;
 }
@@ -59,10 +66,50 @@ function BtCfSelect(owner, scope) {
     return !scope.HasProperty('templateId') ? owner : owner.items.GetOptChildByKey(Int(scope.templateId));
 }
 
-function BtCfRegistry(doc) {
-    var xml = doc.TopElem.Xml;
+function BtCfRegistry(url, xml) {
     if (StrLen(xml) > 524288) throw 'OutputLimit: Custom field registry exceeds 512 KiB';
-    return {url:String(doc.Url),xml:xml};
+    return {url:String(url),xml:xml};
+}
+
+function BtCfList(root, req) {
+    var result = {objectType:req.objectType,common:null,templateType:null,templateSelector:null,
+        templates:[],offset:req.offset,limit:req.limit,total:0};
+    var config = root.OptChild(req.objectType);
+    if (config == undefined || config.IsTemp) return result;
+    if (config.ChildExists('fields') && config.ChildExists('sheets'))
+        result.common = {fieldCount:config.fields.ChildNum,pageCount:config.sheets.ChildNum};
+    var owner = config;
+    if (!config.ChildExists('items')) {
+        var reference = config.OptChild('template_field');
+        if (reference == undefined || !reference.HasValue) return result;
+        owner = root.OptChild(String(reference.Value));
+        if (owner == undefined || owner.IsTemp || !owner.ChildExists('items')) return result;
+        try {
+            // PROPERTY accessors do not appear in ChildExists on the C runtime.
+            var selector = String(config.template_field_id);
+            if (selector != '' && selector != 'undefined') result.templateSelector = selector;
+        } catch (err) {
+            if (!StrContains(String(err), 'Unknown object property: template_field_id')) throw err;
+        }
+    }
+    result.templateType = String(owner.Name);
+    result.total = owner.items.ChildNum;
+    var index;
+    var item;
+    var row;
+    var title;
+    for (index = req.offset; index < result.total && index - req.offset < req.limit; index++) {
+        item = owner.items[index];
+        row = {templateId:StrInt(item.id.Value),fieldCount:item.fields.ChildNum,pageCount:item.sheets.ChildNum};
+        try {
+            title = String(item.title);
+            if (title != '' && title != 'undefined') row.title = StrLeftCharRange(title, 256);
+        } catch (unavailableTitle) {
+            // A stale foreign reference can make the native title unavailable.
+        }
+        result.templates.push(row);
+    }
+    return result;
 }
 
 function BtCfDescribeConditions(conditions) {
@@ -262,11 +309,14 @@ function BtCustomFields(req) {
     try {
         var url = custom_templates.Doc.Url;
         var doc = OpenDoc(url);
-        var before = BtCfRegistry(doc);
-        if (doc.TopElem.Name != 'custom_templates') throw 'InvalidRegistry: Unexpected shared document root';
-        if (custom_templates.Xml != before.xml)
+        var root = doc.TopElem;
+        if (root.Name != 'custom_templates') throw 'InvalidRegistry: Unexpected shared document root';
+        var xml = root.Xml;
+        if (custom_templates.Xml != xml)
             throw 'CacheMismatch: The shared custom field cache differs from storage; reconcile the registry on this HCM node';
-        var owner = BtCfOwner(doc.TopElem, req.scope);
+        if (req.operation == 'list') return {ok:true,listing:BtCfList(root, req)};
+        var before = BtCfRegistry(doc.Url, xml);
+        var owner = BtCfOwner(root, req.scope);
         var node = BtCfSelect(owner, req.scope);
         if (req.operation == 'get') return {ok:true,snapshot:before,definition:BtCfDescribe(node)};
 
@@ -278,7 +328,7 @@ function BtCustomFields(req) {
             throw 'Conflict: The shared custom field document changed; read again';
 
         node = BtCfApply(owner, node, req, user.access.access_role.Value);
-        var candidate = BtCfRegistry(doc);
+        var candidate = BtCfRegistry(doc.Url, root.Xml);
         var changed = candidate.xml != before.xml;
         var preview = BtCfDescribe(node);
         if (req.dryRun || !changed)
@@ -292,7 +342,7 @@ function BtCustomFields(req) {
         status = 'saved';
         phase = 'readback';
         var fresh = OpenDoc(url);
-        var after = BtCfRegistry(fresh);
+        var after = BtCfRegistry(fresh.Url, fresh.TopElem.Xml);
         if (after.xml != candidate.xml || custom_templates.Xml != after.xml)
             throw 'ReadbackMismatch: Saved custom field storage or cache differs from the candidate';
         owner = fresh.TopElem.Child(req.scope.objectType);
