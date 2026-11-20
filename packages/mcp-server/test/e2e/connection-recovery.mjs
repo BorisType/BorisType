@@ -218,7 +218,7 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
       const pid = transport.pid;
       assert.ok(pid);
       const { tools } = await client.listTools({}, { timeout: 5000 });
-      assert.equal(tools.length, 32);
+      assert.equal(tools.length, 33);
       const toolNames = tools.map(({ name }) => name).sort();
       assert.deepEqual(await client.ping({ timeout: 5000 }), {});
       assert.equal(mark(), 0);

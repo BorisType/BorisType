@@ -141,6 +141,44 @@ test("list_object_types exposes separate object and catalog entries with registr
   assert.equal(Object.hasOwn(registry.inputSchema.properties, "includeCustomFields"), false);
 });
 
+test("list_object_data_types combines an either-side match with an exact side filter", async (t) => {
+  const client = await connect(t, (script) =>
+    runInNewContext(`(function () { ${script} })()`, {
+      ParseJson: JSON.parse,
+      EncodeJson: JSON.stringify,
+      XQueryLiteral: JSON.stringify,
+      XQuery(query) {
+        assert.match(
+          query,
+          /\(\$type\/object_type = "subdivision" or \$type\/sec_object_type = "subdivision"\) and \$type\/object_type = "group"/,
+        );
+        return [
+          {
+            id: { Value: 9007199254740993n },
+            code: { Value: "links" },
+            name: { Value: "Связи" },
+            object_type: { HasValue: true, Value: "group" },
+            sec_object_type: { HasValue: true, Value: "subdivision" },
+          },
+        ];
+      },
+      ArrayCount: (rows) => rows.length,
+      ArrayRange: (rows, offset, count) => rows.slice(offset, offset + count),
+      ArraySelectAll: (rows) => [...rows],
+      ArrayMerge: (rows, _, sep) => rows.join(sep),
+      StrInt: String,
+      StrLen: (value) => Buffer.byteLength(value),
+      StrLeftCharRange: (value, count) => value.slice(0, count),
+    }),
+  );
+  assert.deepEqual(await call(client, "list_object_data_types", { objectType: "subdivision", primaryObjectType: "group", limit: 1 }), {
+    offset: 0,
+    limit: 1,
+    total: 1,
+    items: [{ id: "9007199254740993", code: "links", name: "Связи", primaryObjectType: "group", secondaryObjectType: "subdivision" }],
+  });
+});
+
 test("custom field lookup advertises a compact list and accepts a direct scope", async (t) => {
   const listing = {
     objectType: "request",

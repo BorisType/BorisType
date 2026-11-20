@@ -1,0 +1,33 @@
+function BtListObjectDataTypes(req) {
+    try {
+        var filters = [];
+        if (req.objectType != '') {
+            var value = XQueryLiteral(req.objectType);
+            filters.push('($type/object_type = ' + value + ' or $type/sec_object_type = ' + value + ')');
+        }
+        if (req.primaryObjectType != '') filters.push('$type/object_type = ' + XQueryLiteral(req.primaryObjectType));
+        if (req.secondaryObjectType != '') filters.push('$type/sec_object_type = ' + XQueryLiteral(req.secondaryObjectType));
+        var query = 'for $type in object_data_types';
+        if (ArrayCount(filters) > 0) query += ' where ' + ArrayMerge(filters, 'This', ' and ');
+        var rows = XQuery(query + ' order by $type/name, $type/id return $type');
+        var total = ArrayCount(rows);
+        var items = [];
+        var page = req.offset < total ? ArraySelectAll(ArrayRange(rows, req.offset, req.limit)) : [];
+        var row;
+        var i;
+        for (i = 0; i < ArrayCount(page); i++) {
+            row = page[i];
+            items.push({id:StrInt(row.id.Value),code:String(row.code.Value),name:String(row.name.Value),
+                primaryObjectType:(row.object_type.HasValue ? String(row.object_type.Value) : null),
+                secondaryObjectType:(row.sec_object_type.HasValue ? String(row.sec_object_type.Value) : null)});
+        }
+        var result = EncodeJson({ok:true,offset:req.offset,limit:req.limit,total:total,items:items});
+        if (StrLen(result) > 262144)
+            return EncodeJson({ok:false,error:{code:'OutputLimit',message:'The object data type page exceeds 256 KiB. Request a smaller page'}});
+        return result;
+    } catch (err) {
+        return EncodeJson({ok:false,error:{code:'RegistryError',message:StrLeftCharRange(String(err), 2000)}});
+    }
+}
+
+return EncodeJson(BtListObjectDataTypes(ParseJson('${request}')));

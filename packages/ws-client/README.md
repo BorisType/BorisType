@@ -99,6 +99,9 @@ HTTP 500. Если вызывающий код использует свой eva
 - `objects.listTypes({kind?,objectType?,offset?,limit?})` — реестр типов
   и каталогов с нативной связью между ними. Для поиска настраиваемых полей
   и шаблонов используйте `customFields.list`.
+- `objects.listDataTypes({objectType?,primaryObjectType?,secondaryObjectType?,offset?,limit?})`
+  читает справочник `object_data_types`. `objectType` подходит для любой
+  стороны связи. В ответе есть точные ID и типы обеих сторон.
 - `objects.delete({id,readToken})` — перемещение одного документа в корзину
   после проверки полного XML и формы из чтения. `WshcmObjectDeleteError.details`
   сохраняет известный ID и исход попытки.

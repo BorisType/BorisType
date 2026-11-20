@@ -2,7 +2,7 @@
 
 Пользовательский вход — [гайд](../../docs/guides/mcp-server.md), точный контракт —
 [README пакета](../../packages/mcp-server/README.md) и schemas tools. Текущий
-сервер предоставляет девять физических file tools, XQuery, шесть tools для форм и объектов,
+сервер предоставляет девять физических file tools, XQuery, девять tools для форм, объектов и их конфигурации,
 запуск агентов, execute/system info/runtime status и десять tools пакетов объектов. Общий [SDK/runtime](../dotnet/managed-runtime.md) владеет
 платформенной логикой; MCP — адаптер.
 Node tsc/BS resources независимы от TS→BS compiler и script/module ABI.

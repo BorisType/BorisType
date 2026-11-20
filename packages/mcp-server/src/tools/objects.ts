@@ -33,6 +33,16 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     (input) => objectResult(() => api.objects.listTypes(input)),
   );
   server.registerTool(
+    "wshcm_list_object_data_types",
+    {
+      description:
+        "List definitions from the HCM object_data_types catalog. With no filters, page through all data types. objectType matches the primary or secondary side; primaryObjectType and secondaryObjectType require exact matches on those sides. All supplied filters must match. Entries include id, code, name and the configured type on each side. Use the exact id as scope.templateId with scope.objectType='object_data_type' in wshcm_get_custom_field_definitions. To find stored records, query object_datas by object_data_type_id.",
+      inputSchema: wshcmSchemas.objects.listDataTypes,
+      annotations: readAnnotations,
+    },
+    (input) => objectResult(() => api.objects.listDataTypes(input)),
+  );
+  server.registerTool(
     "wshcm_get_custom_field_definitions",
     {
       description:

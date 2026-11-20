@@ -4,8 +4,8 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Использует [@boristype/ws-client](https://github.com/BorisType/BorisType/tree/main/packages/ws-client) для соединения с WSHCM сервером.
 
-Экспериментальный сервер предоставляет 32 tools. В их числе девять файловых,
-десять для пакетов объектов, шесть для форм и объектов и запуск серверных агентов.
+Экспериментальный сервер предоставляет 33 tools. В их числе девять файловых,
+десять для пакетов объектов, девять для форм, объектов и конфигурации, а также запуск серверных агентов.
 Требуется Node.js >=24.22.2; для файловых tools — net9 HCM с доступным dotnetcore/shared. Общий API
 `ws-client` включает production DLL и автоматически подготавливает FileSystem
 **0.1.0-alpha.4 / API 2** для девяти файловых tools; execute, XQuery, system info, object, package и agent tools её не используют.
@@ -74,7 +74,7 @@ claude mcp list
 ## Доступность HCM
 
 С корректной конфигурацией stdio-сервер запускается при выключенном HCM.
-`initialize`, `tools/list` (32 tools) и `ping` обходятся без запросов к HCM.
+`initialize`, `tools/list` (33 tools) и `ping` обходятся без запросов к HCM.
 Первый вызов инструмента, которому нужен HCM, открывает соединение.
 Следующая явно запрошенная операция может восстановить его в том же процессе
 MCP. Фоновых проверок нет. Read tokens, package handles и локальные ZIP
@@ -148,6 +148,7 @@ instructions и skill не добавляют гарантий чтения, и�
 | `wshcm_execute`                        | Серверный BorisScript: результат, диагностика и ошибки    |
 | `wshcm_run_agent`                      | Запуск серверного агента с опциональным ожиданием         |
 | `wshcm_list_object_types`              | Типы объектов и отдельно зарегистрированные каталоги      |
+| `wshcm_list_object_data_types`         | Типы данных объектов и стороны их связей                  |
 | `wshcm_get_custom_field_definitions`   | Поля и страницы одного общего или индивидуального шаблона |
 | `wshcm_patch_custom_field_definitions` | Точечная правка полей и страниц с проверкой ревизии       |
 | `wshcm_get_form`                       | XML раскрытого root загруженной XMD                       |
@@ -625,6 +626,28 @@ writer может изменить документ между проверко�
 `not_requested` означает, что источник исключён фильтром. На сборке без
 `GetRegisteredCatalogs` второй статус будет `unavailable`. Лимиты
 составляют 4096 записей на источник и 256 KiB UTF-8 на страницу.
+
+### Типы данных объектов
+
+`wshcm_list_object_data_types({})` возвращает страницу справочника
+`object_data_types`. `{objectType: "subdivision"}` находит типы данных,
+где подразделение указано на любой стороне. Если оно указано на обеих,
+тип данных возвращается один раз. `primaryObjectType` и
+`secondaryObjectType` задают точную сторону. Все переданные фильтры
+применяются вместе.
+
+Ответ содержит `items`, `total`, `offset` и `limit`. В строке есть
+`id` точной десятичной строкой, `code`, `name` и
+`primaryObjectType` и `secondaryObjectType` со значением `null` для
+ненастроенной стороны. Порядок по названию и ID. По умолчанию `offset: 0`
+и `limit: 100`, максимум 250 строк или 256 KiB. `total` считается
+после фильтрации, до разбиения на страницы.
+
+Чтобы прочитать поля и страницы одного типа данных, используйте
+`wshcm_get_custom_field_definitions` с
+`scope: { objectType: "object_data_type", templateId: id }`.
+Для поиска записей этого типа выполните `wshcm_xquery` по каталогу
+`object_datas` с условием на `object_data_type_id`.
 
 ### Настраиваемые поля
 

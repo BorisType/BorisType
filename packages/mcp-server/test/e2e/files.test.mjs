@@ -100,6 +100,7 @@ test("MCP CLI → stdio → SOAP → local HCM filesystem", { timeout: 180_000 }
         "wshcm_get_form",
         "wshcm_get_custom_field_definitions",
         "wshcm_get_object",
+        "wshcm_list_object_data_types",
         "wshcm_list_object_types",
         "wshcm_delete_object",
         "wshcm_run_agent",

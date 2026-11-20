@@ -52,7 +52,7 @@ async function primed(t, evaluate, content = "abc") {
   return { client, readToken: JSON.parse(result.content[0].text).readToken };
 }
 
-test("MCP advertises all 32 tools", async (t) => {
+test("MCP advertises all 33 tools", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
@@ -74,6 +74,7 @@ test("MCP advertises all 32 tools", async (t) => {
     "wshcm_import_package",
     "wshcm_inspect_package",
     "wshcm_list_directory",
+    "wshcm_list_object_data_types",
     "wshcm_list_object_types",
     "wshcm_list_package_schemas",
     "wshcm_move_file",
@@ -97,7 +98,11 @@ test("MCP advertises all 32 tools", async (t) => {
       assert.equal(tool.annotations.readOnlyHint, false);
       continue;
     }
-    if (["wshcm_get_system_info", "wshcm_list_object_types", "wshcm_get_custom_field_definitions"].includes(tool.name)) {
+    if (
+      ["wshcm_get_system_info", "wshcm_list_object_types", "wshcm_list_object_data_types", "wshcm_get_custom_field_definitions"].includes(
+        tool.name,
+      )
+    ) {
       assert.equal(tool.annotations.readOnlyHint, true);
       continue;
     }

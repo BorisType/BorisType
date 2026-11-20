@@ -2,9 +2,11 @@ import { readFileSync } from "node:fs";
 import { z } from "zod";
 import { buildScript } from "./load.js";
 import { WshcmObjectError } from "./object-error.js";
+import { objectIdSchema } from "./object-id.js";
 import type { WshcmEvaluator } from "./types.js";
 
 const template = readFileSync(new URL("../../resources/object-types.bs", import.meta.url), "utf8");
+const dataTypesTemplate = readFileSync(new URL("../../resources/object-data-types.bs", import.meta.url), "utf8");
 const pageBytes = 256 * 1024;
 const kind = z.enum(["object", "catalog"]);
 const offset = z.number().int().nonnegative();
@@ -17,6 +19,21 @@ export const objectTypesInputSchema = z.strictObject({
   objectType: z.string().min(1).max(256).optional().describe("Exact document type. Matches that type and its registered catalogs."),
 });
 
+const typeCode = z
+  .string()
+  .min(1)
+  .max(256)
+  .regex(/^[A-Za-z_][A-Za-z0-9_.-]*$/);
+export const objectDataTypesInputSchema = objectTypesInputSchema.pick({ offset: true, limit: true }).extend({
+  objectType: typeCode.optional().describe("Match this object type on either side of the relation"),
+  primaryObjectType: typeCode.optional().describe("Require this type on the primary side"),
+  secondaryObjectType: typeCode.optional().describe("Require this type on the secondary side"),
+});
+
+const registryFailure = z.strictObject({
+  ok: z.literal(false),
+  error: z.strictObject({ code: z.enum(["RegistryError", "OutputLimit"]), message: z.string() }),
+});
 const response = z.discriminatedUnion("ok", [
   z.strictObject({
     ok: z.literal(true),
@@ -42,43 +59,69 @@ const response = z.discriminatedUnion("ok", [
       registeredCatalogs: z.enum(["available", "unavailable", "not_requested"]),
     }),
   }),
+  registryFailure,
+]);
+const dataTypesResponse = z.discriminatedUnion("ok", [
   z.strictObject({
-    ok: z.literal(false),
-    error: z.strictObject({ code: z.enum(["RegistryError", "OutputLimit"]), message: z.string() }),
+    ok: z.literal(true),
+    total: z.number().int().nonnegative(),
+    offset,
+    limit,
+    items: z
+      .array(
+        z.strictObject({
+          id: objectIdSchema,
+          code: z.string(),
+          name: z.string(),
+          primaryObjectType: z.string().min(1).nullable(),
+          secondaryObjectType: z.string().min(1).nullable(),
+        }),
+      )
+      .max(250),
   }),
+  registryFailure,
 ]);
 
 export type ObjectTypesInput = z.input<typeof objectTypesInputSchema>;
 export type ObjectTypesResult = Omit<Extract<z.output<typeof response>, { ok: true }>, "ok">;
+export type ObjectDataTypesInput = z.input<typeof objectDataTypesInputSchema>;
+export type ObjectDataTypesResult = Omit<Extract<z.output<typeof dataTypesResponse>, { ok: true }>, "ok">;
 
 function readError(code: string, message: string, cause?: unknown): WshcmObjectError {
   return new WshcmObjectError({ phase: "read", writeStatus: "not_attempted", error: { code, message: message.slice(0, 2000) } }, { cause });
 }
 
-/** Read a page from the HCM registries with their identities and coverage intact. */
-export async function listObjectTypes(evaluator: WshcmEvaluator, input: ObjectTypesInput): Promise<ObjectTypesResult> {
-  const request = objectTypesInputSchema.parse(input);
+async function readRegistryPage<T>(
+  evaluator: WshcmEvaluator,
+  script: string,
+  request: object,
+  schema: z.ZodType<T>,
+  registry: string,
+): Promise<T> {
   // The evaluator also classifies transport failures. Preserve its error as-is.
-  const wire = await evaluator.eval(
-    buildScript(template, {
-      request: JSON.stringify({
-        ...request,
-        kind: request.kind ?? "",
-        objectType: request.objectType ?? "",
-      }),
-    }),
-  );
-  let parsed: z.output<typeof response>;
+  const wire = await evaluator.eval(buildScript(script, { request: JSON.stringify(request) }));
   try {
     if (typeof wire !== "string" || Buffer.byteLength(wire, "utf8") > pageBytes * 6 + 2)
       throw new Error("Invalid object type response carrier");
     const json: unknown = JSON.parse(wire);
     if (typeof json !== "string" || !json.isWellFormed() || Buffer.byteLength(json, "utf8") > pageBytes)
       throw new Error("Invalid object type response size or encoding");
-    parsed = response.parse(JSON.parse(json));
+    return schema.parse(JSON.parse(json));
   } catch (error) {
-    throw readError("InvalidResponse", "The object type registry response could not be decoded", error);
+    throw readError("InvalidResponse", `The ${registry} response could not be decoded`, error);
   }
+}
+
+/** Read a page from the HCM registries with their identities and coverage intact. */
+export async function listObjectTypes(evaluator: WshcmEvaluator, input: ObjectTypesInput): Promise<ObjectTypesResult> {
+  const request = objectTypesInputSchema.parse(input);
+  const parsed = await readRegistryPage(
+    evaluator,
+    template,
+    { ...request, kind: request.kind ?? "", objectType: request.objectType ?? "" },
+    response,
+    "object type registry",
+  );
   if (!parsed.ok) throw readError(parsed.error.code, parsed.error.message);
   const { ok: _, ...result } = parsed;
   const expectedSize = Math.min(request.limit, Math.max(0, result.total - request.offset));
@@ -97,5 +140,37 @@ export async function listObjectTypes(evaluator: WshcmEvaluator, input: ObjectTy
     })
   )
     throw readError("InvalidResponse", "The object type registry returned an inconsistent page");
+  return result;
+}
+
+export async function listObjectDataTypes(evaluator: WshcmEvaluator, input: ObjectDataTypesInput): Promise<ObjectDataTypesResult> {
+  const request = objectDataTypesInputSchema.parse(input);
+  const { objectType, primaryObjectType, secondaryObjectType } = request;
+  const parsed = await readRegistryPage(
+    evaluator,
+    dataTypesTemplate,
+    {
+      ...request,
+      objectType: objectType ?? "",
+      primaryObjectType: primaryObjectType ?? "",
+      secondaryObjectType: secondaryObjectType ?? "",
+    },
+    dataTypesResponse,
+    "object data type catalog",
+  );
+  if (!parsed.ok) throw readError(parsed.error.code, parsed.error.message);
+  const { ok: _, ...result } = parsed;
+  if (
+    result.offset !== request.offset ||
+    result.limit !== request.limit ||
+    result.items.length !== Math.min(request.limit, Math.max(0, result.total - request.offset)) ||
+    result.items.some(
+      (entry) =>
+        (objectType !== undefined && entry.primaryObjectType !== objectType && entry.secondaryObjectType !== objectType) ||
+        (primaryObjectType !== undefined && entry.primaryObjectType !== primaryObjectType) ||
+        (secondaryObjectType !== undefined && entry.secondaryObjectType !== secondaryObjectType),
+    )
+  )
+    throw readError("InvalidResponse", "The object data type catalog returned an inconsistent page");
   return result;
 }
