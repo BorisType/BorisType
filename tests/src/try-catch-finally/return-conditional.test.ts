@@ -1,26 +1,26 @@
-let sideEffect = "";
+const state = { trace: "" };
 
-function conditionalReturn(shouldReturn: boolean): string {
+function conditionalReturn(shouldReturn: boolean, state: { trace: string }): string {
   try {
-    sideEffect += "try";
+    state.trace += "try";
     if (shouldReturn) {
       return "early";
     }
-    sideEffect += "after-if";
+    state.trace += "after-if";
   } finally {
-    sideEffect += "finally";
+    state.trace += "finally";
   }
   return "normal";
 }
 
-const val1 = conditionalReturn(true);
+const val1 = conditionalReturn(true, state);
 botest.assertValueEquals(val1, "early", "conditional return should return early value");
-botest.assertValueEquals(sideEffect, "tryfinally", "finally runs on early return");
+botest.assertValueEquals(state.trace, "tryfinally", "finally runs on early return");
 
-sideEffect = "";
-const val2 = conditionalReturn(false);
+state.trace = "";
+const val2 = conditionalReturn(false, state);
 botest.assertValueEquals(val2, "normal", "no early return should fall through");
-botest.assertValueEquals(sideEffect, "tryafter-iffinally", "finally runs after full try body");
+botest.assertValueEquals(state.trace, "tryafter-iffinally", "finally runs after full try body");
 
 botest.assertOk();
 

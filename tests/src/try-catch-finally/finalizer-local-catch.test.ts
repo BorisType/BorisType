@@ -1,17 +1,17 @@
-let trace = "";
-function preserveReturn(): string {
+const state = { trace: "" };
+function preserveReturn(state: { trace: string }): string {
   try {
     return "R";
   } finally {
     try {
       throw "local";
     } catch {
-      trace += "C";
+      state.trace += "C";
     }
-    trace += "F";
+    state.trace += "F";
   }
 }
-function recoverFromOverride(): string {
+function recoverFromOverride(state: { trace: string }): string {
   try {
     try {
       return "wrong";
@@ -19,13 +19,13 @@ function recoverFromOverride(): string {
       throw "override";
     }
   } catch {
-    trace += "O";
+    state.trace += "O";
   }
-  trace += "A";
+  state.trace += "A";
   return "E";
 }
-botest.assertValueEquals(preserveReturn(), "R", "handled local finalizer exception preserves pending return");
-botest.assertValueEquals(recoverFromOverride(), "E", "recovering from finalizer throw discards stale return completion");
-botest.assertValueEquals(trace, "CFOA", "local catch and overriding catch run in source order");
+botest.assertValueEquals(preserveReturn(state), "R", "handled local finalizer exception preserves pending return");
+botest.assertValueEquals(recoverFromOverride(state), "E", "recovering from finalizer throw discards stale return completion");
+botest.assertValueEquals(state.trace, "CFOA", "local catch and overriding catch run in source order");
 botest.assertOk();
 export {};

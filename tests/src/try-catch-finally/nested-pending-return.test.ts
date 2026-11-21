@@ -1,23 +1,23 @@
-let nestedPendingTrace = "";
+const state = { trace: "" };
 
-function preserveReturnAcrossNestedFinalizers(): number {
+function preserveReturnAcrossNestedFinalizers(state: { trace: string }): number {
   try {
     return 7;
   } finally {
     try {
-      nestedPendingTrace += "I";
+      state.trace += "I";
     } finally {
-      nestedPendingTrace += "J";
+      state.trace += "J";
     }
   }
 }
 
 botest.assertValueEquals(
-  preserveReturnAcrossNestedFinalizers(),
+  preserveReturnAcrossNestedFinalizers(state),
   7,
   "normally completed nested finalizers must preserve an outer pending return",
 );
-botest.assertValueEquals(nestedPendingTrace, "IJ", "nested finalizers must run inside-out");
+botest.assertValueEquals(state.trace, "IJ", "nested finalizers must run inside-out");
 botest.assertOk();
 
 export {};

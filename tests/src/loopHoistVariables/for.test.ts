@@ -1,13 +1,17 @@
 // Simple for loop with const block-scoped variable
-const arr = [1, 2, 3];
-const result = [];
+function doubleItems(): number[] {
+  const arr = [1, 2, 3];
+  const result = [];
 
-for (let i = 0; i < arr.length; i++) {
-  const doubled = arr[i] * 2;
-  result.push(doubled);
+  for (let i = 0; i < arr.length; i++) {
+    const doubled = arr[i] * 2;
+    result.push(doubled);
+  }
+
+  return result;
 }
 
-botest.assertJsArrayEquals(result, [2, 4, 6], "Array should be doubled");
+botest.assertJsArrayEquals(doubleItems(), [2, 4, 6], "Array should be doubled");
 
 botest.assertOk();
 

@@ -1,10 +1,10 @@
 function matchRoute(newUrl: string): string {
   newUrl = Trim(newUrl);
   if (StrBegins(newUrl, "/")) {
-    newUrl = newUrl.substr(1);
+    newUrl = StrCharRangePos(newUrl, 1, StrCharCount(newUrl));
   }
   if (StrEnds(newUrl, "/")) {
-    newUrl = newUrl.substr(0, StrCharCount(newUrl) - 1);
+    newUrl = StrCharRangePos(newUrl, 0, StrCharCount(newUrl) - 1);
   }
 
   return newUrl;

@@ -1,56 +1,39 @@
-// =============================================================================
-// || short-circuit evaluation
-// =============================================================================
-
-let sideEffect = "";
-
-function track(value: any, label: string): any {
-  sideEffect = sideEffect + label;
+function track(state: { trace: string }, value: boolean, label: string): boolean {
+  state.trace += label;
   return value;
 }
 
-// Truthy left — right NOT evaluated
-sideEffect = "";
-const sc1 = track("truthy", "L") || track("unused", "R");
-botest.assertValueEquals(sc1, "truthy", "truthy left returns left");
-botest.assertValueEquals(sideEffect, "L", "right not evaluated when left truthy");
+const state = { trace: "" };
 
-// Falsy left — right IS evaluated
-sideEffect = "";
-const sc2 = track("", "L") || track("right", "R");
-botest.assertValueEquals(sc2, "right", "falsy left returns right");
-botest.assertValueEquals(sideEffect, "LR", "both sides evaluated when left falsy");
+const short = track(state, true, "L") || track(state, false, "R");
+botest.assertValueEquals(short, true, "true left operand gives true");
+botest.assertValueEquals(state.trace, "L", "true left operand skips the right operand");
 
-// Chained short-circuit: first truthy stops evaluation
-sideEffect = "";
-const sc3 = track("", "A") || track("found", "B") || track("unused", "C");
-botest.assertValueEquals(sc3, "found", "chained: stops at first truthy");
-botest.assertValueEquals(sideEffect, "AB", "chained: C not evaluated");
+state.trace = "";
+const both = track(state, false, "L") || track(state, false, "R");
+botest.assertValueEquals(both, false, "two false operands give false");
+botest.assertValueEquals(state.trace, "LR", "false left operand evaluates the right operand once");
 
-// Chained short-circuit: all falsy evaluates everything
-sideEffect = "";
-const sc4 = track("", "A") || track(0, "B") || track(null, "C") || track("end", "D");
-botest.assertValueEquals(sc4, "end", "chained: all falsy until last");
-botest.assertValueEquals(sideEffect, "ABCD", "chained: all sides evaluated");
+state.trace = "";
+const stopped = track(state, false, "A") || track(state, true, "B") || track(state, false, "C");
+botest.assertValueEquals(stopped, true, "a true operand makes the chain true");
+botest.assertValueEquals(state.trace, "AB", "the chain stops at the first true operand");
 
-// Short-circuit with function calls as operands
-let callCount = 0;
-function expensive(): string {
-  callCount = callCount + 1;
-  return "expensive";
-}
+state.trace = "";
+const all = track(state, false, "A") || track(state, false, "B") || track(state, false, "C");
+botest.assertValueEquals(all, false, "a chain of false operands gives false");
+botest.assertValueEquals(state.trace, "ABC", "the chain evaluates false operands in order");
 
-const truthy: any = "exists";
-callCount = 0;
-const sc5 = truthy || expensive();
-botest.assertValueEquals(sc5, "exists", "function call not needed");
-botest.assertValueEquals(callCount, 0, "expensive function not called");
+state.trace = "";
+const skipRight = true;
+const skipped = skipRight || track(state, false, "R");
+botest.assertValueEquals(skipped, true, "the left operand determines the result");
+botest.assertValueEquals(state.trace, "", "an unevaluated right operand has no effects");
 
-const falsy: any = null;
-callCount = 0;
-const sc6 = falsy || expensive();
-botest.assertValueEquals(sc6, "expensive", "function call needed");
-botest.assertValueEquals(callCount, 1, "expensive function called once");
+const evaluateRight = false;
+const evaluated = evaluateRight || track(state, true, "R");
+botest.assertValueEquals(evaluated, true, "the right operand determines the result");
+botest.assertValueEquals(state.trace, "R", "the right operand runs once");
 
 botest.assertOk();
 

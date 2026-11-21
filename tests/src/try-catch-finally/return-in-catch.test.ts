@@ -1,21 +1,21 @@
-let sideEffect = "";
+const state = { trace: "" };
 
-function catchReturn(): string {
+function catchReturn(state: { trace: string }): string {
   try {
-    sideEffect += "try";
+    state.trace += "try";
     throw "error";
   } catch (e) {
-    sideEffect += "catch";
+    state.trace += "catch";
     return "from-catch";
   } finally {
-    sideEffect += "finally";
+    state.trace += "finally";
   }
 }
 
-const val = catchReturn();
+const val = catchReturn(state);
 
 botest.assertValueEquals(val, "from-catch", "return value from catch should be preserved");
-botest.assertValueEquals(sideEffect, "trycatchfinally", "finally should run after catch return");
+botest.assertValueEquals(state.trace, "trycatchfinally", "finally should run after catch return");
 
 botest.assertOk();
 

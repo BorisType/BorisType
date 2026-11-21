@@ -1,20 +1,20 @@
-let nestedThrowTrace = "";
+const state = { trace: "" };
 
-function catchAfterNestedFinalizer(): string {
+function catchAfterNestedFinalizer(state: { trace: string }): string {
   try {
     try {
       throw "nested-boom";
     } finally {
-      nestedThrowTrace += "F";
+      state.trace += "F";
     }
   } catch (error) {
-    nestedThrowTrace += "C";
+    state.trace += "C";
     return "caught";
   }
 }
 
-botest.assertValueEquals(catchAfterNestedFinalizer(), "caught", "source catch must receive a throw after nested finally");
-botest.assertValueEquals(nestedThrowTrace, "FC", "nested finally must run before the source catch");
+botest.assertValueEquals(catchAfterNestedFinalizer(state), "caught", "source catch must receive a throw after nested finally");
+botest.assertValueEquals(state.trace, "FC", "nested finally must run before the source catch");
 botest.assertOk();
 
 export {};

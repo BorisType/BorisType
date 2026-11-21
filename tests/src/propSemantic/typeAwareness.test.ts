@@ -1,5 +1,4 @@
-// Test type awareness with optional chaining
-// This test verifies type-aware property access without runtime assertions
+// The suite checks that generated XML property access stays direct.
 
 function dummy(xml: CollaboratorDocument) {
   xml.TopElem.code.Value;

@@ -1,9 +1,9 @@
 {
-  "name": "Property semantic & optional chaining",
+  "name": "Property access",
   "tests": {
     "nested.test.js": "nested property access",
     "lengthProperty.test.js": "length property access",
-    "typeAwareness.test.js": "type awareness with optional chaining"
+    "typeAwareness.test.js": "direct XML property access"
   },
   "codeChecks": {
     "typeAwareness.test.js": {

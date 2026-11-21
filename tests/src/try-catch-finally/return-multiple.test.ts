@@ -1,8 +1,8 @@
-let log = "";
+const state = { trace: "" };
 
-function multipleReturns(x: number): string {
+function multipleReturns(x: number, state: { trace: string }): string {
   try {
-    log += "try";
+    state.trace += "try";
     if (x === 1) {
       return "one";
     }
@@ -11,24 +11,24 @@ function multipleReturns(x: number): string {
     }
     return "other";
   } finally {
-    log += "finally";
+    state.trace += "finally";
   }
 }
 
-log = "";
-const r1 = multipleReturns(1);
+state.trace = "";
+const r1 = multipleReturns(1, state);
 botest.assertValueEquals(r1, "one", "first return path");
-botest.assertValueEquals(log, "tryfinally", "finally after first return");
+botest.assertValueEquals(state.trace, "tryfinally", "finally after first return");
 
-log = "";
-const r2 = multipleReturns(2);
+state.trace = "";
+const r2 = multipleReturns(2, state);
 botest.assertValueEquals(r2, "two", "second return path");
-botest.assertValueEquals(log, "tryfinally", "finally after second return");
+botest.assertValueEquals(state.trace, "tryfinally", "finally after second return");
 
-log = "";
-const r3 = multipleReturns(3);
+state.trace = "";
+const r3 = multipleReturns(3, state);
 botest.assertValueEquals(r3, "other", "fallthrough return");
-botest.assertValueEquals(log, "tryfinally", "finally after fallthrough");
+botest.assertValueEquals(state.trace, "tryfinally", "finally after fallthrough");
 
 botest.assertOk();
 

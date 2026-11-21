@@ -8,25 +8,13 @@
 // cleanup-grouping удаляет GroupingExpression вокруг "атомарных" узлов:
 //   Identifier, Literal, MemberExpression, CallExpression,
 //   ArrayExpression, ObjectExpression, UpdateExpression, и т.д.
-//
-// KNOWN BUG: ("Hello, world!").length
-//   Lowering оборачивает литерал в GroupingExpression.
-//   literal-extract видит GroupingExpression (не Literal) → НЕ извлекает.
-//   cleanup-grouping затем удаляет скобки → "Hello, world!".length → BS error.
-//   Пока баг не исправлен, в тестах проверяем только работающие сценарии.
 // =============================================================================
 
 // ---- Grouping around identifier ----
 
-// (someVar).length → someVar.length — скобки не влияют на значение
-const str = "hello";
-const r1 = (str).length;
-botest.assertValueEquals(r1, 5, "(str).length = 5");
-
-// // (someVar).toString() — call на сгруппированном идентификаторе
-// const num: any = 42;
-// const r2 = (num).toString();
-// botest.assertValueEquals(r2, "42", "(num).toString() = '42'");
+const obj: Record<string, number> = { a: 1, b: 2 };
+const r1 = (obj).b;
+botest.assertValueEquals(r1, 2, "(obj).b = 2");
 
 // ---- Grouping around array variable ----
 
@@ -41,13 +29,12 @@ botest.assertValueEquals(r4, 3, "(arr).length = 3");
 
 // ---- Grouping around function call result ----
 
-function getStr(): string {
-  return "test";
+function getObj(): { value: number } {
+  return { value: 42 };
 }
 
-// (getStr()).length — скобки вокруг результата вызова
-const r5 = (getStr()).length;
-botest.assertValueEquals(r5, 4, "(getStr()).length = 4");
+const r5 = (getObj()).value;
+botest.assertValueEquals(r5, 42, "(getObj()).value = 42");
 
 function getArr(): number[] {
   return [1, 2, 3, 4];
@@ -58,13 +45,11 @@ botest.assertValueEquals(r6, 4, "(getArr()).length = 4");
 
 // ---- Double grouping ----
 
-// ((someVar)).length — двойные скобки
-const r7 = ((str)).length;
-botest.assertValueEquals(r7, 5, "((str)).length = 5");
+const r7 = ((arr)).length;
+botest.assertValueEquals(r7, 3, "((arr)).length = 3");
 
 // ---- Grouping does not affect computed member ----
 
-const obj: Record<string, number> = { a: 1, b: 2 };
 const key = "a";
 const r8 = (obj)[key];
 botest.assertValueEquals(r8, 1, "(obj)[key] = 1");

@@ -1,18 +1,18 @@
-let sideEffect = "";
+const state = { trace: "" };
 
-function tryReturn(): string {
+function tryReturn(state: { trace: string }): string {
   try {
-    sideEffect += "try";
+    state.trace += "try";
     return "from-try";
   } finally {
-    sideEffect += "finally";
+    state.trace += "finally";
   }
 }
 
-const val = tryReturn();
+const val = tryReturn(state);
 
 botest.assertValueEquals(val, "from-try", "return value from try should be preserved");
-botest.assertValueEquals(sideEffect, "tryfinally", "finally should run before return completes");
+botest.assertValueEquals(state.trace, "tryfinally", "finally should run before return completes");
 
 botest.assertOk();
 

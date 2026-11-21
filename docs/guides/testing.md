@@ -32,6 +32,11 @@ node packages/botest/build/index.js tests/build labels/block-break.test.js
 вызовом `botest.assertOk()`; примеры находятся в
 [существующих тестах](https://github.com/BorisType/BorisType/tree/main/tests/src).
 
+Общие регрессии используют конструкции, доступные в выбранном режиме. Например,
+в `bare` тест короткого замыкания использует булевы операнды, а trace передаётся
+явно в объекте. Тесты прежних режимов сохранены в ветке `archive/compiler-modes`.
+[Оригинальные фикстуры](https://github.com/BorisType/BorisType/tree/7a0b6a26a004f480f76fad9d534fedcde9f8aea7/tests/src).
+
 ## Что подтверждает результат
 
 Botest проверяет поведение в своей Node.js эмуляции. Этот результат не
