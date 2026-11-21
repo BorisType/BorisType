@@ -2,7 +2,7 @@ name: BorisScript tests
 
 on:
   push:
-    branches: [main, ci/botest-runtime-age]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   botest:
-    if: github.repository == 'BorisType/BorisType' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/botest-runtime-age')
+    if: github.repository == 'BorisType/BorisType' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: botest-runtime
