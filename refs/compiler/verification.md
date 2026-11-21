@@ -38,6 +38,18 @@ Advisory Node checks не заменяют strict Node ↔ JS BorisScript сра
 и semantic gates на проверяемой ревизии, включая регрессии сохранённых режимов.
 Проверка документационного переноса не является новым запуском этих gates.
 
+## Запуск Botest в GitHub Actions
+
+[Workflow BorisScript tests](../../.github/workflows/botest.yml) запускается на
+`main` после push или вручную. GitHub Environment `botest-runtime` ограничен
+веткой `main`. В нём хранятся `BOTEST_RUNTIME_PUBLIC_URL` для зашифрованного
+файла на Яндекс Диске и `BOTEST_RUNTIME_AGE_IDENTITY` для ключа расшифровки.
+
+Job проверяет SHA-256 распакованного runtime перед запуском `pnpm test`,
+`pnpm test:semantic` и `pnpm test:expressions`. Публичный лог содержит
+только счётчики тестов. При обновлении runtime обновите зашифрованный файл,
+ссылку и ожидаемый SHA-256 в workflow.
+
 ## C-runtime и evidence
 
 `pnpm test:semantic` генерирует `packages/bt-ir/build/semantic/BtAbruptProbe.js`.
