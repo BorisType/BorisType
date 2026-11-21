@@ -7,8 +7,7 @@ ESLint плагин с кастомными правилами для разра
 Плагин проверяет выбранные ограничения исходного TypeScript для целевого BorisScript.
 Это консервативный subset: частичный compiler lowering классов не означает, что
 recommended rules разрешают их. Успех ESLint не доказывает семантическую
-корректность output или совместимость C-runtime. Развитие script/module заморожено;
-[актуальный контракт](https://boristype.github.io/BorisType/reference/borisscript-constraints).
+корректность output или совместимость C-runtime.
 
 ## Установка
 

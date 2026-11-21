@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { program } from "commander";
+import { COMPILE_MODES, DEFAULT_COMPILE_MODE } from "@boristype/bt-ir";
+import { Option, program } from "commander";
 import packageInfo from "../package.json";
 
 import { initCommand, buildCommand, linkCommand, artifactCommand, devCommand, pushCommand } from "./cli/commands";
@@ -28,7 +29,7 @@ program
   .option("--include-non-ts-files", "Process files that are not TypeScript", false)
   .option("--retain-non-ascii-characters", "Keep non-ASCII characters in source files", false)
   .option("--remove-comments", "Remove comments from source files", false)
-  .option("--compile-mode <mode>", "Transpilation mode: bare | script | module (default: module)")
+  .addOption(new Option("--compile-mode <mode>", `Transpilation mode (default: ${DEFAULT_COMPILE_MODE})`).choices(COMPILE_MODES))
   .action(async (files: string[], options: BtcCompileOptions) => {
     await buildCommand(files, options);
   });

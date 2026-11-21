@@ -308,15 +308,12 @@ function collectBareParams(parameters: ts.NodeArray<ts.ParameterDeclaration>, ct
 
 /**
  * Создаёт дочерний VisitorContext для bare mode функции.
- * Без captured variables, env/desc и прочей логики script/module режимов.
  */
 function createBareFnCtx(node: ts.Node, ctx: VisitorContext): VisitorContext {
   const funcScope = ctx.scopeAnalysis.nodeToScope.get(node) || ctx.currentScope;
   return {
     mode: ctx.mode,
     config: ctx.config,
-    functionParams: new Map(),
-    hoistedFunctions: [],
     typeChecker: ctx.typeChecker,
     sourceFile: ctx.sourceFile,
     bindings: ctx.bindings,
@@ -326,10 +323,6 @@ function createBareFnCtx(node: ts.Node, ctx: VisitorContext): VisitorContext {
     currentScope: funcScope,
     pendingStatements: [],
     currentEnvRef: "__env",
-    currentEnvScope: funcScope,
-    xmlDocumentSymbol: ctx.xmlDocumentSymbol,
-    xmlElemSymbol: ctx.xmlElemSymbol,
-    importBindings: ctx.importBindings,
     helperFlags: ctx.helperFlags,
     diagnostics: ctx.diagnostics,
   };

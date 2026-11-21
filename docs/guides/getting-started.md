@@ -1,11 +1,9 @@
 # Быстрый старт
 
 BorisType компилирует ограниченное подмножество TypeScript в BorisScript.
-Текущее направление разработки — **bare**. Развитие `script/module` заморожено
-до решения стратегии памяти C-runtime; реализации и регрессии сохранены.
-**Default CLI остаётся `module`**, поэтому bare нужно выбирать явно.
-См. [режимы](../reference/compile-modes) и
-[ограничения](../reference/borisscript-constraints).
+По умолчанию компилятор использует [режим bare](../reference/compile-modes).
+Перед запуском на целевой платформе ознакомьтесь с
+[ограничениями BorisScript](../reference/borisscript-constraints).
 
 ## Требования
 
@@ -65,37 +63,27 @@ npx btc build --compile-mode bare
 
 ### Линковка
 
-Следующие шаги относятся к **существующему экспериментальному module pipeline**.
-Для него установите runtime совместимой с CLI версии:
-
-```sh
-npm install @boristype/runtime
-```
-
-Добавьте metadata в свой `package.json` (сохранив установленные зависимости):
+Линковка собирает готовые файлы пакетов в `dist/`. Для локального примера
+добавьте в `package.json` метаданные пакета, сохранив установленные зависимости:
 
 ```json
 {
   "name": "my-app",
   "version": "1.0.0",
-  "main": "index.js",
   "ws:name": "my-app",
   "ws:package": "standalone",
   "ws:root": "./wt/my-app"
 }
 ```
 
-`main` указывает на файл относительно корня скомпилированного пакета.
-Соберите module output и затем скомпонуйте `dist/`:
-
 ```sh
-npx btc build --compile-mode module --include-non-ts-files
+npx btc build --include-non-ts-files
 npx btc link --clean
 ```
 
-Для module-примера уберите `/// @bt-mode bare` из исходника: директива важнее CLI.
-Линковка сама не компилирует пакеты. Подробнее: [линковка](./linking) и
-[типы пакетов](../reference/package-types).
+Файл `build/index.js` будет скопирован в `dist/wt/my-app/index.js`.
+Для автоматического запуска на HCM нужно подготовить инициализацию пакета.
+Подробнее в [линковке](./linking) и [типах пакетов](../reference/package-types).
 
 ### Push на сервер
 
@@ -111,16 +99,14 @@ Push загружает файлы и запускает инициализац�
 
 ## Dev Mode
 
-Для существующего module pipeline можно запустить локальный watch без сервера:
+Для локального watch без загрузки на сервер:
 
 ```sh
 npx btc dev --no-push
 ```
 
-Без `--no-push` автоматически выполняется загрузка на сервер. У `dev` нет
-`--compile-mode`; bare-файлы требуют директивы. Generated module initialization
-не превращает bare output в обычный module. Ограничения watch описаны в
-[Dev Mode](./dev-mode).
+Без `--no-push` автоматически выполняется загрузка на сервер. Watch использует
+[правила выбора режима](../reference/compile-modes) для команды `dev`.
 
 ## Multi-package проект
 

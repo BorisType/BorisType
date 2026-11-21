@@ -9,18 +9,9 @@
 import * as ts from "typescript";
 import { IR, type IRStatement } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
-import { visitExpression, resolveCallableRef } from "../expressions.ts";
+import { visitExpression } from "../expressions.ts";
 import { getControlTargetId, getLoc } from "../helpers.ts";
 import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
-import { visitBareFunctionDeclaration, visitBareVariableStatement, visitBareNamespaceDeclaration } from "../bare-visitors.ts";
-import {
-  visitFunctionDeclaration,
-  visitVariableStatement,
-  visitImportDeclaration,
-  visitExportDeclaration,
-  visitExportAssignment,
-  visitClassDeclaration,
-} from "./declarations.ts";
 import { visitIfStatement, visitSwitchStatement, visitTryStatement } from "./control-flow.ts";
 import { visitForStatement, visitForInStatement, visitForOfStatement, visitWhileStatement, visitDoWhileStatement } from "./loops.ts";
 import { visitBlock, visitReturnStatement } from "./blocks.ts";
@@ -61,14 +52,12 @@ export function visitStatement(node: ts.Node, ctx: VisitorContext): IRStatement 
 
   // Function declaration
   if (ts.isFunctionDeclaration(node)) {
-    if (!ctx.config.useEnvDescPattern) return visitBareFunctionDeclaration(node, ctx);
-    return visitFunctionDeclaration(node, ctx);
+    return ctx.config.visitors.functionDeclaration(node, ctx);
   }
 
   // Variable statement (let/const/var)
   if (ts.isVariableStatement(node)) {
-    if (!ctx.config.useEnvDescPattern) return visitBareVariableStatement(node, ctx);
-    return visitVariableStatement(node, ctx);
+    return ctx.config.visitors.variableStatement(node, ctx);
   }
 
   // Return statement
@@ -148,40 +137,10 @@ export function visitStatement(node: ts.Node, ctx: VisitorContext): IRStatement 
 
   // Namespace declaration: export namespace X { ... }
   if (ts.isModuleDeclaration(node)) {
-    if (!ctx.config.useEnvDescPattern) return visitBareNamespaceDeclaration(node, ctx);
-    // script/module: namespace не поддерживается
-    ctx.diagnostics.push(
-      createBtDiagnostic(
-        ctx.sourceFile,
-        node,
-        "Unhandled statement: ModuleDeclaration",
-        ts.DiagnosticCategory.Warning,
-        BtDiagnosticCode.ModuleDeclarationUnsupported,
-      ),
-    );
-    return null;
+    return ctx.config.visitors.namespaceDeclaration(node, ctx);
   }
 
-  // Import — генерируем require и заполняем importBindings для live binding
-  if (ts.isImportDeclaration(node)) {
-    // Without env/desc: all imports are stripped
-    if (!ctx.config.useEnvDescPattern) return null;
-    return visitImportDeclaration(node, ctx);
-  }
-
-  // Export declaration: export { a, b as c }
-  if (ts.isExportDeclaration(node) && ctx.config.moduleExports) {
-    return visitExportDeclaration(node, ctx);
-  }
-  if (ts.isExportDeclaration(node)) {
-    return null;
-  }
-
-  // Export assignment: export default expr
-  if (ts.isExportAssignment(node) && ctx.config.moduleExports) {
-    return visitExportAssignment(node, ctx);
-  }
-  if (ts.isExportAssignment(node)) {
+  if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isExportAssignment(node)) {
     return null;
   }
 
@@ -190,21 +149,18 @@ export function visitStatement(node: ts.Node, ctx: VisitorContext): IRStatement 
     return null;
   }
 
-  // Class declaration → prototype + constructor pattern
+  // Class declaration
   if (ts.isClassDeclaration(node)) {
-    if (!ctx.config.useEnvDescPattern) {
-      ctx.diagnostics.push(
-        createBtDiagnostic(
-          ctx.sourceFile,
-          node,
-          "ClassDeclaration is not supported in bare mode",
-          ts.DiagnosticCategory.Error,
-          BtDiagnosticCode.ClassDeclarationBareMode,
-        ),
-      );
-      return null;
-    }
-    return visitClassDeclaration(node, ctx);
+    ctx.diagnostics.push(
+      createBtDiagnostic(
+        ctx.sourceFile,
+        node,
+        "ClassDeclaration is not supported in bare mode",
+        ts.DiagnosticCategory.Error,
+        BtDiagnosticCode.ClassDeclarationBareMode,
+      ),
+    );
+    return null;
   }
 
   ctx.diagnostics.push(

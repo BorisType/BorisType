@@ -102,16 +102,7 @@ export type IRExpression =
   | IRUpdateExpression
   | IRSequenceExpression
   // Special
-  | IRArgsAccess
-  | IREnvAccess
-  | IRPolyfillCall
   | IRRuntimeCall
-  // BT runtime calls
-  | IRBTGetProperty
-  | IRBTSetProperty
-  | IRBTCallFunction
-  | IRBTIsFunction
-  | IRBTIsTrue
   | IRGroupingExpression;
 
 // ============================================================================
@@ -140,15 +131,12 @@ export interface IRProgram extends IRNodeBase {
 
 /**
  * Объявление функции
- *
- * В BorisScript все функции имеют сигнатуру:
- * `function name(__env, __this, __args) { ... }`
  */
 export interface IRFunctionDeclaration extends IRNodeBase {
   kind: "FunctionDeclaration";
   /** Имя функции */
   name: string;
-  /** Оригинальные имена параметров (для извлечения из __args) */
+  /** Исходные параметры функции */
   originalParams: IRFunctionParam[];
   /** Тело функции */
   body: IRStatement[];
@@ -156,7 +144,7 @@ export interface IRFunctionDeclaration extends IRNodeBase {
   generator?: false;
   /** Является ли функция async (не поддерживается в BS) */
   async?: false;
-  /** Plain-сигнатура: function name(p1, p2) без __env/__this/__args (для ObjectUnion и др.) */
+  /** Сохранять позицию вложенных функций при hoisting. */
   plainSignature?: boolean;
 }
 
@@ -550,7 +538,7 @@ export interface IRAssignmentExpression extends IRNodeBase {
   /** Оператор */
   operator: AssignmentOperator;
   /** Левая часть (lvalue) */
-  left: IRIdentifier | IRMemberExpression | IREnvAccess;
+  left: IRIdentifier | IRMemberExpression;
   /** Правая часть */
   right: IRExpression;
 }
@@ -582,50 +570,6 @@ export interface IRSequenceExpression extends IRNodeBase {
 // ============================================================================
 // Special Expressions (BorisScript-specific)
 // ============================================================================
-
-/**
- * Доступ к аргументам функции через __args
- *
- * Генерируется для параметров функции.
- * В emit превращается в `var param = __args[index]` в начале функции.
- */
-export interface IRArgsAccess extends IRNodeBase {
-  kind: "ArgsAccess";
-  /** Индекс аргумента */
-  index: number;
-  /** Оригинальное имя параметра */
-  originalName: string;
-}
-
-/**
- * Доступ к переменной через environment chain
- *
- * Для замыканий генерируется доступ через __env.__parent...
- */
-export interface IREnvAccess extends IRNodeBase {
-  kind: "EnvAccess";
-  /** Глубина в parent chain (0 = текущий env) */
-  depth: number;
-  /** Имя переменной */
-  key: string;
-}
-
-/**
- * Вызов polyfill функции
- *
- * Для преобразования array.map(), string.toLowerCase() и т.д.
- */
-export interface IRPolyfillCall extends IRNodeBase {
-  kind: "PolyfillCall";
-  /** Тип полифила: "array", "string", "number", "object" */
-  polyfillType: string;
-  /** Имя метода */
-  method: string;
-  /** Target объект (первый аргумент) */
-  target: IRExpression;
-  /** Остальные аргументы */
-  arguments: IRExpression[];
-}
 
 /**
  * Вызов runtime функции
@@ -675,73 +619,6 @@ export interface IREnvAssign extends IRNodeBase {
   /** Ключ */
   key: string;
   /** Значение */
-  value: IRExpression;
-}
-
-// ============================================================================
-// BT Runtime Calls
-// ============================================================================
-
-/**
- * Получение свойства через bt.getProperty
- *
- * `bt.getProperty(obj, "prop")` или `bt.getProperty(arr, index)`
- */
-export interface IRBTGetProperty extends IRNodeBase {
-  kind: "BTGetProperty";
-  /** Объект или массив */
-  object: IRExpression;
-  /** Имя свойства (строка) или индекс (выражение) */
-  property: IRExpression;
-}
-
-/**
- * Установка свойства через bt.setProperty
- *
- * `bt.setProperty(obj, "prop", value)`
- */
-export interface IRBTSetProperty extends IRNodeBase {
-  kind: "BTSetProperty";
-  /** Объект или массив */
-  object: IRExpression;
-  /** Имя свойства (строка) или индекс (выражение) */
-  property: IRExpression;
-  /** Значение */
-  value: IRExpression;
-}
-
-/**
- * Вызов функции через bt.callFunction
- *
- * `bt.callFunction(func, [args])`
- */
-export interface IRBTCallFunction extends IRNodeBase {
-  kind: "BTCallFunction";
-  /** Функция (дескриптор или идентификатор) */
-  callee: IRExpression;
-  /** Аргументы */
-  arguments: IRExpression[];
-}
-
-/**
- * Проверка является ли значение функцией через bt.isFunction
- *
- * `bt.isFunction(value)`
- */
-export interface IRBTIsFunction extends IRNodeBase {
-  kind: "BTIsFunction";
-  /** Проверяемое значение */
-  value: IRExpression;
-}
-
-/**
- * Приведение значения к boolean через bt.isTrue
- *
- * `bt.isTrue(value)`
- */
-export interface IRBTIsTrue extends IRNodeBase {
-  kind: "BTIsTrue";
-  /** Проверяемое значение */
   value: IRExpression;
 }
 

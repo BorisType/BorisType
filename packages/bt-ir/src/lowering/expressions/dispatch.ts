@@ -4,8 +4,6 @@
  * Содержит:
  * - visitExpression (main dispatch)
  * - maybeExtract (safe inline extraction)
- * - isOptionalChainResult, extractOptionalChainTempName
- * - createOptionalCheck, chainOptionalAccess
  * - unwrapTypeExpressions
  *
  * @module lowering/expressions/dispatch
@@ -14,7 +12,7 @@
 import * as ts from "typescript";
 import { IR, type IRExpression } from "../../ir/index.ts";
 import type { VisitorContext } from "../visitor.ts";
-import { getLoc, isInternalAccess, isXmlRelatedType } from "../helpers.ts";
+import { getLoc, isInternalAccess } from "../helpers.ts";
 import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics.ts";
 
 // Lazy imports для разрыва циклических зависимостей:
@@ -24,8 +22,6 @@ import { createBtDiagnostic, BtDiagnosticCode } from "../../pipeline/diagnostics
 import { visitBinaryExpression, visitPrefixUnaryExpression, visitPostfixUnaryExpression } from "./operators.ts";
 import { visitCallExpression, visitNewExpression } from "./calls.ts";
 import { visitIdentifier, visitTemplateExpression, visitObjectLiteral, visitArrayLiteral } from "./literals.ts";
-import { visitArrowFunction, visitFunctionExpression } from "./functions.ts";
-import { helperEnvAccess } from "./module-access.ts";
 
 // ============================================================================
 // Shared utilities
@@ -48,14 +44,6 @@ function normalizeNumericLiteral(text: string): string {
   }
   // Обычные десятичные целые — оставляем как есть (точность уже в строке)
   return text;
-}
-
-/**
- * Проверяет, является ли IR выражение результатом optional chaining.
- * Определяется по структуре: ConditionalExpression с consequent === IR.id("undefined").
- */
-function isOptionalChainResult(expr: IRExpression): expr is import("../../ir/index.ts").IRConditionalExpression {
-  return expr.kind === "ConditionalExpression" && expr.consequent.kind === "Identifier" && expr.consequent.name === "undefined";
 }
 
 /**
@@ -91,101 +79,6 @@ export function maybeExtract(expr: IRExpression, ctx: VisitorContext): IRExpress
 }
 
 /**
- * Извлекает имя temp переменной из результата optional chaining.
- *
- * Структура: `(__tmp = expr) == null || __tmp == undefined ? undefined : alternate`
- * Ищем AssignmentExpression внутри GroupingExpression → left.name
- */
-function extractOptionalChainTempName(expr: import("../../ir/index.ts").IRConditionalExpression): string | undefined {
-  // test = LogicalExpression("||", left, right)
-  if (expr.test.kind !== "LogicalExpression" || expr.test.operator !== "||") return undefined;
-
-  // left = BinaryExpression("==", GroupingExpression(AssignmentExpression), null)
-  const leftTest = expr.test.left;
-  if (leftTest.kind !== "BinaryExpression" || leftTest.operator !== "==") return undefined;
-
-  const grouped = leftTest.left;
-  if (grouped.kind !== "GroupingExpression") return undefined;
-
-  const assign = grouped.expression;
-  if (assign.kind !== "AssignmentExpression" || assign.operator !== "=") return undefined;
-
-  if (assign.left.kind !== "Identifier") return undefined;
-  return assign.left.name;
-}
-
-// ============================================================================
-// Optional chaining helpers
-// ============================================================================
-
-/**
- * Создаёт IR для optional chaining проверки.
- *
- * Паттерн: `(__tmp = expr) == null || __tmp == undefined ? undefined : alternate`
- *
- * @param expr - Выражение для проверки на null/undefined
- * @param buildAlternate - Выражение-результат если expr не null/undefined
- * @param ctx - VisitorContext
- * @param loc - Местоположение в исходнике
- * @param reuseTempName - Имя temp переменной для переиспользования (оптимизация)
- */
-export function createOptionalCheck(
-  expr: IRExpression,
-  buildAlternate: (tempRef: IRExpression) => IRExpression,
-  ctx: VisitorContext,
-  loc?: import("../../ir/index.ts").SourceLocation,
-  reuseTempName?: string,
-): IRExpression {
-  const tempName = reuseTempName ?? ctx.bindings.create("tmp");
-  // Объявляем временную переменную (только если новая)
-  if (!reuseTempName) {
-    ctx.pendingStatements.push(IR.varDecl(tempName, null));
-  }
-  const tempRef = IR.id(tempName);
-
-  // (__tmp = expr) == null || __tmp == undefined
-  const assignExpr = IR.assign("=", IR.id(tempName) as import("../../ir/index.ts").IRIdentifier, expr);
-  const nullCheck = IR.binary("==", IR.grouping(assignExpr), IR.null());
-  const undefinedCheck = IR.binary("==", tempRef, IR.id("undefined"));
-  const test = IR.logical("||", nullCheck, undefinedCheck);
-
-  const alternate = buildAlternate(tempRef);
-  return IR.conditional(test, IR.id("undefined"), alternate, loc);
-}
-
-/**
- * Встраивает операцию в alternate ветку существующего optional chain conditional,
- * или создаёт новый optional check если это новый `?.`.
- */
-export function chainOptionalAccess(
-  base: IRExpression,
-  hasQuestionDot: boolean,
-  buildAccess: (baseRef: IRExpression) => IRExpression,
-  ctx: VisitorContext,
-  loc?: import("../../ir/index.ts").SourceLocation,
-): IRExpression {
-  if (hasQuestionDot) {
-    // Новый ?. — создаём optional check
-    // Если base уже optional chain result, переиспользуем temp переменную
-    const reuseName = isOptionalChainResult(base) ? extractOptionalChainTempName(base) : undefined;
-    return createOptionalCheck(base, (tempRef) => buildAccess(tempRef), ctx, loc, reuseName);
-  }
-
-  // Обычный доступ, но base может быть результатом optional chaining
-  if (isOptionalChainResult(base)) {
-    // Встраиваем в alternate ветку
-    return IR.conditional(base.test, base.consequent, buildAccess(base.alternate), loc ?? base.loc);
-  }
-
-  // Обычный доступ без optional chaining
-  return buildAccess(base);
-}
-
-// ============================================================================
-// Type expression unwrapping
-// ============================================================================
-
-/**
  * Снимает TypeScript-only обёртки (as T, x!, satisfies T) с выражения.
  * Возвращает «чистое» runtime-выражение.
  */
@@ -208,9 +101,8 @@ function unwrapTypeExpressions(node: ts.Expression): ts.Expression {
 
 /**
  * Обрабатывает expression
- * @param objectName - имя объекта если это инициализатор переменной
  */
-export function visitExpression(node: ts.Expression, ctx: VisitorContext, objectName?: string): IRExpression {
+export function visitExpression(node: ts.Expression, ctx: VisitorContext): IRExpression {
   // Identifier
   if (ts.isIdentifier(node)) {
     return visitIdentifier(node, ctx);
@@ -281,17 +173,7 @@ export function visitExpression(node: ts.Expression, ctx: VisitorContext, object
   if (ts.isPropertyAccessExpression(node)) {
     const propName = node.name.text;
 
-    // import.meta.dirPath, import.meta.dirUrl, import.meta.filePath, import.meta.fileUrl
     if (ts.isMetaProperty(node.expression) && node.expression.name.text === "meta") {
-      const metaProps = ["dirPath", "dirUrl", "filePath", "fileUrl"];
-      if (metaProps.includes(propName)) {
-        if (!ctx.config.useEnvDescPattern) {
-          return IR.id("__invalid__", getLoc(node, ctx));
-        }
-        ctx.helperFlags.usesImportMeta = true;
-        const helperName = `__ImportMeta_${propName}`;
-        return IR.btCallFunction(helperEnvAccess(helperName, ctx), [], getLoc(node, ctx));
-      }
       return IR.id("__invalid__", getLoc(node, ctx));
     }
 
@@ -304,20 +186,8 @@ export function visitExpression(node: ts.Expression, ctx: VisitorContext, object
       return IR.dot(obj, propName, loc);
     }
 
-    // Without property wrapping: ?. not supported
-    if (!ctx.config.wrapPropertyAccess) {
-      if (hasQuestionDot) return IR.id("__invalid__", loc);
-      return IR.dot(obj, propName, loc);
-    }
-
-    // XML с ?. → переключаемся на bt.getProperty для этого выражения
-    const isXml = isXmlRelatedType(ctx.typeChecker, node.expression, ctx.xmlDocumentSymbol, ctx.xmlElemSymbol);
-    if (isXml && !hasQuestionDot) {
-      return IR.dot(obj, propName, loc);
-    }
-
-    // Optional chaining / chain continuation
-    return chainOptionalAccess(obj, hasQuestionDot, (baseRef) => IR.btGetProperty(baseRef, IR.string(propName), loc), ctx, loc);
+    if (hasQuestionDot) return IR.id("__invalid__", loc);
+    return IR.dot(obj, propName, loc);
   }
 
   // Element access (a[b]) / Optional element access (a?.[b])
@@ -331,25 +201,13 @@ export function visitExpression(node: ts.Expression, ctx: VisitorContext, object
       return IR.member(obj, prop, true, loc);
     }
 
-    // Without property wrapping: ?. not supported
-    if (!ctx.config.wrapPropertyAccess) {
-      if (hasQuestionDot) return IR.id("__invalid__", loc);
-      return IR.member(obj, prop, true, loc);
-    }
-
-    // XML с ?. → переключаемся на bt.getProperty для этого выражения
-    const isXml = isXmlRelatedType(ctx.typeChecker, node.expression, ctx.xmlDocumentSymbol, ctx.xmlElemSymbol);
-    if (isXml && !hasQuestionDot) {
-      return IR.member(obj, prop, true, loc);
-    }
-
-    // Optional chaining / chain continuation
-    return chainOptionalAccess(obj, hasQuestionDot, (baseRef) => IR.btGetProperty(baseRef, prop, loc), ctx, loc);
+    if (hasQuestionDot) return IR.id("__invalid__", loc);
+    return IR.member(obj, prop, true, loc);
   }
 
   // Object literal
   if (ts.isObjectLiteralExpression(node)) {
-    return visitObjectLiteral(node, ctx, objectName);
+    return visitObjectLiteral(node, ctx);
   }
 
   // Array literal
@@ -359,12 +217,12 @@ export function visitExpression(node: ts.Expression, ctx: VisitorContext, object
 
   // Arrow function
   if (ts.isArrowFunction(node)) {
-    return visitArrowFunction(node, ctx);
+    return ctx.config.visitors.arrowFunction(node, ctx);
   }
 
   // Function expression
   if (ts.isFunctionExpression(node)) {
-    return visitFunctionExpression(node, ctx);
+    return ctx.config.visitors.functionExpression(node, ctx);
   }
 
   // Parenthesized expression — сохраняем скобки (MDN precedence 18)
@@ -404,7 +262,7 @@ export function visitExpression(node: ts.Expression, ctx: VisitorContext, object
 
   // This keyword
   if (node.kind === ts.SyntaxKind.ThisKeyword) {
-    return !ctx.config.useEnvDescPattern ? IR.id("this", getLoc(node, ctx)) : IR.id("__this", getLoc(node, ctx));
+    return IR.id("this", getLoc(node, ctx));
   }
 
   // Type assertion (as T) — strip type, return inner expression

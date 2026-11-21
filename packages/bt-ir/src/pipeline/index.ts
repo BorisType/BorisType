@@ -22,24 +22,20 @@ import { commaSafetyPass } from "../passes/comma-safety.ts";
 import { literalExtractPass } from "../passes/literal-extract.ts";
 import { hoistPass } from "../passes/hoist.ts";
 import { createBtDiagnosticMessage, BtDiagnosticCode } from "./diagnostics.ts";
+import { DEFAULT_COMPILE_MODE, type CompileMode } from "../lowering/mode-config.ts";
 
-/** Режим транспиляции: bare | script | module */
-export type CompileMode = "bare" | "script" | "module";
+export type { CompileMode } from "../lowering/mode-config.ts";
 
 /**
  * Опции компиляции
  */
 export interface CompileOptions {
-  /** Режим транспиляции (default: module) */
+  /** Режим транспиляции */
   mode?: CompileMode;
   /** Имя файла (для диагностики) */
   filename?: string;
   /** Путь выходного файла (для compileSourceFile; иначе вычисляется из filename) */
   outputPath?: string;
-  /** Ключ файла для script mode: packageName+version+relativePath (import.meta, bt.getFileUrl) */
-  fileKey?: string;
-  /** Имя текущего .js файла для module mode (только basename, для AbsoluteUrl) */
-  currentFileJs?: string;
   /** Опции TypeScript */
   tsCompilerOptions?: ts.CompilerOptions;
   /** Опции emit */
@@ -131,14 +127,12 @@ export function compile(sourceCode: string, options: CompileOptions = {}): Compi
     }
   }
 
-  const mode = options.mode ?? "module";
+  const mode = options.mode ?? DEFAULT_COMPILE_MODE;
 
   let ir: IRProgram;
   try {
     const transformResult = transformToIR(sourceFile, typeChecker, scopeAnalysis, {
       mode,
-      fileKey: options.fileKey,
-      currentFileJs: options.currentFileJs,
     });
     ir = transformResult.ir;
     allDiagnostics.push(...transformResult.diagnostics);
@@ -272,14 +266,12 @@ export function compileSourceFile(sourceFile: ts.SourceFile, program: ts.Program
     printScopeTree(scopeAnalysis.moduleScope);
   }
 
-  const mode = options.mode ?? "module";
+  const mode = options.mode ?? DEFAULT_COMPILE_MODE;
 
   let ir: IRProgram;
   try {
     const transformResult = transformToIR(sourceFile, typeChecker, scopeAnalysis, {
       mode,
-      fileKey: options.fileKey,
-      currentFileJs: options.currentFileJs,
     });
     ir = transformResult.ir;
     allDiagnostics.push(...transformResult.diagnostics);

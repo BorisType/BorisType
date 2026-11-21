@@ -284,7 +284,7 @@ function collectScopesAndDeclarations(
           registerVariable(funcScope, param.name.text, "parameter", allVariables);
         }
         // Деструктуризация параметров — пропускаем в scope analysis.
-        // Diagnostic error выдаётся в function-helpers.ts (extractFunctionParams).
+        // Diagnostic error выдаётся в visitors параметров.
       }
     }
 
@@ -692,34 +692,4 @@ export function printScopeTree(scope: Scope, indent = 0): void {
   for (const child of scope.children) {
     printScopeTree(child, indent + 1);
   }
-}
-
-/**
- * Вычисляет глубину __env chain между двумя scopes
- * Используется для генерации __env.__parent.__parent...
- *
- * Считает только scopes с hasCaptured (которые создают свой __env)
- *
- * fromScope должен быть потомком toScope (или равен ему).
- * Если toScope не найден в цепочке parent, возвращает 0
- * (защита от некорректного вызова).
- */
-export function getEnvDepth(fromScope: Scope, toScope: Scope): number {
-  let depth = 0;
-  let current: Scope | null = fromScope;
-
-  while (current && current !== toScope) {
-    // Считаем только scopes которые создают свой __env
-    if (current.hasCaptured) {
-      depth++;
-    }
-    current = current.parent;
-  }
-
-  // Защита: toScope не найден в parent chain — некорректный вызов
-  if (!current) {
-    return 0;
-  }
-
-  return depth;
 }

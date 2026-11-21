@@ -36,7 +36,7 @@ export const BtDiagnosticCode = {
   InvalidUpdateOperand: 90005,
   /** Деструктуризация не поддерживается */
   DestructuringNotSupported: 90006,
-  /** ModuleDeclaration не поддерживается */
+  /** Зарезервированный код диагностики namespace. */
   ModuleDeclarationUnsupported: 90007,
   /** ClassDeclaration не поддерживается в bare mode */
   ClassDeclarationBareMode: 90008,

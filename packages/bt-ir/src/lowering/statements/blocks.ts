@@ -44,15 +44,11 @@ export function visitBlock(node: ts.Block, ctx: VisitorContext): import("../../i
       const blockCtxWithEnv: VisitorContext = {
         ...blockCtx,
         currentEnvRef: blockEnvName,
-        currentEnvScope: blockScope,
       };
       const body = visitStatementList(node.statements, blockCtxWithEnv);
       return IR.block([blockEnvDecl, ...body], getLoc(node, ctx));
     }
-    if (isForOfLoopBody && blockScope.hasCaptured) {
-      const loopBodyCtx: VisitorContext = { ...blockCtx, currentEnvScope: blockScope };
-      return IR.block(visitStatementList(node.statements, loopBodyCtx), getLoc(node, ctx));
-    }
+
     return IR.block(visitStatementList(node.statements, blockCtx), getLoc(node, ctx));
   }
 

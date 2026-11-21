@@ -27,11 +27,9 @@ Native проверки выполнены на одной Linux-сборке HC
 или всех бизнес-сценариев. Подробнее — в гайдах соответствующих инструментов.
 
 Для компилятора поддерживаемое направление развития — **bare mode**.
-Развитие script/module приостановлено до принятия стратегии памяти: env/descriptor
-и receiver graph могут образовывать циклы, не освобождаемые reference counting
-C-runtime. Реализации и регрессии сохранены; CLI всё ещё выбирает module по умолчанию.
-[Выбор режима](docs/reference/compile-modes.md), [решение и условия возобновления](refs/decisions/2026-11-05-script-module-memory-freeze.md).
-Bare не обещает полную JS-семантику или отсутствие пользовательских циклов.
+В текущей версии компилятор использует `bare` по умолчанию.
+[Режимы компиляции](docs/reference/compile-modes.md) и
+[архив прежних режимов](https://github.com/BorisType/BorisType/tree/archive/compiler-modes).
 
 ## Разработка из checkout
 

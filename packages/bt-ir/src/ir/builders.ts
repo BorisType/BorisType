@@ -50,17 +50,9 @@ import type {
   IRAssignmentExpression,
   IRUpdateExpression,
   IRSequenceExpression,
-  IRArgsAccess,
-  IREnvAccess,
-  IRPolyfillCall,
   IRRuntimeCall,
   IREnvDeclaration,
   IREnvAssign,
-  IRBTGetProperty,
-  IRBTSetProperty,
-  IRBTCallFunction,
-  IRBTIsFunction,
-  IRBTIsTrue,
   IRGroupingExpression,
   IRStatement,
   IRExpression,
@@ -95,7 +87,7 @@ export const IR = {
 
   /**
    * Создаёт объявление функции
-   * @param plainSignature - если true, сигнатура function name(p1, p2) без __env/__this/__args
+   * @param plainSignature - сохранять позицию вложенных функций при hoisting
    */
   functionDecl(
     name: string,
@@ -402,7 +394,7 @@ export const IR = {
    */
   assign(
     operator: AssignmentOperator,
-    left: IRIdentifier | IRMemberExpression | IREnvAccess,
+    left: IRIdentifier | IRMemberExpression,
     right: IRExpression,
     loc?: SourceLocation,
   ): IRAssignmentExpression {
@@ -426,27 +418,6 @@ export const IR = {
   // =========================================================================
   // Special Expressions
   // =========================================================================
-
-  /**
-   * Создаёт args access
-   */
-  argsAccess(index: number, originalName: string, loc?: SourceLocation): IRArgsAccess {
-    return { kind: "ArgsAccess", index, originalName, loc };
-  },
-
-  /**
-   * Создаёт env access
-   */
-  envAccess(depth: number, key: string, loc?: SourceLocation): IREnvAccess {
-    return { kind: "EnvAccess", depth, key, loc };
-  },
-
-  /**
-   * Создаёт polyfill call
-   */
-  polyfillCall(polyfillType: string, method: string, target: IRExpression, args: IRExpression[], loc?: SourceLocation): IRPolyfillCall {
-    return { kind: "PolyfillCall", polyfillType, method, target, arguments: args, loc };
-  },
 
   /**
    * Создаёт runtime call
@@ -473,45 +444,6 @@ export const IR = {
    */
   envAssign(envName: string, key: string, value: IRExpression, loc?: SourceLocation): IREnvAssign {
     return { kind: "EnvAssign", envName, key, value, loc };
-  },
-
-  // =========================================================================
-  // BT Runtime Calls
-  // =========================================================================
-
-  /**
-   * Создаёт bt.getProperty(obj, prop)
-   */
-  btGetProperty(object: IRExpression, property: IRExpression, loc?: SourceLocation): IRBTGetProperty {
-    return { kind: "BTGetProperty", object, property, loc };
-  },
-
-  /**
-   * Создаёт bt.setProperty(obj, prop, value)
-   */
-  btSetProperty(object: IRExpression, property: IRExpression, value: IRExpression, loc?: SourceLocation): IRBTSetProperty {
-    return { kind: "BTSetProperty", object, property, value, loc };
-  },
-
-  /**
-   * Создаёт bt.callFunction(func, [args])
-   */
-  btCallFunction(callee: IRExpression, args: IRExpression[], loc?: SourceLocation): IRBTCallFunction {
-    return { kind: "BTCallFunction", callee, arguments: args, loc };
-  },
-
-  /**
-   * Создаёт bt.isFunction(value)
-   */
-  btIsFunction(value: IRExpression, loc?: SourceLocation): IRBTIsFunction {
-    return { kind: "BTIsFunction", value, loc };
-  },
-
-  /**
-   * Создаёт bt.isTrue(value)
-   */
-  btIsTrue(value: IRExpression, loc?: SourceLocation): IRBTIsTrue {
-    return { kind: "BTIsTrue", value, loc };
   },
 };
 

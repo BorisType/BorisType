@@ -15,20 +15,10 @@
 заменена явным lowering → passes → emitter. Source maps облегчены наличием loc,
 но не реализованы самим выбором IR.
 
-Первый split отделил operators/calls/literals/functions/module-access,
-statement dispatcher/declarations/control-flow/loops/blocks и emitter components.
-`module-access` появился по смыслу property/element access, отдельный dispatcher —
-из-за объёма; размер файла не являлся единственным критерием. Function helpers
-объединили пять per-call-env setup и четыре parameter-extraction варианта;
-`createMethodCall` — шесть сочетаний optional receiver/call и computed access.
-Barrel re-exports сохранили import paths.
-
-Небольшой `resolveHoistingTarget` тогда не выделили: 2–3 строки выбирали
-контекстные массивы; отдельная abstraction требовала бы передавать оба. Super
-helpers также отклонили: около 20 строк в одном контексте потребовали бы большой
-visitor context. Env setup pass сознательно не сделали: helper уже собирал
-capture-dependent setup, отрыв в отдельный pass добавлял координацию. Это причины
-решений того этапа, не универсальные пороги «10 строк/2 вызова» для новых helpers.
+Первый split отделил operators/calls/literals, statement dispatcher,
+control-flow/loops/blocks и emitter components. Barrel re-exports сохраняли
+пути импорта. Обработчики для конкретных режимов размещались отдельно от
+общих passes, чтобы выбор ABI не распространялся на IR traversal.
 
 Hoist/emitter migration была атомарной: старый `emitStatementHoisted` удалял
 hoistOnly declarations и давал пустые строки, если новый pass подключался без
@@ -56,22 +46,13 @@ visitor. Историческая оценка: 2 файла/4 flush sites пр�
 boundaries и сохранило API. Отчёт ошибочно выводил отсюда корректность порядка
 внутри expressions. Даже гарантированный flush перед statement не сохраняет
 lazy branches, snapshots ранних reads, loop frequency или parameter phase.
-Отчёт уже признавал condition temp, вычисляемый один раз до loop. Современные
-R01–R03/R29 и [E-01](../research/compiler-semantics/expression-evaluation.md)
-показывают конкретные miscompilations. Контракт collection реализован;
-семантический expression design остаётся draft/on hold.
-
-Отказ объединять bare visitors сохранён: plain signature/current scope отличаются
-от env/desc функции, merge добавлял nested branching. ModeConfig заменил 58
-старых mode checks флагами по аспекту. `moduleWrapper` переименовали в
-`moduleExports`; отдельный hoistFunctions flag не понадобился (`IR.noHoist`).
-Reserved `usePolyfills` не делает type-driven dispatch выключаемым независимо.
+Исторические контрпримеры и варианты решения собраны в
+[архиве исследования](https://github.com/BorisType/BorisType/blob/7a0b6a26a004f480f76fad9d534fedcde9f8aea7/refs/research/compiler-semantics/expression-evaluation.md).
 
 ## Diagnostics и проверка заявлений
 
 Gen-2 заменил console.warn на BT diagnostics, добавил error boundaries и
-rejections computed keys/destructured parameters; bare parameter path пришлось
-проверить отдельно от function-helpers. Выбрали `ts.Diagnostic`, а не собственные
+rejections computed keys/destructured parameters. Выбрали `ts.Diagnostic`, а не собственные
 `{level,message,pos}`/`warnings[]`: CLI reporter и TS formatter работают с одним
 форматом. Rejection прекращает corruption, но не реализует requested feature.
 Старое «нечего тестировать, ведь фича запрещена» отвергнуто: negative diagnostic,
@@ -101,9 +82,6 @@ collectVariableNames и nested-function return. Совпадение двух re
 ## Не принятые направления
 
 Unified walker с parent/scope, verifier, type annotations, DCE/constant folding,
-source maps, custom ModeConfig и splitting class visitor остаются отдельными
-unscheduled возможностями. Ни gen-3 plan, ни старое обещание «после этого фичи
-станут простыми» не доказывают их готовность. Reference/evaluation/lifetime
+source maps остаются отдельными возможностями. Reference/evaluation/lifetime
 семантика требует своего исследования. [Proposals](proposals.md) сохраняют
-существенные варианты и причины отсрочки, [scope](../research/compiler-semantics/scope.md)
-— конкретные незавершённые вопросы. Script/module ABI развитие заморожено.
+существенные варианты и причины отсрочки.

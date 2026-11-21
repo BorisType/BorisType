@@ -3,7 +3,6 @@
  *
  * Код разбит на модули в директории statements/:
  * - dispatch.ts      visitStatement (main dispatch)
- * - declarations.ts  visitFunctionDeclaration, visitVariableStatement, visitImportDeclaration, visitClassDeclaration
  * - control-flow.ts  visitIfStatement, visitSwitchStatement, visitTryStatement + desugaring
  * - loops.ts         visitForStatement, visitForInStatement, visitForOfStatement, visitWhile, visitDoWhile
  * - blocks.ts        visitBlock, visitStatementList, visitStatementAsBlock, visitReturnStatement
@@ -17,8 +16,6 @@ export {
   visitBlock,
   visitStatementList,
   visitStatementAsBlock,
-  visitFunctionDeclaration,
-  visitVariableStatement,
   visitIfStatement,
   visitSwitchStatement,
   visitTryStatement,

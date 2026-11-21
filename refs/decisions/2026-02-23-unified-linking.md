@@ -37,8 +37,7 @@
 Решение устраняет дублирующий control path, но не доказывает совместимость
 output, корректность cache invalidation или incremental metadata. Конкретные
 ограничения нормализации executable keys, orphan files и dependency cache
-сверены в [текущей теме](../cli/linking-and-cache.md). Для script/module действует
-[отдельный memory freeze](2026-11-05-script-module-memory-freeze.md).
+сверены в [текущей теме](../cli/linking-and-cache.md).
 
 ## Альтернативы и последствия
 

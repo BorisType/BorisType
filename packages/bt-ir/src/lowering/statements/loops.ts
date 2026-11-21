@@ -92,7 +92,7 @@ export function visitForOfStatement(node: ts.ForOfStatement, ctx: VisitorContext
   const arrExpr = visitExpression(node.expression, ctx);
 
   // Если выражение - простой идентификатор, используем напрямую
-  const isSimple = arrExpr.kind === "Identifier" || arrExpr.kind === "ArgsAccess";
+  const isSimple = arrExpr.kind === "Identifier";
   const arrRef: IRExpression = isSimple ? arrExpr : IR.id(ctx.bindings.create("arr"));
 
   // Переменная цикла — уникальное имя через BindingManager
@@ -115,8 +115,7 @@ export function visitForOfStatement(node: ts.ForOfStatement, ctx: VisitorContext
   }
 
   // Визитим тело с block env если нужно
-  const loopCtx: VisitorContext =
-    useBlockEnv && blockEnvName ? { ...ctx, currentEnvRef: blockEnvName, currentEnvScope: loopBodyScope! } : ctx;
+  const loopCtx: VisitorContext = useBlockEnv && blockEnvName ? { ...ctx, currentEnvRef: blockEnvName } : ctx;
   const body = visitStatementAsBlock(node.statement, loopCtx);
 
   // Добавляем в начало тела: block env и/или присваивание переменной цикла

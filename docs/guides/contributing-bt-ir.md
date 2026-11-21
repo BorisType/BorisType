@@ -7,7 +7,6 @@
 - [Проверки компилятора и границы evidence](https://github.com/BorisType/BorisType/blob/main/refs/compiler/verification.md).
 - [Подготовка окружения разработчика](https://github.com/BorisType/BorisType/blob/main/refs/development.md).
 
-Поддерживаемое направление разработки — **bare**. Развитие `script/module`
-приостановлено до решения стратегии памяти; CLI по умолчанию остаётся `module`.
+Реестр режимов компиляции и настройки lowering находятся в `mode-config.ts`.
 Пользовательский контракт: [режимы компиляции](../reference/compile-modes) и
 [ограничения BorisType](../reference/borisscript-constraints).

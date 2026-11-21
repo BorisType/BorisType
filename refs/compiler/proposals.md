@@ -2,16 +2,15 @@
 
 Статус сверки source: 2026-11-11. Это смысловой итог старых `ref/proposals/`,
 IR algorithm notes и gen reviews, а не backlog разрешённых compiler features.
-Bare — активное направление; script/module ABI и зависимые proposals **on hold**
-до [решения памяти](../decisions/2026-11-05-script-module-memory-freeze.md).
-[Findings](findings.md) отделяют наличие механизма от семантической корректности.
+Материалы по прежним режимам сохранены в
+[архивном обзоре](https://github.com/BorisType/BorisType/blob/7a0b6a26a004f480f76fad9d534fedcde9f8aea7/refs/compiler/proposals.md).
 
 ## Computed keys и parameter patterns
 
 **Не реализованы; диагностически отклоняются.** `PropertyAssignment` с computed
 key даёт BT90010 в [literals](../../packages/bt-ir/src/lowering/expressions/literals.ts).
 Destructured parameters дают BT90011 в обоих путях
-[function-helpers](../../packages/bt-ir/src/lowering/function-helpers.ts) и
+[function-helpers](https://github.com/BorisType/BorisType/blob/7a0b6a26a004f480f76fad9d534fedcde9f8aea7/packages/bt-ir/src/lowering/function-helpers.ts) и
 [bare-visitors](../../packages/bt-ir/src/lowering/bare-visitors.ts).
 Это исправление silent drop/skip, а не поддержка фичи.
 
@@ -40,69 +39,11 @@ bindings, реализована в [abrupt pass](../../packages/bt-ir/src/passe
 BT90012 остаётся reserved; старое ограничение не является текущим контрактом.
 Catch patterns/Annex B labelled functions по-прежнему BT90016/90017.
 
-## Native boolean logical optimization
+## Целевые операции и совместимость
 
-**Не принято как default; unscheduled, script/module on hold.** Идея 2026-03-09:
-если оба TS типа boolean, оставить native `&&`/`||` вместо temp + bt.isTrue ternary.
-Экономятся generated scalar, helper call и output bytes. Но type assertions,
-`any`, неточная external declaration и `JSON.parse` могут дать string/0/null в
-runtime. JS возвращает operand value; native BS может потребовать effective
-boolean и бросить exception. TS type не является доказательством runtime value.
-
-Историческое утверждение review «rejected» относится к небезопасному default,
-не к измеренному запрету всех вариантов. Предлагались experimental
-`nativeBooleanLogical` compiler option/CLI flag, conservative boolean-only
-(non-union) check и отдельная runtime validation. Эти интерфейсы **не существуют**
-в production API. `satisfies` не преобразует runtime значение, как и `as`.
-Перед пересмотром нужны реальные size/timing measurements и semantic boundary;
-`??` — nullish, не boolean optimization. Bare уже использует native operators
-в своём ограниченном subset; это не основание менять frozen script/module.
-
-## Нативные методы объектов
-
-**Непринятое исследовательское предложение**, не спецификация Datex API.
-Явные `GetProperty/GetOptProperty/SetProperty/AddProperty/HasProperty` могли бы
-проходить как обычный method call, заменяться bt helpers, оставаться native или
-иметь hybrid dispatch. Цена wrapper path — дополнительные calls; helper alias
-может менять missing/null behavior и собственный override; native bypass не
-добавляет null guards. Hybrid GetOpt → optional helper, Get → required read,
-Has → presence helper, Add → отдельная операция требует различать presence и
-undefined, XML/host/ordinary object semantics.
-
-[Calls](../../packages/bt-ir/src/lowering/expressions/calls.ts) уже имеют
-XML/internal/type-driven native bypass, поэтому старое «все эти вызовы всегда
-обёрнуты» неверно. [Spread helpers](../../packages/bt-ir/src/lowering/spread-helpers.ts)
-используют native property operations; одинаковое имя не доказывает эквивалентность
-операций. Для выбора нужны конкретные Datex articles + declaration revision и
-bounded runtime evidence. В этой миграции они не проверялись; список API —
-исторические вопросы, не подтверждённые сигнатуры.
-
-## Классы и прототипы
-
-**Базовый механизм реализован в script/module; общая JS class semantics не
-реализована, развитие frozen.** [Class lowering](../../packages/bt-ir/src/lowering/statements/declarations.ts)
-строит hoisted method/constructor functions, prototype object и constructor
-descriptor с `.proto`, регистрируя class binding через env. `extends` связывает
-prototype `__proto`, `super()`/`super.method()` используют callWithThis, чтобы
-передать текущий receiver вместо descriptor.obj. Callable resolution должна
-учитывать captured scope и renamed binding.
-
-[Runtime semantic](../../packages/builtin-runtime/src/semantic.ts): createInstance
-создаёт `{__proto: ctor.proto}`, вызывает constructor descriptor и возвращает
-instance; native ctor fallback пока игнорирует args. Prototype lookup идёт по
-`__proto`, found function descriptor копируется с `.obj = instance` (Variant A).
-Кеш Variant B уменьшил бы повторные copies, но усложняет invalidation/identity и
-может усилить receiver cycles; он не принят. Ordinary function/env allocation
-оптимизируется только при доказанной lifetime/capture корректности.
-
-Старый proposal приводил 13 prototype/class fixtures (basic/no-ctor/multi-instance/
-property-init, inherit/override/chain/super и data/method-binding/proto-chain/
-own-over-proto/missing): [tests/src](../../tests/src/). Это historical JS coverage,
-не доказательство derived constructor forwarding/field order, constructor return,
-static/accessor/private/computed members, `instanceof`, abstract/type erasure,
-lexical arrow this, shared method identity или C memory acceptance. R16 фиксирует
-implicit derived ctor failure; полный member/modifier audit ещё открыт. Не
-переносить старые описания field-before-body на все derived constructors.
+Безопасность прямого вызова метода зависит от типа, возможностей платформы
+и допущений для конкретного выражения. Отдельному предложению по оптимизации
+нужны наблюдения по эффектам, аргументам и целевому runtime.
 
 ## Declaration emit
 

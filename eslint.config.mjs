@@ -58,15 +58,6 @@ export default tseslint.config(
     },
   },
 
-  // Override: tests/prototype allows classes and prototype
-  {
-    files: ["tests/src/prototype/**/*.ts"],
-    rules: {
-      "@boristype/no-class-declaration": "off",
-      "@boristype/no-prototype": "off",
-    },
-  },
-
   // Disable formatting rules — Prettier handles formatting
   eslintConfigPrettier,
 );

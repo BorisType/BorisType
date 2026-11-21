@@ -49,8 +49,8 @@ Extraction использовался в перечисленных контек
 Var declaration и effectful assignment имеют разные требования к месту исполнения.
 Дополнительные statements и temp также увеличивают стоимость output.
 
-[Checkpoint выражений](../research/compiler-semantics/expression-evaluation.md)
+[Checkpoint выражений](https://github.com/BorisType/BorisType/blob/7a0b6a26a004f480f76fad9d534fedcde9f8aea7/refs/research/compiler-semantics/expression-evaluation.md)
 содержит 48 сравнений: 10 PASS и 38 exact XFAIL. Prototypes не являются исправлением
 production lowering. [Findings](../compiler/findings.md) и
 [pipeline](../compiler/pipeline.md) задают текущий маршрут исследования;
-развитие script/module остаётся замороженным.
+статус прежних режимов описан в [архиве компилятора](../compiler/README.md#архив-режимов).

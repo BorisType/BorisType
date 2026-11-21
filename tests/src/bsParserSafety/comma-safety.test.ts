@@ -19,7 +19,7 @@
 
 // ---- Helper function ----
 
-// FIXME: rest params транспилируются в bt.Array.slice() — не поддерживается в botest
+// Параметры rest не входят в сценарий проверки.
 // function sum(...args: number[]): number {
 //   let s = 0;
 //   for (const arg of args) {

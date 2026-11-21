@@ -41,13 +41,7 @@ import type {
   IRAssignmentExpression,
   IRUpdateExpression,
   IRSequenceExpression,
-  IRPolyfillCall,
   IRRuntimeCall,
-  IRBTGetProperty,
-  IRBTSetProperty,
-  IRBTCallFunction,
-  IRBTIsFunction,
-  IRBTIsTrue,
   IRGroupingExpression,
   IREnvAssign,
 } from "../ir/index.ts";
@@ -360,7 +354,7 @@ function mapExpressionChildren(expr: IRExpression, mapper: ExpressionMapper): IR
 
     case "AssignmentExpression": {
       const e = expr as IRAssignmentExpression;
-      // Left can be Identifier, MemberExpression, or EnvAccess — map if needed
+      // Left can be Identifier or MemberExpression — map if needed
       const newLeft = mapExpression(e.left, mapper) as typeof e.left;
       const newRight = mapExpression(e.right, mapper);
       if (newLeft === e.left && newRight === e.right) return expr;
@@ -379,55 +373,10 @@ function mapExpressionChildren(expr: IRExpression, mapper: ExpressionMapper): IR
       return newExprs === e.expressions ? expr : IR.sequence(newExprs, e.loc);
     }
 
-    case "PolyfillCall": {
-      const e = expr as IRPolyfillCall;
-      const newTarget = mapExpression(e.target, mapper);
-      const newArgs = mapExpressionList(e.arguments, mapper);
-      if (newTarget === e.target && newArgs === e.arguments) return expr;
-      return IR.polyfillCall(e.polyfillType, e.method, newTarget, newArgs, e.loc);
-    }
-
     case "RuntimeCall": {
       const e = expr as IRRuntimeCall;
       const newArgs = mapExpressionList(e.arguments, mapper);
       return newArgs === e.arguments ? expr : IR.runtimeCall(e.namespace, e.method, newArgs, e.loc);
-    }
-
-    case "BTGetProperty": {
-      const e = expr as IRBTGetProperty;
-      const newObj = mapExpression(e.object, mapper);
-      const newProp = mapExpression(e.property, mapper);
-      if (newObj === e.object && newProp === e.property) return expr;
-      return IR.btGetProperty(newObj, newProp, e.loc);
-    }
-
-    case "BTSetProperty": {
-      const e = expr as IRBTSetProperty;
-      const newObj = mapExpression(e.object, mapper);
-      const newProp = mapExpression(e.property, mapper);
-      const newVal = mapExpression(e.value, mapper);
-      if (newObj === e.object && newProp === e.property && newVal === e.value) return expr;
-      return IR.btSetProperty(newObj, newProp, newVal, e.loc);
-    }
-
-    case "BTCallFunction": {
-      const e = expr as IRBTCallFunction;
-      const newCallee = mapExpression(e.callee, mapper);
-      const newArgs = mapExpressionList(e.arguments, mapper);
-      if (newCallee === e.callee && newArgs === e.arguments) return expr;
-      return IR.btCallFunction(newCallee, newArgs, e.loc);
-    }
-
-    case "BTIsFunction": {
-      const e = expr as IRBTIsFunction;
-      const newArg = mapExpression(e.value, mapper);
-      return newArg === e.value ? expr : IR.btIsFunction(newArg, e.loc);
-    }
-
-    case "BTIsTrue": {
-      const e = expr as IRBTIsTrue;
-      const newArg = mapExpression(e.value, mapper);
-      return newArg === e.value ? expr : IR.btIsTrue(newArg, e.loc);
     }
 
     case "GroupingExpression": {
@@ -439,8 +388,6 @@ function mapExpressionChildren(expr: IRExpression, mapper: ExpressionMapper): IR
     // Leaf nodes — no children to map
     case "Identifier":
     case "Literal":
-    case "ArgsAccess":
-    case "EnvAccess":
       return expr;
 
     default:

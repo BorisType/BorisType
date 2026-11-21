@@ -2,7 +2,6 @@
 
 ZIP и online push — два независимых потребителя готового `dist/`. Ни один
 не выполняет build/link и не делает module pipeline безопасным по памяти.
-Развитие script/module сохраняет [freeze](../decisions/2026-11-05-script-module-memory-freeze.md).
 
 [DeploySession](../../packages/bt-cli/src/core/pushing/session.ts) держит клиент
 и evaluator; one-shot создаёт/закрывает её, dev queue инициализирует лениво и

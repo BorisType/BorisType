@@ -47,6 +47,6 @@ shared bindings/pass context тоже появились при реальной
 [findings](../compiler/findings.md); история поколений и исправленные противоречия
 старых reviews — в [evolution](../compiler/evolution.md).
 
-Развитие script/module [заморожено](2026-11-05-script-module-memory-freeze.md).
+Текущие режимы и архив описаны в [справочнике компилятора](../compiler/README.md).
 Новая трансформация выбирается по семантике и эффектам, не по обязательству
 разместить любое изменение в очередном pass.

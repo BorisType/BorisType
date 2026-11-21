@@ -9,7 +9,5 @@
 - [Monorepo, release и maintenance](release-and-maintenance.md): текущий граф, fixed group, supply-chain policy.
 - [npm-релизы](npm-releases.md): общий release PR, пакетные теги, CI и настройка npm trust.
 
-Развитие script/module заморожено до принятия стратегии памяти C-runtime;
-наличие module default, watch и deploy не означает production acceptance.
-В этой ревизии менялись знания и навигация, не поведение CLI.
+Состояние компилятора и режимов описано в [справочнике](../../docs/reference/compile-modes.md).
 Сверка 2026-11-11 основана на текущем исходном коде и manifests; runtime HCM не запускался.

@@ -14,12 +14,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
-import { compileSourceFile } from "@boristype/bt-ir";
+import { BtDiagnosticCode, COMPILE_MODES, compileSourceFile, createBtDiagnosticMessage, isCompileMode } from "@boristype/bt-ir";
 import { logger } from "../logger.js";
 import type { BtcCompileOptions } from "./types.js";
 import type { BuildContext, BuildResult, ExecutableObjectSourceFileInfo } from "./types.js";
 import { transformOutput } from "./output.js";
-import { resolveCompileMode, collectExecutables, computeFileKey, computeCurrentFileJs } from "./compile-mode.js";
+import { resolveCompileMode } from "./compile-mode.js";
+import { collectExecutables } from "./executables.js";
 
 /**
  * Фильтрует список файлов по заданному списку
@@ -113,28 +114,31 @@ interface EmitSourceFilesResult {
  * @param sourceFiles - Файлы для компиляции
  * @param program - TypeScript program (для type info)
  * @param options - Опции btc
- * @param executablePaths - Пути исполняемых объектов
  * @returns Emitted файлы и bt-ir диагностики
  */
-function emitSourceFiles(
-  sourceFiles: readonly ts.SourceFile[],
-  program: ts.Program,
-  options: BtcCompileOptions,
-  executablePaths: Set<string>,
-): EmitSourceFilesResult {
+function emitSourceFiles(sourceFiles: readonly ts.SourceFile[], program: ts.Program, options: BtcCompileOptions): EmitSourceFilesResult {
   const emittedFiles: string[] = [];
   const diagnostics: ts.Diagnostic[] = [];
 
   for (const sourceFile of sourceFiles) {
-    const mode = resolveCompileMode(sourceFile, options, executablePaths);
+    const mode = resolveCompileMode(sourceFile, options);
+    if (!isCompileMode(mode)) {
+      const diagnostic = createBtDiagnosticMessage(
+        `${sourceFile.fileName}: unsupported compile mode "${mode}". Available modes: ${COMPILE_MODES.join(", ")}.`,
+        ts.DiagnosticCategory.Error,
+        BtDiagnosticCode.TransformFailed,
+      );
+      diagnostics.push(diagnostic);
+      reportDiagnostics([diagnostic]);
+      continue;
+    }
+
     const outputPath = getOutputPath(sourceFile, program);
 
     const result = compileSourceFile(sourceFile, program, {
       mode,
       outputPath,
       filename: sourceFile.fileName,
-      fileKey: mode === "script" ? computeFileKey(sourceFile, program) : undefined,
-      currentFileJs: mode === "module" ? computeCurrentFileJs(sourceFile) : undefined,
     });
 
     // Собираем bt-ir диагностики
@@ -179,11 +183,11 @@ export function compile(context: BuildContext): BuildResult {
   const sourceFiles =
     fileNames.length === 0 ? allSourceFiles : fileNames.map((fn) => program.getSourceFile(fn)).filter((sf): sf is ts.SourceFile => !!sf);
 
-  const { executables, paths: executablePaths } = collectExecutables(program, sourceFiles);
+  const executables = collectExecutables(program, sourceFiles);
   const outputDir = getOutputDirectory(program);
 
   // Emit JS через bt-ir
-  const emitResult = emitSourceFiles(sourceFiles, program, options, executablePaths);
+  const emitResult = emitSourceFiles(sourceFiles, program, options);
 
   const hasBtIrErrors = emitResult.diagnostics.some((d) => d.category === ts.DiagnosticCategory.Error);
 
@@ -311,11 +315,11 @@ export function createWatchProgram(context: BuildContext, onRebuild?: (result: B
 
     logger.info(`Emitting ${filesToEmit.length} file(s): ${filesToEmit.map((f) => path.basename(f.fileName)).join(", ")}`);
 
-    const { executables, paths: executablePaths } = collectExecutables(program, filesToEmit);
+    const executables = collectExecutables(program, filesToEmit);
     currentExecutables = executables;
 
     // Emit JS через bt-ir
-    const emitResult = emitSourceFiles(filesToEmit, program, options, executablePaths);
+    const emitResult = emitSourceFiles(filesToEmit, program, options);
     currentEmittedFiles.push(...emitResult.emittedFiles);
 
     if (emitResult.diagnostics.some((d) => d.category === ts.DiagnosticCategory.Error)) {

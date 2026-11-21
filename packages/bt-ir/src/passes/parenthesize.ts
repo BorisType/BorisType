@@ -21,8 +21,6 @@ import {
   type IRLogicalExpression,
   type IRConditionalExpression,
   type IRAssignmentExpression,
-  type IRBTIsTrue,
-  type IRBTIsFunction,
   type IRFunctionDeclaration,
   type IRBlockStatement,
   type IRIfStatement,
@@ -212,22 +210,6 @@ function processExpr(expr: IRExpression): IRExpression {
         }
         if (test === cond.test && cons === cond.consequent && alt === cond.alternate) return e;
         return IR.conditional(test, cons, alt, cond.loc);
-      }
-
-      case "BTIsTrue": {
-        const bt = e as IRBTIsTrue;
-        const newVal = processExpr(bt.value);
-        const wrapped = newVal.kind === "AssignmentExpression" ? IR.grouping(newVal, newVal.loc) : newVal;
-        if (wrapped === bt.value) return e;
-        return IR.btIsTrue(wrapped, bt.loc);
-      }
-
-      case "BTIsFunction": {
-        const bt = e as IRBTIsFunction;
-        const newVal = processExpr(bt.value);
-        const wrapped = newVal.kind === "AssignmentExpression" ? IR.grouping(newVal, newVal.loc) : newVal;
-        if (wrapped === bt.value) return e;
-        return IR.btIsFunction(wrapped, bt.loc);
       }
 
       default:

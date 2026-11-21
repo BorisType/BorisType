@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { resolve, relative } from "node:path";
 import vm from "node:vm";
 import ts from "typescript";
-import { compile } from "../../build/index.js";
+import { COMPILE_MODES, compile } from "../../build/index.js";
 import { evalBorisScriptAsync } from "../../../botest/build/borisscript/runner.js";
 import { abruptCases, caseSource } from "./abrupt-cases.mjs";
 import { assertSafeForUpdates } from "./output-invariants.mjs";
@@ -25,8 +25,8 @@ const oracleJS = ts.transpileModule(source + "\nrunAll();", { compilerOptions: {
 const expected = vm.runInNewContext(oracleJS, {}, { timeout: 10000 });
 assert.equal(typeof expected, "string");
 assert.equal(expected.trimEnd().split("\n").length, cases.length);
-for (const mode of ["bare", "script", "module"]) {
-  const modeSource = source + (mode === "module" ? "\nexport var result = runAll();" : "\nvar result = runAll(); result;");
+for (const mode of COMPILE_MODES) {
+  const modeSource = source + "\nvar result = runAll(); result;";
   const start = performance.now();
   const compiled = compile(modeSource, { filename: "matrix.ts", mode });
   assert.equal(
@@ -41,21 +41,7 @@ for (const mode of ["bare", "script", "module"]) {
   writeFileSync(outputPath, output);
   const compileMs = performance.now() - start;
   const runStart = performance.now();
-  let actual;
-  if (mode === "module") {
-    const url = "x-local://" + relative(root, outputPath).replaceAll("\\", "/");
-    actual = await evalBorisScriptAsync(
-      `
-      RegisterCodeLibrary('${url}');
-      var library = OpenCodeLibrary('${url}');
-      var module = {exports: new SafeObject()};
-      library.__init(library, module);
-      return module.exports.result;
-    `,
-      outputPath,
-      15000,
-    );
-  } else actual = await evalBorisScriptAsync(output + "\nreturn result;", outputPath, 15000);
+  const actual = await evalBorisScriptAsync(output + "\nreturn result;", outputPath, 15000);
   const actualLines = String(actual).trimEnd().split("\n");
   const expectedLines = expected.trimEnd().split("\n");
   const failed = cases.filter((_, index) => actualLines[index] !== expectedLines[index]);

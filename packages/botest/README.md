@@ -21,9 +21,9 @@ pnpm exec turbo run build
 
 ```sh
 pnpm test
-node packages/botest/build/index.js tests/build array
-node packages/botest/build/index.js tests/build array/at.test.js
-node packages/botest/build/index.js tests/build array string
+node packages/botest/build/index.js tests/build labels
+node packages/botest/build/index.js tests/build labels/block-break.test.js
+node packages/botest/build/index.js tests/build labels precedence
 ```
 
 `pnpm test` только запускает уже собранные тесты. После изменения исходников

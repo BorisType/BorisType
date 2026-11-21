@@ -1,0 +1,1 @@
+alert("BorisType component file");

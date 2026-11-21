@@ -4,6 +4,7 @@
  */
 
 import type ts from "typescript";
+import type { CompileMode } from "@boristype/bt-ir";
 
 /**
  * Информация об исполняемом объекте, найденном в исходном файле
@@ -16,8 +17,7 @@ export type ExecutableObjectSourceFileInfo = {
 
 // ─── Compile options ────────────────────────────────────────────
 
-/** Режим транспиляции: bare | script | module */
-export type CompileMode = "bare" | "script" | "module";
+export type { CompileMode } from "@boristype/bt-ir";
 
 /**
  * Опции компиляции btc
@@ -31,7 +31,7 @@ export type BtcCompileOptions = {
   retainNonAsciiCharacters?: boolean;
   /** Удалять комментарии из исходных файлов */
   removeComments?: boolean;
-  /** Режим транспиляции (default: module). bare — для системных библиотек. */
+  /** Режим транспиляции. */
   compileMode?: CompileMode;
 };
 

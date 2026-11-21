@@ -3,10 +3,8 @@
 CLI `btc` компилирует ограниченное подмножество TypeScript в BorisScript для
 WebSoft HCM. Он не гарантирует полную JS/npm-совместимость.
 
-Текущее направление разработки — **bare**; `script/module` заморожены до решения
-стратегии памяти C-runtime. Реализации и regression tests сохранены.
-**Default CLI остаётся `module`**: выбирайте bare явно.
-[Режимы и ограничения](https://boristype.github.io/BorisType/reference/compile-modes).
+По умолчанию используется `bare`.
+[Правила выбора режима](https://boristype.github.io/BorisType/reference/compile-modes).
 
 ## Установка и первая сборка
 
@@ -45,9 +43,9 @@ npx btc build --compile-mode bare
 | `btc push`             | Загрузить готовый dist и выполнить initialization на HCM     |
 | `btc dev --no-push`    | Watch/build/link локально; без этого флага auto-push включён |
 
-`link/dev/push` обслуживают существующий экспериментальный module pipeline;
-для него отдельно устанавливается совместимый `@boristype/runtime`.
-У `dev` нет `--compile-mode`; директива файла выше CLI default.
+Команды `link`, `dev` и `push` работают с готовыми пакетами.
+Инициализация пакета зависит от формата выходных файлов и его метаданных.
+У `dev` выбор режима задаётся файловой директивой или значением по умолчанию.
 `link`/`push`/`artifact` не компилируют пакеты автоматически.
 Сборка может оставить partial/stale output: проверяйте diagnostics/exit status.
 После удаления исходников очистите старые файлы build перед `link --clean`.

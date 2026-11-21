@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import ts from "typescript";
-import { compile, compileSourceFile } from "../build/index.js";
+import { COMPILE_MODES, compile, compileSourceFile } from "../build/index.js";
 import * as diagnostics from "../build/pipeline/diagnostics.js";
 import * as ir from "../build/ir/index.js";
 import { BindingManager } from "../build/lowering/binding.js";
@@ -100,7 +100,7 @@ test("both compilation entrypoints report every invalid control target at its so
     "// 😀\r\nfunction probe() {\r\n  outer: {\r\n    continue outer;\r\n  }\r\n  break absent;\r\n  same: same: {}\r\n  break;\r\n  continue;\r\n}";
   const ranges = ["continue outer;", "break absent;", "same: {}", "break;", "continue;"];
   const { file, program } = virtualProgram(source);
-  for (const mode of ["bare", "script", "module"]) {
+  for (const mode of COMPILE_MODES) {
     const results = [compile(source, { filename: file.fileName, mode }), compileSourceFile(file, program, { mode })];
     for (const result of results) {
       assert.equal(result.success, false);
@@ -242,18 +242,7 @@ test("shared IR comma predicate visits all expression child positions without co
     (value) => IR.assign("=", IR.member(value, IR.id("x"), true), IR.number(0)),
     (value) => IR.assign("=", IR.id("x"), value),
     (value) => IR.update("++", IR.member(IR.id("obj"), value, true), false),
-    (value) => IR.polyfillCall("array", "map", value, []),
-    (value) => IR.polyfillCall("array", "map", IR.id("items"), [value]),
     (value) => IR.runtimeCall("array", "map", [value]),
-    (value) => IR.btGetProperty(value, IR.string("x")),
-    (value) => IR.btGetProperty(IR.id("obj"), value),
-    (value) => IR.btSetProperty(value, IR.string("x"), IR.number(0)),
-    (value) => IR.btSetProperty(IR.id("obj"), value, IR.number(0)),
-    (value) => IR.btSetProperty(IR.id("obj"), IR.string("x"), value),
-    (value) => IR.btCallFunction(value, []),
-    (value) => IR.btCallFunction(IR.id("f"), [value]),
-    (value) => IR.btIsFunction(value),
-    (value) => IR.btIsTrue(value),
   ];
   assert.equal(ir.containsCommaOperator, legacyContainsCommaOperator, "keep the earlier pass-module export compatible");
   for (const wrap of wrappers) {
@@ -263,7 +252,7 @@ test("shared IR comma predicate visits all expression child positions without co
     }
     assert.equal(ir.containsCommaOperator(freeze(wrap(IR.number(1)))), false);
   }
-  for (const expression of [IR.id("x"), IR.number(1), IR.argsAccess(0, "x"), IR.envAccess(0, "x")]) {
+  for (const expression of [IR.id("x"), IR.number(1)]) {
     assert.equal(ir.containsCommaOperator(expression), false);
   }
 });

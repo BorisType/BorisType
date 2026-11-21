@@ -71,16 +71,12 @@ target при cache hit не получает library; удаление посл
 
 ## Executable keys: отдельный дефект
 
-[compile-mode.ts](../../packages/bt-cli/src/core/building/compile-mode.ts)
-сохраняет в `.executables.json` `sourceFile.fileName` (обычно абсолютный путь),
-но `computeFileKey` строит package-relative path. [executables.ts](../../packages/bt-cli/src/core/linking/executables.ts)
-использует сохранённый path без такого же relativize и для URL берёт substring
-от первого `/`, меняя `.ts` на `.js`. Поэтому ключи/URL могут не совпадать с
-runtime lookup и включать source/host path. Это **подтверждённое расхождение
-алгоритмов**, не гарантия корректного filemap ABI. Incremental registry имеет
-дополнительную потерю affected subset — см. [watch](build-and-watch.md).
-Исправление нормализации и тесты должны охватить Windows/POSIX, TSX, nested roots;
-документационная миграция не меняет production и не выдаёт этот долг за fixed.
+[Сборщик метаданных](../../packages/bt-cli/src/core/building/executables.ts)
+сохраняет в `.executables.json` `sourceFile.fileName`.
+[Линкер](../../packages/bt-cli/src/core/linking/executables.ts) использует этот
+путь в ключе и формирует URL по фрагменту от первого `/`. Ключ и URL могут
+включать исходный абсолютный путь, который отличается от фактического пути
+выходного файла. Состояние incremental registry описано в [watch](build-and-watch.md).
 
 Public contract, примеры и flags — [линковка](../../docs/guides/linking.md),
 [btconfig](../../docs/reference/btconfig.md), [типы](../../docs/reference/package-types.md).

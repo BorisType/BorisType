@@ -1,9 +1,7 @@
 # Pipeline и контракты IR
 
-Сверено с source 2026-11-11. Это устройство существующей реализации; развитие
-script/module остаётся [замороженным](../decisions/2026-11-05-script-module-memory-freeze.md).
-Текущее направление — bare. Частичная реализация функции не означает полную JS
-семантику: [findings](findings.md), [область исследования](../research/compiler-semantics/scope.md).
+Общие этапы применяются после выбора режима. Ограничения поддерживаемого
+подмножества перечислены в [справочнике](../../docs/reference/borisscript-constraints.md).
 
 ## Entrypoints и диагностика
 
@@ -15,7 +13,7 @@ script/module остаётся [замороженным](../decisions/2026-11-0
 | `compileSourceFile(file, program, options)` | Использует переданный Program/TypeChecker; собирает **только BT diagnostics**. TS diagnostics собирает вызывающий consumer                        |
 | `compileFile(path, options)`                | Читает файл и делегирует `compile`; не заменяет project build/import resolution                                                                   |
 
-Оба основных пути выбирают `options.mode ?? "module"`, анализируют scopes и
+Оба основных пути выбирают `options.mode ?? DEFAULT_COMPILE_MODE`, анализируют scopes и
 запускают одинаковый lowering/pass/emitter pipeline. `compile` формирует output
 path из filename либо `output.js`; `compileSourceFile` учитывает `outputPath`,
 затем filename/SourceFile filename. Для project integration нужен второй путь.
@@ -32,7 +30,7 @@ lowering boundary, поэтому это не универсальная защ�
 
 [bt-cli compiler](../../packages/bt-cli/src/core/building/compiler.ts) создаёт
 Program и собирает TS diagnostics, фильтрует declaration/node_modules files,
-вызывает `compileSourceFile`, выбирает executable/file modes, пишет output.
+вызывает `compileSourceFile`, разрешает режим файла по директиве и опциям, пишет output.
 При `declaration` tsc получает `emitDeclarationOnly` и `noEmitOnError`, иначе
 `noEmit`. Один Program используется для диагностики, BT emit и `.d.ts`; watch
 сохраняет стандартный declaration emit в `afterProgramCreate`. Отдельный Program,
@@ -62,14 +60,12 @@ Capture означает переход через function boundary; вложе
 
 [VisitorContext](../../packages/bt-ir/src/lowering/visitor.ts) содержит TypeChecker,
 SourceFile, ScopeAnalysis, ModeConfig, shared diagnostics/bindings/helperFlags,
-function parameters, env scope/reference, import bindings и control-target IDs.
-Child contexts должны делить allocator/diagnostics/target identity, но иметь
-правильные function/scope/pending boundaries. [Env resolution](../../packages/bt-ir/src/lowering/env-resolution.ts)
-строит доступ по фактическому scope: `resolveEnvAccess`, `resolveModuleLevelAccess`,
-`getModuleEnvDepth`. Не вычисляй `__parent` по одной syntactic глубине.
+control-target IDs и информацию о текущем scope.
+Дочерние контексты используют общий allocator, diagnostics и target identity
+с собственными function/scope/pending boundaries.
 
 [IR nodes/builders](../../packages/bt-ir/src/ir/) разделяют statements, обычные
-expressions, env access/declarations, runtime/polyfill calls и module operations.
+expressions, environment statements и явно моделируемые runtime calls.
 Используй реальные builders из `builders.ts`: исторические `IR.bin/func/lit`
 примеры не являются API. `SourceLocation` нужно переносить через rebuild,
 как и `controlTargetId` loops/switch/expanded for-of/chained labels. Catch
@@ -77,7 +73,7 @@ physical name не является обычным hoisted VarDecl.
 
 ## Lowering или pass
 
-Новая TS-конструкция, TS type decision (XML/polyfill), optional token или исходный
+Новая TS-конструкция, решение по TS-типу, optional token или исходный
 SourceFile/TypeChecker анализ относятся к [lowering](../../packages/bt-ir/src/lowering/).
 Преобразование уже существующего IR относится к [passes](../../packages/bt-ir/src/passes/).
 Emitter сериализует подготовленное IR и отклоняет небезопасные survivors;
@@ -109,37 +105,19 @@ manager ordering: ответственность у вызывающего ко�
 No-op сохраняет identity там, где pass это гарантирует; rewrites не должны
 мутировать вход. Генерального verifier между каждым pass пока нет.
 
-## ModeConfig и ABI
+## Настройки режимов
 
-[ModeConfig](../../packages/bt-ir/src/lowering/mode-config.ts) — независимые
-свойства режима, а не лицензия включать любой экспериментальный набор flags.
-Для конкретного поведения используй `ctx.config.*`.
+В [реестре](../../packages/bt-ir/src/lowering/mode-config.ts) описаны доступные
+режимы, режим по умолчанию и настройки каждого режима. CLI и API используют
+единый реестр. В конфигурации режима также выбираются visitors для функций,
+переменных и namespaces. Lowering переносит применимые параметры в IR, например `noHoist`
+сохраняет порядок statements верхнего уровня в `bare`.
 
-| Свойство                                        | bare  | script | module |
-| ----------------------------------------------- | ----- | ------ | ------ |
-| property/call wrapping, `useBtIsTrue`, env/desc | false | true   | true   |
-| `useRefFormat`                                  | false | false  | true   |
-| `moduleExports`                                 | false | false  | true   |
-| `usePolyfills` preset                           | false | true   | true   |
-
-`usePolyfills` сейчас не читается dispatch-кодом; фактический выбор опирается на
-TypeChecker/getPolyfillType. Это reserved flag, а не подтверждённый независимый
-switch. Factory возвращает Readonly preset; runtime freeze здесь не выполняется.
-Hoist режим определяется IR `noHoist`/plainSignature, отдельный `hoistFunctions`
-flag не вводился. Bare visitors оставлены отдельным fast path: plain параметры
-и child contexts существенно отличаются от env/desc ABI; merge усложнял visitors.
-
-В script/module функция представляется descriptor с `env`, `obj` и `callable`
-либо module `lib/ref`. Captured bindings живут в env slots; per-call env нужен
-для изоляции повторных вызовов/рекурсии. Method receiver может хранить backlink.
-Это механизмы частичного subset, не general closures или JS reflection. Сильные
-циклы env/descriptor/receiver — причина memory freeze. Bare не добавляет их
-эмуляцию; отсутствие generated ABI не запрещает пользовательские циклы.
-
-Hoist перенесён из emitter в IR pass, чтобы одно native имя объявлялось один раз;
-на местах declarations остаются assignments, captured values — env assignments.
-Это не runtime TDZ/const enforcement. Bootstrap runtime компилируется bare:
-новый helper не должен рекурсивно зависеть от lowering, использующего этот helper.
+Обработчики plain-функций и объявлений находятся в
+[bare-visitors.ts](../../packages/bt-ir/src/lowering/bare-visitors.ts).
+Общие passes работают с контрактом IR. При добавлении режима его преобразования
+подключаются в lowering, а требования к output описываются в справочнике
+[режимов компиляции](../../docs/reference/compile-modes.md).
 
 ## Проверка изменения
 

@@ -1,10 +1,8 @@
 # Ограничения BorisType и совместимость JS/C runtime
 
-Семантическая основа — после merge PR #27 (`fa493a2`); expression research
-добавлен 2026-10-08, граница поддержки по памяти обновлена 2026-11-05,
-native наблюдения чисел/строк добавлены 2026-11-07. Документ описывает
-текущий контракт транспиляции, ограничения целевого языка и известные
-расхождения. Это не заявление о полной совместимости с ECMAScript.
+Документ описывает выход компилятора, ограничения целевого языка и границы
+известных проверок JS и C. Датированные результаты относятся к проверенным
+ревизиям и конфигурациям платформы.
 
 ## Область действия и терминология
 
@@ -40,8 +38,7 @@ JS-проверки используют supplied `main.js`, загружаем�
 Исходный код C-интерпретатора недоступен. Исходные C-данные о compiler control flow —
 пользовательские запуски: carrier probes `AB`/`012`, `Check27Fixed.js` →
 `0FU1FU2FU|E`, `BtAbruptProbe.js` → `OK: 60/60`. Последний результат относится
-к выбранным **60 bare cases**, не к полной матрице, script/module, всем
-возможностям runtime или всем версиям платформы.
+к выбранным **60 случаям bare** в пользовательской проверке 2026-10-07.
 
 Дополнительные server-side eval проверки числового вывода, строк и SQL проведены
 2026-11-07 на Linux `websoft/hcm:2025.2.1333` / CLR 9.0.11. Они описаны в EXPR-04
@@ -50,71 +47,33 @@ JS-проверки используют supplied `main.js`, загружаем�
 
 | Область                                       | Supplied JS implementation                                               | Независимая C implementation                                                                |
 | --------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| Labels/finalizers/comma-update после lowering | Strict Node ↔ JS: 1920 cases × 3 modes = 5760 сравнений                  | Selected bare pack: 60/60; full three-mode gate не выполнялся                               |
+| Labels/finalizers/comma-update после lowering | Исторический набор из 1920 случаев bare                                  | Выбранный набор bare: 60/60                                                                 |
 | Исходный compound for update                  | Исходный check27 завершается                                             | Пользователь наблюдал зависание; пропуск `i++` — гипотеза, не доказанная внутренняя причина |
 | Native labelled break/continue                | Парсер не сохраняет label; возможна тихая неверная интерпретация         | Native support не подтверждён; output labels не требует                                     |
 | Native finally                                | `ProcessTry` запускает catch body вместо finally; trace `TC` вместо `TF` | Native semantics не аттестована; используется общий IR-обход                                |
 | Arbitrary thrown value                        | Не-`BmError` превращается в `BmError`; identity теряется                 | Сохранение значения/identity не подтверждено                                                |
 | Ассоциативность                               | Native `20 / 5 / 2` → `10`; `(20 / 5) / 2` → `2`                         | Для этих raw expressions данных нет; emitter сохраняет дерево скобками                      |
-| Closures/classes/polyfills                    | Есть JS E2E для отдельных форм                                           | C smoke не подтверждает целиком эти подсистемы                                              |
 
 Отсутствие C-данных не означает ни поддержку, ни доказанный дефект. Нельзя
 переносить устройство JS-парсера и его ошибки на C без отдельного воспроизведения.
 
-## Память и граница поддержки
+## Режимы компиляции
 
-С 2026-11-05 поддерживаемое направление развития — **bare**. Развитие
-**script/module приостановлено** до принятия стратегии ownership/lifetime.
-Режимы, defaults и регрессионные тесты сохранены; доступность mode в CLI/API
-не означает его готовность к эксплуатации на C.
+`bare` сохраняет исходные сигнатуры функций и выдаёт прямые обращения к
+свойствам и API целевой платформы. Полная поддержка замыканий, автоматических
+полифилов и загрузки импортов отсутствует. Общие IR-проходы обрабатывают
+управление потоком и ограничения парсера. Порядок выбора режима описан в
+[справочнике](./compile-modes).
 
-По сообщению пользователя, C-runtime использует reference counting без сборщика
-циклов; обнаружена утечка циклических ссылок. Compiler может создавать сильный
-цикл `environment.function → descriptor.env → environment`; методы добавляют
-риск `object.method → descriptor.obj → object`. Даже недостижимый цикл не
-освобождается одним подсчётом ссылок. Это структурное свойство generated graph,
-а не только явных циклов в TS-программе.
-
-Сообщение о C memory model не сопровождается здесь версией/замерами памяти;
-новый native memory test не выполнялся. JS execution подтверждает результаты
-вычислений, но не доказывает C lifetime или отсутствие утечек. Данные о GC
-хостового JavaScript нельзя переносить на C-платформу.
-
-Bare не создаёт общую env/descriptor infrastructure; собственные циклы объектов
-и platform handles всё равно могут удерживать память. Общая JS closure/module
-семантика этим режимом не обещается. Условия возобновления script/module:
-принятый lifetime contract и ABI plan, сохранение escaping values и доказанная
-обработка циклов с ограниченными memory/teardown tests на реальной C-платформе.
-См. [ADR](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-11-05-script-module-memory-freeze.md).
-
-## Compile modes
-
-Режим меняет не только размер output, но и семантическую инфраструктуру.
-
-| Механизм                          | `bare`                                              | `script`                                                                        | `module`                                            |
-| --------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Функции                           | Plain signature, исходные параметры                 | `__env`, `__this`, `__args`, descriptors                                        | Та же ABI; library/ref descriptors                  |
-| Captured bindings                 | Общая эмуляция closures отключена                   | Environment objects                                                             | Environment objects                                 |
-| Properties/вызовы                 | В основном native BS                                | `bt.getProperty`/`bt.setProperty`/`bt.callFunction`, кроме специальных accesses | Как в script                                        |
-| Polyfills                         | Автоматическая подстановка отключена                | Подстановка поддерживаемых типов/методов                                        | Как в script                                        |
-| `&&`, `\|\|`, `??`                | Native `&&`/`\|\|`; `??` — BT90003 Error            | Operand-valued lowering через conditional/temporaries                           | Как в script                                        |
-| `?.`                              | Не поддерживается; возможен `__invalid__` без Error | Частичный optional-chain lowering                                               | Как в script                                        |
-| Imports/exports                   | Imports удаляются, стандартной module semantics нет | Собственный import runtime, без module export ABI                               | Require/exports и `__init(__codelibrary, __module)` |
-| Control-flow/parser-safety passes | Выполняются                                         | Выполняются                                                                     | Выполняются                                         |
-
-`bare` не означает «полная JS-семантика без runtime». `script`/`module` не
-обеспечивают все возможности JS или его стандартную библиотеку.
-
-Выбор режима в **btc**: `/// @bt-mode` → `.test.ts`/executable object → CLI option
-→ `module`. Прямые API bt-ir используют `options.mode`, не применяя автоматически
-правила выбора btc. См. [режимы компиляции](./compile-modes).
+Пользовательские графы объектов могут содержать циклические ссылки.
+Наблюдения на C-runtime указывают на reference counting без сборщика циклов.
+JS-проверки вычислений не определяют время жизни объектов на C.
 
 ## Контракт генерируемого BorisScript
 
 ### OUT-01. Объявления, имена и тела statements
 
-Output использует `var`. В script/module hoist заменяет повторные объявления
-присваиваниями; в bare это выполняется внутри функций, но не на top-level.
+Компилятор использует `var` и выполняет hoisting переменных внутри функций.
 Bare top-level `var x=1; var x=2` сохраняется как два объявления и может успешно
 скомпилироваться, хотя supplied JS отвергает повторный native var в одном scope:
 `Variable x already declared`. В bare не повторять top-level declarations.
@@ -147,18 +106,12 @@ Supplied JS требует `catch (identifier)` после native try. Исхо�
 Эти assertions защищают конкретные invariants, не валидируют весь output
 на каждой версии обеих платформ.
 
-### OUT-03. ABI, runtime и internal accesses
+### OUT-03. Сигнатуры и хост
 
-В script/module source function value обычно представлен descriptor object,
-не native ECMAScript Function. Нужны согласованные compiler/runtime ABI и
-initialization. Generated module не является Node CJS/ESM; запуск output в
-обычном Node не проверяет его выполнение в BorisScript.
-
-Native platform APIs, XML-типы и internal identifiers могут обходить wrappers.
-Не использовать `__env`, `__this`, `__args`, descriptor fields как публичный JS API.
-Имена с префиксом `__` имеют специальные native-access fast paths; не выбирать
-их для бизнес-объектов. Collision-safe control-flow names не означают sanitization
-всех identifiers. Npm dependency/TS types не гарантируют наличие host APIs.
+`bare` эмитит функции с исходными именованными параметрами. Для выполнения
+нужен соответствующий способ запуска на платформе и используемые кодом API хоста.
+Imports в исходном TypeScript могут предоставлять типы, а исполняемые функции
+должны быть доступны на платформе.
 
 ## Выражения, значения и порядок вычисления
 
@@ -189,10 +142,7 @@ Native `&&`/`||` supplied JS требуют boolean operands и не возвр�
 values; `1 || 2` даёт `Value is not boolean`. В bare использовать boolean
 expressions, не `value || default`.
 
-Script/module используют `bt.isTrue` и возвращают исходный operand/выбранную RHS.
-Helper считает falsy `false`, `0`, `""`, `null`, `undefined`. Это не полная
-аттестация ECMAScript ToBoolean, включая NaN и host values. `??` проверяет
-null/undefined, не общую falsiness.
+`??` даёт ошибку BT90003.
 
 Raw `if`/loop/ternary conditions и unary operators не получают автоматически
 одну общую JS truthiness-модель. Supplied JS допускает `if (1)`, но condition
@@ -200,21 +150,12 @@ Raw `if`/loop/ternary conditions и unary operators не получают авт
 code использовать boolean predicates, например
 `value !== null && value !== undefined`, не `if (object)` или `!!object`.
 
-### EXPR-03. Properties, prototypes и polyfills
+### EXPR-03. Свойства и вызовы
 
-`bt.getProperty` смягчает часть native differences: missing property может дать
-`undefined`; read у `null`/`undefined` остаётся ошибкой. Это не универсальный
-«безопасный доступ» и не подавление exceptions.
-
-Runtime реализует отдельные array/string/number/object operations и свою
-prototype-chain convention. Method descriptor может копироваться/bind-иться
-к receiver при чтении. Нельзя переносить гарантии JS property descriptors,
-accessors, function identity, method extraction и reflection на эти wrappers.
-
-Native host method/polyfill проверяется по конкретному типу, методу и версии.
-Общая стандартная JS-библиотека не реализована. Node/browser APIs, Map/Set,
-Symbol, Proxy/Reflect, Weak collections и Promise нельзя считать доступными
-по одному лишь наличию types/imports.
+Прямое чтение свойства и вызов метода используют семантику BorisScript.
+Имена свойств, методы контейнеров и API платформы определяются конкретным
+типом и версией runtime. TS-тип или npm-зависимость не предоставляют операцию
+на платформе автоматически.
 
 ### EXPR-04. Числа и строки
 
@@ -276,9 +217,7 @@ shadowed bindings и обнаруживает captures. Runtime-enforcement cons
 Temporal Dead Zone не эмулируются. TS может отклонить часть нарушений статически,
 но это не runtime semantics.
 
-В script/module captures хранятся в environment chain; per-call env создаётся
-при необходимости. Catch получает lexical binding и per-entry captured env.
-Bare не обеспечивает общий closure contract.
+Bare не обеспечивает общий контракт замыканий.
 
 Наличие block-env в отдельных for-of transformations не доказывает полную
 per-iteration semantics classic `for (let ...)`. Capture loop-header variable
@@ -286,15 +225,12 @@ per-iteration semantics classic `for (let ...)`. Capture loop-header variable
 
 ### FUNC-01. Функции и параметры
 
-Обычные функции/arrows/function expressions lowering-ятся; поддерживаемые
-capture scenarios имеют тесты. Полная семантика Function objects, lexical
+Компилятор преобразует обычные функции, стрелки и function expressions. Полная семантика Function objects, lexical
 `this`/`arguments` у arrows, bind/call/apply, constructors/reflection не обещается.
 Для таких свойств нужен отдельный test в нужном mode/runtime.
 
 Identifier parameters поддерживаются; destructured parameters дают BT90011.
-Rest в script/module извлекается из `__args` через array helper. Bare plain
-emitter не реализует rest/default metadata. Script/module defaults имеют
-известное отличие для explicit undefined.
+Emitter не применяет rest/default metadata.
 
 Async/await, generators/yield и suspension/continuations не поддерживаются.
 Recommended ESLint запрещает async/generator declarations. Нельзя полагаться
@@ -315,24 +251,10 @@ Custom iterators, Symbol.iterator, iterator return()/IteratorClose и for-await-
 не поддерживаются. Destructured loop bindings не имеют полного lowering и не
 входят в portable subset.
 
-### CLASS-01. Классы и наследование
+### CLASS-01. Классы
 
-Class declaration в bare — BT90008. Script/module имеют **частичный** lowering
-в constructor/method descriptors и prototype objects. Named instance methods,
-explicit constructor, простые property initializers, отдельные extends/super
-scenarios покрыты JS E2E. «BorisType вообще не поддерживает классы/прототипы»
-— неверное описание.
-
-Полная class semantics не реализована: accessors, static/private members,
-computed names, decorators, class expressions, parameter properties и сложная
-derived-constructor initialization не входят в подтверждённый контракт.
-Getter/setter members пропускаются; static field может стать instance initializer
-без Error.
-
-Recommended ESLint всё ещё запрещает class declarations и direct `.prototype`
-access. Partial lowering не разрешает эти формы в recommended subset. Если
-правила ослаблены, проект должен проверить конкретные scenarios сам. Полной
-отдельной C-проверки classes нет.
+Объявления классов отклоняются с BT90008. Recommended ESLint запрещает
+class declarations и прямые обращения к `.prototype`.
 
 ## Labels, catch и finally
 
@@ -358,7 +280,6 @@ label — BT90018. Same label в независимых scopes не являет
 
 Catch identifier получает уникальный physical parameter; shadowing не должен
 портить outer parameter/import/local. Catch без binding получает generated name.
-Captured catch binding в script/module получает новое значение при каждом входе.
 Catch patterns дают BT90016: использовать identifier и поддерживаемое
 destructuring в body либо explicit property reads.
 
@@ -399,13 +320,12 @@ JS wall time не является C benchmark.
 
 1. **Несколько declarations в classic for init.** `for (var i=0, j=10; ...)`
    сохраняет лишь первое объявление. Остальные initializer/side effects теряются
-   без Error, включая zero iterations. Подтверждено во всех modes;
+   без Error, включая zero iterations.
    [#28](https://github.com/BorisType/BorisType/issues/28). До исправления — один
    binding в header или отдельно спроектированный init с сохранением scope/order/captures.
 2. **Runtime enum.** Declaration удаляется, `Kind.A` остаётся. Успешная компиляция
    не доказывает поддержку: non-const enum требует runtime object, которого нет.
-3. **Runtime namespace.** Script/module пропускают body с BT90007 **Warning**;
-   success может остаться true. Bare flattening и META:NAMESPACE marker не
+3. **Runtime namespace.** Bare flattening и META:NAMESPACE marker не
    создают обычный объект namespace с `N.member` semantics.
 4. **Optional chain в bare.** `var obj={x:1}; var result=obj?.x` принимается без
    BT Error, но даёт `result = __invalid__`. Отсутствие диагностики не является поддержкой.
@@ -413,55 +333,27 @@ JS wall time не является C benchmark.
    `__arr`; object binding — повторно вычислять initializer для разных полей;
    rest elements пропускаются. Plain emitter игнорирует default/rest parameter
    metadata. Использовать explicit reads/собственную обработку аргументов.
-6. **Default при explicit undefined.** `function f(x=7){return x}` в script:
-   `f()` → `7`, `f(undefined)` → `undefined`, вместо JS `7`. Emitter проверяет
-   длину args, не значение. Bare defaults не применяет. Проверка `x === undefined`
-   в body может служить локальным обходом, но не полной parameter-environment эмуляцией.
-7. **Short-circuit с extracted RHS.** Script `false && make()?.x` может вызвать
-   make до LHS check: RHS conditional выносится в pending statements. Счётчик
-   должен остаться `0` в Node, compiled JS-runtime даёт `1`. Logical tests не
-   аттестуют все combinations optional chain/extraction/side effects. Обход —
-   explicit if с вычислением RHS только в выбранном block.
-8. **Classic for header captures.** `for (let i=0; ...){callbacks.push(()=>i)}`
-   не обеспечивает все per-iteration bindings. Принятый script probe при вызове
-   callbacks дал `Unknown object property: i`, не JS `0/1/2`. Generic closure
-   support не доказывает корректность header capture; обход тоже требует test.
-9. **Type wrappers в expression/call.** `fn!()` может обойти descriptor call
-   lowering и дать неверный native call в script/module. Это прежний дефект,
-   не completion pass. `as`/non-null assertions не валидируют runtime value;
+6. **Порядок вычисления сложных выражений.** Перенос промежуточных вычислений
+   перед statement может менять ленивость, порядок и частоту вычисления.
+   Для зависимых от порядка вычислений полезны явные локальные переменные и блоки.
+7. **Type wrappers в expression/call.** `as`/non-null assertions не валидируют runtime value;
    satisfies/angle-bracket assertions не имеют универсального erase во всех
    visitors (standalone `1 satisfies number` даёт BT90001).
-10. **Precision normalization hex с E/e.** Detector fractional/exponential literal
-    проверяет наличие E/e до определения hex prefix. Поэтому
-    `0xEEEEEEEEEEEEEEEE` даёт decimal output `17216961135462248000`, вместо
-    точного текста `17216961135462248174`. Эмиттер не может восстановить уже
-    потерянный raw. Большие hex integers с E/e не входят в precision guarantee;
-    это отдельный compiler defect, не доказанное расхождение арифметики C.
-11. **Недостаточный rejection.** Async/generator modifiers, отдельные class members,
-    `$` identifiers и другие формы могут терять семантику без Error. Таблица
-    diagnostics ниже не является полным source validator.
-12. **Dynamic switch cases.** Supplied JS BS parser требует literal в `case`:
+8. **Precision normalization hex с E/e.** Detector fractional/exponential literal
+   проверяет наличие E/e до определения hex prefix. Поэтому
+   `0xEEEEEEEEEEEEEEEE` даёт decimal output `17216961135462248000`, вместо
+   точного текста `17216961135462248174`. Эмиттер не может восстановить уже
+   потерянный raw. Большие hex integers с E/e не входят в precision guarantee;
+   это отдельный compiler defect, не доказанное расхождение арифметики C.
+9. **Недостаточный rejection.** Async/generator modifiers,
+   `$` identifiers и другие формы могут терять семантику без Error. Таблица
+   diagnostics ниже не является полным source validator.
+10. **Dynamic switch cases.** Supplied JS BS parser требует literal в `case`:
     `case key:` даёт `Literal value expected in 'case' statement`. Lowering
     пока оставляет expression cases нативными; успешная TS/BT компиляция не
     гарантирует execution. Данные C отсутствуют. До semantic switch lowering
     использовать literal cases либо явно спроектированный if chain, учитывая
     once-only discriminant, lazy case expressions и fall-through.
-13. **Extracted default до тела.** В script/module default с extracted optional
-    expression может читать temp до его declaration/assignment; execution
-    ошибочно помещён в body и выполняется даже при переданном argument.
-    Это отдельный дефект относительно explicit undefined, не исправление которого
-    достаточно для полной parameter initialization semantics.
-
-Expression order/frequency также имеют подтверждённые script/module failures:
-late optional argument может обогнать early argument/callee, а extracted loop
-condition выполниться один раз до loop. Permanent strict-valid probes и границы
-evidence: [research report](https://github.com/BorisType/BorisType/blob/main/refs/compiler/findings.md).
-
-Ambient `declare` в исполняемом source требует осторожности: в `script/module`
-объявление вроде `declare var bt: any` сейчас может стать присваиванием
-`bt = undefined` и затереть runtime. Размещайте такие объявления в `.d.ts`/type
-roots, не в executable файле. Это подтверждённый дефект lowering, не исправление;
-[разбор и воспроизведение](https://github.com/BorisType/BorisType/blob/main/refs/compiler/findings.md).
 
 ## Диагностики и integration API
 
@@ -470,7 +362,6 @@ roots, не в executable файле. Это подтверждённый деф
 | BT90001       | Unhandled expression: await/yield, bigint/regexp literals, некоторые type wrappers |
 | BT90003       | `??` в bare — Error                                                                |
 | BT90006       | Неразбираемый binding в определённом visitor, не rejection всех patterns           |
-| BT90007       | Namespace в script/module — Warning; body не генерируется                          |
 | BT90008       | Class declaration в bare — Error                                                   |
 | BT90009       | Unhandled statement                                                                |
 | BT90010       | Computed object literal key                                                        |
@@ -500,9 +391,8 @@ pnpm test
 pnpm test:semantic
 ```
 
-После PR #27: 55 IR/output tests, 148 E2E, 38 advisory Node validations и 5760
-strict control-flow/update comparisons. Это не full language/platform coverage
-и не C execution. Новые probes документа не расширяют ранее запущенный C pack.
+Датированные результаты и их область действия приведены в
+[compiler verification](https://github.com/BorisType/BorisType/blob/main/refs/compiler/verification.md).
 
 Проверять counts/failures, не только exit status: botest допускает false-green
 с 0 tests при неизвестном filter ([#30](https://github.com/BorisType/BorisType/issues/30)).

@@ -39,4 +39,4 @@ IR облегчает анализ, но само его наличие не д�
 старый import из `bt-ir` и выдуманное `result.outputs[0]` удалены. Конкретные
 контрпримеры — [findings](../compiler/findings.md). Incremental re-lowering,
 optimizations и source maps были вариантами будущего развития, не обязательствами
-этого решения. Развитие script/module приостановлено из-за lifetime.
+этого решения. Текущие режимы перечислены в [справочнике компилятора](../compiler/README.md).

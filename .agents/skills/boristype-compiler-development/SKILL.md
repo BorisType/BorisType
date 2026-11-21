@@ -31,10 +31,9 @@ For the change at hand:
   prior build; inspect nonzero execution counts. An unknown filter can report no
   failures while running nothing. Node tests, JS BorisScript, managed and native C
   evidence establish different things. A known-XFAIL baseline preserves failures.
-- Keep bare as the active development mode. Preserve script/module implementations,
-  defaults and regression checks; the memory freeze requires a separate strategy
-  before extending their ABI or dependent mechanisms. A new native run needs its
-  own bounded setup; old crash/hang probes are not ordinary regression commands.
+- Use the mode registry for compile-mode availability and defaults. Keep shared
+  passes independent from a particular mode where their contracts allow it.
+  Archived implementations are available from the compiler references.
 
 Record an important changed decision or disproved assumption with its evidence in
 `refs/`; public behavior changes also update `docs/` or package contracts.

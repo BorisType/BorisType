@@ -12,11 +12,8 @@ npm install @boristype/runtime@next
 Установка через npm сама по себе не развёртывает ресурсы на сервере.
 Сценарий поставки описан в [документации BorisType](https://github.com/BorisType/BorisType/blob/main/docs/guides/getting-started.md).
 
-Поддерживаемое направление разработки компилятора — **bare**. Развитие
-script/module заморожено до решения стратегии памяти C-runtime: reference
-counting не освобождает сильные циклы env/descriptor/receiver. Существующие
-реализации и default `module` сохранены; наличие runtime в npm не означает
-подтверждённую безопасность памяти или полную JS semantics этих режимов.
+Это системный пакет для явного использования на платформе и совместимости с
+готовыми артефактами. Компилятор в режиме `bare` не подставляет вызовы его
+полифилов автоматически.
 
-[Ограничения платформы и компилятора](https://github.com/BorisType/BorisType/blob/main/docs/reference/borisscript-constraints.md),
-[решение о заморозке](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-11-05-script-module-memory-freeze.md).
+[Ограничения компилятора](https://github.com/BorisType/BorisType/blob/main/docs/reference/borisscript-constraints.md).

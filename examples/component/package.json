@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "description": "Example component package demonstrating component linking",
-  "main": "index.js",
   "scripts": {
     "build": "npx btc build --include-non-ts-files",
     "link": "npx btc link --clean",

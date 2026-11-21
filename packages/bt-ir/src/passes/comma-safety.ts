@@ -19,9 +19,7 @@ import {
   type IRCallExpression,
   type IRArrayExpression,
   type IRObjectExpression,
-  type IRPolyfillCall,
   type IRRuntimeCall,
-  type IRBTCallFunction,
 } from "../ir/index.ts";
 import type { IRPass, PassContext } from "./types.ts";
 import { mapExpression, mapStatements, type MapStatementsOptions } from "./walker.ts";
@@ -43,17 +41,9 @@ const ATOMIC_KINDS = new Set([
   "CallExpression",
   "MemberExpression",
   "GroupingExpression",
-  "ArgsAccess",
-  "EnvAccess",
-  "BTCallFunction",
-  "BTGetProperty",
-  "BTSetProperty",
-  "BTIsTrue",
-  "BTIsFunction",
   "ArrayExpression",
   "ObjectExpression",
   "UpdateExpression",
-  "PolyfillCall",
   "RuntimeCall",
 ]);
 
@@ -128,22 +118,6 @@ function commaSafeExpr(expr: IRExpression): IRExpression {
         const newArgs = wrapList(call.arguments.map((a) => commaSafeExpr(a)));
         if (newCallee === call.callee && newArgs === call.arguments) return null;
         return IR.call(newCallee, newArgs, call.loc);
-      }
-
-      case "BTCallFunction": {
-        const call = e as IRBTCallFunction;
-        const newCallee = commaSafeExpr(call.callee);
-        const newArgs = wrapList(call.arguments.map((a) => commaSafeExpr(a)));
-        if (newCallee === call.callee && newArgs === call.arguments) return null;
-        return IR.btCallFunction(newCallee, newArgs, call.loc);
-      }
-
-      case "PolyfillCall": {
-        const call = e as IRPolyfillCall;
-        const newTarget = commaSafeExpr(call.target);
-        const newArgs = wrapList(call.arguments.map((a) => commaSafeExpr(a)));
-        if (newTarget === call.target && newArgs === call.arguments) return null;
-        return IR.polyfillCall(call.polyfillType, call.method, newTarget, newArgs, call.loc);
       }
 
       case "RuntimeCall": {

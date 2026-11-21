@@ -17,13 +17,11 @@ CLI выставляет exitCode=1; наличие файлов не замен
 сейчас читают TS options, не `BtcCompileOptions.outDir`: документировать его
 как рабочий override нельзя.
 
-[compile-mode.ts](../../packages/bt-cli/src/core/building/compile-mode.ts)
-применяет first match в первых 30 строках → `.test.ts`/executable imports → CLI
-→ `module`. Executable detector проверяет локальные имена named imports из
-строк с prefix `@boristype/types`; alias меняет распознавание. Это эвристика,
-не semantic TypeChecker. Прямой bt-ir API её не применяет. Старые флаги
-`--no-use-polyfill`/`--no-use-remodule` не существуют.
-[Compiler contract](../compiler/README.md) отделяет режим от memory acceptance.
+[Выбор режима](../../packages/bt-cli/src/core/building/compile-mode.ts)
+учитывает директиву файла, настройку сборки и default из общего реестра.
+[Детектор executable objects](../../packages/bt-cli/src/core/building/executables.ts)
+по локальным именам named imports из `@boristype/types` собирает метаданные
+для линковки.
 
 [BuildPipeline](../../packages/bt-cli/src/core/building/index.ts) — фасад с
 `run(contextOrOptions)` и `watch(contextOrOptions, callbacks)`, не прежнее

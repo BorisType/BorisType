@@ -36,30 +36,17 @@ export function containsCommaOperator(expression: IRExpression): boolean {
         containsCommaOperator(expression.alternate)
       );
     case "CallExpression":
-    case "BTCallFunction":
       return containsCommaOperator(expression.callee) || expression.arguments.some(containsCommaOperator);
     case "MemberExpression":
-    case "BTGetProperty":
       return containsCommaOperator(expression.object) || containsCommaOperator(expression.property);
-    case "BTSetProperty":
-      return (
-        containsCommaOperator(expression.object) || containsCommaOperator(expression.property) || containsCommaOperator(expression.value)
-      );
     case "ArrayExpression":
       return expression.elements.some((element) => element !== null && containsCommaOperator(element));
     case "ObjectExpression":
       return expression.properties.some((property) => containsCommaOperator(property.value));
-    case "PolyfillCall":
-      return containsCommaOperator(expression.target) || expression.arguments.some(containsCommaOperator);
     case "RuntimeCall":
       return expression.arguments.some(containsCommaOperator);
-    case "BTIsFunction":
-    case "BTIsTrue":
-      return containsCommaOperator(expression.value);
     case "Identifier":
     case "Literal":
-    case "ArgsAccess":
-    case "EnvAccess":
       return false;
     default:
       return assertNever(expression);

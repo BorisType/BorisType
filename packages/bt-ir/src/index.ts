@@ -20,15 +20,8 @@
  * @module bt-ir
  */
 
-export {
-  compile,
-  compileFile,
-  compileSourceFile,
-  type CompileOptions,
-  type CompileResult,
-  type CompileOutput,
-  type CompileMode,
-} from "./pipeline/index.ts";
+export { compile, compileFile, compileSourceFile, type CompileOptions, type CompileResult, type CompileOutput } from "./pipeline/index.ts";
 export { createBtDiagnostic, createBtDiagnosticAtLocation, createBtDiagnosticMessage, BtDiagnosticCode } from "./pipeline/diagnostics.ts";
 export { type IRProgram, type IRStatement, type IRExpression } from "./ir/index.ts";
 export { emit } from "./emitter/index.ts";
+export { COMPILE_MODES, DEFAULT_COMPILE_MODE, isCompileMode, type CompileMode } from "./lowering/mode-config.ts";

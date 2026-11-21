@@ -9,7 +9,7 @@
 pnpm test:semantic
 ```
 
-Команда строго сравнивает Node и JS BorisScript во всех трёх compile modes и
+Команда строго сравнивает Node и JS BorisScript для поддерживаемых compile modes и
 генерирует `packages/bt-ir/build/semantic/BtAbruptProbe.js`.
 
 Запустить этот файл целиком на C-платформе. Он сам содержит expected values,
@@ -56,7 +56,7 @@ pnpm test:semantic
 
 В PR зафиксировать проверенный commit SHA, версию runtime (если известна) и его
 SHA-256, команды, counts и exit status. `test:semantic` должен пройти во всех
-трёх modes; advisory Node-check из botest не заменяет этот строгий gate.
+актуальных режимах; advisory Node-check из botest не заменяет этот строгий gate.
 Для #27 ожидаются 148 E2E и 1920 × 3 = 5760 differential comparisons.
 Проверять ненулевую выборку: botest пока возвращает success для неизвестных
 фильтров с 0 tests ([#30](https://github.com/BorisType/BorisType/issues/30)).
@@ -83,7 +83,7 @@ chained labels, loop update/do-condition, switch fallthrough, caught override,
 - Полный `BtAbruptProbe.js`: `MESSAGE: OK: 60/60`.
 
 Обход и все 60 selected bare-mode smoke cases прошли. Версия платформы не
-сообщена. Полная 1920-case матрица и script/module modes проверены на JS runtime,
+сообщена. Полная матрица на исторической ревизии проверена на JS runtime,
 не на C; C performance benchmark не выполнялся. Ранее `AB` и `012` проверяли
 только базовый carrier. Raw/legacy C diagnostic result пока не получен:
 успешный обход не доказывает внутреннюю причину исходного comma-update дефекта.

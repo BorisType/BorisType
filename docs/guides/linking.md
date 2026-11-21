@@ -1,9 +1,7 @@
 # Система линковки (Linking)
 
-`btc link` собирает готовые файлы и BT dependencies в `dist/`. Он не запускает
-компиляцию. Это часть существующего экспериментального module pipeline:
-развитие `script/module` заморожено до решения стратегии памяти C-runtime.
-См. [режимы](../reference/compile-modes).
+Команда `btc link` собирает готовые файлы и BT dependencies в `dist/`.
+Компиляция выполняется отдельной командой.
 
 ## Как работает линковка
 
@@ -17,7 +15,6 @@ executable BT пакет из `package.json`.
 {
   "name": "my-app",
   "version": "1.0.0",
-  "main": "index.js",
   "ws:name": "my-app",
   "ws:package": "standalone",
   "ws:root": "./wt/my-app"
@@ -25,17 +22,15 @@ executable BT пакет из `package.json`.
 ```
 
 `ws:name` обязателен. Для standalone `ws:root` опционален, default —
-`./wt/<ws:name>`. `main` относится к корню готового output, а не к `src/`.
-Для module pipeline установите совместимую версию `@boristype/runtime`
-в зависимости проекта.
+`./wt/<ws:name>`. В этом примере копируются готовые файлы пакета.
+При наличии `main` генерируется загрузчик, который ожидает совместимую
+точку входа. Для вывода `bare` предусмотрите собственную инициализацию при
+необходимости автоматического запуска.
 
 ```sh
-npx btc build --compile-mode module --include-non-ts-files
+npx btc build --include-non-ts-files
 npx btc link --clean
 ```
-
-Файловые директивы могут переопределить CLI mode. Runtime и generated init
-не добавляют module ABI к bare output.
 
 ## Multi-package режим
 
@@ -111,8 +106,7 @@ dist/
 Generated `.filemap.json` сопоставляет executable keys с целевыми URL.
 Вручную полагаться на формат ключа как публичный API не следует: CLI compiler и
 линкер сейчас расходятся в нормализации source/output paths; это известный
-дефект executable mapping. Полная линковка не доказывает работоспособность
-импортов из executable script. Проверяйте конкретный generated key/URL и вызов.
+дефект executable mapping. Работу исполняемого объекта подтверждают проверка ключа, целевого URL и вызова. Проверяйте конкретный generated key/URL и вызов.
 
 ## api_ext.xml
 

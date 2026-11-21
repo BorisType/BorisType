@@ -290,9 +290,6 @@ importers:
       '@boristype/bt-cli':
         specifier: workspace:^
         version: link:../../packages/bt-cli
-      '@boristype/http-handler':
-        specifier: ^1.0.0-alpha.5
-        version: 1.0.0-alpha.5
       '@boristype/runtime':
         specifier: workspace:^
         version: link:../../packages/builtin-runtime
@@ -588,9 +585,6 @@ packages:
   '@babel/types@7.29.8':
     resolution: {integrity: sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg==}
     engines: {node: '>=6.9.0'}
-
-  '@boristype/http-handler@1.0.0-alpha.5':
-    resolution: {integrity: sha512-ZuJ8Tit9/aZ7TKyQUliMm5EfmmhunYOVfR6OWCbGQRIvdE3RBdlkvi1Tfcq4b/UQ5DuuTDvj+oShp2SYD182AA==}
 
   '@boristype/types@1.0.0-alpha.3':
     resolution: {integrity: sha512-MLjcFr7WYuKgF2/CYa8XVcNYQqbflc+CZ3txgF1tFLXiIruxEBmmgYdFZP56jloq5lwSNv/TRWOeTOzSSiwNcg==}
@@ -3286,8 +3280,6 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
-
-  '@boristype/http-handler@1.0.0-alpha.5': {}
 
   '@boristype/types@1.0.0-alpha.3': {}
 

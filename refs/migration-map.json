@@ -611,6 +611,7 @@
     {
       "source": "plans/ts-bs-semantics/00-context.md",
       "destination": "refs/research/compiler-semantics/README.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "summarized",
       "sourceSha256": "41af7fd7c826ebd79195714aab63165f3fb90da9069a2870eeb587afc975e070",
       "preserveBytes": false,
@@ -620,6 +621,7 @@
     {
       "source": "plans/ts-bs-semantics/01-feature-map.md",
       "destination": "refs/research/compiler-semantics/scope.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "summarized",
       "sourceSha256": "762497db07546b9ca5c1d7e3cd4bbff3f0994560ba4a98c959694886eca0681f",
       "preserveBytes": false,
@@ -656,6 +658,7 @@
     {
       "source": "plans/ts-bs-semantics/05-backlog.md",
       "destination": "refs/research/compiler-semantics/scope.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "summarized",
       "sourceSha256": "8eb3d764258b9b61ce450a900d284de137e527119e5184c001aa102616c6bac6",
       "preserveBytes": false,
@@ -665,6 +668,7 @@
     {
       "source": "plans/ts-bs-semantics/README.md",
       "destination": "refs/research/compiler-semantics/README.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "reviewed-evidence",
       "sourceSha256": "9a7bf5d4b50c7395c23f3d7e93f7f7630ff885e7b58fddb625aaac0974dfde10",
       "preserveBytes": false,
@@ -673,6 +677,7 @@
     {
       "source": "plans/ts-bs-semantics/research/01-expression-evaluation-results.md",
       "destination": "refs/research/compiler-semantics/expression-evaluation.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "summarized",
       "sourceSha256": "74f22b7c9ce7377f655e74f62bc8cd6dd9c7e005cdc117c195b48386eb96b042",
       "preserveBytes": false,
@@ -682,6 +687,7 @@
     {
       "source": "plans/ts-bs-semantics/research/01-expression-evaluation.md",
       "destination": "refs/research/compiler-semantics/README.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "summarized",
       "sourceSha256": "475a4465ea0ad16b0468c9719bb010af54b7c7ba5a9bcd5d1a0044e54dc95f97",
       "preserveBytes": false,
@@ -691,6 +697,7 @@
     {
       "source": "plans/ts-bs-semantics/research/README.md",
       "destination": "refs/research/compiler-semantics/README.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "summarized",
       "sourceSha256": "81861e6e5735e669eddc93092bc76ed41b4efcc4ae5deadea611bdf323b6c0cf",
       "preserveBytes": false,
@@ -700,6 +707,7 @@
     {
       "source": "plans/ts-bs-semantics/results/2026-10-08-expression-baseline.md",
       "destination": "refs/research/compiler-semantics/results/2026-10-08-expression-baseline.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "reviewed-evidence",
       "sourceSha256": "373ec017731db4b6b991fcb8d6951a46bfa1a57dc00931de96d4de52a76e3535",
       "preserveBytes": false,
@@ -708,6 +716,7 @@
     {
       "source": "plans/ts-bs-semantics/results/2026-11-05-research-checkpoint.md",
       "destination": "refs/research/compiler-semantics/results/2026-11-05-research-checkpoint.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "reviewed-evidence",
       "sourceSha256": "04892b3458d87e953a471585fb881e6eccc88fc948ae7afa5e7b12f8548246f4",
       "preserveBytes": false,
@@ -725,6 +734,7 @@
     {
       "source": "plans/ts-bs-semantics/specs/01-expression-evaluation.md",
       "destination": "refs/research/compiler-semantics/expression-contract-draft.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "summarized",
       "sourceSha256": "f7e81b686e8300b0b6f92f612a1816c4ae8139cd3dc19923a07572f69930500d",
       "preserveBytes": false,
@@ -734,6 +744,7 @@
     {
       "source": "plans/ts-bs-semantics/specs/README.md",
       "destination": "refs/research/compiler-semantics/README.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "summarized",
       "sourceSha256": "bf79e9724eb9e307c8bf0a23f9460d085a5f08457c123dfd283622d638d0808e",
       "preserveBytes": false,
@@ -743,6 +754,7 @@
     {
       "source": "plans/ts-bs-semantics/tasks/F-02-expression-baseline.md",
       "destination": "refs/research/compiler-semantics/README.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "summarized",
       "sourceSha256": "b20785c295d92aa965e31c1a133b5e012a7e13f0869b1d15bd2e30b259ded452",
       "preserveBytes": false,
@@ -752,6 +764,7 @@
     {
       "source": "plans/ts-bs-semantics/tasks/README.md",
       "destination": "refs/research/compiler-semantics/README.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "summarized",
       "sourceSha256": "c85487c6ab2701527cfa75787c09623f70dc89e1bc02f0140d43f7961b911319",
       "preserveBytes": false,
@@ -858,6 +871,7 @@
     {
       "source": "ref/decisions/2026-02-23-nullish-check-optional-chaining.md",
       "destination": "refs/decisions/2026-02-23-nullish-check-optional-chaining.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "reviewed-decision",
       "sourceSha256": "c176d0b389f4f4bf85ed6e667fb18fbb148d8896944a21aee2f034f0cf6a7b7c",
       "preserveBytes": false,
@@ -890,6 +904,7 @@
     {
       "source": "ref/decisions/2026-02-26-unified-env-resolution.md",
       "destination": "refs/decisions/2026-02-26-unified-env-resolution.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "reviewed-decision",
       "sourceSha256": "f314d1b88a6568de82ec5ca416632c14b6cb84b9f119af6853f84ca926c46419",
       "preserveBytes": false,
@@ -906,6 +921,7 @@
     {
       "source": "ref/decisions/2026-03-09-logical-operators-lowering.md",
       "destination": "refs/decisions/2026-03-09-logical-operators-lowering.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "reviewed-decision",
       "sourceSha256": "f659be98ec5e606bcc66376ac94f137eb7b5d6e1dc4d656e592934d2a707649d",
       "preserveBytes": false,
@@ -954,6 +970,7 @@
     {
       "source": "ref/decisions/2026-11-05-script-module-memory-freeze.md",
       "destination": "refs/decisions/2026-11-05-script-module-memory-freeze.md",
+      "archivedAt": "7a0b6a26a004f480f76fad9d534fedcde9f8aea7",
       "action": "reviewed-decision",
       "sourceSha256": "db606c411e494ea236a7042f9492c2cfd09f3c713acc51b2d2edf6a320dcb770",
       "preserveBytes": false,

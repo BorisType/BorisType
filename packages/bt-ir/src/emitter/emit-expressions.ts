@@ -7,7 +7,6 @@
 import type {
   IRExpression,
   IRObjectExpression,
-  IREnvAccess,
   IRRuntimeCall,
   IRBinaryExpression,
   IRUnaryExpression,
@@ -19,7 +18,6 @@ import type {
 } from "../ir/index.ts";
 import type { EmitContext } from "./emit-helpers.ts";
 import { getIndent, increaseIndent } from "./emit-helpers.ts";
-import { emitPolyfillCall } from "./emit-polyfills.ts";
 import { assertNever } from "../ir/index.ts";
 
 /**
@@ -66,32 +64,8 @@ export function emitExpression(expr: IRExpression, ctx: EmitContext): string {
     case "SequenceExpression":
       return `(${expr.expressions.map((e) => emitExpression(e, ctx)).join(", ")})`;
 
-    case "ArgsAccess":
-      return expr.originalName;
-
-    case "EnvAccess":
-      return emitEnvAccess(expr);
-
-    case "PolyfillCall":
-      return emitPolyfillCall(expr, ctx);
-
     case "RuntimeCall":
       return emitRuntimeCall(expr, ctx);
-
-    case "BTGetProperty":
-      return emitBTGetProperty(expr, ctx);
-
-    case "BTSetProperty":
-      return emitBTSetProperty(expr, ctx);
-
-    case "BTCallFunction":
-      return emitBTCallFunction(expr, ctx);
-
-    case "BTIsFunction":
-      return emitBTIsFunction(expr, ctx);
-
-    case "BTIsTrue":
-      return emitBTIsTrue(expr, ctx);
 
     case "GroupingExpression":
       return `(${emitExpression(expr.expression, ctx)})`;
@@ -207,7 +181,7 @@ export function emitObjectExpression(obj: IRObjectExpression, ctx: EmitContext):
  * Генерирует код assignment expression
  */
 function emitAssignment(expr: IRAssignmentExpression, ctx: EmitContext): string {
-  const left = expr.left.kind === "EnvAccess" ? emitEnvAccess(expr.left) : emitExpression(expr.left, ctx);
+  const left = emitExpression(expr.left, ctx);
   const right = emitExpression(expr.right, ctx);
   return `${left} ${expr.operator} ${right}`;
 }
@@ -221,64 +195,9 @@ function emitUpdate(expr: IRUpdateExpression, ctx: EmitContext): string {
 }
 
 /**
- * Генерирует код env access
- */
-export function emitEnvAccess(access: IREnvAccess): string {
-  let result = "__env";
-  for (let i = 0; i < access.depth; i++) {
-    result += ".__parent";
-  }
-  return `${result}.${access.key}`;
-}
-
-/**
  * Генерирует код runtime call
  */
 function emitRuntimeCall(call: IRRuntimeCall, ctx: EmitContext): string {
   const args = call.arguments.map((a) => emitExpression(a, ctx)).join(", ");
   return `bt.${call.namespace}.${call.method}(${args})`;
-}
-
-/**
- * Генерирует код bt.getProperty(obj, prop)
- */
-function emitBTGetProperty(expr: import("../ir/index.js").IRBTGetProperty, ctx: EmitContext): string {
-  const obj = emitExpression(expr.object, ctx);
-  const prop = emitExpression(expr.property, ctx);
-  return `bt.getProperty(${obj}, ${prop})`;
-}
-
-/**
- * Генерирует код bt.setProperty(obj, prop, value)
- */
-function emitBTSetProperty(expr: import("../ir/index.js").IRBTSetProperty, ctx: EmitContext): string {
-  const obj = emitExpression(expr.object, ctx);
-  const prop = emitExpression(expr.property, ctx);
-  const value = emitExpression(expr.value, ctx);
-  return `bt.setProperty(${obj}, ${prop}, ${value})`;
-}
-
-/**
- * Генерирует код bt.callFunction(func, [args])
- */
-function emitBTCallFunction(expr: import("../ir/index.js").IRBTCallFunction, ctx: EmitContext): string {
-  const callee = emitExpression(expr.callee, ctx);
-  const args = expr.arguments.map((a) => emitExpression(a, ctx)).join(", ");
-  return `bt.callFunction(${callee}, [${args}])`;
-}
-
-/**
- * Генерирует код bt.isFunction(value)
- */
-function emitBTIsFunction(expr: import("../ir/index.js").IRBTIsFunction, ctx: EmitContext): string {
-  const value = emitExpression(expr.value, ctx);
-  return `bt.isFunction(${value})`;
-}
-
-/**
- * Генерирует код bt.isTrue(value)
- */
-function emitBTIsTrue(expr: import("../ir/index.js").IRBTIsTrue, ctx: EmitContext): string {
-  const value = emitExpression(expr.value, ctx);
-  return `bt.isTrue(${value})`;
 }

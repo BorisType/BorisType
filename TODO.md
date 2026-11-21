@@ -6,20 +6,13 @@
 
 ## Компилятор и runner
 
-- **Стратегия памяти script/module — блокер развития.** Нужны ownership/lifetime
-  contract, разбор escaping values и bounded C memory tests. Существующие режимы,
-  defaults и regressions сохраняются. [Решение и критерии](refs/decisions/2026-11-05-script-module-memory-freeze.md).
-- **Expression effects — известные несовпадения.** Checkpoint содержит 10 PASS и
-  38 exact XFAIL из 48 comparisons. Нужны producer/consumer inventory, C shape
-  probes и небольшой bare slice с output-cost проверкой. Inline/shape prototypes
-  не стали production fix; script/module design on hold.
-  [Контрпримеры, варианты и стоимость](refs/research/compiler-semantics/expression-evaluation.md),
-  [остальные семейства и критерии](refs/research/compiler-semantics/scope.md).
-- **Ambient declarations стираются не во всех режимах.** В executable script/module
-  `declare const bt/botest` превращается в undefined assignments; bare их убирает.
-  Дефект воспроизводится с/без `@ts-nocheck` в обеих entrypoints. Нужны ambient-erasure
-  regressions и ordinary declaration controls; это исправление frozen поведения,
-  без расширения ABI. [Source и bounded compile-only repro](refs/compiler/findings.md#ambient-declarations-уточнение-старой-ts-nocheck-находки).
+- **Стратегия памяти для будущих режимов.** Нужны правила ownership/lifetime для
+  выходного кода с замыканиями и проверяемая стратегия для циклов на C-runtime.
+  [Архивное обоснование](https://github.com/BorisType/BorisType/blob/7a0b6a26a004f480f76fad9d534fedcde9f8aea7/refs/decisions/2026-11-05-script-module-memory-freeze.md).
+- **Порядок и частота вычисления выражений.** Сбор pending statements требует
+  учитывать ленивые ветки, вычисления до побочных эффектов и повторный вход в
+  loop condition. [Открытые вопросы](refs/compiler/findings.md).
+
 - **Literal temp collision и диагностика unsupported syntax.** R22/H01 используют
   независимый literal allocator; нужен collision-safe naming с nested-scope controls.
   F-01/T-04 inventory token/modifier/helper остаётся незавершённым: enum/namespace,

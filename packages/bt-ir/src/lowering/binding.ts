@@ -125,35 +125,6 @@ export class BindingManager {
   }
 
   /**
-   * Создаёт уникальное имя для descriptor функции
-   *
-   * @param funcName - Имя функции
-   * @returns Имя descriptor вида funcName_desc
-   */
-  descName(funcName: string): string {
-    return `${funcName}_desc`;
-  }
-
-  /**
-   * Создаёт уникальное имя для hoisted вложенной функции (module mode)
-   *
-   * @param originalName - Оригинальное имя функции
-   * @returns Уникальное имя вида __hoisted_originalName_N
-   */
-  hoistedName(originalName: string): string {
-    const key = `hoisted:${originalName}`;
-    let count = this.counters.get(key) ?? 0;
-    let name: string;
-    do {
-      name = `__hoisted_${originalName}_${count}`;
-      count++;
-    } while (this.isNameTaken(name));
-    this.counters.set(key, count);
-    this.generatedNames.add(name);
-    return name;
-  }
-
-  /**
    * Сбрасывает все счётчики и имена (для тестирования)
    */
   reset(): void {

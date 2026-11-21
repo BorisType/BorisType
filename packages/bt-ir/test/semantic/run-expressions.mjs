@@ -1,4 +1,4 @@
-/** Research gate: strict by default; --baseline verifies explicitly recorded mismatches. */
+/** Research gate: Strict Node/BS comparison for the expression catalog. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -8,19 +8,12 @@ import vm from "node:vm";
 import ts from "typescript";
 import { compile } from "../../build/index.js";
 import { expressionCases, expressionSource } from "./expression-cases.mjs";
-import { expressionBaseline } from "./expression-baseline.mjs";
-import {
-  classifyExpressionResult,
-  expressionOutputMetrics,
-  runIsolatedTarget,
-  selectExpressionCases,
-  sha256,
-} from "./expression-support.mjs";
+import { expressionOutputMetrics, runIsolatedTarget, selectExpressionCases, sha256 } from "./expression-support.mjs";
 import { assertSafeForUpdates } from "./output-invariants.mjs";
 
 const root = fileURLToPath(new URL("../../../../", import.meta.url));
 process.chdir(root);
-const { selected, baseline } = selectExpressionCases(expressionCases, process.argv.slice(2));
+const selected = selectExpressionCases(expressionCases, process.argv.slice(2));
 const artifacts = resolve(root, "packages/bt-ir/build/semantic/expressions");
 mkdirSync(artifacts, { recursive: true });
 const manifest = {
@@ -33,14 +26,13 @@ const manifest = {
   strict: true,
   target: { implementation: "supplied JS + botest adapter", version: "unknown", c: "not run" },
   catalogSha256: sha256(readFileSync(new URL("./expression-cases.mjs", import.meta.url))),
-  baselineSha256: sha256(readFileSync(new URL("./expression-baseline.mjs", import.meta.url))),
   harnessSha256: Object.fromEntries(
     ["run-expressions.mjs", "expression-support.mjs", "expression-worker.mjs"].map((name) => [
       name,
       sha256(readFileSync(new URL(name, import.meta.url))),
     ]),
   ),
-  policy: baseline ? "baseline-exact-xfail" : "strict-differential",
+  policy: "strict-differential",
   selected: selected.length,
   results: [],
 };
@@ -59,13 +51,13 @@ saveManifest();
 for (const { item, mode } of selected) {
   const key = `${item.id}/${mode}`;
   const prefix = resolve(artifacts, `${item.id}-${mode}`);
-  const source = expressionSource(item, mode);
+  const source = expressionSource(item);
   const row = { key, finding: item.finding, expected: item.expected, sourceSha256: sha256(source) };
   writeFileSync(prefix + ".ts", source);
   try {
-    const oracle = ts
-      .transpileModule(source + "\nresult;", { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } })
-      .outputText.replace(/^export /gm, "");
+    const oracle = ts.transpileModule(source + "\nresult;", {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+    }).outputText;
     writeFileSync(prefix + ".oracle.js", oracle);
     row.oracleSha256 = sha256(oracle);
     assert.equal(vm.runInNewContext(oracle, {}, { timeout: 1000 }), item.expected, `${key}: catalog/oracle mismatch`);
@@ -95,7 +87,7 @@ for (const { item, mode } of selected) {
     assertSafeForUpdates(code);
     writeFileSync(prefix + ".js", code);
     row.actual = await runIsolatedTarget({ root, code, outputPath: prefix + ".js", mode });
-    row.status = classifyExpressionResult(item.expected, row.actual, expressionBaseline[key], baseline);
+    row.status = row.actual === item.expected ? "PASS" : "FAIL";
   } catch (error) {
     row.status = "ERROR";
     row.error = String(error?.message ?? error);
@@ -112,4 +104,4 @@ assert.equal(manifest.results.length, selected.length);
 manifest.counts = counts;
 saveManifest();
 console.log(`${selected.length} comparisons: ${JSON.stringify(counts)}; artifacts: packages/bt-ir/build/semantic/expressions`);
-if (counts.FAIL || counts.ERROR || counts.XPASS) process.exitCode = 1;
+if (counts.FAIL || counts.ERROR) process.exitCode = 1;

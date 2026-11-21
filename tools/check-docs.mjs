@@ -86,13 +86,18 @@ try {
   for (const entry of manifest.entries) {
     if (sources.has(entry.source)) errors.push(`Duplicate migration source: ${entry.source}`);
     sources.add(entry.source);
-    if (!exists(entry.destination)) errors.push(`Missing migration destination: ${entry.destination}`);
+    const archivePath = entry.archivedAt ? `${entry.archivedAt}:${entry.destination}` : undefined;
+    if (archivePath) {
+      git("cat-file", "-e", archivePath);
+    } else if (!exists(entry.destination)) {
+      errors.push(`Missing migration destination: ${entry.destination}`);
+    }
     const original = git("show", `${manifest.baseCommit}:${entry.source}`);
     if (hash(original) !== entry.sourceSha256) errors.push(`Wrong original hash: ${entry.source}`);
-    if (entry.preserveBytes && exists(entry.destination)) {
+    if (entry.preserveBytes && (archivePath || exists(entry.destination))) {
       preserved++;
-      if (hash(readFileSync(resolve(root, entry.destination))) !== entry.sourceSha256)
-        errors.push(`Changed evidence bytes: ${entry.destination}`);
+      const destination = archivePath ? git("show", archivePath) : readFileSync(resolve(root, entry.destination));
+      if (hash(destination) !== entry.sourceSha256) errors.push(`Changed evidence bytes: ${entry.destination}`);
     }
     const sourceRetained = entry.sourceRetained ?? entry.action === "snapshot-before-rewrite";
     if (sourceRetained && !exists(entry.source)) errors.push(`Rewritten source missing: ${entry.source}`);

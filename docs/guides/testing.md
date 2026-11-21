@@ -23,8 +23,8 @@ pnpm test
 она не собирает тесты автоматически. Для выбора набора после сборки:
 
 ```sh
-node packages/botest/build/index.js tests/build array
-node packages/botest/build/index.js tests/build array/at.test.js
+node packages/botest/build/index.js tests/build labels
+node packages/botest/build/index.js tests/build labels/block-break.test.js
 ```
 
 Наборы объявляются в `tests/src/<suite>/_suite.json`: ключи `tests` указывают
@@ -36,11 +36,9 @@ node packages/botest/build/index.js tests/build array/at.test.js
 
 Botest проверяет поведение в своей Node.js эмуляции. Этот результат не
 подтверждает платформенные API, управление памятью, storage hooks или выполнение
-в C-runtime HCM. `.test.ts` по умолчанию компилируется в `script`; директива
-`/// @bt-mode bare` имеет более высокий приоритет. Развитие `script/module`
-приостановлено, сохранённые тесты не меняют этот статус.
+в C-runtime HCM. Для `.test.ts` действуют обычные [правила выбора режима](../reference/compile-modes).
 
-Для исследования семантики, PASS/XFAIL и native проверок используйте
+Для исследования семантики и native проверок используйте
 [руководство по проверкам компилятора](https://github.com/BorisType/BorisType/blob/main/refs/compiler/verification.md).
 Проверки MCP и DLL описаны отдельно в
 [руководстве MCP](./mcp-server#проверки) и

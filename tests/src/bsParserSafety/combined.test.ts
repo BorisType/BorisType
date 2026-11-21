@@ -37,13 +37,7 @@ function second(a: string, b: string): string {
   return b;
 }
 
-// FIXME: .join() транспилируется в bt.polyfill.Array.join() — не поддерживается в botest
-// const r4 = first([1, 2, 3].join(","), "other");
-// botest.assertValueEquals(r4, "1,2,3", "first([1,2,3].join(','), 'other') = '1,2,3'");
 
-// FIXME: .join() транспилируется в bt.polyfill.Array.join() — не поддерживается в botest
-// const r5 = second("other", [4, 5, 6].join("-"));
-// botest.assertValueEquals(r5, "4-5-6", "second('other', [4,5,6].join('-')) = '4-5-6'");
 
 // ---- Precedence + cleanup-grouping ----
 // Парентизированное выражение, где внутренние скобки потом убираются

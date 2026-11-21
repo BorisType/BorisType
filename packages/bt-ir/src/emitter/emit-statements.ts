@@ -108,53 +108,16 @@ export function emitStatement(stmt: IRStatement, ctx: EmitContext): string {
  * Генерирует код функции с hoisting переменных и вложенных функций.
  *
  * После hoist pass функции и переменные уже расположены
- * в правильном порядке в body. Emitter вставляет только
- * извлечение параметров из __args (для BT-сигнатуры).
+ * в правильном порядке в body.
  */
 export function emitFunction(fn: IRFunctionDeclaration, ctx: EmitContext): string {
   const pad = getIndent(ctx);
   const innerCtx = increaseIndent(ctx);
-  const innerPad = getIndent(innerCtx);
-  const lines: string[] = [];
+  const paramList = fn.originalParams.map((p) => p.name).join(", ");
+  const lines = [`${pad}function ${fn.name}(${paramList}) {`];
 
-  const isPlain = fn.plainSignature === true;
-
-  // Сигнатура: BT или plain (ObjectUnion и др.)
-  if (isPlain) {
-    const paramList = fn.originalParams.map((p) => p.name).join(", ");
-    lines.push(`${pad}function ${fn.name}(${paramList}) {`);
-
-    // Plain mode: тело уже содержит hoisted vars и statements
-    for (const stmt of fn.body) {
-      lines.push(emitStatement(stmt, innerCtx));
-    }
-  } else {
-    lines.push(`${pad}function ${fn.name}(__env, __this, __args) {`);
-
-    // 1. Emit leading FunctionDeclarations (hoisted to top by pass)
-    let bodyIdx = 0;
-    for (; bodyIdx < fn.body.length && fn.body[bodyIdx].kind === "FunctionDeclaration"; bodyIdx++) {
-      lines.push(emitStatement(fn.body[bodyIdx], innerCtx));
-    }
-
-    // 2. Извлечение параметров из __args
-    fn.originalParams.forEach((param, index) => {
-      // Captured-параметры назначаются в __env, обычные — в локальные var
-      const target = param.isCaptured ? `__env.${param.name}` : `var ${param.name}`;
-      if (param.rest) {
-        lines.push(`${innerPad}${target} = bt.Array.slice(__args, ${index});`);
-      } else if (param.defaultValue) {
-        const defaultExpr = emitExpression(param.defaultValue, innerCtx);
-        lines.push(`${innerPad}${target} = __args.length > ${index} ? __args[${index}] : ${defaultExpr};`);
-      } else {
-        lines.push(`${innerPad}${target} = __args.length > ${index} ? __args[${index}] : undefined;`);
-      }
-    });
-
-    // 3. Emit remaining body (hoisted vars + assignments + statements)
-    for (; bodyIdx < fn.body.length; bodyIdx++) {
-      lines.push(emitStatement(fn.body[bodyIdx], innerCtx));
-    }
+  for (const stmt of fn.body) {
+    lines.push(emitStatement(stmt, innerCtx));
   }
 
   lines.push(`${pad}}`);

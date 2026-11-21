@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "description": "Example backend application",
-  "main": "index.js",
   "scripts": {
     "build": "npx btc build",
     "lint": "eslint src/"

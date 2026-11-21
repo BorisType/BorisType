@@ -10,12 +10,7 @@ bt-ir — бэкенд компиляции для [BorisType](https://github.co
 Актуальные mode-specific ограничения, known miscompilations и отдельные
 подтверждения JS/C: [технический контракт](https://github.com/BorisType/BorisType/blob/main/docs/reference/borisscript-constraints.md).
 
-С 2026-11-05 поддерживаемое направление разработки — **bare**. Развитие
-script/module заморожено до решения стратегии памяти C-runtime: сильные
-env/descriptor/receiver циклы удерживаются reference counting без сборщика
-циклов. Реализации, regression tests и default `module` сохранены; наличие
-режима в API не означает C memory acceptance.
-[ADR и условия возобновления](https://github.com/BorisType/BorisType/blob/main/refs/decisions/2026-11-05-script-module-memory-freeze.md).
+Компилятор использует `bare` по умолчанию.
 
 - **Вход:** TypeScript исходный код
 - **Выход:** BorisScript (.js файлы)
@@ -41,13 +36,13 @@ import { compile } from "@boristype/bt-ir";
 const result = compile(
   `
   const greet = (name: string) => {
-    alert(\`Hello, \${name}!\`);
+    return \`Hello, \${name}!\`;
   };
   greet("World");
 `,
   {
     filename: "test.ts",
-    mode: "script",
+    mode: "bare",
   },
 );
 
@@ -69,7 +64,7 @@ console.log(result.outputs[0].code);
 import { compileFile } from "@boristype/bt-ir";
 
 const result = compileFile("./src/index.ts", {
-  mode: "module",
+  mode: "bare",
 });
 
 console.log(result.outputs[0].code);
@@ -94,7 +89,7 @@ const program = ts.createProgram(["src/index.ts"], {});
 const sourceFile = program.getSourceFile("src/index.ts")!;
 
 const result = compileSourceFile(sourceFile, program, {
-  mode: "module",
+  mode: "bare",
 });
 
 console.log(result.outputs[0].code);
@@ -114,16 +109,14 @@ console.log(result.outputs[0].code);
 
 ```typescript
 interface CompileOptions {
-  /** Режим компиляции: bare, script или module */
-  mode?: "bare" | "script" | "module";
+  /** Режим компиляции, по умолчанию DEFAULT_COMPILE_MODE */
+  mode?: CompileMode;
 
   /** Имя исходного файла (для функции compile()) */
   filename?: string;
 
   /** Путь выходного файла (для compileSourceFile) */
   outputPath?: string;
-
-  /** Дополнительные опции (fileKey, currentFileJs для script/module) */
 }
 ```
 
@@ -160,15 +153,11 @@ interface CompileOutput {
 
 ## Режимы компиляции
 
-bt-ir реализует три режима компиляции (script/module development on hold):
+Доступные значения экспортируются как `COMPILE_MODES`. Параметр `mode`
+принимает `CompileMode`. При отсутствии параметра используется
+`DEFAULT_COMPILE_MODE` (`bare`).
 
-| Режим      | Назначение                           | Возможности                                   |
-| ---------- | ------------------------------------ | --------------------------------------------- |
-| **bare**   | Runtime polyfills, встроенные модули | Минимальный вывод, нет bt.\* обёрток          |
-| **script** | Тестовые файлы, executable объекты   | env/desc, bt.getProperty, доступные polyfills |
-| **module** | Codelibrary пакеты (по умолчанию)    | Обёрнуто в \_\_init(), hoisting переменных    |
-
-См. [Справка по режимам компиляции](https://github.com/BorisType/BorisType/blob/main/docs/reference/compile-modes.md) для деталей.
+[Справочник режимов](https://github.com/BorisType/BorisType/blob/main/docs/reference/compile-modes.md).
 
 ## Примеры
 
@@ -183,7 +172,7 @@ const result = compile(`
   }
   
   const result = add(2, 3);
-  alert(result);
+  result;
 `);
 
 if (result.success) {
@@ -204,25 +193,6 @@ const bareResult = compile(
   }
 `,
   { mode: "bare" },
-);
-
-// Script mode - существующая экспериментальная реализация, development on hold
-const scriptResult = compile(
-  `
-  const obj = { foo: "bar" };
-  alert(obj.foo);
-`,
-  { mode: "script" },
-);
-
-// Module mode - codelibrary
-const moduleResult = compile(
-  `
-  export function greet(name: string) {
-    alert("Hello " + name);
-  }
-`,
-  { mode: "module" },
 );
 ```
 
@@ -283,26 +253,12 @@ BorisScript Output
 
 ### Автоматические трансформации
 
-Механизмы зависят от режима и конструкции; список не обещает их наличие в bare.
-
-- **Стрелочные функции** → Обычные функции с env/desc
-- **Шаблонные литералы** → Конкатенация строк
-- **for...of** → for...in (массивы BorisScript)
-- **let/const** → var с hoisting
-- **Labels / try-finally** → structured completion state без return-throw sentinel
-- **Catch bindings** → уникальный параметр, lexical scope и per-entry captured env
-- **Captured bindings** → частичная env/descriptor эмуляция в script/module; general JS closures не обещаются
-- **Доступ к свойствам** → bt.getProperty() (script/module mode)
-- **Вызовы методов** → bt.callFunction() (script/module mode)
-
-### Polyfills
-
-Script/module имеют type-driven dispatch в runtime library; ниже категории механизма,
-не гарантия полноты каждого метода (есть known failures/stubs):
-
-- Методы массивов: map, filter, reduce, forEach, ...
-- Методы строк: split, trim, substring, ...
-- Методы чисел: toFixed, toString, ...
+- Стрелочные функции преобразуются в обычные функции.
+- Шаблонные литералы преобразуются в конкатенацию строк.
+- `for...of` по массиву преобразуется в нативный `for...in` по значениям.
+- `let` и `const` эмитятся как `var`.
+- Метки и `try-finally` преобразуются общим IR-проходом.
+- Catch binding получает уникальное физическое имя.
 
 ### Анализ Scope
 
@@ -347,38 +303,14 @@ monorepo: `pnpm test:semantic` (нужны build runtime/botest и предос�
 `packages/bt-ir/build/semantic/Check27Fixed.js` на C, ожидается `0FU1FU2FU|E`.
 
 Оба результата вручную подтверждены пользователем на C 2026-10-07. Это 60
-selected bare-mode smoke cases; полная 1920-case матрица и script/module modes
-проверены на JS runtime. Версия C-платформы не предоставлена.
+выбранных случаев bare на зафиксированной ревизии. Версия C-платформы не предоставлена.
 
-### Expression research gate
+### Проверка выражений
 
-Из корня monorepo, с approved runtime и собранными packages:
-
-```bash
-pnpm test:expressions:baseline
-node packages/bt-ir/test/semantic/run-expressions.mjs --case r01-and-skip --mode script
-node packages/bt-ir/test/semantic/run-expression-prototypes.mjs
-node packages/bt-ir/test/semantic/run-expression-native.mjs
-```
-
-Первый запуск проверяет exact known failures (checkpoint 2026-11-05: 38 XFAIL и 10 PASS), **не**
-объявляет фичу исправленной. Без `--baseline` runner строго требует JS equivalence
-и пока возвращает exit 1. Неизвестная/пустая выборка, compile/load/runtime errors,
-timeout, changed mismatch и XPASS не скрываются baseline manifest.
-Target запускается в отдельном процессе с watchdog. Source/oracle/raw+final IR/
-output/cost manifests сохраняются в ignored `build/semantic/expressions`.
-
-Prototypes — исследовательские sketches, не production lowering. Native survey
-тоже не green gate: сейчас exit 1 из-за двух parser rejections, остальные шесть
-contexts совпадают с Node. `test:semantic` остаётся отдельным abrupt/update gate.
-Результаты, варианты, draft spec и C probes:
-[research](https://github.com/BorisType/BorisType/blob/main/refs/research/compiler-semantics/expression-evaluation.md).
-Checkpoint сохранён; дальнейшая script/module migration отложена до решения памяти.
-
-Ambient `declare const/let/var` внутри executable script/module source пока могут
-эмитить локальные переменные и затирать globals; @ts-nocheck не является причиной.
-Перенеси типы в `.d.ts`/type roots. Bare фильтрует такие variable statements.
-[Проверенная reproduction и границы](https://github.com/BorisType/BorisType/blob/main/refs/compiler/findings.md#ambient-declarations-уточнение-старой-ts-nocheck-находки).
+`pnpm test:expressions` сравнивает результаты Node и BorisScript для каталога
+выражений. Конкретный случай выбирается через `--case control-plain-order`, режим
+через `--mode bare`. Runner требует предоставленный JS runtime. Исходник, oracle,
+IR, output и метрики записываются в `build/semantic/expressions`.
 
 ## Разработка и CLI
 
@@ -394,7 +326,7 @@ node packages/bt-ir/build/cli.js path/to/file.ts -o output.js
 [Карта реализации и причины решений](https://github.com/BorisType/BorisType/blob/main/refs/compiler/README.md),
 [prerequisites и смысл verification gates](https://github.com/BorisType/BorisType/blob/main/refs/compiler/verification.md).
 Сборка не предоставляет vendor runtime. При изменении TS semantics проверяется
-поведение и output; один unit test или known-XFAIL baseline не заменяет native evidence.
+поведение и output; один unit test не заменяет native evidence.
 
 ## Структура проекта
 

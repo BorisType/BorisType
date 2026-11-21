@@ -53,26 +53,19 @@ Advisory Node checks не заменяют strict Node ↔ JS BorisScript сра
 [Исходные инструкции и результат](../research/compiler-control-flow/probes/README.md),
 [план, реализация и follow-up](control-flow.md).
 
-Для исторического expression checkpoint `pnpm test:expressions:baseline` сохраняет
-ожидаемые расхождения; strict `pnpm test:expressions` требует equivalence.
-PASS baseline с XFAIL не означает исправления фичи.
-
-Для новой expression regression добавь case в
+Для expression regression добавь case в
 [expression-cases.mjs](../../packages/bt-ir/test/semantic/expression-cases.mjs).
-Для bare укажи `modes: ["bare"]` (либо более широкий применимый список): без
-`modes` catalog выбирает script/module. Case задаёт `id`, `finding`, ожидаемую
-строку `expected` и TS `body`; helper оборачивает body в `runProbe(): string`.
-После сборки с предоставленным JS runtime запусти strict comparison:
+Case задаёт `id`, `finding`, ожидаемую строку `expected` и TS `body`.
+Если применимость ограничена, укажи `modes`. После сборки и подключения JS
+runtime конкретную проверку можно выбрать по имени и режиму.
 
 ```sh
-node packages/bt-ir/test/semantic/run-expressions.mjs --case <new-id> --mode bare
+node packages/bt-ir/test/semantic/run-expressions.mjs --case control-plain-order --mode bare
 ```
 
-Здесь нет `--baseline`: сравниваются expected, Node и JS BorisScript. Output,
-raw/final IR и результаты сохраняются в ignored `packages/bt-ir/build/semantic/expressions`.
-Этот runner отклоняет пустую/неизвестную выборку; это не исправляет поведение
-отдельного botest runner. Для C требуется отдельная bounded probe, как описано выше.
-[Manifest и пределы воспроизведения](../research/compiler-semantics/results/2026-11-05-research-checkpoint.md).
+Runner отклоняет пустую или неизвестную выборку и сохраняет output, raw/final IR
+и результаты в `packages/bt-ir/build/semantic/expressions`. Для C требуется
+отдельная ограниченная проба.
 
 В отчёте укажи compiler revision, runtime identity, команды, modes, counts и exit
 status; неизвестное оставь неизвестным. Действие, не выполненное на C, не записывается
@@ -127,8 +120,6 @@ fixture остаётся отдельным diagnostic, не обычным smok
 
 Fuel instrumentation и production output имеют разные hashes. Guard не должен
 скрывать неверный continue/exception path; production workaround не является fuel.
-Для script/module нужны настоящие library/descriptor ABI и lifetime prerequisites;
-bare pack этого не аттестует. В эту Markdown миграцию новые native runs не входят.
 
 Минимальная запись evidence:
 

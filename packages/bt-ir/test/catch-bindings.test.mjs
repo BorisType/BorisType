@@ -42,19 +42,6 @@ test("catch physical name avoids source identifiers", () => {
   assert.doesNotMatch(output, /catch \(__caught0\)/);
 });
 
-test("catch shadowing is resolved before function argument access", () => {
-  const result = compile(
-    `
-    function probe(error: string) {
-      try { throw "inner"; } catch (error) { return error; }
-    }
-  `,
-    { filename: "fixture.ts", mode: "script" },
-  );
-  assert.equal(result.success, true);
-  assert.match(result.outputs[0].code, /return __caught0;/);
-});
-
 test("catch destructuring is rejected explicitly instead of silently dropping bindings", () => {
   for (const binding of ["{message}", "[message]"]) {
     const result = compile(`try { throw "inner"; } catch (${binding}: any) { message; }`, {
@@ -64,25 +51,4 @@ test("catch destructuring is rejected explicitly instead of silently dropping bi
     assert.equal(result.success, false);
     assert.ok(result.diagnostics.some((diagnostic) => String(diagnostic.messageText).includes("catch binding pattern")));
   }
-});
-
-test("catch shadows an import in value access and callable resolution", () => {
-  const result = compile(
-    `
-    import { compile as error } from "@boristype/bt-ir";
-    function probe() {
-      try { throw 1; } catch (error: any) {
-        error = () => 2;
-        error();
-        return error;
-      }
-    }
-  `,
-    { filename: "../bt-cli/fixture.ts", mode: "script" },
-  );
-  assert.equal(result.success, true, result.diagnostics.map((item) => String(item.messageText)).join("\n"));
-  const output = result.outputs[0].code;
-  assert.match(output, /bt.callFunction\(__caught0, \[\]\)/);
-  assert.match(output, /return __caught0;/);
-  assert.doesNotMatch(output, /__env\.__module__boristype_bt_ir/);
 });
