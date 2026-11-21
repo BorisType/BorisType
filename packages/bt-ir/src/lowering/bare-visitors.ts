@@ -41,13 +41,6 @@ export function visitBareFunctionDeclaration(node: ts.FunctionDeclaration, ctx: 
 
   // Создаём дочерний контекст без captured/env логики
   const fnCtx = createBareFnCtx(node, ctx);
-  // Регистрируем параметры для дочернего контекста (не используется в bare,
-  // но нужно чтобы visitIdentifier не ломался)
-  node.parameters.forEach((param, index) => {
-    if (ts.isIdentifier(param.name)) {
-      fnCtx.functionParams.set(param.name.text, index);
-    }
-  });
 
   const body = visitStatementList(node.body.statements, fnCtx);
 
@@ -184,11 +177,6 @@ export function visitBareArrowFunction(node: ts.ArrowFunction, ctx: VisitorConte
   const funcName = ctx.bindings.create("arrow");
 
   const fnCtx = createBareFnCtx(node, ctx);
-  node.parameters.forEach((param, index) => {
-    if (ts.isIdentifier(param.name)) {
-      fnCtx.functionParams.set(param.name.text, index);
-    }
-  });
 
   let body: IRStatement[];
   if (ts.isBlock(node.body)) {
@@ -224,11 +212,6 @@ export function visitBareFunctionExpression(node: ts.FunctionExpression, ctx: Vi
   const params = collectBareParams(node.parameters, ctx);
 
   const fnCtx = createBareFnCtx(node, ctx);
-  node.parameters.forEach((param, index) => {
-    if (ts.isIdentifier(param.name)) {
-      fnCtx.functionParams.set(param.name.text, index);
-    }
-  });
 
   let body = node.body ? visitStatementList(node.body.statements, fnCtx) : [];
   if (fnCtx.pendingStatements.length > 0) {
@@ -260,11 +243,6 @@ export function visitBareObjectMethod(prop: ts.MethodDeclaration, ctx: VisitorCo
   const params = collectBareParams(prop.parameters, ctx);
 
   const fnCtx = createBareFnCtx(prop, ctx);
-  prop.parameters.forEach((param, index) => {
-    if (ts.isIdentifier(param.name)) {
-      fnCtx.functionParams.set(param.name.text, index);
-    }
-  });
 
   let body = prop.body ? visitStatementList(prop.body.statements, fnCtx) : [];
   if (fnCtx.pendingStatements.length > 0) {
