@@ -1,0 +1,124 @@
+name: BorisScript tests
+
+on:
+  push:
+    branches: [main, ci/botest-runtime-age]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  botest:
+    if: github.repository == 'BorisType/BorisType' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci/botest-runtime-age')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: botest-runtime
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          run_install: false
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Botest and fixtures
+        run: pnpm exec turbo run build --filter=botest --filter=botest-builtins --filter=@boristype/runtime --filter=boristype-tests
+
+      - name: Install age
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends age
+
+      - name: Download and verify runtime
+        env:
+          BOTEST_RUNTIME_PUBLIC_URL: ${{ secrets.BOTEST_RUNTIME_PUBLIC_URL }}
+          BOTEST_RUNTIME_AGE_IDENTITY: ${{ secrets.BOTEST_RUNTIME_AGE_IDENTITY }}
+          BOTEST_RUNTIME_SHA256: 7ad30901c8b58de7255a38059e0793d2def16a9768e15ef603a8ea1a5e75e09c
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${BOTEST_RUNTIME_PUBLIC_URL:?Missing BOTEST_RUNTIME_PUBLIC_URL}"
+          : "${BOTEST_RUNTIME_AGE_IDENTITY:?Missing BOTEST_RUNTIME_AGE_IDENTITY}"
+
+          payload=$(mktemp -d "$RUNNER_TEMP/botest-runtime.XXXXXX")
+          cleanup() {
+            for file in "$payload/main.js" "$payload/main.js.age"; do
+              if [[ -f "$file" ]]; then unlink "$file"; fi
+            done
+            rmdir "$payload"
+          }
+          trap cleanup EXIT
+
+          if ! download_url=$(
+            curl --fail --silent --proto '=https' --max-time 30 \
+              --get --data-urlencode "public_key=$BOTEST_RUNTIME_PUBLIC_URL" \
+              'https://cloud-api.yandex.net/v1/disk/public/resources/download' |
+              jq -er '.href | select(type == "string" and startswith("https://"))' 2>/dev/null
+          ); then
+            echo '::error::Yandex Disk did not return a download URL.'
+            exit 1
+          fi
+          if ! curl --fail --silent --location --proto '=https' --proto-redir '=https' \
+            --max-time 60 --max-filesize 8388608 --output "$payload/main.js.age" "$download_url"; then
+            echo '::error::Could not download the encrypted runtime from Yandex Disk.'
+            exit 1
+          fi
+          if ! printf '%s\n' "$BOTEST_RUNTIME_AGE_IDENTITY" |
+            age --decrypt --identity - --output "$payload/main.js" "$payload/main.js.age" 2>/dev/null; then
+            echo '::error::Could not decrypt the downloaded runtime.'
+            exit 1
+          fi
+          if ! printf '%s  %s\n' "$BOTEST_RUNTIME_SHA256" "$payload/main.js" | sha256sum --check --status; then
+            echo '::error::The decrypted runtime does not match the expected SHA-256.'
+            exit 1
+          fi
+
+          install -m 0600 "$payload/main.js" packages/botest/build/borisscript/main.js
+          printf 'Runtime SHA-256 verified: %s\n' "$BOTEST_RUNTIME_SHA256"
+
+      - name: Run BorisScript checks
+        env:
+          FORCE_COLOR: "0"
+        run: |
+          set -euo pipefail
+          umask 077
+          trap 'unlink packages/botest/build/borisscript/main.js' EXIT
+
+          run_check() (
+            local script="$1" pattern="$2" log summary
+            log=$(mktemp "$RUNNER_TEMP/botest-log.XXXXXX")
+            trap 'unlink "$log"' EXIT
+            if ! timeout --kill-after=5s 120s pnpm "$script" >"$log" 2>&1; then
+              printf '::error::pnpm %s failed. Reproduce locally with the verified runtime.\n' "$script"
+              return 1
+            fi
+            if ! summary=$(grep -oE "$pattern" "$log"); then
+              printf '::error::pnpm %s had no matching test results.\n' "$script"
+              return 1
+            fi
+            printf '%s\n' "$summary"
+            printf -- '- `pnpm %s` — %s\n' "$script" "$summary" >> "$GITHUB_STEP_SUMMARY"
+          )
+
+          run_check test '^[[:space:]]*Tests:[[:space:]]+([1-9][0-9]*) passed \(\1\)$'
+          run_check test:semantic '^[[:alnum:]_-]+: ([1-9][0-9]*)/\1, [0-9]+ bytes, compile [0-9]+ms, execute [0-9]+ms$'
+          run_check test:expressions '^([1-9][0-9]*) comparisons: \{"PASS":\1\}; artifacts: packages/bt-ir/build/semantic/expressions$'
