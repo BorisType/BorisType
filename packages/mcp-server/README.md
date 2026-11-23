@@ -1,6 +1,8 @@
 # @boristype/mcp-server
 
-MCP сервер для WebSoft HCM — предоставляет AI-агентам доступ к файловой системе, серверному XQuery и XML объектам через [Model Context Protocol](https://modelcontextprotocol.io/) (stdio transport).
+MCP-сервер для WebSoft HCM позволяет агенту работать с документами, настраиваемыми полями,
+пакетами и физическими файлами, выполнять XQuery/SQL и BorisScript, запускать настроенных
+серверных агентов. Клиент соединяется с локальным процессом по stdio. [Model Context Protocol](https://modelcontextprotocol.io/)
 
 Использует [@boristype/ws-client](https://github.com/BorisType/BorisType/tree/main/packages/ws-client) для соединения с WSHCM сервером.
 
@@ -130,6 +132,9 @@ MCP resources и prompts на этом шаге не зарегистриров�
 instructions и skill не добавляют гарантий чтения, изоляции или отката сверх кода.
 
 ## Tools
+
+[Справочник на GitHub Pages](https://boristype.github.io/BorisType/guides/mcp-server#справочник-инструментов)
+содержит примеры аргументов, описание результатов и порядок вызовов для каждого инструмента.
 
 | Tool                                   | Назначение                                                |
 | -------------------------------------- | --------------------------------------------------------- |

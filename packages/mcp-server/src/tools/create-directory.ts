@@ -7,7 +7,7 @@ export function registerCreateDirectoryTool(server: McpServer, api: WshcmApi): v
     "wshcm_create_directory",
     {
       description:
-        "Create a directory and missing parents via automatically managed BorisType.FileSystem/API 2. Existing directory succeeds with created=false. Files and symlink/junction ancestors are rejected. Creation of a parent chain is not transactional.",
+        "Create a physical HCM x-local:// directory and missing parents, e.g. before wshcm_write_file. Returns created=true for a new directory or false for an existing one. A file at the target or a link/junction in the path is an error. Some parent directories can remain if creation fails partway.",
       inputSchema: wshcmSchemas.files.mkdir,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },

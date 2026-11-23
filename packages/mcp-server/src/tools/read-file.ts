@@ -7,7 +7,8 @@ export function registerReadFileTool(server: McpServer, api: WshcmApi): void {
     "wshcm_read_file",
     {
       description:
-        "Read UTF-8 text (file up to 1 MiB) via automatically managed BorisType.FileSystem/API 2. Returns JSON content, original hash, BOM, line/UTF-16 coordinates and a NEW readToken required for edits in this MCP instance. Optional 1-based inclusive line range; preserves line endings. Supply the previous readToken to accumulate ranges of the same version; otherwise only this read is granted. Tokens expire after 30 minutes or mutation. Separate chats sharing this server are not isolated.",
+        "Read a physical HCM x-local:// UTF-8 file (up to 1 MiB), optionally by 1-based inclusive startLine/endLine. Returns content with original line endings, byte sha256, bom, line/UTF-16 offsets and a fresh readToken for this URL. " +
+        "Pass the previous readToken to accumulate ranges of the same version. Without it only the latest range is covered. Use the newest token for wshcm_edit_file or a full-coverage overwrite. Tokens expire after 30 minutes or invalidation in this MCP instance.",
       inputSchema: wshcmSchemas.files.read,
       annotations: { readOnlyHint: true, destructiveHint: false },
     },

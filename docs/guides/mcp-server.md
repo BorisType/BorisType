@@ -1,24 +1,18 @@
-# MCP server для WebSoft HCM
+# Подключить MCP к WebSoft HCM
 
-`@boristype/mcp-server` — Node.js >=24.22.2, stdio transport, MCP SDK 2.x.
-Его сборка не использует TS → BorisScript compiler. Общий SDK ws-client
-поставляет DLL для девяти файловых tools и автоматически подготавливает её
-на HCM. Для файловых tools нужны net9 host и доступ к dotnetcore/shared.
+`@boristype/mcp-server` запускается локально как stdio-сервер. MCP-клиент передаёт ему вызовы инструментов, а сервер обращается к настроенному стенду HCM. Для запуска нужен Node.js версии 24.22.2 или новее. Для девяти операций с физическими файлами дополнительно требуется HCM с .NET 9 и доступом к `dotnetcore/shared`. SDK доставляет DLL при первом файловом вызове. [Подготовка файлового runtime](./dotnet)
 
-Доступны read_file, write_file, edit_file, list_directory, search_files,
-delete_file, create_directory, move_file и get_file_info с префиксом `wshcm_`.
-Также доступны `wshcm_execute`, `wshcm_run_agent`, `wshcm_get_system_info`,
-`wshcm_xquery`, инструменты для реестра типов, чтения форм, редактирования и
-удаления объектов и десять package tools. Эти tools работают без BorisType DLL.
-Конфигурация CLI/env и клиента, installation и точные options — в
-[package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md).
+## Справочник инструментов
+
+| Задача                                                                                    | Точка входа                                                     |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Узнать версию стенда, выполнить XQuery, вызвать библиотеку или запустить агента           | [Стенд, запросы и выполнение кода](../reference/mcp-execution)  |
+| Найти тип и каталог, посмотреть XMD, прочитать, изменить или удалить документ             | [Каталоги, формы и документы](../reference/mcp-objects)         |
+| Определить шаблон заявки, добавить поле со списком вариантов или изменить порядок страниц | [Настраиваемые поля и страницы](../reference/mcp-custom-fields) |
+| Найти физический файл, прочитать строки и применить точную замену                         | [Файлы и каталоги HCM](../reference/mcp-files)                  |
+| Собрать ZIP, перенести его на другой стенд и проверить результат импорта                  | [Пакеты объектов и ZIP](../reference/mcp-packages)              |
 
 ## Установка и подключение
-
-Для запуска stdio-сервера требуется Node.js >=24.22.2.
-Доступ к HCM требуется при вызове серверной операции. Для файловых tools DLL
-входит в npm dependency ws-client; [подготовка происходит автоматически](./dotnet).
-Execute, system info, XQuery, XML и package tools не зависят от готовности DLL.
 
 Установите MCP сервер:
 
@@ -26,9 +20,31 @@ Execute, system info, XQuery, XML и package tools не зависят от го
 npm install -g @boristype/mcp-server@next
 ```
 
-Для Codex CLI и Claude Code используйте штатные команды `codex mcp add` и
-`claude mcp add`. Готовые примеры с параметрами HCM находятся в
-[README пакета](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#установка).
+Для Codex CLI или Claude Code выполните в Bash команду для своего клиента. Подставьте адрес и имя пользователя HCM. Пароль вводится скрыто и сохраняется в личных настройках клиента. Для HTTP укажите нужный порт и уберите `--https`.
+
+::: code-group
+
+```bash [Codex CLI]
+read -r -s -p 'Пароль HCM: ' hcm_password
+printf '\n'
+codex mcp add wshcm --env "WSHCM_PASSWORD=$hcm_password" -- \
+  boristype-mcp --host hcm.example --port 443 --https --username hcm-user
+unset hcm_password
+codex mcp list
+```
+
+```bash [Claude Code]
+read -r -s -p 'Пароль HCM: ' hcm_password
+printf '\n'
+claude mcp add --env "WSHCM_PASSWORD=$hcm_password" --transport stdio --scope local wshcm -- \
+  boristype-mcp --host hcm.example --port 443 --https --username hcm-user
+unset hcm_password
+claude mcp list
+```
+
+:::
+
+У Claude Code `--scope local` привязывает запись к текущему проекту. Выполняйте команду в его каталоге. Для личного подключения во всех проектах укажите `--scope user`.
 
 Например, для VS Code добавьте в `.vscode/mcp.json`:
 
@@ -53,23 +69,9 @@ npm install -g @boristype/mcp-server@next
 включая Claude Desktop, описаны в
 [конфигурации package README](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#конфигурация).
 
-Запустите сервер средствами MCP-клиента и проверьте список tools: девять
-файловых, `wshcm_execute`, `wshcm_run_agent`, `wshcm_get_system_info`,
-`wshcm_xquery`, девять tools для форм, объектов и их конфигурации,
-десять package tools и `wshcm_runtime_status`. Всего 33. Затем выполните операцию чтения,
-например `wshcm_get_form` с формой, существующей на вашей установке:
+Откройте `tools/list` в клиенте. В версии `0.1.0-alpha.9` зарегистрированы **33 инструмента**. Для проверки связи с HCM вызовите `wshcm_get_system_info` с `{}` и найдите `summary.hcmVersion`. Если нужны физические файлы, отдельно вызовите `wshcm_runtime_status` с `{}` и проверьте `status`. [Значения статусов](../reference/mcp-execution#wshcm-runtime-status)
 
-```json
-{ "formUrl": "x-local://wtv/wtv_cost_center.xmd" }
-```
-
-Успех этого вызова подтверждает соединение и загрузку конкретной формы,
-но не установку DLL. Вызовите `wshcm_runtime_status` с `{}`: ready разрешает
-файловые операции, restart_required сообщает о подготовленной DLL и старом
-загруженном коде. HCM автоматически не перезапускается. Для файлового маршрута прочитайте известный физический
-UTF-8 файл через `wshcm_read_file`; результат должен содержать content, sha256
-и readToken. Параметры URL и ограничения — в
-[описании tools](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#tools).
+В сыром ответе MCP смотрите сначала на `isError`, затем на `content[0].text`. Обычно внутри находится JSON. Например, успешные `wshcm_write_file` и `wshcm_delete_file` возвращают обычную строку, как и некоторые ошибки файловых операций. В справочнике показаны аргументы для `tools/call` и содержимое результата после чтения этой оболочки.
 
 ## Восстановление соединения
 
@@ -108,365 +110,51 @@ Skill не устанавливает сервер или DLL и не добав
 
 ## Экспорт и импорт пакетов объектов
 
-Доступны `wshcm_list_package_schemas`, `wshcm_get_package_schema`,
-`wshcm_save_package_schema`, `wshcm_delete_package_schema`,
-`wshcm_add_package_objects`, `wshcm_remove_package_objects`, `wshcm_export_package`,
-`wshcm_inspect_package`, `wshcm_import_package`, `wshcm_get_package_operation`.
-
-Экспорт по точным IDs не сохраняет схему и не переключает текущую схему UI:
-
-```json
-{ "objectIds": ["9007199254740993"], "operationId": "11111111-1111-4111-8111-111111111111" }
-```
-
-Вызовите `wshcm_export_package` с этими параметрами. Чтобы включить определения
-полей и страниц, добавьте `customTemplates: ["subdivision", "request_type"]`.
-Можно передать только `customTemplates`. `request_type` включает все
-настроенные шаблоны типов заявок. Для сохранённой схемы передайте отдельно
-`{schemaId,revision}` из `wshcm_get_package_schema`, а список типов задайте
-в настройках схемы через `processCustomTemplates: true` и `customTemplates`.
-Ответ содержит artifactId/localPath/sizeBytes/sha256 внутри `artifact`,
-status, missingCount и `customTemplateTypes` из фактически собранного ZIP.
-ZIP/base64 в контекст не попадает.
-`localPath` находится **на машине MCP**; файл клиента в другой среде недоступен
-по одному имени. По умолчанию ZIP и метаданные хранятся в
-`~/.boristype/package-artifacts`. Флаг `--package-artifact-directory <path>`
-выбирает другой абсолютный каталог на стороне MCP. Файлы переживают сеанс,
-handle действует 24 часа. Автоматической уборки expired/native файлов пока нет.
-
-Просмотрите `wshcm_inspect_package({artifactId})` либо
-`wshcm_inspect_package({localPath:"/absolute/path/on-mcp-host/input.zip"})`.
-Полученный inspectionId связывает неизменяемую копию архива. Для применения:
-`wshcm_import_package({inspectionId,operationId})`. По умолчанию применяется весь
-состав; страницы preview не ограничивают выбор. Явные objectIds/packageIds могут
-выбирать любой элемент снимка, включая другие страницы. После перезапуска MCP
-требуется повторный inspect. Конфликты и hash проверяются перед apply.
-
-По умолчанию отключены `allowVersionMismatch`, `allowReimport`, `skipConflictingIds`,
-`includeCustomTemplates`, `includeAccessRoles`, `includeFiles`, `includeDeletions`,
-`includeLists`. Export/add принимают отдельные includeCategories/includeRelatedObjects/
-includeFiles/includeAssessmentItems. Related использует штатные XMD/foreign связи;
-ссылки в wvars и mode → web_mode ещё не разрешаются. Поддерживаются objects/courses/
-web/custom_file, остальные типы отклоняются; custom_file destination ограничен
-`x-local://custom/`. На Linux C/PostgreSQL проверены пакеты объектов
-`cost_center` и импорт определений с явным `includeCustomTemplates: true`.
-
-Схемы: создайте через `wshcm_save_package_schema({name})`, читайте по schemaId,
-изменяйте/добавляйте/исключайте с `{schemaId,revision,...}`. Удаление схемы не удаляет
-её объекты. Общий XML перечитывается перед Save; external atomic CAS отсутствует.
-
-Лимиты ZIP: 128 MiB, expanded 512 MiB, 10000 entries, depth 2; XML 32 MiB;
-input objectIds до 10000; chunk 256 KiB. Страницы default 100, limit 1–1000,
-продолжение через offset/limit или выданный `nextPage`. MCP text ≤256 KiB;
-сокращение помечается truncated/truncatedFields. Подробные diagnostics доступны
-через SDK/native reports, длинные settings могут сокращаться.
-
-Задайте UUID operationId до долгого вызова и сохраните его. Public UUID handles
-operationId/artifactId/inspectionId принимаются в любом регистре и приводятся
-к lowercase перед использованием; schemaId/packageId сохраняют регистр. После
-потери ответа запросите `wshcm_get_package_operation({operationId})` на том же
-стенде и аккаунте: timeout не отменяет работу. Отсутствующий, недоступный или
-повреждённый receipt даёт unknown с code ReceiptUnavailable и phase receipt.
-Unknown не подтверждает отсутствие
-изменений; retry/rollback/exactly-once не предоставляются. Completed с
-platform_report_only не доказывает успех каждого объекта. Ошибки сохраняют
-operationId/status и при наличии lastKnownOperation/cleanupError.
-[Все параметры и lifecycle](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#пакеты-объектов).
+Для разового переноса передайте ID объектов в `wshcm_export_package` на исходном стенде. Проверьте состав и `missingCount`. Доставьте ZIP по `artifact.localPath` на машину целевого MCP, выполните `wshcm_inspect_package` и сохраните его `inspectionId`. Только теперь вызывайте `wshcm_import_package`. Запишите UUID импорта до отправки, чтобы после обрыва узнать исход через `wshcm_get_package_operation`. Для повторяемого набора сначала создайте именованную схему. [Все десять операций с пакетами](../reference/mcp-packages)
 
 ## Сведения о стенде
 
-Вызовите `wshcm_get_system_info` с `{}` для сводки: версии HCM, ОС, БД,
-Unibridge, режим запуска и флаги cluster/full-text index/personal data.
-Ответ — `{ "summary": { ... } }`; отсутствующие поля и неизвестные значения
-флагов равны `null`. Настройки стенда не меняются, DLL не требуется.
-
-Вход `{ "includeReport": true }` добавляет строку `report` с полным штатным
-отчётом «О программе → Информация о системе», без дополнительной очистки.
-Секции INI/XML/Global Settings пока остаются текстом. Отчёт больше 256 KiB UTF-8
-отклоняется целиком, в том числе при запросе только сводки. Лимит не ограничивает
-стоимость сбора; автоматических повторов нет. Сведения относятся к ответившему
-процессу, единого снимка кластера не гарантируют.
-[Контракт и пример ответа](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#сведения-о-стенде).
+Для карточки стенда достаточно `summary` от `wshcm_get_system_info({})`. Если нужно проверить конкретную настройку, например `REAL-PRECISION`, запросите `includeReport: true` и ищите строку в `report`. Она относится к ответившему процессу. [Состав отчёта](../reference/mcp-execution#wshcm-get-system-info)
 
 ## XML объектов
 
-`wshcm_get_form({formUrl})` возвращает раскрытую структуру через нативный
-`XmlForm.TopElem.Xml`: агенту не нужно вручную собирать SAMPLE/INHERIT из файлов.
-Это текущая загруженная форма, не автономный export всех зависимостей XMD.
-
-`wshcm_get_object({id})` возвращает полный экспорт `TopElem.Xml`, actual form URL
-и `readToken`. ID передаётся точной decimal string; hex integer внутри XML
-поддерживается без JS Number. Полный XML не включает гарантированный binary
-backup, TEMP и computed data.
-
-`wshcm_save_object` принимает XML строкой, без XML→JS→XML mapping:
-
-```json
-{
-  "mode": "create",
-  "formUrl": "x-local://wtv/wtv_cost_center.xmd",
-  "xml": "<cost_center><code>example-unique-code</code><name>Example</name></cost_center>"
-}
-```
-
-Create выделяет новый ID. Для replace нужны `mode:"replace"`, `id`, `readToken`
-и `xml`; форма берётся из прочитанного существующего объекта. **Пропущенные поля
-удаляются либо получают defaults.** Нужен token полного чтения в текущем MCP
-instance, TTL 30 минут, до 32 snapshots. Новое чтение меняет token, попытка
-replace расходует его; после попытки требуется перечитать объект.
-
-Проверяются строгий XML 1.0, root/identity, известность полей, cardinality и
-integer lexical/range. Остальные scalar conversions и бизнес-проверки не
-гарантируются. XML/schema ограничены 256 KiB каждый, input depth 64, 8192
-элемента; большой ответ отклоняется целиком. Поддерживаются локальные XMD URLs
-`x-local://` и `x-app://` без произвольных open options.
-
-Перед Save повторно проверяются XML объекта и его форма, но это не atomic CAS
-относительно внешних writers. Token относится к MCP instance, изоляция чатов
-при переиспользовании сервера не гарантируется. Form/load/hooks могут выполнять
-код; сохранение не повторяет XMS business workflow или UI authorization.
-
-Ответ содержит `writeStatus`: `not_attempted` — Save ещё не вызывался,
-`unknown` — исход не установлен, `saved` — Save завершился, даже если последующий
-readback не удался. Известный ID сохраняется в ошибке. Нет гарантии rollback или
-отмены по timeout; автоматически повторять create/replace нельзя.
-[Полный контракт create/replace](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#xml-объектов-форма-чтение-сохранение).
+Если известен только тип документа, запросите `wshcm_list_object_types` с `objectType`. Возьмите имя каталога, найдите запись по коду через `wshcm_xquery` и передайте её ID десятичной строкой в `wshcm_get_object`. Если нужна структура, передайте `formUrl` в `wshcm_get_form`. [Реестр и чтение XML](../reference/mcp-objects)
 
 ### Изменение отдельных полей
 
-Прочитайте объект через `wshcm_get_object`, затем вызовите `wshcm_patch_object`
-с тем же ID и полученным `readToken`. Передайте XML с корнем объекта и полями
-для правки. В примере preview меняет только имя.
-
-```json
-{
-  "id": "7349586349801536169",
-  "readToken": "<token-from-get-object>",
-  "xml": "<cost_center><name>Changed</name></cost_center>",
-  "dryRun": true
-}
-```
-
-При preview `xml` в ответе содержит кандидат, `changed` показывает отличие
-кандидата от прочитанного XML. `writeStatus: "not_attempted"` означает, что Save
-не вызывался. Для применения перечитайте объект и используйте свежий token
-с `dryRun: false` или без этого параметра. Каждый вызов с действующим token,
-дошедший до обработчика, расходует его. Это касается preview, no-op и ошибок.
-No-op возвращает `changed: false` и пропускает Save. При изменении `saved`
-подтверждает Save, а `xml` содержит фактическое чтение после него, включая
-изменения hooks. При ошибке этого чтения сохраняются известный ID и статус Save.
-Form loading и присваивания могут выполнять platform code до Save.
-
-Для массива с ключом укажите ключ каждого элемента. Обычный элемент обновляется
-или добавляется, `bt-mode="replace"` заменяет выбранный элемент, `remove` удаляет
-его по ключу. `replace` на контейнере заменяет содержимое контейнера, пустой
-`clear` очищает его. `replace-array` на первом одноимённом элементе заменяет
-только его группу. Для массива без ключа переданный состав уже задаёт полную
-замену. Единственный пустой элемент с `bt-mode="clear"` очищает массив.
-
-Лимиты XML и схемы составляют по 256 KiB UTF-8. Вход допускает до 8192 элементов,
-глубину 64, внутренний запрос до 2 MiB с метаданными. Patch применяет native
-string, integer, bool, real и date. Binary, TEMP и методы исключены. Дата
-сохраняется как календарное время платформы с точностью до секунд, включая
-повторное применение native XML с годом без нулей, например
-`1-01-02T12:34:56+00:00`. Суффикс `+00:00` здесь не означает UTC instant.
-Ненулевое смещение и ненулевые дробные секунды отклоняются.
-[Режимы, примеры и границы](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#частичное-редактирование-xml).
+Чтобы переименовать центр затрат, прочитайте его через `wshcm_get_object`. Передайте `id`, `readToken` и XML только с корнем и новым названием в `wshcm_patch_object` с `dryRun: true`. Сравните кандидат с исходным документом. Для применения снова прочитайте объект и используйте свежий токен. [Правила patch для скаляров, массивов и дат](../reference/mcp-objects#wshcm-patch-object)
 
 ### Реестр типов и удаление объекта
 
-`wshcm_list_object_types({})` возвращает страницу реестра. Записи
-`kind: "object"` включают зарегистрированные стандартные и `cc_*` типы, а
-`kind: "catalog"` даёт зарегистрированные каталоги для XQuery, в том числе
-проекции. Просматривайте отдельно через `kind` и листайте через `offset` и
-`limit`. `sources` показывает, какие реестры дали результат.
-
-Чтобы найти каталог для конкретного типа, передайте
-`{ "objectType": "cost_center" }`. В ответе будет тип `cost_center` и
-каталог `cost_centers` со ссылкой на этот тип. У каталогов без объявленного
-типа документа `objectType` равен `null`.
-
-`wshcm_delete_object({id,readToken})` перемещает один документ в корзину HCM.
-Возьмите точный ID и свежий токен из `wshcm_get_object`. Если XML объекта или
-формы изменился, операция вернёт `Conflict`. Сравнение и удаление выполняются
-последовательно. Вызов расходует токен. При `deleteStatus: "unknown"`
-проверьте фактическое состояние объекта и корзины перед повтором.
+Строка каталога из XQuery помогает выбрать документ. До удаления прочитайте весь документ, сверьте тип, код и название, затем передайте ID и токен в `wshcm_delete_object`. Ответ подтверждает перемещение в корзину. [Контракт удаления](../reference/mcp-objects#wshcm-delete-object)
 
 ### Типы данных объектов
 
-`wshcm_list_object_data_types({objectType:"subdivision"})` находит
-типы данных, где подразделение выступает на любой стороне связи.
-Поля `primaryObjectType` и `secondaryObjectType` в строке показывают,
-как именно используется тип. Эти же параметры можно передать как
-уточняющие фильтры. Пустой запрос открывает весь справочник с обычными
-`offset` и `limit`.
-
-Для полей одного типа данных передайте найденный ID в
-`wshcm_get_custom_field_definitions` как
-`scope: {objectType:"object_data_type", templateId:id}`. Экземпляры
-ищите через `wshcm_xquery` по `object_datas.object_data_type_id`.
+Чтобы узнать, в каких связях участвует подразделение, вызовите `wshcm_list_object_data_types` с `{"objectType":"subdivision"}`. Строка результата указывает обе стороны. Используйте ID найденного определения для запроса записей `object_datas` или для чтения полей самого типа данных. [Фильтры и пагинация](../reference/mcp-objects#wshcm-list-object-data-types)
 
 ### Настраиваемые поля
 
-`wshcm_get_custom_field_definitions` читает поля и страницы. Если область
-известна, передайте её сразу. Общие поля подразделения адресуются
-`scope: {objectType: "subdivision"}`, а шаблон формы заявки —
-`scope: {objectType: "request_type", templateId: "<ID типа заявки>"}`.
-
-Чтобы найти шаблон, сначала передайте `{mode:"list",objectType:"request"}`
-в тот же инструмент. Он вернёт страницу зарегистрированных шаблонов,
-тип владельца `templateType: "request_type"` и поле-селектор
-`templateSelector: "request_type_id"`. Для чтения полного шаблона передайте
-`templateType` в `scope.objectType` и выбранный `templateId` в
-`scope.templateId`. У существующей заявки селектор можно прочитать
-через `wshcm_get_object`.
-
-Передайте полученную `revision` и нужные операции в
-`wshcm_patch_custom_field_definitions`. Можно добавить, править, перемещать
-и удалять поля и страницы, а также переименовывать поля. Через `upsertField`
-настраиваются формула по умолчанию, условие верности, правила видимости,
-фильтр каталога и оформление. Через `upsertPage` администратор может
-ограничить доступ по роли и группе. `removeTemplate` удаляет все определения
-конкретного шаблона по `scope.templateId`. Начните с `dryRun: true`, чтобы
-увидеть итоговую конфигурацию. Для изменения значения конкретного объекта
-используйте `wshcm_patch_object`.
-[Параметры и пример](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#настраиваемые-поля)
+У заявки набор полей зависит от типа. Вызовите `wshcm_get_custom_field_definitions` с `mode: "list"` и `objectType: "request"`, затем по селектору документа выберите нужный шаблон и прочитайте его `scope`. Для изменения набора полей нужна его `revision`. Для заполнения поля в одной заявке нужны ID и токен документа. [Пример создания поля со списком и заполнения заявки](../reference/mcp-custom-fields)
 
 ## Запуск серверного агента
 
-`wshcm_run_agent({agentId})` запускает существующий BorisScript-агент и
-возвращает `status: "accepted"`. Для ожидания окончания потока передайте
-`mode: "sync"` и при необходимости `waitTimeoutMs` от 1 до 20000 мс.
-Ответ `ended` сообщает о завершении потока. Результат работы проверяется по
-эффектам агента. После `wait_timeout` поток может продолжать работу.
-Инструмент рассчитан на standalone HCM. [Параметры и статусы](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#запуск-серверного-агента)
+Для настроенного серверного агента выберите `wshcm_run_agent`. Передайте объявленные параметры и ID объектов, которые ожидает его код. Например, для запуска по выбранным в каталоге сотрудникам передайте их ID в `objectIds`. Даже в режиме ожидания прикладной результат проверяется отдельно. [Режимы запуска и значения статусов](../reference/mcp-execution#wshcm-run-agent)
 
 ## Выполнение BorisScript
 
-`wshcm_execute` выполняет серверный BorisScript с правами подключённого аккаунта,
-без BorisType DLL. Например:
-
-```json
-{ "code": "print('Checking version'); return tools.get_version('wtv', false);" }
-```
-
-Успех: `{ok:true,value,output,outputTruncated}`. `print(value)` собирает сообщения
-этого вызова, `return` задаёт результат. Штатные `alert`/логи библиотек остаются
-в журналах HCM; в доступном Docker-окружении агент может посмотреть их отдельно.
-Это не требует перехвата или изменения общего логирования.
-
-`print(value)` — экспериментальный кандидат с пока не подтверждённой практической
-полезностью; по результатам оценки он может быть изменён или удалён.
-
-Ошибка имеет `error.phase`: `execution` — разбор/выполнение, `result` — подготовка
-результата, `presentation` — представление в JSON. Уже собранный вывод сохраняется.
-При сбое транспорта/ответа возвращается `executionStatus:"unknown"`;
-вывод в таком случае не гарантирован. Ошибки помечены MCP `isError: true`.
-
-Safe integer выдаётся как JSON number, остальные integer — decimal strings,
-undefined — null, XML/date — проекция XQuery. Код ограничен 64 KiB UTF-8,
-ответ — 256 KiB; у проекции и диагностики есть отдельные лимиты.
-Усечение сообщений обозначается `outputTruncated`, скрипт при этом продолжается.
-Лимиты не ограничивают работу или память кода.
-
-Вызов может менять данные, не ограничен файловыми readToken и не гарантирует
-rollback. **Timeout клиента не означает остановку серверного кода**;
-автоматических повторов нет. Сначала установить фактические эффекты, затем
-решать, нужен ли повтор.
-[Контракт, ошибки и лимиты](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#выполнение-серверного-borisscript).
+Для одиночного библиотечного вызова выберите `wshcm_execute`. Передайте фрагмент с `return`, чтобы получить `value`. Экспериментальный `print(value)` возвращает диагностику в `output` этого вызова. [Пример вызова, ограничения и ошибки](../reference/mcp-execution#wshcm-execute)
 
 ## Серверные запросы
 
-`wshcm_xquery` принимает `query` и optional `maxRows` (default 100, 1–1000):
-
-```json
-{ "query": "sql: SELECT 1 AS n", "maxRows": 10 }
-```
-
-Обычный XQuery и префикс `sql:` передаются в платформенный `XQuery` на сервере
-без фильтрации. Дополнительных клиентских SQL-флагов tool не включает.
-**Гарантий чтения, идемпотентности и отката нет**; tool помечен как потенциально
-изменяющий данные. Политика readToken файловых tools эти запросы не ограничивает.
-
-Ответ: `rows`, `returnedRows`, `truncated`, `limitReason` (`null`/`rows`/`output`).
-Ограниченный диапазон содержит до maxRows + 1 строк для lookahead; размер
-внутреннего carrier строк ограничен 65000 символами, весь ответ — 256 KiB UTF-8.
-Общий `Evaluator.xquery` из ws-client проецирует XML на сервере по фактическим
-типам полей в records/arrays; dates становятся ISO-строками. MCP выдаёт safe integer
-как JSON number, остальные integer как точные decimal strings. Nonfinite real
-даёт ошибку. Форматирование real в SOAP может терять точность. Глубина до 32,
-10000 значений; превышение этих пределов даёт ошибку.
-[Матрица типов и API](../reference/ws-client-values.md).
-На проверенной Linux C/PG сборке отрицательные SQL integer становятся пустыми
-XML-полями и выдаются как `null`, даже `-7`. Приведение integer к тексту в SQL
-сохраняет знак; SQL `NULL` без явного типа и `''` оба получены как `""`.
-
-Эти лимиты не ограничивают работу БД и память сервера. Transport timeout не
-гарантирует отмену запроса; автоматических повторов нет. Запрос может изменить
-данные до ошибки или потери ответа. `test:e2e:xquery` прошёл 12/12 на Linux HCM
-2025.2.1333 / CLR 9.0.11 / PostgreSQL 16 без BorisType DLL в query path. Проверены
-каталог, SQL, quotes/control escapes, row/output limit и большие Unicode-ответы.
-Команда требует запущенный локальный стенд; output fixtures используют PostgreSQL.
-[Evidence и ограничения типов](https://github.com/BorisType/BorisType/blob/main/refs/research/mcp/09-xquery-native.md).
+Для подбора записей по условию используйте `wshcm_xquery`. Ограничьте запрос на стороне каталога или SQL и проверьте `truncated` перед выводами обо всей выборке. Для следующего чтения документа передавайте точный ID строкой. [Примеры XQuery и SQL](../reference/mcp-execution#wshcm-xquery) · [Матрица типов](../reference/ws-client-values)
 
 ## Чтение перед изменением
 
-Read всегда возвращает JSON: content, original-byte sha256, bom, координаты
-строк/UTF-16 и readToken. Optional startLine/endLine — 1-based inclusive,
-с сохранением CRLF/CR/LF. Даже частичное чтение требует UTF-8 файл <=1 MiB.
-Каждое чтение отменяет предыдущий token этого URL; для накопления диапазонов
-одной версии передать предыдущий readToken в следующий read request.
-Без него подтверждается только новый диапазон.
-
-Edit требует token из этого экземпляра MCP и допускает oldText только целиком
-в прочитанном покрытии. Каждая exact replacement должна быть unique, включая
-overlapping matches. Последовательные замены проверяются в памяти; ошибка
-любого patch не сохраняет предыдущие patches. При stale hash — Conflict,
-при отсутствующем token/покрытии — ReadRequired. После попытки изменения token
-расходуется; для следующего edit требуется новое чтение. DryRun не пишет и не
-расходует token, но preview не предоставляет дополнительных разрешений.
-
-Write по умолчанию create-only и отказывает для existing path. Overwrite требует
-mode=overwrite и token с полным покрытием. Get-info/search не заменяют чтение.
-Delete/move — отдельные явные операции без требования читать весь binary file.
-
-Состояние ограничено 128 файлами, 256 объединёнными диапазонами на файл и TTL
-30 минут после последнего чтения. URL aliases требуют отдельного token.
-**Разделение чатов не гарантируется**, если клиент переиспользует MCP server.
-Сервер фиксирует выдачу текста клиенту, а не его получение/осмысление моделью.
-Проверка версии и rename не являются атомарным compare-and-replace относительно
-внешних writers: строгое закрытие этого окна отложено в исследование.
+Для правки физического файла найдите строку через `wshcm_search_files`, затем прочитайте её через `wshcm_read_file`. Передайте текст, замену и `readToken` в `wshcm_edit_file` с `dryRun: true`. Здесь предпросмотр сохраняет токен для применения тех же замен. При `Conflict` перечитайте фактические байты. [Чтение и точечная правка](../reference/mcp-files#wshcm-edit-file)
 
 ## Файловые операции и ограничения
 
-BS разрешает x-local URLs через UrlToFilePath, standalone DLL выполняет IO без
-Datex callbacks. Text — strict UTF-8, один начальный BOM убирается при чтении;
-write добавляет BOM, edit сохраняет исходный BOM и unaffected whitespace.
-NUL/invalid encoding/oversized files отвергаются; legacy encodings не угадываются.
-List возвращает immediate entries ordinal, отмечает links без traversal;
-переполнение 10000 entries — ошибка. IO paths и ancestors с links/junctions
-отвергаются. VFS и special files не аттестованы.
-
-Tools работают с **физической ФС**, а не со всем содержимым платформенного URL.
-На проверенном Linux HCM `LoadUrlData(x-local://wt_data/...)` с SQL hook читал
-blob из `spxml_blobs`, тогда как чтение физического пути видело другие байты
-на диске. Изменение или удаление дисковой копии не обновляет этот blob.
-ReadToken/hash относятся к дисковому файлу. Операции с логическими URL и SQL
-resources требуют отдельного контракта; добавление поддержки схем его не заменяет.
-[Native исследование](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/15-url-storage-routing-research.md).
-
-Create-directory создаёт missing parents и допускает existing directory;
-создание цепочки не транзакционно. Get-info читает metadata, включая binary/large
-files, без содержимого. Move использует native no-replace rename на Linux/Windows:
-нет overwrite или скрытого copy/delete между файловыми системами.
-
-Search ищет имена по glob, содержимое — построчно literal/.NET regex. Ответ root,
-relative paths, line/column/text, stats/skipped/limitReason описывает охват явно.
-Полный проход требует skipped=0 и limitReason=null; ответ ограничен 256 KiB.
-
-`destructiveHint` — подсказка клиенту, не гарантия запроса подтверждения.
-EOF/SIGINT/SIGTERM выполняют общий evaluator cleanup. Частичная инициализация
-и shutdown во время активного SOAP требуют дальнейшей работы.
+Сначала определите, где приложение хранит ресурс. Файловые операции читают и изменяют физический диск HCM. При включённом SQL-хранилище тот же URL в `LoadUrlData` может вернуть содержимое из БД. Для бинарных файлов доступны получение метаданных и перемещение. Чтение и правка текста поддерживают UTF-8, до 1 MiB на весь файл. [Файловый справочник](../reference/mcp-files) · [Исследование путей и хранилищ](https://github.com/BorisType/BorisType/blob/main/refs/research/dotnet/15-url-storage-routing-research.md)
 
 ## Проверки
 

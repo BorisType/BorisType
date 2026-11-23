@@ -48,7 +48,11 @@ test("registered package tools advertise exact SDK inputs and honest effects", a
   const packages = tools.filter((tool) => names.includes(tool.name.replace("wshcm_", "")));
   assert.equal(packages.length, 10);
   for (const tool of packages) {
-    assert.match(tool.description, /handles are canonicalized to lowercase/);
+    if ("operationId" in tool.inputSchema.properties) {
+      assert.match(tool.description, /handles are canonicalized to lowercase/);
+    } else {
+      assert.doesNotMatch(tool.description, /operationId/);
+    }
     assert.equal(tool.inputSchema.additionalProperties, false);
     assert.equal(tool.annotations.idempotentHint, false);
     assert.equal(tool.annotations.readOnlyHint, /wshcm_(list_package_schemas|get_package_schema|get_package_operation)$/.test(tool.name));

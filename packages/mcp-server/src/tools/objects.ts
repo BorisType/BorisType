@@ -21,12 +21,12 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
   const readAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true };
   const writeAnnotations = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true };
   const description =
-    " Uses platform XML API without a DLL. Form loading and initialization may execute code; this is not UI business validation or a storage backup.";
+    " Form loading and hooks may execute code. The XML API has no file DLL dependency, atomic compare-and-save or UI workflow guarantee.";
   server.registerTool(
     "wshcm_list_object_types",
     {
       description:
-        "Find registered HCM document types and catalog forms, including cc_* types. Filter by kind or exact objectType, and page with offset/limit. Use formUrl for wshcm_get_form and catalog names for wshcm_xquery. Catalog entries report their native objectType when HCM provides it. Object entries can report whether their XMD contains custom_elems. Use wshcm_get_custom_field_definitions for configured fields and templates.",
+        "Find registered HCM document types and catalog forms, including cc_* types. Filter by kind or exact objectType. items are paged by offset/limit (default 100, max 250). Check sources for an unavailable registry. Use formUrl with wshcm_get_form and the catalog name with wshcm_xquery. supportsCustomFields reports the XMD container. Discover configured templates with wshcm_get_custom_field_definitions.",
       inputSchema: wshcmSchemas.objects.listTypes,
       annotations: readAnnotations,
     },
@@ -36,7 +36,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_list_object_data_types",
     {
       description:
-        "List definitions from the HCM object_data_types catalog. With no filters, page through all data types. objectType matches the primary or secondary side; primaryObjectType and secondaryObjectType require exact matches on those sides. All supplied filters must match. Entries include id, code, name and the configured type on each side. Use the exact id as scope.templateId with scope.objectType='object_data_type' in wshcm_get_custom_field_definitions. To find stored records, query object_datas by object_data_type_id.",
+        "Page through definitions in object_data_types (default 100, max 250). Call with {} for all, or supply objectType to match either side. primaryObjectType and secondaryObjectType constrain specific sides. All filters must match. items include exact decimal id, code, name and both sides (null when unset). Query object_datas by object_data_type_id for stored records. Use id as scope.templateId with scope.objectType='object_data_type' to read its configured fields.",
       inputSchema: wshcmSchemas.objects.listDataTypes,
       annotations: readAnnotations,
     },
@@ -46,7 +46,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_get_custom_field_definitions",
     {
       description:
-        "Discover or read configured custom field and page definitions. Choose one input form: {mode:'list',objectType,offset?,limit?} for a page of registered template IDs and their selector, or {scope} for full definitions. Use scope.objectType for common fields. For a template, use the returned templateType as scope.objectType and the exact templateId from the list or selector. Only a full scope read supplies the revision for wshcm_patch_custom_field_definitions. Read instance values with wshcm_get_object.",
+        "Find registered custom-field templates with {mode:'list',objectType,offset?,limit?}. Returns common counts, templates, templateType and templateSelector (e.g. request_type_id on request). To read definitions pass {scope} instead: objectType alone for common fields, or the returned templateType and exact templateId for one owner. Only a scope read returns ordered fields/pages, fieldTypes, exists and revision for patching. Read instance values with wshcm_get_object.",
       inputSchema: wshcmSchemas.customFields.lookup,
       annotations: readAnnotations,
     },
@@ -61,7 +61,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_patch_custom_field_definitions",
     {
       description:
-        "Edit one definition scope using ordered upsert, renameField, move, or remove operations. removeTemplate deletes the configured fields and pages for scope.templateId. Use revision from wshcm_get_custom_field_definitions in this session. dryRun previews without Save. Omitted settings are preserved. Use null to clear advanced text or page access and [] to clear options or visibilityConditions. Formulas and filters are stored as text. Page access changes require the HCM admin role. Use wshcm_patch_object to migrate stored values after changing a field key. If a write conflicts or the outcome is unknown, reread before trying again.",
+        "Apply 1\u2013100 ordered operations to a definition scope using its revision from wshcm_get_custom_field_definitions. Upsert creates or edits in place, move uses before/after, renameField changes a key, removeTemplate deletes the configured template. Omitted properties are preserved. Use null for clearable text/page access and [] for options or visibilityConditions. dryRun returns candidate fields/pages and changed without Save. A saved edit returns a fresh revision. Editing page access or removing a restricted page/template requires HCM admin. Migrate stored values separately via wshcm_patch_object. Reread the scope after a conflict or unknown outcome.",
       inputSchema: wshcmSchemas.customFields.patch,
       annotations: writeAnnotations,
     },
@@ -71,7 +71,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_get_form",
     {
       description:
-        "Get the loaded, expanded XMD root as XML, with root and actual form URL. Inheritance is resolved by the platform; remaining dependencies/cache freshness are not guaranteed. For configured custom fields and pages use wshcm_get_custom_field_definitions." +
+        "Read the loaded XMD by formUrl from wshcm_list_object_types or wshcm_get_object. Returns formUrl, root and expanded schema in xml for inspecting paths, types and array keys. Platform inheritance is resolved at load time. Dependencies and cache freshness are platform-specific. Use wshcm_get_custom_field_definitions for configured fields and pages." +
         description,
       inputSchema: wshcmSchemas.objects.getForm,
       annotations: readAnnotations,
@@ -82,7 +82,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_get_object",
     {
       description:
-        "Read a full object XML by exact decimal ID, its actual form URL and a readToken for patch, whole-document replace or deletion. Oversized XML is rejected, not truncated. Tokens belong to this MCP instance and expire after 30 minutes." +
+        "Open one HCM document by exact decimal id. Returns id, formUrl, root, full exported xml and a fresh readToken for wshcm_patch_object, full replacement or deletion. XML or schema over 256 KiB is rejected whole. A new read of this id replaces its token in this MCP instance. Tokens expire after 30 minutes." +
         description,
       inputSchema: wshcmSchemas.objects.get,
       annotations: readAnnotations,
@@ -93,7 +93,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_save_object",
     {
       description:
-        "Create or fully replace ONE object using XML. Create requires formUrl and no ID; replace requires id/readToken from a full read and uses the object's actual form. Omitted fields are removed on replace. Checks syntax, root, identity, known paths, singleton cardinality and integer lexical/range. Other types use native conversion; no full business validation. A replace attempt consumes the token. Compare-before-save is not atomic CAS. Save/hooks can partially succeed; inspect writeStatus and known ID, never blindly retry." +
+        "Create a document with {mode:'create',formUrl,xml}, or fully replace one with {mode:'replace',id,readToken,xml} from a complete read. Omitted fields are removed or reset on replace. For partial changes use wshcm_patch_object. Checks XML syntax, root/identity, known fields, cardinality and integer range. Success returns the id and saved XML readback. A handled replace consumes the token. Check writeStatus and known id on errors: saved can accompany a failed readback, unknown needs an independent check before retry." +
         description,
       inputSchema: wshcmSchemas.objects.save,
       annotations: writeAnnotations,
@@ -104,7 +104,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_patch_object",
     {
       description:
-        "Apply a partial XML edit to an existing object by exact decimal ID and a fresh full-read token. Omitted fields are preserved. Arrays merge by key or replace the unkeyed group; bt-mode supports explicit replace, replace-array, clear and remove where applicable. Each handled attempt consumes the token, including dryRun, invalid XML and no-op. dryRun returns the candidate XML without Save; no-op skips Save. A changed apply returns saved readback and hooks can affect that XML. Establish the outcome before retrying an uncertain write." +
+        "Patch fields of one existing document with {id,readToken,xml,dryRun?} from a fresh wshcm_get_object read. Omitted fields are preserved. Keyed arrays merge by primary key; supplying an unkeyed group replaces all its entries. bt-mode supports replace, replace-array, clear and keyed remove. Every handled attempt consumes the token, including dryRun, invalid XML and no-op. Preview returns changed and candidate xml. Reread before apply. No-op skips Save. Saved xml reflects readback after hooks. Verify uncertain writes before retry." +
         description,
       inputSchema: wshcmSchemas.objects.patch,
       annotations: writeAnnotations,
@@ -115,7 +115,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_delete_object",
     {
       description:
-        "Move one HCM document to the platform trash by exact ID. Requires a fresh full-read token and matching XML and form snapshot. The comparison is not atomic. The native deletion acknowledgement does not verify related data, UI cleanup or binary cleanup. A handled attempt consumes the token. If the response is lost, establish the outcome before retrying.",
+        "Move one document to the HCM trash using {id,readToken} from wshcm_get_object. A handled attempt consumes the token and rechecks the XML and form before native deletion. Success returns id, mode:'trash', deleteStatus:'deleted'. This acknowledges the native call. Related records and binary cleanup depend on HCM. If deleteStatus is unknown, check the catalog and trash before a new attempt.",
       inputSchema: wshcmSchemas.objects.delete,
       annotations: writeAnnotations,
     },

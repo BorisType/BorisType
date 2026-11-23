@@ -10,7 +10,7 @@ function decimal(value: string): number {
 
 program
   .name("boristype-mcp")
-  .description("MCP server for WebSoft HCM — provides AI agents with access to server files")
+  .description("MCP server for WebSoft HCM documents, custom fields, object packages, files, queries and server-side execution")
   .version(packageVersion)
   .requiredOption("--host <host>", "WSHCM server host", process.env["WSHCM_HOST"] ?? "localhost")
   .requiredOption("--port <port>", "WSHCM server port", process.env["WSHCM_PORT"] ?? "80")

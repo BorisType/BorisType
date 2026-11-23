@@ -7,9 +7,8 @@ export function registerSearchFilesTool(server: McpServer, api: WshcmApi): void 
     "wshcm_search_files",
     {
       description:
-        "Search file names by glob, or UTF-8 file contents by literal/line regex, below a WebSoft HCM x-local:// directory. " +
-        "Automatically prepares packaged BorisType.FileSystem (API 2). A stale loaded build requires HCM process restart. Returns root URL, relative paths, optional line/column/text, " +
-        "work/skip counters and limitReason. Inspect skipped and limitReason for incomplete coverage. Does not follow links.",
+        "Find physical files below an HCM x-local:// directory by case-sensitive glob, or add query for literal or .NET regex line matches in UTF-8 text. Returns root and relative matches with line/column/text for content hits. " +
+        "Check stats, skipped and limitReason even for empty matches. Narrow the root or glob when coverage is incomplete. Use the root plus a matched path with wshcm_read_file before editing. Search grants no readToken.",
       inputSchema: wshcmSchemas.files.search,
       annotations: { readOnlyHint: true, destructiveHint: false },
     },

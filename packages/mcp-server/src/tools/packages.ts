@@ -181,71 +181,77 @@ export function registerPackageTools(server: McpServer, api: WshcmApi): void {
   const read = { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true };
   const temporary = { ...read, readOnlyHint: false };
   const mutation = { ...temporary, destructiveHint: true };
-  const lifecycle =
-    " Exact object IDs are decimal strings. Supply a UUID operationId before long/mutating calls; public operationId/artifactId/inspectionId handles are canonicalized to lowercase; timeout does not cancel native work. Query get_package_operation before any explicit retry. No automatic retry, rollback, atomic CAS or exactly-once guarantee.";
+  const receipt =
+    " Choose a UUID operationId before dispatch. UUID handles are canonicalized to lowercase. After timeout, check wshcm_get_package_operation on the same HCM and account before retrying. Timeout does not stop native work.";
   const links =
     " includeRelatedObjects uses native XMD/foreign links only; wvars/mode resolvers and complete dependency closure are not implemented.";
   function register<K extends keyof typeof packageSchemas>(name: string, method: K, description: string, annotations = mutation) {
-    server.registerTool(
-      "wshcm_" + name,
-      { description: description + lifecycle, inputSchema: boundedInput(packageSchemas[method]), annotations },
-      (input) => packageResult(() => api.packages[method](input as never), method, input as RecordValue),
+    server.registerTool("wshcm_" + name, { description, inputSchema: boundedInput(packageSchemas[method]), annotations }, (input) =>
+      packageResult(() => api.packages[method](input as never), method, input as RecordValue),
     );
   }
   register(
     "list_package_schemas",
     "listSchemas",
-    "List saved schemas by offset/limit (default 100, max 1000); returns a common-document revision. Never switches the UI current schema.",
+    "Find saved package schemas by name in paginated items (offset/limit, default 100, max 1000). Each row has schemaId, name, objectCount and the shared document revision. Pass schemaId to wshcm_get_package_schema for settings and membership. The UI's current selection is preserved.",
     read,
   );
   register(
     "get_package_schema",
     "getSchema",
-    "Read one saved schema by explicit schemaId and paginated objects; revision is required for mutations in this MCP instance.",
+    "Read settings and members of a saved schema by schemaId. Returns name, objectCount, a page of objects with editable flags, and revision. Follow nextPage when present. Use the revision from this MCP instance to modify or export the schema. A change to any schema can stale this shared document revision.",
     read,
   );
   register(
     "save_package_schema",
     "saveSchema",
-    "Create a named schema or change name/settings/editable flags using schemaId/revision. To include custom field definitions, set settings.processCustomTemplates to true and list native object types in settings.customTemplates. Rechecks the shared document before saving; other schemas and UI selection are preserved.",
+    "Create a saved package schema with name, or supply schemaId/revision to change its name, settings or members' editable flags. To include custom fields, enable settings.processCustomTemplates and list types in settings.customTemplates. Returns schemaId, revision, operation and errors. Change membership with wshcm_add_package_objects or wshcm_remove_package_objects." +
+      receipt,
   );
   register(
     "delete_package_schema",
     "deleteSchema",
-    "Delete one saved schema using explicit schemaId/revision. Deletes no packaged target objects.",
+    "Delete one saved schema using schemaId and the current revision. Returns schemaId, operation and errors. Objects in the schema remain in HCM. To exclude only some members use wshcm_remove_package_objects." +
+      receipt,
   );
   register(
     "add_package_objects",
     "addObjects",
-    "Add exact IDs to one saved schema using its revision and explicit inclusion flags." + links,
+    "Add objectIds (exact decimal strings) to a saved schema with schemaId/revision. includeCategories, includeRelatedObjects, includeFiles and includeAssessmentItems default to false. Check operation and errors, then read the schema to review membership. Use the fresh revision for the next edit." +
+      links +
+      receipt,
   );
   register(
     "remove_package_objects",
     "removeObjects",
-    "Remove exact IDs from one saved schema using its revision. Deletes no target objects.",
+    "Remove the specified decimal objectIds from a saved schema using schemaId/revision. Returns a fresh revision, operation and errors. The documents remain in HCM. Export again to obtain a ZIP with the updated membership." +
+      receipt,
   );
   register(
     "export_package",
     "exportPackage",
-    "Build a ZIP from schemaId/revision or directly from objectIds and/or customTemplates. Direct export does not save a schema. customTemplates selects native object types and includes all their configured templates, for example all request_type templates. Returns artifactId/localPath/sizeBytes/sha256 on the MCP host. Native temporary files/reports are side effects. Check missingCount, customTemplateTypes and missingCustomTemplates." +
-      links,
+    "Build a ZIP from schemaId/revision, or directly from decimal objectIds and/or customTemplates without saving a schema. Each selected type includes all its configured templates. Returns artifact.{artifactId,localPath,sizeBytes,sha256} on the MCP host. Check status, missingCount and missingCustomTemplates against the actual archive. Use wshcm_inspect_package on the intended target. Export creates temporary files/reports." +
+      links +
+      receipt,
     temporary,
   );
   register(
     "inspect_package",
     "inspectPackage",
-    "Preview an artifactId OR absolute localPath on the MCP host, or page an existing inspectionId. Package rows report the customTemplateTypes found in the ZIP. Captures an immutable copy and uploads it for native preview; does not apply target objects. Handles last 24 hours; inspection bindings belong to this instance. ZIP 128 MiB, expanded 512 MiB, 10000 entries, depth 2, XML 32 MiB; page limit 1–1000.",
+    "Preview exactly one artifactId or absolute localPath on the MCP host. Captures an immutable copy and uploads it for native preview on the target HCM. Returns inspectionId, artifact, operation and paged items including conflicts and customTemplateTypes. For more rows pass inspectionId/offset/limit. The 24-hour artifact and this instance's inspection are required for import. ZIP 128 MiB, expanded 512 MiB, 10000 entries, depth 2, XML 32 MiB." +
+      receipt,
     temporary,
   );
   register(
     "import_package",
     "importPackage",
-    "Apply the entire immutable inspected composition by default; pagination is presentation only. Optional packageIds/objectIds may select any member in that snapshot. Rechecks conflicts. Version mismatch/reimport and templates/roles/files/lists/deletions require explicit opt-ins. Supports objects/courses/web/custom_file only; custom_file destinations must be below x-local://custom/. Completed with platform_report_only is not per-object success proof.",
+    "Import by inspectionId from wshcm_inspect_package in this instance. By default selects the entire immutable inspected composition across all preview pages. Restrict by packageIds/objectIds for a subset. Rechecks hash and conflicts. Templates, roles, files, lists, deletions, version mismatch and reimport require explicit opt-ins. Supports objects/courses/web/custom_file. custom_file destinations must be below x-local://custom/. The returned receipt with platform_report_only calls for readback to confirm individual objects." +
+      receipt,
   );
   register(
     "get_package_operation",
     "getOperation",
-    "Read the durable native operation receipt by caller-known operationId on the same target/account. Status may be running/completed/partial/failed/unknown; local artifact association exists only in this instance.",
+    "Look up a previous operationId on the same HCM/account, including after timeout. UUID handles are canonicalized to lowercase. Returns the native receipt with status, phase, verification, reportIds and downloadIds. Status may be running/completed/partial/failed/unknown. ReceiptUnavailable leaves the outcome unknown. Local artifact association exists only in the exporting instance.",
     read,
   );
 }

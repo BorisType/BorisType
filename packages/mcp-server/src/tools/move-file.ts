@@ -7,7 +7,7 @@ export function registerMoveFileTool(server: McpServer, api: WshcmApi): void {
     "wshcm_move_file",
     {
       description:
-        "Move/rename one file via automatically managed BorisType.FileSystem/API 2 without overwriting or copy/delete fallback. Source and destination are x-local:// URLs. Parent must exist; directories/links/readonly source are rejected. Linux/Windows only; cross-filesystem rename is an explicit error. Invalidates source/destination read tokens.",
+        "Rename or move one physical file between x-local:// URLs, including large or binary files, without a text read. The destination parent must exist and the destination name must be free. Returns moved=true. Rejects directories, links and read-only sources. Cross-filesystem rename fails without copy/delete fallback. The attempt invalidates read tokens for both URLs.",
       inputSchema: wshcmSchemas.files.move,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },

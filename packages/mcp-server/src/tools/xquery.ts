@@ -10,13 +10,9 @@ export function registerXQueryTool(server: McpServer, api: WshcmApi): void {
     "wshcm_xquery",
     {
       description:
-        "Execute a query with WebSoft HCM's server-side XQuery, including the sql: prefix. No extra DLL is required. " +
-        "Passes query text unchanged; may modify data and is not guaranteed read-only or idempotent. " +
-        "Returns typed query rows as JSON, returnedRows, truncated and limitReason, up to 256 KiB. " +
-        "Safe integers are JSON numbers; larger integers are exact decimal strings. Nonfinite reals cause an error. " +
-        "HCM SOAP real serialization can lose precision. " +
-        "Platform conversion can lose negative SQL integers and conflate SQL NULL with empty text; CAST signed integers to text when needed. " +
-        "Row/output limits do not bound database work; transport timeout does not guarantee cancellation. Do not blindly retry failures.",
+        "Query an HCM catalog by its registered name (see wshcm_list_object_types), or pass SQL with the sql: prefix. Returns rows, returnedRows, truncated and limitReason. Default maxRows=100, max 1000, output up to 256 KiB. Narrow the query itself to limit database work. " +
+        "Safe integers are JSON numbers, larger integers exact decimal strings. Pass exact IDs as strings to wshcm_get_object for full XML. SOAP real formatting can lose precision. Nonfinite reals cause an error. On Linux C/PostgreSQL, cast signed integers to text in SQL to preserve negatives. SQL NULL and empty text may coincide. " +
+        "Queries run unchanged with the connected account, can modify data and do not require the file DLL. Timeout does not guarantee cancellation. Verify effects before retrying a mutation.",
       inputSchema: wshcmSchemas.xquery,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
