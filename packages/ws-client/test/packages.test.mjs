@@ -88,7 +88,7 @@ test("lost native acknowledgement exposes durable receipt identity and never rep
   assert.equal(receipt.status, "completed");
   assert.equal(p.saves, 1);
 });
-import { mkdtemp, writeFile, readFile, rm, mkdir, chmod, readdir } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm, mkdir, chmod, readdir, link, symlink } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
@@ -116,6 +116,49 @@ test("WshcmApi honors its package artifact directory and preserves the default",
     path: join(configuredDirectory, artifactId + ".json"),
   });
   assert.throws(() => new sdk.WshcmApi(evaluator, {}, { artifactDirectory: "relative/path" }), /must be absolute/);
+});
+
+test("inspect admits local ZIPs only from its import directory before capture or native dispatch", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "bt-import-root-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const importDirectory = join(root, "inbox");
+  const artifactDirectory = join(root, "artifacts");
+  const elsewhere = join(root, "inbox-other");
+  await Promise.all([mkdir(importDirectory), mkdir(artifactDirectory), mkdir(elsewhere)]);
+  const outside = join(elsewhere, "valid.zip");
+  await writeFile(outside, objectPackage());
+  const p = platform();
+  const service = new sdk.WshcmPackages(p.evaluator, { importDirectory, artifactDirectory });
+  const denied = (error) => error.details?.code === "ImportPathDenied" && error.details.status === "not_attempted";
+  await assert.rejects(service.inspectPackage({ localPath: outside }), denied);
+  const defaults = new sdk.WshcmPackages(p.evaluator, { artifactDirectory });
+  await assert.rejects(defaults.inspectPackage({ localPath: outside }), denied);
+  if (process.platform !== "win32") {
+    await link(outside, join(importDirectory, "hardlink.zip"));
+    await assert.rejects(service.inspectPackage({ localPath: join(importDirectory, "hardlink.zip") }), denied);
+    await symlink(join(importDirectory, "missing"), join(importDirectory, "dangling.zip"));
+    await assert.rejects(service.inspectPackage({ localPath: join(importDirectory, "dangling.zip") }), denied);
+    await symlink(elsewhere, join(importDirectory, "link"));
+    await assert.rejects(service.inspectPackage({ localPath: join(importDirectory, "link", "valid.zip") }), denied);
+  }
+  assert.deepEqual(await readdir(artifactDirectory), []);
+  assert.equal(p.files.size, 0);
+});
+
+test("rejecting an invalid inbox archive removes its snapshot and preserves the source", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "bt-invalid-import-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const importDirectory = join(root, "inbox");
+  const artifactDirectory = join(root, "artifacts");
+  await Promise.all([mkdir(join(importDirectory, "release"), { recursive: true }), mkdir(artifactDirectory)]);
+  const source = join(importDirectory, "release", "invalid.zip");
+  await writeFile(source, "invalid package");
+  const p = platform();
+  const service = new sdk.WshcmPackages(p.evaluator, { importDirectory, artifactDirectory });
+  await assert.rejects(service.inspectPackage({ localPath: source }), (error) => error.details?.code === "InvalidPackage");
+  assert.deepEqual(await readdir(artifactDirectory), []);
+  assert.equal(await readFile(source, "utf8"), "invalid package");
+  assert.equal(p.files.size, 0);
 });
 
 test("product transfer preserves binary across exclusive 256 KiB boundaries and seals uploads", async () => {
@@ -209,9 +252,11 @@ test("immutable inspection rejects outside selection, repeat/version/type confli
       q.includes("action_reports") ? [{ id: "99" }] : q.includes("download_packages") && (reimport || applied > 0) ? [{ id: "42" }] : [],
   });
   try {
-    const path = join(dir, "source.zip");
+    const nested = join(dir, "release");
+    await mkdir(nested);
+    const path = join(nested, "source.zip");
     await writeFile(path, objectPackage());
-    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") });
+    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts"), importDirectory: dir });
     const preview = await service.inspectPackage({ localPath: path, limit: 1 });
     await writeFile(path, "changed source");
     assert.equal(preview.total, 2);
@@ -308,7 +353,7 @@ test("import can reuse an inspection after preflight failure but guards a dispat
         return response;
       },
     },
-    { artifactDirectory: join(directory, "artifacts") },
+    { artifactDirectory: join(directory, "artifacts"), importDirectory: directory },
   );
   const { inspectionId } = await service.inspectPackage({ localPath });
   reads.length = 0;
@@ -575,7 +620,10 @@ test("standalone update ZIP retains its stable package ID in native preview", as
         },
       ]),
     );
-    const result = await new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") }).inspectPackage({
+    const result = await new sdk.WshcmPackages(p.evaluator, {
+      artifactDirectory: join(dir, "artifacts"),
+      importDirectory: dir,
+    }).inspectPackage({
       localPath: path,
     });
     assert.equal(result.items[0].packageId, "standalone");
@@ -668,7 +716,7 @@ test("inspection pagination does not restrict default or explicit native import 
         })),
       ]),
     );
-    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") });
+    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts"), importDirectory: dir });
     const preview = await service.inspectPackage({ localPath: path });
     assert.equal(preview.items.length, 100);
     assert.equal(preview.total, 1003);
@@ -923,7 +971,7 @@ test("inspection failures retain the latest acknowledged native receipt", async 
             return wire;
           },
         },
-        { artifactDirectory: join(directory, "artifacts") },
+        { artifactDirectory: join(directory, "artifacts"), importDirectory: directory },
       );
       await assert.rejects(service.inspectPackage({ operationId, localPath }), (error) => {
         assert.ok(acknowledged);

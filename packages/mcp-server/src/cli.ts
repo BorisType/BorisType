@@ -19,6 +19,7 @@ program
   .option("--https", "Use HTTPS instead of HTTP", process.env["WSHCM_HTTPS"] === "true")
   .option("--connection-timeout-ms <ms>", "Deadline per HCM connection setup/probe request (default 5000 ms)")
   .option("--package-artifact-directory <path>", "Absolute local directory for package ZIPs and metadata")
+  .option("--package-import-directory <path>", "Absolute inbox for external package files (default ~/.boristype/package-inbox)")
   .action(
     async (options: {
       host: string;
@@ -28,12 +29,14 @@ program
       https: boolean;
       connectionTimeoutMs?: string;
       packageArtifactDirectory?: string;
+      packageImportDirectory?: string;
     }) => {
       await startServer({
         host: options.host,
         port: decimal(options.port),
         connectionTimeoutMs: options.connectionTimeoutMs === undefined ? undefined : decimal(options.connectionTimeoutMs),
         packageArtifactDirectory: options.packageArtifactDirectory,
+        packageImportDirectory: options.packageImportDirectory,
         username: options.username,
         password: options.password,
         https: options.https,

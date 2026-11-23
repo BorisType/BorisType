@@ -238,7 +238,7 @@ Resources/attachment upload на этом шаге не зарегистриро
 ```
 
 Этот input для `wshcm_inspect_package` можно заменить на
-`{"localPath":"/absolute/path/on-mcp-host/input.zip"}`. SDK копирует ZIP в собственный
+`{"localPath":"/srv/hcm-transfer/input.zip"}`, если MCP запущен с `--package-import-directory /srv/hcm-transfer`. По умолчанию поместите внешний ZIP в `~/.boristype/package-inbox` и передайте полный путь. Для собственного экспорта используйте `artifactId`. SDK проверяет входной каталог, копирует ZIP в собственный
 артефакт и передаёт его для native preview. Ответ содержит `inspectionId`, `artifact`,
 страницу `items`, `offset/limit/total` и receipt. Строка вложенного
 пакета с определениями содержит `customTemplateTypes`. Следующая страница:
@@ -1025,6 +1025,7 @@ x-local://wt/myapp/src/index.bs   — файл проекта
 | `--password`                   | `WSHCM_PASSWORD` | Пароль                                        | `user1`                          |
 | `--https`                      | `WSHCM_HTTPS`    | Использовать HTTPS                            | `false`                          |
 | `--package-artifact-directory` | —                | Абсолютный каталог локальных ZIP и метаданных | `~/.boristype/package-artifacts` |
+| `--package-import-directory`   | —                | Абсолютный входной каталог внешних пакетов    | `~/.boristype/package-inbox`     |
 | `--connection-timeout-ms`      | —                | Deadline setup/probe на HTTP-запрос           | `5000`                           |
 
 ### VS Code

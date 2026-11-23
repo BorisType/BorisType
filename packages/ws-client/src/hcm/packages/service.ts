@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { isAbsolute, join, resolve } from "node:path";
 import { inspectPackageArchive, type PackageArchiveInspection } from "./archive.js";
 import { uploadPackage, downloadPackage, hashRemotePackage } from "./transfer.js";
 import type { PackageArtifact } from "./artifacts.js";
@@ -83,6 +83,8 @@ interface Inspection {
 export interface WshcmPackageOptions {
   /** Absolute local directory for archived ZIP snapshots and metadata. */
   artifactDirectory?: string;
+  /** Absolute inbox for caller-supplied localPath inputs. */
+  importDirectory?: string;
 }
 
 export class WshcmPackages {
@@ -90,11 +92,15 @@ export class WshcmPackages {
   private readonly snapshots = new Map<string, string>();
   private readonly inspections = new Map<string, Inspection>();
   private readonly operationArtifacts = new Map<string, PackageArtifact>();
+  private readonly importDirectory: string;
   readonly artifacts: PackageArtifactStore;
   constructor(
     private readonly evaluator: WshcmEvaluator,
     options: WshcmPackageOptions = {},
   ) {
+    const inbox = options.importDirectory ?? join(homedir(), ".boristype", "package-inbox");
+    if (!isAbsolute(inbox)) throw new Error("Package import directory must be absolute");
+    this.importDirectory = resolve(inbox);
     this.artifacts = new PackageArtifactStore(options.artifactDirectory);
   }
   private run<T>(fn: () => Promise<T>): Promise<T> {
@@ -230,9 +236,8 @@ export class WshcmPackages {
       try {
         directory = await mkdtemp(join(tmpdir(), "boristype-package-"));
         const downloaded = await downloadPackage(this.evaluator, operationId, result.sizeBytes, directory);
-        const artifact = await this.artifacts.capture(downloaded);
+        const { artifact, result: archive } = await this.artifacts.captureChecked(downloaded, inspectPackageArchive);
         this.operationArtifacts.set(operationId, artifact);
-        const archive = await inspectPackageArchive(artifact.localPath);
         const objects = archive.packages.flatMap((p) =>
           p.objects.map((o) => ({ ...o, name: o.name.slice(0, 4096), nameTruncated: o.name.length > 4096 })),
         );
@@ -390,9 +395,29 @@ export class WshcmPackages {
         if (receipt.accountId !== state.operation.accountId || receipt.targetId !== state.operation.targetId)
           throw new Error("Inspection context changed");
       } else {
-        const artifact = await this.artifacts.capture(args.localPath ?? (await this.artifacts.get(args.artifactId!)).localPath);
-        const archive = await inspectPackageArchive(artifact.localPath);
-        this.manifest(archive);
+        const source = args.localPath ?? (await this.artifacts.get(args.artifactId!)).localPath;
+        const { artifact, result: archive } = await this.artifacts.captureChecked(
+          source,
+          async (copy) => {
+            let archive;
+            try {
+              archive = await inspectPackageArchive(copy);
+            } catch (cause) {
+              throw new WshcmPackageError(
+                {
+                  code: "InvalidPackage",
+                  phase: "input",
+                  status: "not_attempted",
+                  message: cause instanceof Error ? cause.message : "Invalid HCM package archive",
+                },
+                { cause },
+              );
+            }
+            this.manifest(archive);
+            return archive;
+          },
+          args.localPath === undefined ? undefined : this.importDirectory,
+        );
         inspectionId = args.operationId ?? randomUUID();
         const sourceId = inspectionId;
         const draft = {

@@ -21,6 +21,8 @@ export interface McpServerOptions {
   connectionTimeoutMs?: number;
   /** Absolute local directory for package ZIP snapshots and metadata. */
   packageArtifactDirectory?: string;
+  /** Absolute inbox for external ZIPs inspected by path. */
+  packageImportDirectory?: string;
 }
 
 /**

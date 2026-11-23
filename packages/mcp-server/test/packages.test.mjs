@@ -22,8 +22,8 @@ const names = [
   "get_package_operation",
 ];
 const id = "9007199254740993";
-async function connect(t, evaluator = { eval: () => assert.fail("Unexpected native call") }) {
-  const server = createServer({ evaluator });
+async function connect(t, evaluator = { eval: () => assert.fail("Unexpected native call") }, options) {
+  const server = createServer({ evaluator }, options);
   const client = new Client({ name: "packages-test", version: "1" });
   const [a, b] = InMemoryTransport.createLinkedPair();
   t.after(async () => {
@@ -150,7 +150,7 @@ test("large validation errors remain bounded JSON with an explicit truncated mar
 });
 
 test("generic local failures are bounded and do not dump archive bytes", async (t) => {
-  const client = await connect(t);
+  const client = await connect(t, undefined, { packageImportDirectory: tmpdir() });
   const failed = await call(client, "inspect_package", { localPath: join(tmpdir(), "missing-package-" + randomUUID() + ".zip") }, true);
   assert.equal(typeof failed.message, "string");
   assert.equal(failed.code, "PackageToolError");
@@ -231,7 +231,7 @@ test("export/inspect/import through the registered tools retain immutable bytes 
       },
     },
   });
-  const client = await connect(t, p.evaluator);
+  const client = await connect(t, p.evaluator, { packageImportDirectory: local });
   const exported = await call(client, "export_package", { objectIds: [id] });
   ownedArtifacts.add(exported.artifact.localPath);
   assert.equal(exported.status, "completed");
@@ -331,7 +331,7 @@ for (const loseAck of [false, true])
   );
 
 test("oversized generic filesystem diagnostics are explicitly truncated", async (t) => {
-  const client = await connect(t);
+  const client = await connect(t, undefined, { packageImportDirectory: tmpdir() });
   const failed = await call(client, "inspect_package", { localPath: join(tmpdir(), "中".repeat(4080)) }, true);
   assert.equal(failed.code, "PackageToolError");
   assert.equal(failed.truncated, true);

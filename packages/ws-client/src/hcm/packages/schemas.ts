@@ -84,7 +84,12 @@ export const packageSchemas = {
     .strictObject({
       ...operation,
       artifactId: z.uuid().optional(),
-      localPath: z.string().max(4096).refine(isAbsolute).optional(),
+      localPath: z
+        .string()
+        .max(4096)
+        .refine(isAbsolute)
+        .optional()
+        .describe("Absolute path to a regular file staged inside the configured package import directory on the MCP host"),
       inspectionId: z.uuid().optional(),
       ...page,
     })

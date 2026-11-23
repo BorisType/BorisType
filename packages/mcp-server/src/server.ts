@@ -35,7 +35,7 @@ import {
  */
 export function createServer(
   connection: WshcmConnection | { evaluator: WshcmEvaluator },
-  options: Pick<McpServerOptions, "packageArtifactDirectory"> = {},
+  options: Pick<McpServerOptions, "packageArtifactDirectory" | "packageImportDirectory"> = {},
 ): McpServer {
   const server = new McpServer(
     {
@@ -48,13 +48,16 @@ export function createServer(
         "Discover document types and catalog names with wshcm_list_object_types, find IDs with wshcm_xquery, and read XML with wshcm_get_object. Pass object IDs as exact decimal strings. Use wshcm_get_form for XMD and wshcm_get_custom_field_definitions for configured fields/pages; its list mode identifies the template selector. Use wshcm_list_object_data_types to find relationships by either object type.",
         "Read a document before patch, whole replace or trash deletion. Reread after a handled attempt, including XML patch dryRun or no-op. For custom-field definitions read the scope and use its revision; change instance values through wshcm_patch_object.",
         "File tools prepare their DLL automatically and access physical server files. An HCM URL can instead be served from database-backed storage. Use wshcm_runtime_status for per-process DLL diagnostics. Locate with search/list, then use wshcm_read_file. Chain readToken across ranges for the exact URL. Edit needs coverage of the replaced text; overwrite needs full coverage. A file dryRun preserves the token and its previous coverage. Do not bypass the read requirement with delete/create. Reread after a mutation attempt or conflict. Tokens belong to this MCP instance, which may be shared across chats.",
-        "For ZIP transfers use export, then inspect on the target, then import by inspectionId. localPath is on the MCP host. Preview pages do not restrict the default import. Choose an operationId before dispatch and query wshcm_get_package_operation if the result is lost.",
+        "For ZIP transfers use export, then inspect on the target, then import by inspectionId. Stage external ZIPs in the target MCP host's configured import directory before passing localPath. Preview pages do not restrict the default import. Choose an operationId before dispatch and query wshcm_get_package_operation if the result is lost.",
         "wshcm_xquery, wshcm_execute and wshcm_run_agent use the connected account and can change data. Check truncated on query results. Row limits bound output only. Timeout or loss of a response does not cancel server work. Observe saved data, the expected agent effects or the package receipt before deciding whether to retry. Compare-before-save is not atomic with external writers.",
       ].join("\n"),
     },
   );
 
-  const api = new WshcmApi(connection.evaluator, undefined, { artifactDirectory: options.packageArtifactDirectory });
+  const api = new WshcmApi(connection.evaluator, undefined, {
+    artifactDirectory: options.packageArtifactDirectory,
+    importDirectory: options.packageImportDirectory,
+  });
   registerReadFileTool(server, api);
   registerWriteFileTool(server, api);
   registerListDirectoryTool(server, api);
@@ -114,7 +117,7 @@ export async function startServer(options: McpServerOptions): Promise<void> {
   process.on("SIGTERM", onSignal);
 
   try {
-    server = createServer({ evaluator: connection }, { packageArtifactDirectory: options.packageArtifactDirectory });
+    server = createServer({ evaluator: connection }, options);
     server.server.onclose = () => {
       void shutdown();
     };

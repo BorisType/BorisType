@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { once } from "node:events";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -424,7 +424,19 @@ test("CLI isolates ZIP capture even when a new inspection fails before dispatch"
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   t.after(() => new Promise((resolve) => server.close(resolve)));
-  const { client, call } = await openSession(t, server.address().port, "--package-artifact-directory", artifactDirectory);
+  const inbox = join(root, "inbox");
+  await mkdir(inbox);
+  const { client, call } = await openSession(
+    t,
+    server.address().port,
+    "--package-artifact-directory",
+    artifactDirectory,
+    "--package-import-directory",
+    inbox,
+  );
+  const denied = await call("wshcm_inspect_package", { localPath: source }, true);
+  assert.equal(denied.code, "ImportPathDenied");
+  assert.equal(denied.status, "not_attempted");
   assert.deepEqual(requests, []);
   const error = await call("wshcm_inspect_package", { artifactId: exported.artifactId }, true);
   assert.equal(error.error.code, "HcmUnavailable");
@@ -440,6 +452,11 @@ test("CLI isolates ZIP capture even when a new inspection fails before dispatch"
   assert.equal(localPath, join(artifactDirectory, artifactId + ".zip"));
   assert.equal(sha256, exported.sha256);
   assert.deepEqual(await readFile(localPath), bytes);
+
+  const staged = join(inbox, "source.zip");
+  await writeFile(staged, bytes);
+  const allowed = await call("wshcm_inspect_package", { localPath: staged }, true);
+  assert.equal(allowed.error.code, "HcmUnavailable");
 
   await client.close();
   await rm(artifactDirectory, { recursive: true });

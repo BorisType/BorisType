@@ -219,7 +219,7 @@ const exported = await api.packages.exportPackage({
   operationId: randomUUID(),
 });
 const preview = await api.packages.inspectPackage({ artifactId: exported.artifact.artifactId });
-// Or inspectPackage({ localPath: "/absolute/path/on-sdk-host/input.zip" })
+// For an external ZIP, stage it in the configured importDirectory, then pass its absolute localPath.
 const operationId = randomUUID(); // retain before dispatch
 try {
   const applied = await api.packages.importPackage({ inspectionId: preview.inspectionId, operationId });
@@ -265,7 +265,7 @@ handle действует 24 часа. Абсолютный каталог мо�
 `new WshcmPackages(evaluator, { artifactDirectory })` или через третий аргумент
 `new WshcmApi(evaluator, runtimeOptions, { artifactDirectory })`.
 Удаление expired файлов и native receipt/temp/report
-автоматически не выполняется. Чтение localPath не разрешает перезапись оригинала.
+автоматически не выполняется. Для `inspectPackage({localPath})` создайте входной каталог `~/.boristype/package-inbox` и положите туда внешний пакет. Чтобы выбрать другой каталог, передайте `new WshcmApi(evaluator, {}, { importDirectory: "/srv/hcm-transfer" })`. При ошибке формата временная копия удаляется. Для уже экспортированного ZIP используйте `artifactId`.
 
 Inspect создаёт неизменяемую копию ZIP и native preview. `inspectionId` связывает
 весь состав; default import выбирает все его объекты, независимо от страниц.
