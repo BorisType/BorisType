@@ -1,5 +1,21 @@
 # @boristype/bt-cli
 
+## 0.1.0-alpha.14
+
+### Minor Changes
+
+- 56b2d84: Use `bare` as the only supported compile mode in this alpha series. Configurations that select `script` or `module` must be updated before they can use this release. The previous implementations and regression suites are preserved in the `archive/compiler-modes` branch.
+
+### Patch Changes
+
+- Updated dependencies [56b2d84]
+- Updated dependencies [56b2d84]
+- Updated dependencies [56b2d84]
+- Updated dependencies [56b2d84]
+- Updated dependencies [56b2d84]
+  - @boristype/ws-client@0.1.0-alpha.10
+  - @boristype/bt-ir@0.1.0-alpha.8
+
 ## 0.1.0-alpha.13
 
 ### Patch Changes
