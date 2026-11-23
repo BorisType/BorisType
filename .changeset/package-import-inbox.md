@@ -3,4 +3,4 @@
 "@boristype/mcp-server": patch
 ---
 
-Внешние ZIP для просмотра по `localPath` теперь принимаются только из `~/.boristype/package-inbox` или входного каталога, настроенного через `--package-import-directory` (SDK: `importDirectory`). Поместите туда файл перед просмотром. Для собственного экспорта по-прежнему используйте `artifactId`. Копия с неподходящим форматом удаляется до загрузки на HCM.
+Экспорт пакетов возвращает `exportPath` в `~/.boristype/packages/export` и принимает `outputPath` внутри проекта. Для просмотра передайте `artifactId` или путь к ZIP в проекте либо в общих каталогах `packages/import` и `packages/export`. Произвольные пути за их пределами отклоняются. Пути обмена задают `--package-import-directory` и `--package-export-directory`. MCP получает корни от клиента или из `--project-directory`. SDK поддерживает `importDirectory`, `exportDirectory` и `projectDirectory`. Существующие файлы сохраняются.

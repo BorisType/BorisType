@@ -2,10 +2,11 @@ import { createHash, randomUUID } from "node:crypto";
 import { constants, type WriteStream } from "node:fs";
 import { lstat, mkdir, open, realpath, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
-import { isAbsolute, join, relative, sep } from "node:path";
+import { basename, isAbsolute, join, relative, sep } from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { WshcmPackageError } from "./contracts.js";
+import { checkedParent } from "./paths.js";
 
 const MAX_ARCHIVE_BYTES = 128 * 1024 * 1024;
 const RETENTION_MS = 24 * 60 * 60 * 1000;
@@ -20,11 +21,11 @@ export interface PackageArtifact {
   expiresAt: string;
 }
 
-/** Only external tool inputs need an inbox. Downloads and verified handles have trusted sources. */
-async function openPackageSource(localPath: string, importDirectory?: string) {
+/** External tool inputs must be scoped to an admitted root. Downloads and verified handles have trusted sources. */
+async function openPackageSource(localPath: string, sourceDirectory?: string) {
   if (!isAbsolute(localPath)) throw new Error("Package path must be absolute");
   const flags = constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
-  if (importDirectory === undefined) {
+  if (sourceDirectory === undefined) {
     if (!(await lstat(localPath)).isFile()) throw new Error("Package source must be a regular file");
     return open(localPath, flags);
   }
@@ -34,21 +35,12 @@ async function openPackageSource(localPath: string, importDirectory?: string) {
       code: "ImportPathDenied",
       status: "not_attempted",
       phase: "input",
-      message: `Place a regular package file inside the import directory (${importDirectory}) or use an artifactId.`,
+      message: `Place a regular package file inside the allowed directory (${sourceDirectory}) or use an artifactId.`,
     });
   }
-  const child = relative(importDirectory, localPath);
-  if (!child || child === ".." || child.startsWith(".." + sep) || isAbsolute(child)) throw denied();
-  if (process.platform === "win32" && child.includes(":")) throw denied();
-
-  if (!(await lstat(importDirectory)).isDirectory()) throw denied();
-  const root = await realpath(importDirectory);
-  let directory = root;
-  for (const segment of child.split(sep).slice(0, -1)) {
-    directory = join(directory, segment);
-    if (!(await lstat(directory)).isDirectory()) throw denied();
-  }
-  const path = join(root, child);
+  if (process.platform === "win32" && relative(sourceDirectory, localPath).includes(":")) throw denied();
+  const { parent, canonical: root } = await checkedParent({ root: sourceDirectory, path: localPath }, "Import");
+  const path = join(parent, basename(localPath));
   const expected = await lstat(path, { bigint: true });
   if (!expected.isFile() || expected.nlink !== 1n) throw denied();
   const source = await open(path, flags);
@@ -81,8 +73,8 @@ export class PackageArtifactStore {
   }
 
   /** Validate the owned copy before publishing metadata. Failed captures remove only their own files. */
-  async captureChecked<T>(localPath: string, validate: (path: string) => T | Promise<T>, importDirectory?: string) {
-    const source = await openPackageSource(localPath, importDirectory);
+  async captureChecked<T>(localPath: string, validate: (path: string) => T | Promise<T>, sourceDirectory?: string) {
+    const source = await openPackageSource(localPath, sourceDirectory);
     const artifactId = randomUUID();
     const targetPath = join(this.directory, `${artifactId}.zip`);
     const metadataPath = join(this.directory, `${artifactId}.json`);

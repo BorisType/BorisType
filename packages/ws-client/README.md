@@ -219,7 +219,7 @@ const exported = await api.packages.exportPackage({
   operationId: randomUUID(),
 });
 const preview = await api.packages.inspectPackage({ artifactId: exported.artifact.artifactId });
-// For an external ZIP, stage it in the configured importDirectory, then pass its absolute localPath.
+// A target SDK sharing the export directory can inspect { localPath: exported.exportPath }.
 const operationId = randomUUID(); // retain before dispatch
 try {
   const applied = await api.packages.importPackage({ inspectionId: preview.inspectionId, operationId });
@@ -265,7 +265,16 @@ handle действует 24 часа. Абсолютный каталог мо�
 `new WshcmPackages(evaluator, { artifactDirectory })` или через третий аргумент
 `new WshcmApi(evaluator, runtimeOptions, { artifactDirectory })`.
 Удаление expired файлов и native receipt/temp/report
-автоматически не выполняется. Для `inspectPackage({localPath})` создайте входной каталог `~/.boristype/package-inbox` и положите туда внешний пакет. Чтобы выбрать другой каталог, передайте `new WshcmApi(evaluator, {}, { importDirectory: "/srv/hcm-transfer" })`. При ошибке формата временная копия удаляется. Для уже экспортированного ZIP используйте `artifactId`.
+автоматически не выполняется. Готовый ZIP доступен по `exportPath`, отдельному от служебного снимка. По умолчанию это `~/.boristype/packages/export/<operationId>.zip`. Для входящих архивов используется `~/.boristype/packages/import`. Для просмотра подходит абсолютный путь в любом из этих каталогов.
+
+```ts
+const source = new WshcmApi(sourceEvaluator, {}, { projectDirectory: "/work/app", exportDirectory: "/srv/packages/export" });
+const target = new WshcmApi(targetEvaluator, {}, { projectDirectory: "/work/app", importDirectory: "/srv/packages/import" });
+const file = await source.packages.exportPackage({ objectIds: ["9007199254740993"], outputPath: "agents.zip" });
+const inspected = await target.packages.inspectPackage({ localPath: file.exportPath });
+```
+
+`projectDirectory` задаёт абсолютный корень для относительных путей. Для вложенных ZIP каталог назначения должен существовать. Экспорт сохраняет только новый файл; просмотр проверяет копию до загрузки в HCM.
 
 Inspect создаёт неизменяемую копию ZIP и native preview. `inspectionId` связывает
 весь состав; default import выбирает все его объекты, независимо от страниц.

@@ -424,8 +424,10 @@ test("CLI isolates ZIP capture even when a new inspection fails before dispatch"
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   t.after(() => new Promise((resolve) => server.close(resolve)));
-  const inbox = join(root, "inbox");
-  await mkdir(inbox);
+  const inbox = join(root, "import");
+  const sharedExport = join(root, "export");
+  const project = join(root, "project");
+  await Promise.all([mkdir(inbox), mkdir(sharedExport), mkdir(project)]);
   const { client, call } = await openSession(
     t,
     server.address().port,
@@ -433,7 +435,19 @@ test("CLI isolates ZIP capture even when a new inspection fails before dispatch"
     artifactDirectory,
     "--package-import-directory",
     inbox,
+    "--package-export-directory",
+    sharedExport,
+    "--project-directory",
+    project,
   );
+  for (const [file, localPath] of [
+    [join(project, "root.zip"), "root.zip"],
+    [join(sharedExport, "in.zip"), join(sharedExport, "in.zip")],
+  ]) {
+    await writeFile(file, "invalid");
+    const rejected = await call("wshcm_inspect_package", { localPath }, true);
+    assert.equal(rejected.code, "InvalidPackage");
+  }
   const denied = await call("wshcm_inspect_package", { localPath: source }, true);
   assert.equal(denied.code, "ImportPathDenied");
   assert.equal(denied.status, "not_attempted");

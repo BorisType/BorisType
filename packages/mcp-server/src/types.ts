@@ -23,6 +23,10 @@ export interface McpServerOptions {
   packageArtifactDirectory?: string;
   /** Absolute inbox for external ZIPs inspected by path. */
   packageImportDirectory?: string;
+  /** Absolute shared directory for exported ZIPs. */
+  packageExportDirectory?: string;
+  /** Explicit package project root, overriding client discovery. */
+  projectDirectory?: string;
 }
 
 /**

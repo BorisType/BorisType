@@ -237,8 +237,11 @@ Resources/attachment upload на этом шаге не зарегистриро
 { "artifactId": "<artifactId из export>", "limit": 100 }
 ```
 
-Этот input для `wshcm_inspect_package` можно заменить на
-`{"localPath":"/srv/hcm-transfer/input.zip"}`, если MCP запущен с `--package-import-directory /srv/hcm-transfer`. По умолчанию поместите внешний ZIP в `~/.boristype/package-inbox` и передайте полный путь. Для собственного экспорта используйте `artifactId`. SDK проверяет входной каталог, копирует ZIP в собственный
+`wshcm_export_package` возвращает `exportPath`, по умолчанию это `~/.boristype/packages/export/<operationId>.zip`. Если целевой MCP видит тот же каталог, передайте ему `exportPath` как `localPath` без копирования. Для входящих ZIP также доступен `~/.boristype/packages/import`. Для переноса между машинами используйте общий том или передайте файл на машину целевого MCP.
+
+Чтобы сохранить ZIP в текущем проекте, вызовите экспорт с `"outputPath":"agents.zip"`, затем просмотр с `{"localPath":"agents.zip"}`. Поддерживаются существующие подпапки. Имя файла должно быть свободно. MCP запрашивает корни у клиента по `roots/list`. При нескольких корнях укажите абсолютный путь внутри проекта. Если клиент не предоставляет корни, задайте `--project-directory /work/project` при запуске MCP. Флаг имеет приоритет, значение `.` явно выбирает каталог запуска процесса.
+
+SDK проверяет путь, копирует ZIP в собственный
 артефакт и передаёт его для native preview. Ответ содержит `inspectionId`, `artifact`,
 страницу `items`, `offset/limit/total` и receipt. Строка вложенного
 пакета с определениями содержит `customTemplateTypes`. Следующая страница:
@@ -1025,7 +1028,9 @@ x-local://wt/myapp/src/index.bs   — файл проекта
 | `--password`                   | `WSHCM_PASSWORD` | Пароль                                        | `user1`                          |
 | `--https`                      | `WSHCM_HTTPS`    | Использовать HTTPS                            | `false`                          |
 | `--package-artifact-directory` | —                | Абсолютный каталог локальных ZIP и метаданных | `~/.boristype/package-artifacts` |
-| `--package-import-directory`   | —                | Абсолютный входной каталог внешних пакетов    | `~/.boristype/package-inbox`     |
+| `--package-import-directory`   | —                | Абсолютный входной каталог внешних пакетов    | `~/.boristype/packages/import`   |
+| `--package-export-directory`   | —                | Абсолютный каталог готовых ZIP                | `~/.boristype/packages/export`   |
+| `--project-directory`          | —                | Корень проекта для чтения и экспорта ZIP      | Локальные корни клиента MCP      |
 | `--connection-timeout-ms`      | —                | Deadline setup/probe на HTTP-запрос           | `5000`                           |
 
 ### VS Code

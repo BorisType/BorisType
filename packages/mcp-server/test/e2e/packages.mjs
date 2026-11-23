@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createHash, randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { readFile, writeFile, rm, access } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { mkdtemp, readFile, writeFile, rm, access } from "node:fs/promises";
 import { dirname, basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
@@ -42,9 +43,11 @@ test(
     const e = soap.createEvaluator();
     const ev = async (code) => JSON.parse(await e.eval(code));
     const client = new Client({ name: "package-native-acceptance", version: "1" }, { supportedProtocolVersions: ["2025-11-25"] });
+    const exportDirectory = await mkdtemp(join(tmpdir(), "bt-stdio-export-"));
+    t.after(() => rm(exportDirectory, { recursive: true, force: true }));
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: [fileURLToPath(new URL("../../build/cli.js", import.meta.url))],
+      args: [fileURLToPath(new URL("../../build/cli.js", import.meta.url)), "--package-export-directory", exportDirectory],
       env: {
         ...process.env,
         NODE_USE_ENV_PROXY: "0",

@@ -110,7 +110,7 @@ Skill не устанавливает сервер или DLL и не добав
 
 ## Экспорт и импорт пакетов объектов
 
-Для разового переноса передайте ID объектов в `wshcm_export_package` на исходном стенде. Проверьте состав и `missingCount`. Скопируйте ZIP из `artifact.localPath` во входной каталог целевого MCP (по умолчанию `~/.boristype/package-inbox`), выполните `wshcm_inspect_package` и сохраните его `inspectionId`. Только теперь вызывайте `wshcm_import_package`. Запишите UUID импорта до отправки, чтобы после обрыва узнать исход через `wshcm_get_package_operation`. Для повторяемого набора сначала создайте именованную схему. [Все десять операций с пакетами](../reference/mcp-packages)
+Для разового переноса передайте ID объектов в `wshcm_export_package` на исходном стенде. Проверьте состав и `missingCount`. На целевом MCP передайте `exportPath` как `localPath` в `wshcm_inspect_package` и сохраните `inspectionId`. Если процессы работают на разных файловых системах, сначала перенесите ZIP в `~/.boristype/packages/import` целевого MCP. Для общего проекта также можно указать `outputPath: "agents.zip"` при экспорте и `localPath: "agents.zip"` при просмотре. Только теперь вызывайте `wshcm_import_package`. Запишите UUID импорта до отправки, чтобы после обрыва узнать исход через `wshcm_get_package_operation`. Для повторяемого набора сначала создайте именованную схему. [Все десять операций с пакетами](../reference/mcp-packages)
 
 ## Сведения о стенде
 

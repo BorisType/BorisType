@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isAbsolute } from "node:path";
+const packagePath = z.string().min(1).max(4096);
 const id = z
   .string()
   .regex(/^[1-9][0-9]{0,19}$/)
@@ -69,6 +69,9 @@ export const packageSchemas = {
       ...operation,
       schemaId: schemaId.optional(),
       revision: revision.optional(),
+      outputPath: packagePath
+        .optional()
+        .describe("New .zip file inside the shared export directory or project. Relative paths use a single project root."),
       objectIds: objectIdList.optional(),
       customTemplates: customTemplates.optional(),
       ...options,
@@ -84,12 +87,9 @@ export const packageSchemas = {
     .strictObject({
       ...operation,
       artifactId: z.uuid().optional(),
-      localPath: z
-        .string()
-        .max(4096)
-        .refine(isAbsolute)
+      localPath: packagePath
         .optional()
-        .describe("Absolute path to a regular file staged inside the configured package import directory on the MCP host"),
+        .describe("Package ZIP in shared import/export or a project directory. Relative paths use a single project root."),
       inspectionId: z.uuid().optional(),
       ...page,
     })

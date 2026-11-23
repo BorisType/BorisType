@@ -1,11 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { mkdtemp, rm } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
-import { isAbsolute, join, resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { inspectPackageArchive, type PackageArchiveInspection } from "./archive.js";
 import { uploadPackage, downloadPackage, hashRemotePackage } from "./transfer.js";
-import type { PackageArtifact } from "./artifacts.js";
 import type { WshcmEvaluator } from "../types.js";
 import { packageSchemas } from "./schemas.js";
 import {
@@ -20,7 +19,9 @@ import {
   type PackageSchemaSummary,
 } from "./contracts.js";
 import { packageNative } from "./native.js";
-import { PackageArtifactStore } from "./artifacts.js";
+import { PackageArtifactStore, type PackageArtifact } from "./artifacts.js";
+import { PackagePaths, publishPackage, type PackagePathOptions } from "./paths.js";
+
 type Input<K extends keyof typeof packageSchemas> = z.input<(typeof packageSchemas)[K]>;
 // Keep public schemas JSON Schema serializable; normalize only public UUID handles
 // after validation and before native dispatch, local map lookup or artifact access.
@@ -80,27 +81,23 @@ interface Inspection {
   operation: z.infer<typeof operationResult>;
   attempted: boolean;
 }
-export interface WshcmPackageOptions {
+export interface WshcmPackageOptions extends PackagePathOptions {
   /** Absolute local directory for archived ZIP snapshots and metadata. */
   artifactDirectory?: string;
-  /** Absolute inbox for caller-supplied localPath inputs. */
-  importDirectory?: string;
 }
 
 export class WshcmPackages {
   private tail: Promise<unknown> = Promise.resolve();
   private readonly snapshots = new Map<string, string>();
   private readonly inspections = new Map<string, Inspection>();
-  private readonly operationArtifacts = new Map<string, PackageArtifact>();
-  private readonly importDirectory: string;
+  private readonly operationArtifacts = new Map<string, { artifact: PackageArtifact; exportPath?: string }>();
+  private readonly paths: PackagePaths;
   readonly artifacts: PackageArtifactStore;
   constructor(
     private readonly evaluator: WshcmEvaluator,
     options: WshcmPackageOptions = {},
   ) {
-    const inbox = options.importDirectory ?? join(homedir(), ".boristype", "package-inbox");
-    if (!isAbsolute(inbox)) throw new Error("Package import directory must be absolute");
-    this.importDirectory = resolve(inbox);
+    this.paths = new PackagePaths(options);
     this.artifacts = new PackageArtifactStore(options.artifactDirectory);
   }
   private run<T>(fn: () => Promise<T>): Promise<T> {
@@ -207,11 +204,12 @@ export class WshcmPackages {
     return this.run(() => this.change("remove", args));
   }
   async exportPackage(input: Input<"exportPackage">) {
-    const args = canonicalHandles(packageSchemas.exportPackage.parse(input));
+    const { outputPath, ...args } = canonicalHandles(packageSchemas.exportPackage.parse(input));
     if (args.objectIds) args.objectIds = [...new Set(args.objectIds)];
     if (args.customTemplates) args.customTemplates = [...new Set(args.customTemplates)];
     return this.run(async () => {
       const operationId = args.operationId ?? randomUUID();
+      const destination = await this.paths.destination(outputPath, operationId);
       const result = await packageNative(
         this.evaluator,
         { ...args, operation: "export", operationId, ...(args.revision ? { expected: this.expected(args.revision) } : {}) },
@@ -237,7 +235,7 @@ export class WshcmPackages {
         directory = await mkdtemp(join(tmpdir(), "boristype-package-"));
         const downloaded = await downloadPackage(this.evaluator, operationId, result.sizeBytes, directory);
         const { artifact, result: archive } = await this.artifacts.captureChecked(downloaded, inspectPackageArchive);
-        this.operationArtifacts.set(operationId, artifact);
+        this.operationArtifacts.set(operationId, { artifact: { ...artifact } });
         const objects = archive.packages.flatMap((p) =>
           p.objects.map((o) => ({ ...o, name: o.name.slice(0, 4096), nameTruncated: o.name.length > 4096 })),
         );
@@ -247,8 +245,24 @@ export class WshcmPackages {
         const missingCustomTemplates = [...new Set(result.requestedCustomTemplates)].filter((type) => !templateTypes.has(type));
         const partial = missing.length > 0 || missingCustomTemplates.length > 0 || result.errors.length > 0;
         result.operation = await packageNative(this.evaluator, { operation: "finish_export", operationId, partial }, operationResult);
+        try {
+          await publishPackage(artifact.localPath, destination);
+        } catch (cause) {
+          throw new WshcmPackageError(
+            {
+              code: "ExportWriteError",
+              phase: "export_file",
+              status: "unknown",
+              operationId,
+              message: ("Could not confirm ZIP publication at " + destination.path + ": " + String(cause)).slice(0, 2000),
+            },
+            { cause },
+          );
+        }
+        this.operationArtifacts.set(operationId, { artifact: { ...artifact }, exportPath: destination.path });
         const cleanupError = await cleanup();
         return {
+          exportPath: destination.path,
           operationId,
           artifact,
           ...(cleanupError ? { cleanupError } : {}),
@@ -395,7 +409,8 @@ export class WshcmPackages {
         if (receipt.accountId !== state.operation.accountId || receipt.targetId !== state.operation.targetId)
           throw new Error("Inspection context changed");
       } else {
-        const source = args.localPath ?? (await this.artifacts.get(args.artifactId!)).localPath;
+        const external = args.localPath === undefined ? undefined : await this.paths.locate(args.localPath, "Import");
+        const source = external?.path ?? (await this.artifacts.get(args.artifactId!)).localPath;
         const { artifact, result: archive } = await this.artifacts.captureChecked(
           source,
           async (copy) => {
@@ -416,7 +431,7 @@ export class WshcmPackages {
             this.manifest(archive);
             return archive;
           },
-          args.localPath === undefined ? undefined : this.importDirectory,
+          external?.root,
         );
         inspectionId = args.operationId ?? randomUUID();
         const sourceId = inspectionId;
@@ -480,7 +495,7 @@ export class WshcmPackages {
           }
         }
         this.inspections.set(inspectionId, state);
-        this.operationArtifacts.set(inspectionId, artifact);
+        this.operationArtifacts.set(inspectionId, { artifact });
       }
       const items = state.items.slice(args.offset, args.offset + args.limit);
       return {
@@ -543,8 +558,8 @@ export class WshcmPackages {
   async getOperation(input: Input<"getOperation">) {
     const args = canonicalHandles(packageSchemas.getOperation.parse(input));
     const result = await packageNative(this.evaluator, { operation: "status", ...args }, operationResult);
-    const artifact = this.operationArtifacts.get(args.operationId);
-    return { ...result, ...(artifact ? { artifact: { ...artifact } } : {}) };
+    const local = this.operationArtifacts.get(args.operationId);
+    return { ...result, ...(local ? structuredClone(local) : {}) };
   }
 }
 

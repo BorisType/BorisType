@@ -22,7 +22,11 @@ const client = new WshcmClient({
 });
 const e = client.createEvaluator();
 const local = await mkdtemp(join(tmpdir(), "bt-native-packages-"));
-const api = new WshcmPackages(e, { artifactDirectory: join(local, "artifacts"), importDirectory: local });
+const api = new WshcmPackages(e, {
+  artifactDirectory: join(local, "artifacts"),
+  importDirectory: local,
+  exportDirectory: join(local, "export"),
+});
 const marker = "bt-packages-" + randomUUID();
 const receipt = { marker, operations: [], stages: [] };
 const ev = async (code) => JSON.parse(await e.eval(code));
