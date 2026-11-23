@@ -276,6 +276,7 @@ function fillObjects(part: PackageArchivePart, data: XmlNode, ids: Set<string>):
         break;
       case "custom_templates":
         part.hasCustomTemplates = true;
+        part.customTemplateTypes = [...new Set(section.children.map((template) => template.name))];
         break;
       case "access_roles":
         part.hasAccessRoles = true;

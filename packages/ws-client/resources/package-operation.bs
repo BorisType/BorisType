@@ -46,6 +46,11 @@ function BtPackageOperation(r) {
         }
         return x;
     }
+    function setCustomTemplates(schema, types) {
+        schema.custom_templates.Clear();
+        var k;
+        for(k = 0; k < ArrayCount(types); k++) schema.custom_templates.AddChild().catalog_name = types[k];
+    }
     function add(v) {
         var k; var res;
         for(k = 0; k < ArrayCount(r.objectIds); k++) {
@@ -138,14 +143,20 @@ function BtPackageOperation(r) {
             if (opt(r,'schemaId') != undefined && snapshot != r.expected) fail('Conflict','Common schema document changed; read again');
             if (opt(r,'schemaId') != undefined) p = d.TopElem.GetChildByKey(r.schemaId);
             else {p = d.TopElem.AddChild();p.id = r.operationId;}
-        } else p = OpenNewDoc('x-local://wtv/wtv_package_objects.xmd').TopElem.AddChild();
+        } else {
+            p = OpenNewDoc('x-local://wtv/wtv_package_objects.xmd').TopElem.AddChild();
+            if (opt(r,'customTemplates') != undefined && ArrayCount(r.customTemplates) > 0) {
+                p.process_custom_templates = true;
+                setCustomTemplates(p,r.customTemplates);
+            }
+        }
         if (r.operation == 'save') {
             if(opt(r,'name') != undefined) p.name = r.name;
             if(opt(r,'settings') != undefined) {
                 settings = r.settings;
                 if(opt(settings,'processCustomTemplates') != undefined) p.process_custom_templates = settings.processCustomTemplates;
                 if(opt(settings,'processAccessRoles') != undefined) p.process_access_roles = settings.processAccessRoles;
-                if(opt(settings,'customTemplates') != undefined) {p.custom_templates.Clear();for(i = 0; i < ArrayCount(settings.customTemplates); i++) p.custom_templates.AddChild().catalog_name = settings.customTemplates[i];}
+                if(opt(settings,'customTemplates') != undefined) setCustomTemplates(p,settings.customTemplates);
                 if(opt(settings,'files') != undefined) {
                     p.files.Clear();for(i = 0; i < ArrayCount(settings.files); i++) {
                         o = p.files.AddChild();o.code = settings.files[i].code;o.type = settings.files[i].type;o.url = settings.files[i].url;
@@ -163,6 +174,15 @@ function BtPackageOperation(r) {
             var wanted = [];
             if(ArrayCount(p.objects) > 10000) fail('OutputLimit','Export exceeds 10000 objects');
             for(i = 0; i < ArrayCount(p.objects); i++) wanted.push(StrInt(p.objects[i].id));
+            var wantedTemplates = [];
+            if(p.process_custom_templates == true) {
+                if(ArrayCount(p.custom_templates) > 1000) fail('OutputLimit','Export exceeds 1000 selected template types');
+                var templateType;
+                for(i = 0; i < ArrayCount(p.custom_templates); i++) {
+                    templateType = String(p.custom_templates[i].catalog_name);
+                    if(templateType != '') wantedTemplates.push(templateType);
+                }
+            }
             result = tools.create_list_package(root + '/archive.zip',p);
             var size = FileSize(UrlToFilePath(root + '/archive.zip'));
             if(size > 134217728) fail('OutputLimit','Archive exceeds 128 MiB');
@@ -171,7 +191,7 @@ function BtPackageOperation(r) {
             var exportReports = ArraySelectAll(XQuery('for $r in action_reports where $r/type = "create_package" and $r/data_file_url = ' + CodeLiteral(root + '/archive.zip') + ' return $r'));
             for(i = 0; i < ArrayCount(exportReports) && i < 1000; i++) receipt.reportIds.push(StrInt(exportReports[i].id));
             receipt.phase = 'exported';persist();
-            return {ok:true,body:{sizeBytes:size,requestedIds:wanted,errors:errors,operation:receipt}};
+            return {ok:true,body:{sizeBytes:size,requestedIds:wanted,requestedCustomTemplates:wantedTemplates,errors:errors,operation:receipt}};
         }
         advance('recheck');
         if(xml(OpenDoc('x-local://' + DefaultDb + '/lists/wtv_package_objects.xml')) != snapshot) fail('Conflict','Common schema document changed before Save');

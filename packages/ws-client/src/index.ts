@@ -20,13 +20,15 @@ export { WshcmExecutionError } from "./hcm/execute.js";
 export type { ExecutionResult, ExecutionErrorDetails } from "./hcm/execute.js";
 export { WshcmRunAgentError } from "./hcm/run-agent.js";
 export type { RunAgentErrorDetails, RunAgentInput, RunAgentResult } from "./hcm/run-agent.js";
-export type { ObjectTypesInput, ObjectTypesResult } from "./hcm/object-types.js";
+export type { ObjectDataTypesInput, ObjectDataTypesResult, ObjectTypesInput, ObjectTypesResult } from "./hcm/object-types.js";
 export { WshcmCustomFieldDefinitions } from "./hcm/custom-fields.js";
 export type {
   CustomFieldScope,
   CustomFieldDefinitions,
+  CustomFieldTemplateList,
   CustomFieldPatchResult,
   GetCustomFieldDefinitionsInput,
+  ListCustomFieldTemplatesInput,
   PatchCustomFieldDefinitionsInput,
 } from "./hcm/custom-fields.js";
 export { wshcmSchemas } from "./hcm/schemas.js";

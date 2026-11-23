@@ -4,8 +4,8 @@ MCP сервер для WebSoft HCM — предоставляет AI-агент
 
 Использует [@boristype/ws-client](https://github.com/BorisType/BorisType/tree/main/packages/ws-client) для соединения с WSHCM сервером.
 
-Экспериментальный сервер предоставляет 32 tools. В их числе девять файловых,
-десять для пакетов объектов, шесть для форм и объектов и запуск серверных агентов.
+Экспериментальный сервер предоставляет 33 tools. В их числе девять файловых,
+десять для пакетов объектов, девять для форм, объектов и конфигурации, а также запуск серверных агентов.
 Требуется Node.js >=24.22.2; для файловых tools — net9 HCM с доступным dotnetcore/shared. Общий API
 `ws-client` включает production DLL и автоматически подготавливает FileSystem
 **0.1.0-alpha.4 / API 2** для девяти файловых tools; execute, XQuery, system info, object, package и agent tools её не используют.
@@ -74,7 +74,7 @@ claude mcp list
 ## Доступность HCM
 
 С корректной конфигурацией stdio-сервер запускается при выключенном HCM.
-`initialize`, `tools/list` (32 tools) и `ping` обходятся без запросов к HCM.
+`initialize`, `tools/list` (33 tools) и `ping` обходятся без запросов к HCM.
 Первый вызов инструмента, которому нужен HCM, открывает соединение.
 Следующая явно запрошенная операция может восстановить его в том же процессе
 MCP. Фоновых проверок нет. Read tokens, package handles и локальные ZIP
@@ -148,6 +148,7 @@ instructions и skill не добавляют гарантий чтения, и�
 | `wshcm_execute`                        | Серверный BorisScript: результат, диагностика и ошибки    |
 | `wshcm_run_agent`                      | Запуск серверного агента с опциональным ожиданием         |
 | `wshcm_list_object_types`              | Типы объектов и отдельно зарегистрированные каталоги      |
+| `wshcm_list_object_data_types`         | Типы данных объектов и стороны их связей                  |
 | `wshcm_get_custom_field_definitions`   | Поля и страницы одного общего или индивидуального шаблона |
 | `wshcm_patch_custom_field_definitions` | Точечная правка полей и страниц с проверкой ревизии       |
 | `wshcm_get_form`                       | XML раскрытого root загруженной XMD                       |
@@ -196,11 +197,23 @@ includeMetadata удалён; edit требует readToken, write по умол
 { "objectIds": ["9007199254740993"], "operationId": "11111111-1111-4111-8111-111111111111" }
 ```
 
-Альтернатива — `{schemaId, revision}` из чтения схемы в этом MCP instance.
-Нужно передать ровно один источник: schemaId/revision или objectIds.
+У прямого экспорта можно указать `objectIds`, `customTemplates` или оба
+параметра. Для ZIP только с определениями достаточно
+`{ "customTemplates": ["subdivision", "request_type"] }`.
+Коды относятся к разделам реестра настраиваемых полей. Например,
+`request_type` включает все настроенные шаблоны этого типа с их полями и
+страницами. Сами записи типов заявок включаются отдельно через `objectIds`.
+Для экспорта сохранённой схемы передайте только `{schemaId, revision}`
+из чтения схемы в этом MCP instance.
+
 Ответ содержит `artifact: {artifactId,localPath,mimeType,sizeBytes,sha256,expiresAt}`,
 `operationId`, `status`, `verification: "archive_membership"`, страницу `objects`,
-`missingIds/missingCount`, diagnostics и native `operation`. Частичный состав
+`missingIds/missingCount`, diagnostics и native `operation`. `customTemplateTypes`
+перечисляет типы, реально попавшие в ZIP. `missingCustomTemplates` отражает
+выбранные типы, которые HCM пропустил, в том числе в сохранённой схеме.
+В HCM 2025.2.1333 тип попадает в ZIP, если у него есть хотя бы одно общее
+поле или одна запись шаблона. Тип с одними общими страницами пропускается.
+Частичный состав
 возвращает `partial`, даже если штатная сборка сообщила успех. ZIP/base64 в текст
 tool response не помещается; export не создаёт `upload_package` в базе.
 
@@ -222,7 +235,8 @@ Resources/attachment upload на этом шаге не зарегистриро
 Этот input для `wshcm_inspect_package` можно заменить на
 `{"localPath":"/absolute/path/on-mcp-host/input.zip"}`. SDK копирует ZIP в собственный
 артефакт и передаёт его для native preview. Ответ содержит `inspectionId`, `artifact`,
-страницу `items`, `offset/limit/total` и receipt. Следующая страница:
+страницу `items`, `offset/limit/total` и receipt. Строка вложенного
+пакета с определениями содержит `customTemplateTypes`. Следующая страница:
 `{inspectionId,offset:100,limit:100}`. Просмотр может создавать временные файлы и
 отчёты; целевые объекты ещё не применяются.
 
@@ -240,15 +254,19 @@ Resources/attachment upload на этом шаге не зарегистриро
 `skipConflictingIds`; remap IDs отсутствует. Первый релиз допускает типы пакета
 `objects`, `courses`, `web`, `custom_file`, остальные отклоняет до native применения.
 Для `custom_file` требуется безопасный destination ниже `x-local://custom/`.
-Реальная native acceptance дополнительных типов/шаблонов/ролей/файлов/списков/удалений
-ещё не выполнена; подтверждён объектный путь cost_center на Linux C/PostgreSQL.
+На Linux C/PostgreSQL подтверждён перенос объектов `cost_center` и
+определений настраиваемых полей со страницами. Для импорта определений
+передайте `includeCustomTemplates: true`. HCM добавляет или обновляет
+поля по ключу и страницы по ID.
 
 Схемы: `list_package_schemas({offset?,limit?})` → `items/offset/limit/total`;
 `get_package_schema({schemaId,offset?,limit?})` → name/settings/revision/objectCount/objects.
 Для создания: `save_package_schema({name})`; для изменения:
 `{schemaId,revision,name?,settings?,editable?:[{id,editable}]}`.
 Settings: `customTemplates`, `processCustomTemplates`, `processAccessRoles`,
-`files:[{code,type,url,baseUrl?}]`. Добавление/исключение:
+`files:[{code,type,url,baseUrl?}]`. Чтобы включить определения в ZIP из схемы,
+передайте, например, `settings: { processCustomTemplates: true, customTemplates: ["subdivision"] }`.
+Добавление/исключение:
 `add_package_objects` / `remove_package_objects` с `{schemaId,revision,objectIds}`;
 удаление схемы: `delete_package_schema({schemaId,revision})`. Во всех именах tools
 нужен префикс `wshcm_`. Общий документ перечитывается перед Save; это не atomic CAS
@@ -599,36 +617,69 @@ writer может изменить документ между проверко�
 не предоставляет это свойство. Передайте `{ "objectType": "cost_center" }`,
 чтобы получить точный тип и все каталоги, которые HCM связал с ним.
 
-`supportsCustomFields` показывает наличие элемента `custom_elems` в XMD
-документа. При наличии записи в `custom_templates` ответ также содержит
-`customFields.typeFieldCount` для общих определений и
-`customFields.templatesWithFields` для числа шаблонов с полями. Например,
-у `request` шаблон выбирается полем `request_type_id`. В ответе это
-`templateType: "request_type"` и `templateSelector: "request_type_id"`.
-
-Добавьте `includeCustomFields: true` к запросу по точному `objectType`.
-`customFields.fields` содержит определения, общие для типа, а
-`customFields.templates` — определения по отдельным шаблонам в формате
-`{id,fields}`. ID шаблона передаётся точной десятичной строкой. Определение
-содержит `name`, `type`, `required` и доступные `title`, `catalog`.
-Выдача содержит метаданные конфигурации полей. Значения документа и
-вычисление условий или формул в неё не входят.
+`supportsCustomFields` показывает наличие контейнера `custom_elems` в XMD
+документа. Используйте `formUrl` для `wshcm_get_form` и код каталога для
+`wshcm_xquery`. Чтобы узнать настроенные поля или шаблоны, вызовите
+`wshcm_get_custom_field_definitions`.
 
 `sources` содержит статусы `exchangeObjectTypes` и `registeredCatalogs`.
 `not_requested` означает, что источник исключён фильтром. На сборке без
 `GetRegisteredCatalogs` второй статус будет `unavailable`. Лимиты
 составляют 4096 записей на источник и 256 KiB UTF-8 на страницу.
-Для детализации действует предел 2048 определений, для шаблонов одного
-типа — 4096 записей.
+
+### Типы данных объектов
+
+`wshcm_list_object_data_types({})` возвращает страницу справочника
+`object_data_types`. `{objectType: "subdivision"}` находит типы данных,
+где подразделение указано на любой стороне. Если оно указано на обеих,
+тип данных возвращается один раз. `primaryObjectType` и
+`secondaryObjectType` задают точную сторону. Все переданные фильтры
+применяются вместе.
+
+Ответ содержит `items`, `total`, `offset` и `limit`. В строке есть
+`id` точной десятичной строкой, `code`, `name` и
+`primaryObjectType` и `secondaryObjectType` со значением `null` для
+ненастроенной стороны. Порядок по названию и ID. По умолчанию `offset: 0`
+и `limit: 100`, максимум 250 строк или 256 KiB. `total` считается
+после фильтрации, до разбиения на страницы.
+
+Чтобы прочитать поля и страницы одного типа данных, используйте
+`wshcm_get_custom_field_definitions` с
+`scope: { objectType: "object_data_type", templateId: id }`.
+Для поиска записей этого типа выполните `wshcm_xquery` по каталогу
+`object_datas` с условием на `object_data_type_id`.
 
 ### Настраиваемые поля
 
-`wshcm_get_custom_field_definitions` читает `fields`, `pages` в порядке HCM,
-`fieldTypes` (коды и названия), `exists` и `revision`. Пример общей области:
-`{"scope":{"objectType":"subdivision"}}`. Для формы заявки передайте
-`{"scope":{"objectType":"request_type","templateId":"6405466310999430311"}}`.
-Замените ID на десятичную строку ID существующего **типа** заявки. Чтение
-ненастроенного шаблона возвращает `exists: false` и пустые списки.
+Если область уже известна, вызовите `wshcm_get_custom_field_definitions`
+с `scope`. Для общих полей подразделения передайте
+`{"scope":{"objectType":"subdivision"}}`. Для шаблона формы заявки
+передайте `{"scope":{"objectType":"request_type","templateId":"6405466310999430311"}}`,
+подставив точный десятичный ID существующего типа заявки. Ответ содержит
+`fields`, `pages` в порядке HCM, `fieldTypes`, `exists` и `revision`.
+Чтение ненастроенного шаблона возвращает `exists: false` и пустые списки.
+
+Чтобы найти шаблон, вызовите тот же инструмент с
+`{"mode":"list","objectType":"request"}`. Для заявки ответ содержит
+`templateType: "request_type"` и `templateSelector: "request_type_id"`.
+В `templates` находятся зарегистрированные шаблоны, включая пустые.
+Каждая строка содержит `templateId`, `fieldCount`, `pageCount` и доступное
+название `title` длиной до 256 символов. `common` содержит счётчики
+общей области или `null`, если её нет. `offset` по умолчанию 0,
+`limit` — 50, максимум 100. `total` относится к текущему реестру.
+Между запросами страниц реестр может измениться.
+
+Для выбранной строки передайте `templateType` в `scope.objectType` и
+`templateId` в `scope.templateId`. Берите тип из списка, поскольку
+код раздела шаблонов может отличаться от корня XML владельца.
+При чтении `scope` проверяется существование записи владельца.
+В списке могут встречаться записи с устаревшей ссылкой на владельца;
+их можно использовать для диагностики реестра.
+Если работаете с существующей заявкой,
+нужный ID лежит в поле `request_type_id` из `wshcm_get_object`.
+Возьмите его точное десятичное представление, если XML показывает ID в hex.
+Ревизию для правки даёт чтение `scope`. Инструмент правки значений
+конкретного документа использует XML и readToken из чтения объекта.
 
 Правки идут в порядке `operations`. Используйте ревизию из чтения той же
 области в текущем экземпляре MCP. Пример предварительного просмотра:
@@ -646,15 +697,64 @@ writer может изменить документ между проверко�
 }
 ```
 
-Доступны `upsertField`, `moveField`, `removeField` по `name` и
-`upsertPage`, `movePage`, `removePage` по `id`. Upsert добавляет в конец
-или меняет на месте. Для move нужен один из `before` или `after`.
-Поля поддерживают `title`, `type`, `required`, `showOnPortal`, `pageId`,
-`options` и `catalog`. `pageId: null` отвязывает поле от страницы.
-Для удаления страницы все привязки должны быть сняты в той же пачке.
-Список `options` целиком заменяет варианты в переданном порядке.
-Формулы, условия, оформление и права на страницы сохраняются при правке
-оставшихся определений. Значения объектов записывайте через `wshcm_patch_object`.
+Доступны `upsertField`, `renameField`, `moveField`, `removeField` по
+`name` и `upsertPage`, `movePage`, `removePage` по `id`. Upsert
+добавляет в конец или меняет на месте. Для move нужен один из `before`
+или `after`. `renameField` принимает `newName` и меняет ключ определения
+на месте. Значения и ссылки на старый ключ в условиях мигрируются
+отдельными правками. Значения на конкретном объекте записывайте через
+`wshcm_patch_object`.
+
+У `upsertField.set` доступны следующие настройки.
+
+| Настройки                                  | Свойства                                                |
+| ------------------------------------------ | ------------------------------------------------------- |
+| Основные                                   | `title`, `type`, `required`, `showOnPortal`, `pageId`   |
+| Варианты для `combo` и `list`              | `options`                                               |
+| Ссылка `foreign_elem`                      | `catalog`, `catalogFilter`                              |
+| Подсказка, проверка и подстановка значения | `comment`, `validationCondition`, `defaultValueFormula` |
+| Оформление                                 | `width`, `height`, `visualClass`, `maxChars`            |
+| Правила видимости                          | `visibilityConditions`                                  |
+
+Формула и условие верности сохраняются как текст. Когда их использует
+HCM, в условии верности доступно `oValue`, в формуле — `GEnv.curUser`
+и `GEnv.curObject`. Фильтр каталога — XQuery-условие для выбора
+ссылки, например `"$elem/is_dismiss = false()"`. Размеры и `maxChars`
+передаются строками, как в форме HCM.
+
+`visibilityConditions` заменяет список правил в указанном порядке.
+Например, `[{ "field": "status_id", "type": "string", "operator": "eq", "value": "active" }]`.
+`field` — нативное имя или путь к полю. Для настраиваемого поля
+передайте его ключ и `isCustomField: true`. HCM использует коды
+операторов `eq`, `neq`, `gt`, `lt`, `gte`, `lte`, `cn`, `ncn`.
+Для нескольких правил есть `join: "and"` или `"or"` и парные
+`bracket: "("` и `")"`. Дополнительные свойства строки —
+`title`, `topElement`, `isMultiple` и `values`. `values` переносит
+нативный список `value_multiple`. Для проверки видимости HCM использует
+`value`, в том числе для «содержит» у множественного поля. Значения
+условий передаются строками, в том числе числа, даты и идентификаторы.
+Одна запись `visibilityConditions` принимает до 256 правил и до 256
+элементов `values` в каждом правиле.
+
+У `upsertPage.set` можно независимо менять `title`, `accessRole`
+и `accessGroupId`. Правка ограничений и удаление защищённой страницы
+или содержащего её шаблона доступны роли HCM `admin`.
+Указывайте код существующей роли и точный десятичный ID существующей
+группы строкой. Для обычного пользователя веб-админки заданные роль и
+группа должны совпасть одновременно. Администратор видит все страницы.
+
+Пропущенные свойства сохраняются. `null` очищает расширенную текстовую
+настройку или ограничение доступа, `[]` очищает `options` или
+`visibilityConditions`. Чтение опускает незаданные расширенные
+настройки. Для удаления страницы снимите все привязки в той же пачке,
+например через `pageId: null`.
+
+`{ "op": "removeTemplate" }` удаляет из реестра весь шаблон, выбранный
+через `scope.templateId`, вместе с его полями и страницами. Это действие
+соответствует удалению строки на экране «Настраиваемые поля → Тип заявки».
+Запись типа заявки и значения в карточках заявок остаются в каталоге и
+документах. После удаления чтение шаблона вернёт `exists: false`.
+Общие определения правятся операциями над отдельными полями и страницами.
 
 Ревизия относится ко всему реестру. Если его изменила другая операция или
 админка, прочитайте область снова. `dryRun` и no-op возвращают

@@ -67,6 +67,7 @@ export interface PackageInspectionItem {
   alreadyImported?: boolean;
   serverVersion?: string;
   hasCustomTemplates?: boolean;
+  customTemplateTypes?: string[];
   hasAccessRoles?: boolean;
   hasLists?: boolean;
   deletionCount?: number;
@@ -202,6 +203,7 @@ export class WshcmPackages {
   async exportPackage(input: Input<"exportPackage">) {
     const args = canonicalHandles(packageSchemas.exportPackage.parse(input));
     if (args.objectIds) args.objectIds = [...new Set(args.objectIds)];
+    if (args.customTemplates) args.customTemplates = [...new Set(args.customTemplates)];
     return this.run(async () => {
       const operationId = args.operationId ?? randomUUID();
       const result = await packageNative(
@@ -210,6 +212,7 @@ export class WshcmPackages {
         z.strictObject({
           sizeBytes: z.number().int().min(0).max(134217728),
           requestedIds: z.array(z.string()).max(10000),
+          requestedCustomTemplates: z.array(z.string()).max(1000),
           errors: z.array(z.string()).max(10000),
           operation: operationResult,
         }),
@@ -235,22 +238,22 @@ export class WshcmPackages {
         );
         const actual = new Set(objects.map((o) => o.id));
         const missing = [...new Set([...(args.objectIds ?? []), ...result.requestedIds])].filter((id) => !actual.has(id));
-        result.operation = await packageNative(
-          this.evaluator,
-          { operation: "finish_export", operationId, partial: missing.length > 0 || result.errors.length > 0 },
-          operationResult,
-        );
+        const templateTypes = new Set(archive.packages.flatMap((part) => part.customTemplateTypes ?? []));
+        const missingCustomTemplates = [...new Set(result.requestedCustomTemplates)].filter((type) => !templateTypes.has(type));
+        const partial = missing.length > 0 || missingCustomTemplates.length > 0 || result.errors.length > 0;
+        result.operation = await packageNative(this.evaluator, { operation: "finish_export", operationId, partial }, operationResult);
         const cleanupError = await cleanup();
         return {
           operationId,
           artifact,
           ...(cleanupError ? { cleanupError } : {}),
-          status:
-            missing.length || result.errors.length || result.operation.status === "partial" ? ("partial" as const) : ("completed" as const),
+          status: partial || result.operation.status === "partial" ? ("partial" as const) : ("completed" as const),
           verification: "archive_membership" as const,
           objects: { items: objects.slice(0, 100), offset: 0, limit: 100, total: objects.length },
           missingIds: missing.slice(0, 1000),
           missingCount: missing.length,
+          customTemplateTypes: [...templateTypes],
+          missingCustomTemplates,
           errors: result.errors.slice(0, 100),
           operation: result.operation,
         };
@@ -433,6 +436,7 @@ export class WshcmPackages {
             alreadyImported: native.alreadyImported,
             ...(part.serverVersion ? { serverVersion: part.serverVersion } : {}),
             hasCustomTemplates: part.hasCustomTemplates,
+            ...(part.customTemplateTypes ? { customTemplateTypes: part.customTemplateTypes } : {}),
             hasAccessRoles: part.hasAccessRoles,
             hasLists: part.hasLists,
             deletionCount: part.deletedObjectIds.length,

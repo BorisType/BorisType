@@ -1,5 +1,37 @@
+var btCfFieldText = [
+    ['catalogFilter','xquery_qual'], ['validationCondition','condition_eval'], ['comment','comment'],
+    ['defaultValueFormula','default_value_eval'], ['width','width'], ['height','height'],
+    ['visualClass','class'], ['maxChars','max_chars']
+];
+var btCfConditionText = [
+    ['field','field'], ['topElement','top_elem'], ['title','title'], ['value','value'],
+    ['type','type'], ['operator','option_type'], ['join','and_or'], ['bracket','bracket']
+];
+
 function BtCfText(elem) {
     return elem.HasValue ? String(elem.Value) : '';
+}
+
+function BtCfDescribeText(elem, result, properties) {
+    var property;
+    var child;
+    for (property in properties) {
+        child = elem.Child(property[1]);
+        if (child.HasValue) result[property[0]] = String(child.Value);
+    }
+}
+
+function BtCfUpdateText(elem, patch, properties) {
+    var property;
+    var child;
+    var value;
+    for (property in properties) {
+        if (!patch.HasProperty(property[0])) continue;
+        child = elem.Child(property[1]);
+        value = patch[property[0]];
+        if (value == null || value == '') child.Clear();
+        else child.Value = value;
+    }
 }
 
 function BtCfOwner(root, scope) {
@@ -17,8 +49,15 @@ function BtCfOwner(root, scope) {
         } catch (err) {
             throw 'InvalidScope: The template owner record could not be opened';
         }
-        if (document.DocID != id || document.TopElem.Name != scope.objectType)
+        if (document.DocID != id) throw 'InvalidScope: The template owner document ID does not match';
+        if (document.TopElem.Name != scope.objectType) {
+            // Some registry types use a different owner document type declared on item.id.
+            var reference = CreateElemByFormElem(owner.items.FormElem.Child('item').Child('id'));
+            reference.Value = id;
+            var entry = reference.OptForeignElem;
+            if (entry == undefined || entry == null || entry.id.Value != id || entry.Name != document.TopElem.Name)
             throw 'InvalidScope: The ID must belong to the requested template owner type';
+        }
     }
     return owner;
 }
@@ -27,10 +66,69 @@ function BtCfSelect(owner, scope) {
     return !scope.HasProperty('templateId') ? owner : owner.items.GetOptChildByKey(Int(scope.templateId));
 }
 
-function BtCfRegistry(doc) {
-    var xml = doc.TopElem.Xml;
+function BtCfRegistry(url, xml) {
     if (StrLen(xml) > 524288) throw 'OutputLimit: Custom field registry exceeds 512 KiB';
-    return {url:String(doc.Url),xml:xml};
+    return {url:String(url),xml:xml};
+}
+
+function BtCfList(root, req) {
+    var result = {objectType:req.objectType,common:null,templateType:null,templateSelector:null,
+        templates:[],offset:req.offset,limit:req.limit,total:0};
+    var config = root.OptChild(req.objectType);
+    if (config == undefined || config.IsTemp) return result;
+    if (config.ChildExists('fields') && config.ChildExists('sheets'))
+        result.common = {fieldCount:config.fields.ChildNum,pageCount:config.sheets.ChildNum};
+    var owner = config;
+    if (!config.ChildExists('items')) {
+        var reference = config.OptChild('template_field');
+        if (reference == undefined || !reference.HasValue) return result;
+        owner = root.OptChild(String(reference.Value));
+        if (owner == undefined || owner.IsTemp || !owner.ChildExists('items')) return result;
+        try {
+            // PROPERTY accessors do not appear in ChildExists on the C runtime.
+            var selector = String(config.template_field_id);
+            if (selector != '' && selector != 'undefined') result.templateSelector = selector;
+        } catch (err) {
+            if (!StrContains(String(err), 'Unknown object property: template_field_id')) throw err;
+        }
+    }
+    result.templateType = String(owner.Name);
+    result.total = owner.items.ChildNum;
+    var index;
+    var item;
+    var row;
+    var title;
+    for (index = req.offset; index < result.total && index - req.offset < req.limit; index++) {
+        item = owner.items[index];
+        row = {templateId:StrInt(item.id.Value),fieldCount:item.fields.ChildNum,pageCount:item.sheets.ChildNum};
+        try {
+            title = String(item.title);
+            if (title != '' && title != 'undefined') row.title = StrLeftCharRange(title, 256);
+        } catch (unavailableTitle) {
+            // A stale foreign reference can make the native title unavailable.
+        }
+        result.templates.push(row);
+    }
+    return result;
+}
+
+function BtCfDescribeConditions(conditions) {
+    var result = [];
+    var condition;
+    var value;
+    var row;
+    for (condition in conditions) {
+        row = {};
+        BtCfDescribeText(condition, row, btCfConditionText);
+        if (condition.is_custom_field.Value == true) row.isCustomField = true;
+        if (condition.is_multiple.Value == true) row.isMultiple = true;
+        if (ArrayCount(condition.value_multiple) > 0) {
+            row.values = [];
+            for (value in condition.value_multiple) row.values.push(BtCfText(value));
+        }
+        result.push(row);
+    }
+    return result;
 }
 
 function BtCfDescribe(node) {
@@ -41,24 +139,52 @@ function BtCfDescribe(node) {
     if (node != undefined) {
         if (node.fields.ChildNum > 1000 || node.sheets.ChildNum > 1000)
             throw 'OutputLimit: Too many fields or pages in the selected scope';
-        for (entry in node.sheets) result.pages.push({id:BtCfText(entry.id),title:BtCfText(entry.title)});
+        var page;
+        for (entry in node.sheets) {
+            page = {id:BtCfText(entry.id),title:BtCfText(entry.title)};
+            if (entry.user_access_role.HasValue) page.accessRole = BtCfText(entry.user_access_role);
+            if (entry.user_group_id.HasValue) page.accessGroupId = StrInt(entry.user_group_id.Value);
+            result.pages.push(page);
+        }
         var option;
         var options;
         var pageId;
         var catalog;
+        var field;
         for (entry in node.fields) {
             if (entry.entries.ChildNum > 256) throw 'OutputLimit: Too many options on one field';
             options = [];
             for (option in entry.entries) options.push(BtCfText(option.value));
             pageId = BtCfText(entry.sheet_id);
             catalog = BtCfText(entry.catalog);
-            result.fields.push({name:BtCfText(entry.name),title:BtCfText(entry.title),type:BtCfText(entry.type),
+            field = {name:BtCfText(entry.name),title:BtCfText(entry.title),type:BtCfText(entry.type),
                 required:entry.is_required.Value == true,showOnPortal:entry.disp_web.Value == true,
-                pageId:(pageId == '' ? null : pageId),options:options,catalog:(catalog == '' ? null : catalog)});
+                pageId:(pageId == '' ? null : pageId),options:options,catalog:(catalog == '' ? null : catalog)};
+            BtCfDescribeText(entry, field, btCfFieldText);
+            if (entry.view.conditions.ChildNum > 0) field.visibilityConditions = BtCfDescribeConditions(entry.view.conditions);
+            result.fields.push(field);
         }
     }
     if (StrLen(EncodeJson(result)) > 262144) throw 'OutputLimit: Scope exceeds 256 KiB';
     return result;
+}
+
+function BtCfUpdateConditions(conditions, rows) {
+    conditions.Clear();
+    var row;
+    var value;
+    var condition;
+    for (row in rows) {
+        if (row.HasProperty('operator') && common.all_option_types.GetOptChildByKey(row.operator) == undefined)
+            throw 'InvalidVisibilityOperator: Unknown native visibility operator';
+        condition = conditions.AddChild();
+        BtCfUpdateText(condition, row, btCfConditionText);
+        if (row.HasProperty('isCustomField')) condition.is_custom_field = row.isCustomField;
+        if (row.HasProperty('isMultiple')) condition.is_multiple = row.isMultiple;
+        if (row.HasProperty('values')) {
+            for (value in row.values) condition.value_multiple.Add().Value = value;
+        }
+    }
 }
 
 function BtCfUpdateField(field, patch) {
@@ -90,6 +216,38 @@ function BtCfUpdateField(field, patch) {
         var option;
         for (option in patch.options) field.entries.AddChild().value = option;
     }
+    BtCfUpdateText(field, patch, btCfFieldText);
+    if (patch.HasProperty('visibilityConditions')) BtCfUpdateConditions(field.view.conditions, patch.visibilityConditions);
+}
+
+function BtCfUpdatePage(page, patch, role) {
+    if (patch.HasProperty('title')) page.title = patch.title;
+    if ((patch.HasProperty('accessRole') || patch.HasProperty('accessGroupId')) && role != 'admin')
+        throw 'AccessDenied: Only an HCM administrator can edit page access restrictions';
+    if (patch.HasProperty('accessRole')) {
+        if (patch.accessRole == null) page.user_access_role.Clear();
+        else if (page.user_access_role.Value != patch.accessRole) {
+            if (access_roles.GetOptChildByKey(patch.accessRole) == undefined)
+                throw 'InvalidAccessRole: Unknown HCM access role';
+            page.user_access_role = patch.accessRole;
+        }
+    }
+    if (patch.HasProperty('accessGroupId')) {
+        if (patch.accessGroupId == null) page.user_group_id.Clear();
+        else {
+            var id = Int(patch.accessGroupId);
+            if (page.user_group_id.Value != id) {
+                page.user_group_id = id;
+                var group = page.user_group_id.OptForeignElem;
+                if (group == undefined || group == null) throw 'InvalidAccessGroup: HCM group not found';
+            }
+        }
+    }
+}
+
+function BtCfCheckPageRemoval(page, role) {
+    if (role != 'admin' && (page.user_access_role.HasValue || page.user_group_id.HasValue))
+        throw 'AccessDenied: Removing an access-restricted page requires an HCM administrator';
 }
 
 function BtCfMove(items, item, op) {
@@ -104,7 +262,7 @@ function BtCfMove(items, item, op) {
     if (from != to) item.SetChildIndex(to);
 }
 
-function BtCfApply(owner, node, req) {
+function BtCfApply(owner, node, req, role) {
     var op;
     var list;
     var key;
@@ -113,24 +271,39 @@ function BtCfApply(owner, node, req) {
     var pageId;
     var fieldOp;
     for (op in req.operations) {
+        if (op.op == 'removeTemplate') {
+            if (!req.scope.HasProperty('templateId')) throw 'InvalidScope: Removing a template requires a per-record scope';
+            if (node == undefined) throw 'NotFound: Template is not configured';
+            if (role != 'admin') for (item in node.sheets) BtCfCheckPageRemoval(item, role);
+            node.Delete();
+            node = undefined;
+            continue;
+        }
         if (node == undefined) {
             if (op.op != 'upsertField' && op.op != 'upsertPage') throw 'NotFound: Template is not configured';
             node = owner.items.ObtainChildByKey(Int(req.scope.templateId));
         }
-        fieldOp = op.op == 'upsertField' || op.op == 'removeField' || op.op == 'moveField';
+        fieldOp = op.op == 'upsertField' || op.op == 'renameField' || op.op == 'removeField' || op.op == 'moveField';
         list = fieldOp ? node.fields : node.sheets;
         key = fieldOp ? op.name : op.id;
         if (op.op == 'upsertField') {
             BtCfUpdateField(list.ObtainChildByKey(key), op.set);
         } else if (op.op == 'upsertPage') {
-            list.ObtainChildByKey(key).title = op.set.title;
+            BtCfUpdatePage(list.ObtainChildByKey(key), op.set, role);
         } else {
             item = list.GetOptChildByKey(key);
             if (item == undefined) throw 'NotFound: Field or page was not found';
-            if (op.op == 'removeField' || op.op == 'removePage') item.Delete();
+            if (op.op == 'renameField') {
+                if (list.GetOptChildByKey(op.newName) != undefined) throw 'FieldExists: This field name is already in use';
+                item.name = op.newName;
+            } else if (op.op == 'removeField' || op.op == 'removePage') {
+                if (op.op == 'removePage') BtCfCheckPageRemoval(item, role);
+                item.Delete();
+            }
             else BtCfMove(list, item, op);
         }
     }
+    if (node == undefined) return node;
     for (field in node.fields) {
         pageId = BtCfText(field.sheet_id);
         if (pageId != '' && node.sheets.GetOptChildByKey(pageId) == undefined)
@@ -145,11 +318,14 @@ function BtCustomFields(req) {
     try {
         var url = custom_templates.Doc.Url;
         var doc = OpenDoc(url);
-        var before = BtCfRegistry(doc);
-        if (doc.TopElem.Name != 'custom_templates') throw 'InvalidRegistry: Unexpected shared document root';
-        if (custom_templates.Xml != before.xml)
+        var root = doc.TopElem;
+        if (root.Name != 'custom_templates') throw 'InvalidRegistry: Unexpected shared document root';
+        var xml = root.Xml;
+        if (custom_templates.Xml != xml)
             throw 'CacheMismatch: The shared custom field cache differs from storage; reconcile the registry on this HCM node';
-        var owner = BtCfOwner(doc.TopElem, req.scope);
+        if (req.operation == 'list') return {ok:true,listing:BtCfList(root, req)};
+        var before = BtCfRegistry(doc.Url, xml);
+        var owner = BtCfOwner(root, req.scope);
         var node = BtCfSelect(owner, req.scope);
         if (req.operation == 'get') return {ok:true,snapshot:before,definition:BtCfDescribe(node)};
 
@@ -160,8 +336,8 @@ function BtCustomFields(req) {
         if (before.url != req.expected.url || before.xml != req.expected.xml)
             throw 'Conflict: The shared custom field document changed; read again';
 
-        node = BtCfApply(owner, node, req);
-        var candidate = BtCfRegistry(doc);
+        node = BtCfApply(owner, node, req, user.access.access_role.Value);
+        var candidate = BtCfRegistry(doc.Url, root.Xml);
         var changed = candidate.xml != before.xml;
         var preview = BtCfDescribe(node);
         if (req.dryRun || !changed)
@@ -175,7 +351,7 @@ function BtCustomFields(req) {
         status = 'saved';
         phase = 'readback';
         var fresh = OpenDoc(url);
-        var after = BtCfRegistry(fresh);
+        var after = BtCfRegistry(fresh.Url, fresh.TopElem.Xml);
         if (after.xml != candidate.xml || custom_templates.Xml != after.xml)
             throw 'ReadbackMismatch: Saved custom field storage or cache differs from the candidate';
         owner = fresh.TopElem.Child(req.scope.objectType);
@@ -184,7 +360,7 @@ function BtCustomFields(req) {
         var message = String(err);
         var code = 'CustomFieldError';
         var known;
-        for (known in ['InvalidScope','InvalidRegistry','AccessDenied','Conflict','CacheMismatch','InvalidFieldType','InvalidCatalog','InvalidOptions','InvalidPage','NotFound','OutputLimit','ReadbackMismatch']) {
+        for (known in ['InvalidScope','InvalidRegistry','AccessDenied','Conflict','CacheMismatch','InvalidFieldType','InvalidCatalog','InvalidOptions','InvalidVisibilityOperator','InvalidPage','InvalidAccessRole','InvalidAccessGroup','FieldExists','NotFound','OutputLimit','ReadbackMismatch']) {
             if (StrBegins(message, known + ':')) {
                 code = known;
                 break;

@@ -4,7 +4,8 @@ const id = z
   .string()
   .regex(/^[1-9][0-9]{0,19}$/)
   .refine((v) => /^[1-9][0-9]{0,19}$/.test(v) && BigInt(v) <= 18446744073709551615n);
-const ids = z.array(id).min(1).max(10000);
+const objectIdList = z.array(id).max(10000);
+const ids = objectIdList.min(1);
 const schemaId = z
   .string()
   .min(1)
@@ -24,11 +25,12 @@ const localUrl = z
   .max(2048)
   .regex(/^x-local:\/\/[A-Za-z0-9_./-]+$/)
   .refine((v) => !v.split("/").includes("..") && !v.includes("//", 10));
+const customTemplates = z
+  .array(z.string().regex(/^[a-z][a-z0-9_]*$/))
+  .max(1000)
+  .describe("Select custom field and page definitions by native object type, for example subdivision or request_type.");
 const settings = z.strictObject({
-  customTemplates: z
-    .array(z.string().regex(/^[a-z][a-z0-9_]*$/))
-    .max(1000)
-    .optional(),
+  customTemplates: customTemplates.optional(),
   processCustomTemplates: z.boolean().optional(),
   processAccessRoles: z.boolean().optional(),
   files: z
@@ -63,11 +65,20 @@ export const packageSchemas = {
   addObjects: z.strictObject({ ...operation, schemaId, revision, objectIds: ids, ...options }),
   removeObjects: z.strictObject({ ...operation, schemaId, revision, objectIds: ids }),
   exportPackage: z
-    .strictObject({ ...operation, schemaId: schemaId.optional(), revision: revision.optional(), objectIds: ids.optional(), ...options })
-    .refine((v) =>
-      v.schemaId !== undefined
-        ? v.revision !== undefined && v.objectIds === undefined
-        : v.objectIds !== undefined && v.revision === undefined,
+    .strictObject({
+      ...operation,
+      schemaId: schemaId.optional(),
+      revision: revision.optional(),
+      objectIds: objectIdList.optional(),
+      customTemplates: customTemplates.optional(),
+      ...options,
+    })
+    .refine(
+      (v) =>
+        v.schemaId !== undefined
+          ? v.revision !== undefined && v.objectIds === undefined && v.customTemplates === undefined
+          : v.revision === undefined && ((v.objectIds?.length ?? 0) > 0 || (v.customTemplates?.length ?? 0) > 0),
+      "Use schemaId with revision, or provide objectIds, customTemplates, or both.",
     ),
   inspectPackage: z
     .strictObject({

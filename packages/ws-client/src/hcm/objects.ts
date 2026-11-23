@@ -7,7 +7,7 @@ import { inspectObjectPatchXml, inspectObjectXml, objectRequestBytes, objectXmlB
 import { ObjectReadState } from "./object-state.js";
 import { wshcmSchemas } from "./schemas.js";
 import { WshcmObjectDeleteError, WshcmObjectError } from "./object-error.js";
-import { listObjectTypes, type ObjectTypesResult } from "./object-types.js";
+import { listObjectDataTypes, listObjectTypes, type ObjectDataTypesResult, type ObjectTypesResult } from "./object-types.js";
 const template = readFileSync(new URL("../../resources/object-operation.bs", import.meta.url), "utf8");
 const patchHelper = readFileSync(new URL("../../resources/object-patch.bs", import.meta.url), "utf8");
 const deleteTemplate = readFileSync(new URL("../../resources/object-delete.bs", import.meta.url), "utf8");
@@ -195,6 +195,10 @@ export class WshcmObjects {
 
   listTypes(input: Input<"listTypes"> = {}): Promise<ObjectTypesResult> {
     return listObjectTypes(this.evaluator, input);
+  }
+
+  listDataTypes(input: Input<"listDataTypes"> = {}): Promise<ObjectDataTypesResult> {
+    return listObjectDataTypes(this.evaluator, input);
   }
 
   async delete(input: Input<"delete">) {

@@ -12,11 +12,20 @@ test("package schemas preserve exact IDs, defaults, XOR and revision requirement
   assert.ok(s);
   assert.equal(s.exportPackage.parse({ objectIds: ["18446744073709551615"] }).includeRelatedObjects, false);
   for (const input of [
+    { customTemplates: ["request_type"] },
+    { objectIds: [], customTemplates: ["request_type"] },
+    { objectIds: ["1"], customTemplates: ["request_type"] },
+  ])
+    assert.equal(s.exportPackage.safeParse(input).success, true);
+  for (const input of [
     {},
     { objectIds: ["1"], schemaId: "a", revision: "a".repeat(64) },
     { objectIds: [1] },
     ...["not-an-id", "", "0", "01", "-1", "1.5", " 1", "1e3"].map((id) => ({ objectIds: [id] })),
     { objectIds: [] },
+    { customTemplates: [] },
+    { customTemplates: ["request_type:123"] },
+    { customTemplates: ["request_type"], schemaId: "a", revision: "a".repeat(64) },
     { objectIds: Array(10001).fill("1") },
     { objectIds: ["18446744073709551616"] },
     { schemaId: "a" },
@@ -144,7 +153,7 @@ test("product transfer preserves binary across exclusive 256 KiB boundaries and 
     await rm(dir, { recursive: true, force: true });
   }
 });
-import { objectPackage } from "./helpers/package-fixtures.mjs";
+import { objectPackage, zip } from "./helpers/package-fixtures.mjs";
 test("immutable inspection rejects outside selection, repeat/version/type conflicts and returns reports", async () => {
   assert.equal(typeof sdk.WshcmPackages.prototype.inspectPackage, "function");
   const dir = await mkdtemp(join(tmpdir(), "bt-preview-"));
@@ -369,6 +378,55 @@ test("direct export preserves common schema and retains partial artifact for mis
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test("direct and saved-schema export report requested template types absent from the ZIP", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "bt-template-export-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const bytes = zip([
+    {
+      name: "update.xml",
+      data: "<data><basic><id>templates</id></basic><custom_templates><subdivision><fields><field><name>office</name></field></fields></subdivision></custom_templates></data>",
+    },
+  ]);
+  let p;
+  p = platform({
+    XQuery: () => [],
+    CodeLiteral: JSON.stringify,
+    FileSize: (path) => Buffer.byteLength(p.files.get(path)),
+    Base64Encode: (data) => Buffer.from(data).toString("base64"),
+    LoadFileDataRange: (path, start, end) => Buffer.from(p.files.get(path)).subarray(start, end),
+    tools: {
+      create_list_package: (url, schema) => {
+        assert.equal(schema.objects.length, 0);
+        assert.equal(schema.process_custom_templates, true);
+        assert.deepEqual(
+          Array.from(schema.custom_templates, (entry) => entry.catalog_name),
+          ["subdivision", "empty_type"],
+        );
+        p.files.set(url, bytes);
+        return { error: 0, error_text: "", counter: 0 };
+      },
+    },
+  });
+  const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: directory });
+  const result = await service.exportPackage({ customTemplates: ["subdivision", "empty_type", "subdivision"] });
+  assert.equal(result.objects.total, 0);
+  assert.deepEqual(result.customTemplateTypes, ["subdivision"]);
+  assert.deepEqual(result.missingCustomTemplates, ["empty_type"]);
+  assert.equal(result.status, "partial");
+  assert.equal((await service.getOperation({ operationId: result.operationId })).status, "partial");
+  assert.equal(p.saves, 0);
+
+  const schema = await service.saveSchema({
+    name: "Templates",
+    settings: { processCustomTemplates: true, customTemplates: ["subdivision", "empty_type"] },
+  });
+  const { revision } = await service.getSchema({ schemaId: schema.schemaId });
+  const configured = await service.exportPackage({ schemaId: schema.schemaId, revision });
+  assert.deepEqual(configured.missingCustomTemplates, ["empty_type"]);
+  assert.equal(configured.status, "partial");
+  assert.equal((await service.getOperation({ operationId: configured.operationId })).status, "partial");
 });
 
 test("a native finish rejection preserves the acknowledged export and its artifact", async (t) => {

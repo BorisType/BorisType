@@ -4,7 +4,7 @@ import { fileUrl, fileText } from "./file-contract.js";
 import { searchInput } from "./search-contract.js";
 import { objectXmlBytes } from "./object-xml.js";
 import { objectIdSchema as objectId } from "./object-id.js";
-import { objectTypesInputSchema } from "./object-types.js";
+import { objectDataTypesInputSchema, objectTypesInputSchema } from "./object-types.js";
 import { runAgentInputSchema } from "./run-agent.js";
 import { customFieldSchemas } from "./custom-fields.js";
 
@@ -94,6 +94,7 @@ export const wshcmSchemas = {
   files: { read, write, edit, list, delete: deleteInput, mkdir, move, info, search: searchInput },
   objects: {
     listTypes: objectTypesInputSchema,
+    listDataTypes: objectDataTypesInputSchema,
     getForm: z.strictObject({ formUrl }),
     get: z.strictObject({ id: objectId }),
     save: saveInput,

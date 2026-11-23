@@ -26,27 +26,42 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_list_object_types",
     {
       description:
-        "List HCM document types and catalog forms, including registered cc_* types. Catalog entries report their native objectType (null when HCM declares none). Filter by kind or exact objectType, and page with offset/limit. Object entries can summarize configured custom fields. Match one objectType and set includeCustomFields to read field definitions and template IDs.",
+        "Find registered HCM document types and catalog forms, including cc_* types. Filter by kind or exact objectType, and page with offset/limit. Use formUrl for wshcm_get_form and catalog names for wshcm_xquery. Catalog entries report their native objectType when HCM provides it. Object entries can report whether their XMD contains custom_elems. Use wshcm_get_custom_field_definitions for configured fields and templates.",
       inputSchema: wshcmSchemas.objects.listTypes,
       annotations: readAnnotations,
     },
     (input) => objectResult(() => api.objects.listTypes(input)),
   );
   server.registerTool(
+    "wshcm_list_object_data_types",
+    {
+      description:
+        "List definitions from the HCM object_data_types catalog. With no filters, page through all data types. objectType matches the primary or secondary side; primaryObjectType and secondaryObjectType require exact matches on those sides. All supplied filters must match. Entries include id, code, name and the configured type on each side. Use the exact id as scope.templateId with scope.objectType='object_data_type' in wshcm_get_custom_field_definitions. To find stored records, query object_datas by object_data_type_id.",
+      inputSchema: wshcmSchemas.objects.listDataTypes,
+      annotations: readAnnotations,
+    },
+    (input) => objectResult(() => api.objects.listDataTypes(input)),
+  );
+  server.registerTool(
     "wshcm_get_custom_field_definitions",
     {
       description:
-        "Read field and page definitions in their native order, available field type codes, and a revision. Use scope.objectType for common definitions, or scope.objectType and the exact templateId of an existing owner record such as request_type. An unconfigured template returns exists:false. Values on instances are read with wshcm_get_object.",
-      inputSchema: wshcmSchemas.customFields.get,
+        "Discover or read configured custom field and page definitions. Choose one input form: {mode:'list',objectType,offset?,limit?} for a page of registered template IDs and their selector, or {scope} for full definitions. Use scope.objectType for common fields. For a template, use the returned templateType as scope.objectType and the exact templateId from the list or selector. Only a full scope read supplies the revision for wshcm_patch_custom_field_definitions. Read instance values with wshcm_get_object.",
+      inputSchema: wshcmSchemas.customFields.lookup,
       annotations: readAnnotations,
     },
-    (input) => objectResult(() => api.customFields.get(input)),
+    (input) =>
+      objectResult(() => {
+        if ("scope" in input) return api.customFields.get(input);
+        const { mode: _, ...list } = input;
+        return api.customFields.list(list);
+      }),
   );
   server.registerTool(
     "wshcm_patch_custom_field_definitions",
     {
       description:
-        "Apply ordered upsert, move or remove operations to one definition scope. Use revision from wshcm_get_custom_field_definitions in this session. dryRun previews without Save. Unspecified settings and other scopes are preserved. Move uses a before or after key. Updating or removing a definition leaves stored object values alone. Any concurrent registry change can cause Conflict. If the write outcome is unknown, reread before trying again.",
+        "Edit one definition scope using ordered upsert, renameField, move, or remove operations. removeTemplate deletes the configured fields and pages for scope.templateId. Use revision from wshcm_get_custom_field_definitions in this session. dryRun previews without Save. Omitted settings are preserved. Use null to clear advanced text or page access and [] to clear options or visibilityConditions. Formulas and filters are stored as text. Page access changes require the HCM admin role. Use wshcm_patch_object to migrate stored values after changing a field key. If a write conflicts or the outcome is unknown, reread before trying again.",
       inputSchema: wshcmSchemas.customFields.patch,
       annotations: writeAnnotations,
     },
@@ -56,7 +71,7 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     "wshcm_get_form",
     {
       description:
-        "Get the loaded, expanded XMD root as XML, with root and actual form URL. Inheritance is resolved by the platform; remaining dependencies/cache freshness are not guaranteed." +
+        "Get the loaded, expanded XMD root as XML, with root and actual form URL. Inheritance is resolved by the platform; remaining dependencies/cache freshness are not guaranteed. For configured custom fields and pages use wshcm_get_custom_field_definitions." +
         description,
       inputSchema: wshcmSchemas.objects.getForm,
       annotations: readAnnotations,

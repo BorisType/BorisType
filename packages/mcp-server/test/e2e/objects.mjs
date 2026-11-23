@@ -115,6 +115,8 @@ test("XML object MVP through CLI/stdio/SOAP on an exclusive local stand", { time
     }
     assert.equal(object?.kind, "object");
     assert.equal(object.formUrl, formUrl);
+    assert.equal(object.supportsCustomFields, true);
+    assert.equal(Object.hasOwn(object, "customFields"), false);
     assert.equal(catalog?.kind, "catalog");
     assert.equal(catalog.isHier, true);
     assert.equal(catalog.objectType, "cost_center");
@@ -128,17 +130,95 @@ test("XML object MVP through CLI/stdio/SOAP on an exclusive local stand", { time
     );
     t.diagnostic(JSON.stringify({ objectTypes: objects.total, catalogs: catalogs.total, object, catalog }));
   });
-  await check("configured field definitions include type fields and field groups per template", async () => {
-    const subdivision = (await call("list_object_types", { kind: "object", objectType: "subdivision", includeCustomFields: true })).items[0]
-      .customFields;
-    assert.equal(subdivision.fields.length, subdivision.typeFieldCount);
-    const request = (await call("list_object_types", { kind: "object", objectType: "request", includeCustomFields: true })).items[0]
-      .customFields;
-    assert.equal(request.templates.length, request.templatesWithFields);
-    assert.equal(request.templateType, "request_type");
-    assert.equal(request.templateSelector, "request_type_id");
-    assert.ok(request.templates.every(({ id, fields }) => /^[1-9]\d*$/.test(id) && fields.length > 0));
-    t.diagnostic(JSON.stringify({ subdivisionFields: subdivision.typeFieldCount, requestTemplates: request.templatesWithFields }));
+  await check("object data types match either side, compose filters and page in catalog order", async () => {
+    const before = await call("list_object_data_types", {});
+    assert.equal(before.offset, 0);
+    assert.equal(before.limit, 100);
+    const fixtures = [
+      { code: marker + "-primary", primary: "group", secondary: "subdivision" },
+      { code: marker + "-secondary", primary: "subdivision", secondary: "group" },
+      { code: marker + "-both", primary: "group", secondary: "group" },
+      { code: marker + "-unbound", primary: "", secondary: "" },
+    ];
+    const source = JSON.stringify(JSON.stringify(fixtures));
+    try {
+      await evaluator.eval(`
+var fixture;
+var doc;
+for (fixture in ParseJson(${source})) {
+    doc = OpenNewDoc('x-local://wtv/wtv_object_data_type.xmd');
+    doc.TopElem.code = fixture.code;
+    doc.TopElem.name = fixture.code;
+    doc.TopElem.object_type = fixture.primary;
+    doc.TopElem.sec_object_type = fixture.secondary;
+    doc.BindToDb(DefaultDb);
+    doc.Save();
+}
+return;
+`);
+      const all = await call("list_object_data_types", { limit: 250 });
+      assert.equal(all.total, before.total + fixtures.length);
+      const unbound = all.items.find(({ code }) => code === fixtures[3].code);
+      assert.equal(unbound?.primaryObjectType, null);
+      assert.equal(unbound?.secondaryObjectType, null);
+      const either = await call("list_object_data_types", { objectType: "group", limit: 250 });
+      const owned = either.items.filter(({ code }) => code.startsWith(marker));
+      assert.equal(owned.length, 3);
+      for (const fixture of fixtures.slice(0, 3)) {
+        const item = owned.find(({ code }) => code === fixture.code);
+        assert.match(item.id, /^[1-9]\d*$/);
+        assert.equal(item.primaryObjectType, fixture.primary);
+        assert.equal(item.secondaryObjectType, fixture.secondary);
+      }
+      const first = await call("list_object_data_types", { objectType: "group", limit: 1 });
+      const next = await call("list_object_data_types", { objectType: "group", offset: 1, limit: 1 });
+      assert.equal(first.total, either.total);
+      assert.equal(next.total, either.total);
+      assert.deepEqual([...first.items, ...next.items], either.items.slice(0, 2));
+      const end = await call("list_object_data_types", { objectType: "group", offset: either.total, limit: 1 });
+      assert.equal(end.total, either.total);
+      assert.deepEqual(end.items, []);
+
+      const exact = await call("list_object_data_types", {
+        objectType: "subdivision",
+        primaryObjectType: "group",
+        secondaryObjectType: "subdivision",
+      });
+      assert.deepEqual(
+        exact.items.filter(({ code }) => code.startsWith(marker)).map(({ code }) => code),
+        [fixtures[0].code],
+      );
+      const none = await call("list_object_data_types", {
+        objectType: "group",
+        primaryObjectType: "subdivision",
+        secondaryObjectType: "subdivision",
+      });
+      assert.equal(none.total, 0);
+      assert.deepEqual(none.items, []);
+      t.diagnostic("Object data type catalog verified with primary, secondary and both-side fixtures");
+    } finally {
+      const remaining = JSON.parse(
+        await evaluator.eval(`
+var fixture;
+var query;
+var row;
+var doc;
+var remaining = 0;
+for (fixture in ParseJson(${source})) {
+    query = 'for $type in object_data_types where $type/code = ' + XQueryLiteral(fixture.code) + ' return $type';
+    for (row in ArraySelectAll(XQuery(query))) {
+        doc = OpenDoc(UrlFromDocID(row.id.Value));
+        if (doc.TopElem.Name != 'object_data_type' || doc.TopElem.code.Value != fixture.code)
+            throw 'Refusing unowned object data type cleanup';
+        DeleteDoc(doc.Url, true);
+    }
+    remaining += ArrayCount(XQuery(query));
+}
+return EncodeJson(remaining);
+`),
+      );
+      assert.equal(remaining, 0);
+    }
   });
   await check("expanded native form without inherited file traversal", async () => {
     const form = await call("get_form", { formUrl });

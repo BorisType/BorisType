@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { WshcmApi, WshcmDispatchError } from "../build/index.js";
@@ -23,6 +24,31 @@ const operations = [
 ];
 const wire = (data) => JSON.stringify(JSON.stringify(data));
 
+test("deleting an access-restricted page or template requires an administrator", () => {
+  const native = readFileSync(new URL("../resources/custom-field-definitions.bs", import.meta.url), "utf8");
+  const functions = native.slice(0, native.lastIndexOf("\nreturn EncodeJson"));
+  const source = functions.replace(/for \((\w+) in (req\.operations|node\.sheets|node\.fields)\)/g, "for ($1 of $2)");
+  for (const operation of [{ op: "removePage", id: "details" }, { op: "removeTemplate" }]) {
+    const deleted = [];
+    const page = { user_access_role: { HasValue: true }, user_group_id: { HasValue: false }, Delete: () => deleted.push("page") };
+    const sheets = Object.assign([page], { GetOptChildByKey: () => page });
+    const node = { fields: [], sheets, Delete: () => deleted.push("template") };
+    const run = (role) =>
+      runInNewContext(`${source}\nBtCfApply({}, node, req, role);`, {
+        node,
+        role,
+        req: { scope: { ...scope, HasProperty: () => true }, operations: [operation] },
+      });
+    assert.throws(
+      () => run("user"),
+      (error) => String(error).startsWith("AccessDenied:"),
+    );
+    assert.deepEqual(deleted, []);
+    run("admin");
+    assert.deepEqual(deleted, [operation.op === "removePage" ? "page" : "template"]);
+  }
+});
+
 function api(handler) {
   return new WshcmApi({
     eval: async (code) => {
@@ -32,6 +58,27 @@ function api(handler) {
     },
   }).customFields;
 }
+
+test("SDK template discovery sends page bounds and returns a compact list", async () => {
+  const listing = {
+    objectType: "request",
+    common: null,
+    templateType: "request_type",
+    templateSelector: "request_type_id",
+    offset: 1,
+    limit: 1,
+    total: 2,
+    templates: [{ templateId: scope.templateId, title: "Тип заявки", fieldCount: 0, pageCount: 1 }],
+  };
+  const calls = [];
+  const sdk = api((request) => {
+    calls.push(request);
+    return wire({ ok: true, listing });
+  });
+  assert.deepEqual(await sdk.list({ objectType: "request", offset: 1, limit: 1 }), listing);
+  assert.deepEqual(calls, [{ operation: "list", objectType: "request", offset: 1, limit: 1 }]);
+  await assert.rejects(sdk.list({ objectType: "subdivision", offset: 1, limit: 1 }), /response/);
+});
 
 test("missing request type template carries a revision, and preview neither changes nor consumes it", async () => {
   const calls = [];
@@ -117,6 +164,67 @@ test("native definitions can be read even when old text exceeds writable propert
     sdk.patch({ scope, revision: result.revision, operations: [{ op: "upsertField", name: field.name, set: { title } }] }),
     /4096/,
   );
+});
+
+test("advanced settings and ordered visibility rows round-trip through the SDK contract", async () => {
+  const settings = {
+    defaultValueFormula: "GEnv.curObject.name",
+    validationCondition: "oValue != ''",
+    catalogFilter: "$elem/is_dismiss = false()",
+    comment: "Подсказка",
+    width: "100%",
+    height: "3gr",
+    visualClass: "hint",
+    maxChars: "120",
+    visibilityConditions: [
+      { field: "name", operator: "eq", value: "Иван", bracket: "(" },
+      { field: "office", operator: "cn", isCustomField: true, join: "or", value: "Два", bracket: ")" },
+    ],
+  };
+  const page = { id: "details", title: "Детали", accessRole: "hr", accessGroupId: "6357946981604418316" };
+  const definition = { ...empty, exists: true, fields: [{ ...field, ...settings }], pages: [page] };
+  const changes = [
+    { op: "upsertField", name, set: { ...settings, comment: null, visibilityConditions: [] } },
+    { op: "upsertPage", id: page.id, set: { accessRole: null, accessGroupId: page.accessGroupId } },
+  ];
+  const sdk = api((request) => {
+    if (request.operation === "get") return wire({ ok: true, snapshot, definition });
+    assert.deepEqual(request.operations, changes);
+    return wire({ ok: true, snapshot, definition, changed: true, writeStatus: "not_attempted" });
+  });
+  const before = await sdk.get({ scope });
+  assert.deepEqual(before.fields, definition.fields);
+  assert.deepEqual(before.pages, definition.pages);
+  await sdk.patch({ scope, revision: before.revision, operations: changes, dryRun: true });
+});
+
+test("unsafe group IDs and unbalanced visibility brackets are rejected before dispatch", async () => {
+  const sdk = api(() => assert.fail("unexpected evaluator call"));
+  const revision = "a".repeat(64);
+  await assert.rejects(
+    sdk.patch({ scope, revision, operations: [{ op: "upsertPage", id: "details", set: { accessGroupId: 6357946981604418316 } }] }),
+    /accessGroupId/,
+  );
+  await assert.rejects(
+    sdk.patch({
+      scope,
+      revision,
+      operations: [{ op: "upsertField", name, set: { visibilityConditions: [{ field: "name", bracket: ")" }] } }],
+    }),
+    /bracket/,
+  );
+});
+
+test("legacy visibility lists and zero group references remain readable", async () => {
+  const values = Array.from({ length: 257 }, (_, index) => String(index));
+  const visibilityConditions = values.map((value) => ({ field: "name", value }));
+  visibilityConditions[0].values = values;
+  const pages = [{ id: "details", title: "Детали", accessGroupId: "0" }];
+  const definition = { ...empty, exists: true, fields: [{ ...field, visibilityConditions }], pages };
+  const sdk = api(() => wire({ ok: true, snapshot, definition }));
+  const result = await sdk.get({ scope });
+  assert.deepEqual(result.fields[0].visibilityConditions, visibilityConditions);
+  assert.deepEqual(result.pages, pages);
 });
 
 test("a native readback failure retains the acknowledged save", async () => {

@@ -12,6 +12,7 @@ export interface PackageArchivePart {
   serverVersion?: string;
   objects: PackageObjectEntry[];
   hasCustomTemplates: boolean;
+  customTemplateTypes?: string[];
   hasAccessRoles: boolean;
   hasLists: boolean;
   deletedObjectIds: string[];

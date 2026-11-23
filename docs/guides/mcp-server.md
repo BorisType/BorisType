@@ -55,8 +55,8 @@ npm install -g @boristype/mcp-server@next
 
 Запустите сервер средствами MCP-клиента и проверьте список tools: девять
 файловых, `wshcm_execute`, `wshcm_run_agent`, `wshcm_get_system_info`,
-`wshcm_xquery`, восемь tools для форм, объектов и настраиваемых полей,
-десять package tools и `wshcm_runtime_status`. Всего 32. Затем выполните операцию чтения,
+`wshcm_xquery`, девять tools для форм, объектов и их конфигурации,
+десять package tools и `wshcm_runtime_status`. Всего 33. Затем выполните операцию чтения,
 например `wshcm_get_form` с формой, существующей на вашей установке:
 
 ```json
@@ -73,7 +73,7 @@ UTF-8 файл через `wshcm_read_file`; результат должен с�
 
 ## Восстановление соединения
 
-С корректной конфигурацией MCP инициализируется, показывает все 32 tools и
+С корректной конфигурацией MCP инициализируется, показывает все 33 tools и
 отвечает на `ping` при выключенном HCM. Эти действия не обращаются к HCM.
 При вызове инструмента `isError: true` и код `HcmUnavailable` означают проблему
 доступности. Следующий вызов, которому нужен HCM, сам проверит готовность.
@@ -119,10 +119,15 @@ Skill не устанавливает сервер или DLL и не добав
 { "objectIds": ["9007199254740993"], "operationId": "11111111-1111-4111-8111-111111111111" }
 ```
 
-Вызовите `wshcm_export_package` с этими параметрами. Альтернатива — только
-`{schemaId,revision}` из `wshcm_get_package_schema`; одновременно оба источника
-запрещены. Ответ содержит artifactId/localPath/sizeBytes/sha256 внутри `artifact`,
-status и missingCount. ZIP/base64 в контекст не попадает.
+Вызовите `wshcm_export_package` с этими параметрами. Чтобы включить определения
+полей и страниц, добавьте `customTemplates: ["subdivision", "request_type"]`.
+Можно передать только `customTemplates`. `request_type` включает все
+настроенные шаблоны типов заявок. Для сохранённой схемы передайте отдельно
+`{schemaId,revision}` из `wshcm_get_package_schema`, а список типов задайте
+в настройках схемы через `processCustomTemplates: true` и `customTemplates`.
+Ответ содержит artifactId/localPath/sizeBytes/sha256 внутри `artifact`,
+status, missingCount и `customTemplateTypes` из фактически собранного ZIP.
+ZIP/base64 в контекст не попадает.
 `localPath` находится **на машине MCP**; файл клиента в другой среде недоступен
 по одному имени. По умолчанию ZIP и метаданные хранятся в
 `~/.boristype/package-artifacts`. Флаг `--package-artifact-directory <path>`
@@ -143,8 +148,8 @@ handle действует 24 часа. Автоматической уборки
 includeFiles/includeAssessmentItems. Related использует штатные XMD/foreign связи;
 ссылки в wvars и mode → web_mode ещё не разрешаются. Поддерживаются objects/courses/
 web/custom_file, остальные типы отклоняются; custom_file destination ограничен
-`x-local://custom/`. Native acceptance пока покрывает objects/cost_center на Linux
-C/PostgreSQL; дополнительные типы и extras остаются непроверенными.
+`x-local://custom/`. На Linux C/PostgreSQL проверены пакеты объектов
+`cost_center` и импорт определений с явным `includeCustomTemplates: true`.
 
 Схемы: создайте через `wshcm_save_package_schema({name})`, читайте по schemaId,
 изменяйте/добавляйте/исключайте с `{schemaId,revision,...}`. Удаление схемы не удаляет
@@ -281,28 +286,50 @@ string, integer, bool, real и date. Binary, TEMP и методы исключе
 каталог `cost_centers` со ссылкой на этот тип. У каталогов без объявленного
 типа документа `objectType` равен `null`.
 
-Для просмотра настроенных полей передайте
-`{ "objectType": "request", "includeCustomFields": true }`.
-`customFields.fields` перечисляет общие поля, а `customFields.templates`
-группирует поля по ID шаблона. В обычной выдаче видны количества.
-
 `wshcm_delete_object({id,readToken})` перемещает один документ в корзину HCM.
 Возьмите точный ID и свежий токен из `wshcm_get_object`. Если XML объекта или
 формы изменился, операция вернёт `Conflict`. Сравнение и удаление выполняются
 последовательно. Вызов расходует токен. При `deleteStatus: "unknown"`
 проверьте фактическое состояние объекта и корзины перед повтором.
 
+### Типы данных объектов
+
+`wshcm_list_object_data_types({objectType:"subdivision"})` находит
+типы данных, где подразделение выступает на любой стороне связи.
+Поля `primaryObjectType` и `secondaryObjectType` в строке показывают,
+как именно используется тип. Эти же параметры можно передать как
+уточняющие фильтры. Пустой запрос открывает весь справочник с обычными
+`offset` и `limit`.
+
+Для полей одного типа данных передайте найденный ID в
+`wshcm_get_custom_field_definitions` как
+`scope: {objectType:"object_data_type", templateId:id}`. Экземпляры
+ищите через `wshcm_xquery` по `object_datas.object_data_type_id`.
+
 ### Настраиваемые поля
 
-`wshcm_get_custom_field_definitions` читает поля и страницы. Для общих
-полей передайте `scope: {objectType: "subdivision"}`. Для формы заявки
-передайте `scope: {objectType: "request_type", templateId: "<ID типа заявки>"}`.
+`wshcm_get_custom_field_definitions` читает поля и страницы. Если область
+известна, передайте её сразу. Общие поля подразделения адресуются
+`scope: {objectType: "subdivision"}`, а шаблон формы заявки —
+`scope: {objectType: "request_type", templateId: "<ID типа заявки>"}`.
+
+Чтобы найти шаблон, сначала передайте `{mode:"list",objectType:"request"}`
+в тот же инструмент. Он вернёт страницу зарегистрированных шаблонов,
+тип владельца `templateType: "request_type"` и поле-селектор
+`templateSelector: "request_type_id"`. Для чтения полного шаблона передайте
+`templateType` в `scope.objectType` и выбранный `templateId` в
+`scope.templateId`. У существующей заявки селектор можно прочитать
+через `wshcm_get_object`.
 
 Передайте полученную `revision` и нужные операции в
 `wshcm_patch_custom_field_definitions`. Можно добавить, править, перемещать
-и удалять поля и страницы. Начните с `dryRun: true`, чтобы увидеть итоговую
-конфигурацию. Для изменения значения конкретного объекта используйте
-`wshcm_patch_object`.
+и удалять поля и страницы, а также переименовывать поля. Через `upsertField`
+настраиваются формула по умолчанию, условие верности, правила видимости,
+фильтр каталога и оформление. Через `upsertPage` администратор может
+ограничить доступ по роли и группе. `removeTemplate` удаляет все определения
+конкретного шаблона по `scope.templateId`. Начните с `dryRun: true`, чтобы
+увидеть итоговую конфигурацию. Для изменения значения конкретного объекта
+используйте `wshcm_patch_object`.
 [Параметры и пример](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#настраиваемые-поля)
 
 ## Запуск серверного агента

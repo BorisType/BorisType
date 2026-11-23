@@ -96,10 +96,12 @@ HTTP 500. Если вызывающий код использует свой eva
 - `objects.getForm/get/save/patch(input)` — раскрытая XMD и XML объектов. ID
   передаётся строкой, replace и patch требуют token полного чтения. `.details` у `WshcmObjectError`
   сохраняет phase/writeStatus/id, включая неизвестный исход Save.
-- `objects.listTypes({kind?,objectType?,offset?,limit?,includeCustomFields?})` —
-  реестр типов и каталогов с нативной связью между ними. При запросе
-  по точному `objectType` можно получить определения настроенных полей
-  и шаблонов.
+- `objects.listTypes({kind?,objectType?,offset?,limit?})` — реестр типов
+  и каталогов с нативной связью между ними. Для поиска настраиваемых полей
+  и шаблонов используйте `customFields.list`.
+- `objects.listDataTypes({objectType?,primaryObjectType?,secondaryObjectType?,offset?,limit?})`
+  читает справочник `object_data_types`. `objectType` подходит для любой
+  стороны связи. В ответе есть точные ID и типы обеих сторон.
 - `objects.delete({id,readToken})` — перемещение одного документа в корзину
   после проверки полного XML и формы из чтения. `WshcmObjectDeleteError.details`
   сохраняет известный ID и исход попытки.
@@ -171,14 +173,26 @@ platform code. При неизвестном исходе установите �
 
 ## Определения настраиваемых полей
 
+`api.customFields.list({objectType, offset?, limit?})` даёт компактную
+страницу зарегистрированных шаблонов. Для `request` ответ содержит
+`templateType: "request_type"` и `templateSelector: "request_type_id"`.
+У строки есть `templateId`, доступное название и счётчики полей и страниц.
+Для полного чтения передайте тип владельца и точный ID в `scope`.
+
 `api.customFields.get({scope})` читает поля, страницы и коды типов из общего
 документа HCM. Область `{objectType: "subdivision"}` адресует общие определения.
 Область `{objectType: "request_type", templateId: "6405466310999430311"}`
 адресует один существующий тип заявки. У ненастроенного шаблона `exists: false`.
 
 `api.customFields.patch({scope, revision, operations, dryRun?})` применяет
-операции `upsertField`, `moveField`, `removeField`, `upsertPage`, `movePage`
-и `removePage`. Оба контракта доступны в `wshcmSchemas.customFields`.
+операции `upsertField`, `renameField`, `moveField`, `removeField`,
+`upsertPage`, `movePage`, `removePage` и `removeTemplate`. Последняя
+удаляет конфигурацию одной записи по `scope.templateId`. Схемы доступны
+в `wshcmSchemas.customFields`. Чтение и запись включают заданные формулы,
+условия видимости и проверки значения, фильтр каталога, оформление и доступ
+к страницам по роли и точному ID группы. Пропущенные свойства сохраняются.
+[Параметры расширенных настроек](https://github.com/BorisType/BorisType/blob/main/packages/mcp-server/README.md#настраиваемые-поля)
+
 Revision нужно получить чтением этой области в том же экземпляре SDK.
 Изменение любой области общего документа конфликтует с устаревшей ревизией.
 Хранятся до 16 снимков с ограничением 512 KiB UTF-8 на XML реестра и
@@ -232,14 +246,20 @@ Settings поддерживают `customTemplates`, `processCustomTemplates`,
 `processAccessRoles`, `files:[{code,type,url,baseUrl?}]`. После мутации перечитайте
 revision. Снимок и recheck общего XML не дают atomic CAS между клиентами.
 
-Экспорт требует ровно один источник: `{schemaId,revision}` или `{objectIds}`.
-Object IDs всегда десятичные строки. `includeCategories`, `includeRelatedObjects`,
+Для экспорта схемы укажите `{schemaId,revision}`. Для разового архива
+передайте `objectIds`, `customTemplates` или оба параметра. Например,
+`exportPackage({customTemplates:["request_type"]})` собирает ZIP с определениями
+всех настроенных типов заявок. Object IDs всегда десятичные строки.
+`includeCategories`, `includeRelatedObjects`,
 `includeFiles`, `includeAssessmentItems` выключены по умолчанию. Related использует
 только native XMD/foreign связи: `wvars`/`mode` resolvers отсутствуют; полное
 транзитивное замыкание не обещается.
 
 Результат экспорта содержит status, проверку `archive_membership`, страницу objects,
 missingIds/missingCount и artifact с artifactId/localPath/mimeType/sizeBytes/sha256/expiresAt.
+`customTemplateTypes` перечисляет типы, вошедшие в архив. Выбранные типы,
+которые HCM пропустил, попадают в `missingCustomTemplates` и дают `partial`
+при прямом экспорте и экспорте сохранённой схемы.
 Файлы живут на **машине SDK**, в `~/.boristype/package-artifacts`, переживают сеанс;
 handle действует 24 часа. Абсолютный каталог можно задать через
 `new WshcmPackages(evaluator, { artifactDirectory })` или через третий аргумент
@@ -258,7 +278,8 @@ Import флаги `skipConflictingIds`, `allowVersionMismatch`, `allowReimport`,
 `includeCustomTemplates`, `includeAccessRoles`, `includeFiles`, `includeDeletions`,
 `includeLists` по умолчанию false. Поддерживаются objects/courses/web/custom_file;
 остальные типы отклоняются до применения. custom_file требует destination ниже
-`x-local://custom/`. Дополнительные типы и extras ещё не прошли native acceptance.
+`x-local://custom/`. На Linux C/PostgreSQL проверен импорт объектов и
+пакета только с определениями через `includeCustomTemplates: true`.
 
 ZIP ≤128 MiB; expanded bytes ≤512 MiB; ≤10000 entries; ZIP depth ≤2; XML ≤32 MiB;
 input objectIds ≤10000; страницы default 100, limit 1–1000; chunk 256 KiB.

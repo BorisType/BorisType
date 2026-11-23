@@ -99,7 +99,7 @@ test("partial XML patch through built CLI, stdio and native SOAP", { timeout: 18
       assert.deepEqual(await owned(), []);
       await client.connect(transport, { timeout: 35_000 });
       const { tools } = await client.listTools();
-      assert.equal(tools.length, 32);
+      assert.equal(tools.length, 33);
       assert.ok(tools.some(({ name }) => name === "wshcm_patch_object"));
       record.protocol = {
         carrier: "built CLI / JSON-RPC stdio / SP-XML SOAP / Linux C-runtime",

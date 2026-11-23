@@ -16,8 +16,8 @@ static source, JS/mock, managed tests и native C-runtime.
   известного Datex callback exit 139 с неизвестной причиной.
 - [Переносимые skills и основания проверки](agent-skills.md): независимые
   references, installed artifacts, единичные application passes и admin UI evidence.
-- [Журнал веб-администратора](admin-journal.md): объяснённые пользователем маршруты,
-  проверенные экраны и границы наблюдений на конкретном стенде.
+- [Журнал админки и портала](admin-journal.md): маршруты, наблюдения на стенде
+  и основания для рецептов в скиллах.
 
 Переносимые пользовательские знания — в [websoft-hcm](../../skills/websoft-hcm/SKILL.md),
 сценарии tools — [boristype-mcp](../../skills/boristype-mcp/SKILL.md), browser route —

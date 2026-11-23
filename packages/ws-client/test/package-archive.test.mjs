@@ -90,7 +90,7 @@ async function inspect(t, bytes) {
 
 test("desc.xml and nested update.xml preserve large IDs and expose actual package metadata", async (t) => {
   const xml = update(
-    "<custom_templates><cost_center><fields><field><name>sample</name></field></fields></cost_center></custom_templates><access_roles><access_role><id>role</id></access_role></access_roles><lists><languages><language><id>ru</id></language></languages></lists><deleted_objects><object><id>0x20000000000002</id></object></deleted_objects>",
+    "<custom_templates><cost_center><fields><field><name>sample</name></field></fields></cost_center><request_type><items><item><id>0x20000000000004</id></item></items></request_type></custom_templates><access_roles><access_role><id>role</id></access_role></access_roles><lists><languages><language><id>ru</id></language></languages></lists><deleted_objects><object><id>0x20000000000002</id></object></deleted_objects>",
   );
   const nested = inner(xml);
   const result = await inspect(t, outer(desc(), nested));
@@ -102,6 +102,7 @@ test("desc.xml and nested update.xml preserve large IDs and expose actual packag
       serverVersion: "2025.2.1333",
       objects: [{ id: "9007199254740993", type: "cost_center", name: "Exact & intact" }],
       hasCustomTemplates: true,
+      customTemplateTypes: ["cost_center", "request_type"],
       hasAccessRoles: true,
       hasLists: true,
       deletedObjectIds: ["9007199254740994"],

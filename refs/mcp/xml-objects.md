@@ -69,11 +69,35 @@ validation запрос handler не вызывает. Локальная object
 Настроенные поля берутся из `custom_templates`. В поставляемом
 `wtv_tools.xml` метод `get_custom_template` читает общие `fields` и
 по контексту выбирает запись из `items` или переходит через
-`template_field`. Для реестра читаются определения в обоих слоях.
+`template_field`. Инструмент определений в режиме `list` читает страницу
+зарегистрированных строк `items`, включая пустые и строки только со страницами.
+Выбранная строка адресуется через `scope.objectType = templateType` и
+`scope.templateId = templates[].templateId`. Режим поиска сверяет кэш и
+хранилище на отвечающем узле. Чтение `scope` получает полный снимок для
+ревизии. Порядок страниц следует реестру на момент каждого вызова.
 На стенде у `subdivision` есть общее поле `is_department`, а у
 `request` — 16 шаблонов типа `request_type` с полями. На C-runtime
 `template_field_id` читается напрямую как свойство, `ChildExists`
 его не обнаруживает. [Datex get_custom_template](https://wshcm-docs.boristype.dev/news/monolith/6680799737529721815.html#get-custom-template)
+
+На HCM 2025.2.1333 нативный CLI/stdio тест создал шаблон типа заявки с
+одной страницей и без полей. Список для `request` вернул его точный ID
+и `pageCount: 1`. Проверены отдельная страница списка по `offset/limit`,
+поиск по типу владельца и `CacheMismatch` при расхождении с хранилищем.
+Чтение области по возвращённым типу и ID показало ту же страницу.
+После очистки реестр восстановлен побайтно.
+[Проверка через CLI](../../packages/mcp-server/test/e2e/custom-fields.mjs)
+
+В той же поставке `interval_schedule.presence_state_id` указывает на
+раздел `presence_state_interval_schedule`. Его `item.id` ссылается
+через `FOREIGN-ARRAY` на каталог `presence_states`, а документ
+владельца имеет корень `presence_state`. При разных именах код проверяет
+ID и тип через `OptForeignElem` на отдельном элементе формы, сохраняя
+проверку существующего документа. Декларация `OptForeignElem` есть в
+`lib/xmlelem/index.d.ts` на ревизии `1d76d40c87ad6a9c249bd16f1bfea035dd815940`
+репозитория `wshcmx/types`. Нативный тест проверил чтение, `dryRun` и
+отказ для ID типа заявки в этой области.
+[Datex OptForeignElem](https://wshcm-docs.boristype.dev/news/monolith/6934960024317591784.html#optforeignelem)
 
 [Исследование настраиваемых полей](../research/mcp/custom-field-templates.md)
 разбирает общий документ, привязку формы заявки к конкретному `request_type`
