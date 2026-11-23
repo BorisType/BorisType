@@ -1,5 +1,11 @@
 # @boristype/bt-ir
 
+## 0.1.0-alpha.8
+
+### Minor Changes
+
+- 56b2d84: Use `bare` as the only supported compile mode in this alpha series. Configurations that select `script` or `module` must be updated before they can use this release. The previous implementations and regression suites are preserved in the `archive/compiler-modes` branch.
+
 ## 0.1.0-alpha.7
 
 ### Patch Changes

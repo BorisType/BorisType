@@ -1,5 +1,16 @@
 # @boristype/ws-client
 
+## 0.1.0-alpha.10
+
+### Minor Changes
+
+- 56b2d84: Read and edit custom-field formulas, validation, ordered visibility conditions, catalog filters, help text and styling. Update page access by role or exact group ID and rename field definitions in place. Use `removeTemplate` to remove the configured fields and pages for a single record.
+- 56b2d84: List configured object data types with `wshcm_list_object_data_types` or `api.objects.listDataTypes`. Filter by an object type on either side or require exact types on specific sides. Results include exact IDs and both sides for follow-up queries or custom-field reads.
+- 56b2d84: Export custom field and page definitions by native object type, on their own or alongside object IDs, without saving a package schema. Export and inspection report the template types found in the ZIP. Both direct and saved-schema exports report explicitly selected types that HCM omitted.
+- 56b2d84: Discover registered custom-field templates with `wshcm_get_custom_field_definitions({mode: "list", objectType})` or `api.customFields.list({objectType})`. The paginated result includes the owner type, selector, and summaries for empty and page-only templates. Read a specific `scope` for full definitions and a revision.
+
+  The object type registry removes the `includeCustomFields` input and the `customFields` result. Use the new discovery mode for template metadata.
+
 ## 0.1.0-alpha.9
 
 ### Minor Changes
