@@ -166,20 +166,23 @@ test(
       assert.equal(definitions.writeStatus, "saved");
       const templateTypes = ["cost_center"];
       if (await ev("return EncodeJson(custom_templates.request_type.items.ChildNum > 0);")) templateTypes.push("request_type");
+      const selectedTypes = [...templateTypes, fieldName];
       await call("save_package_schema", {
         schemaId,
         revision: schema.revision,
         name: marker + "-renamed",
-        settings: { customTemplates: templateTypes, processCustomTemplates: true },
+        settings: { customTemplates: selectedTypes, processCustomTemplates: true },
         operationId: operationId(),
       });
       schema = await call("get_package_schema", { schemaId });
       assert.equal(schema.name, marker + "-renamed");
       assert.equal(schema.settings.processCustomTemplates, true);
-      assert.deepEqual(schema.settings.customTemplates, templateTypes);
+      assert.deepEqual(schema.settings.customTemplates, selectedTypes);
       const configured = await call("export_package", { schemaId, revision: schema.revision, operationId: operationId() });
       assert.equal(configured.objects.total, 1);
       assert.deepEqual(configured.customTemplateTypes.slice().sort(), templateTypes);
+      assert.deepEqual(configured.missingCustomTemplates, [fieldName]);
+      assert.equal(configured.status, "partial");
       await call("delete_package_schema", { schemaId, revision: schema.revision, operationId: operationId() });
       schemaId = undefined;
       assert.equal(await e.eval("return OpenDoc('x-local://'+DefaultDb+'/lists/wtv_package_objects.xml').TopElem.GetXml();"), baseline);

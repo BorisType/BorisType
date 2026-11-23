@@ -245,6 +245,11 @@ function BtCfUpdatePage(page, patch, role) {
     }
 }
 
+function BtCfCheckPageRemoval(page, role) {
+    if (role != 'admin' && (page.user_access_role.HasValue || page.user_group_id.HasValue))
+        throw 'AccessDenied: Removing an access-restricted page requires an HCM administrator';
+}
+
 function BtCfMove(items, item, op) {
     var after = op.HasProperty('after');
     var key = after ? op.after : op.before;
@@ -269,6 +274,7 @@ function BtCfApply(owner, node, req, role) {
         if (op.op == 'removeTemplate') {
             if (!req.scope.HasProperty('templateId')) throw 'InvalidScope: Removing a template requires a per-record scope';
             if (node == undefined) throw 'NotFound: Template is not configured';
+            if (role != 'admin') for (item in node.sheets) BtCfCheckPageRemoval(item, role);
             node.Delete();
             node = undefined;
             continue;
@@ -290,7 +296,10 @@ function BtCfApply(owner, node, req, role) {
             if (op.op == 'renameField') {
                 if (list.GetOptChildByKey(op.newName) != undefined) throw 'FieldExists: This field name is already in use';
                 item.name = op.newName;
-            } else if (op.op == 'removeField' || op.op == 'removePage') item.Delete();
+            } else if (op.op == 'removeField' || op.op == 'removePage') {
+                if (op.op == 'removePage') BtCfCheckPageRemoval(item, role);
+                item.Delete();
+            }
             else BtCfMove(list, item, op);
         }
     }

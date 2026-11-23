@@ -380,7 +380,7 @@ test("direct export preserves common schema and retains partial artifact for mis
   }
 });
 
-test("direct template-only export reports requested types absent from the ZIP", async (t) => {
+test("direct and saved-schema export report requested template types absent from the ZIP", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "bt-template-export-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const bytes = zip([
@@ -417,6 +417,16 @@ test("direct template-only export reports requested types absent from the ZIP", 
   assert.equal(result.status, "partial");
   assert.equal((await service.getOperation({ operationId: result.operationId })).status, "partial");
   assert.equal(p.saves, 0);
+
+  const schema = await service.saveSchema({
+    name: "Templates",
+    settings: { processCustomTemplates: true, customTemplates: ["subdivision", "empty_type"] },
+  });
+  const { revision } = await service.getSchema({ schemaId: schema.schemaId });
+  const configured = await service.exportPackage({ schemaId: schema.schemaId, revision });
+  assert.deepEqual(configured.missingCustomTemplates, ["empty_type"]);
+  assert.equal(configured.status, "partial");
+  assert.equal((await service.getOperation({ operationId: configured.operationId })).status, "partial");
 });
 
 test("a native finish rejection preserves the acknowledged export and its artifact", async (t) => {

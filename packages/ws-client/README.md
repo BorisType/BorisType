@@ -257,8 +257,9 @@ revision. Снимок и recheck общего XML не дают atomic CAS ме
 
 Результат экспорта содержит status, проверку `archive_membership`, страницу objects,
 missingIds/missingCount и artifact с artifactId/localPath/mimeType/sizeBytes/sha256/expiresAt.
-`customTemplateTypes` перечисляет типы, вошедшие в архив. Отсутствующие
-типы прямого экспорта попадают в `missingCustomTemplates` и дают `partial`.
+`customTemplateTypes` перечисляет типы, вошедшие в архив. Выбранные типы,
+которые HCM пропустил, попадают в `missingCustomTemplates` и дают `partial`
+при прямом экспорте и экспорте сохранённой схемы.
 Файлы живут на **машине SDK**, в `~/.boristype/package-artifacts`, переживают сеанс;
 handle действует 24 часа. Абсолютный каталог можно задать через
 `new WshcmPackages(evaluator, { artifactDirectory })` или через третий аргумент

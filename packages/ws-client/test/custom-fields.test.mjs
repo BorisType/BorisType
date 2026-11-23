@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { WshcmApi, WshcmDispatchError } from "../build/index.js";
@@ -22,6 +23,31 @@ const operations = [
   { op: "upsertField", name, set },
 ];
 const wire = (data) => JSON.stringify(JSON.stringify(data));
+
+test("deleting an access-restricted page or template requires an administrator", () => {
+  const native = readFileSync(new URL("../resources/custom-field-definitions.bs", import.meta.url), "utf8");
+  const functions = native.slice(0, native.lastIndexOf("\nreturn EncodeJson"));
+  const source = functions.replace(/for \((\w+) in (req\.operations|node\.sheets|node\.fields)\)/g, "for ($1 of $2)");
+  for (const operation of [{ op: "removePage", id: "details" }, { op: "removeTemplate" }]) {
+    const deleted = [];
+    const page = { user_access_role: { HasValue: true }, user_group_id: { HasValue: false }, Delete: () => deleted.push("page") };
+    const sheets = Object.assign([page], { GetOptChildByKey: () => page });
+    const node = { fields: [], sheets, Delete: () => deleted.push("template") };
+    const run = (role) =>
+      runInNewContext(`${source}\nBtCfApply({}, node, req, role);`, {
+        node,
+        role,
+        req: { scope: { ...scope, HasProperty: () => true }, operations: [operation] },
+      });
+    assert.throws(
+      () => run("user"),
+      (error) => String(error).startsWith("AccessDenied:"),
+    );
+    assert.deepEqual(deleted, []);
+    run("admin");
+    assert.deepEqual(deleted, [operation.op === "removePage" ? "page" : "template"]);
+  }
+});
 
 function api(handler) {
   return new WshcmApi({

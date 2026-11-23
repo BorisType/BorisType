@@ -212,6 +212,7 @@ export class WshcmPackages {
         z.strictObject({
           sizeBytes: z.number().int().min(0).max(134217728),
           requestedIds: z.array(z.string()).max(10000),
+          requestedCustomTemplates: z.array(z.string()).max(1000),
           errors: z.array(z.string()).max(10000),
           operation: operationResult,
         }),
@@ -238,7 +239,7 @@ export class WshcmPackages {
         const actual = new Set(objects.map((o) => o.id));
         const missing = [...new Set([...(args.objectIds ?? []), ...result.requestedIds])].filter((id) => !actual.has(id));
         const templateTypes = new Set(archive.packages.flatMap((part) => part.customTemplateTypes ?? []));
-        const missingCustomTemplates = (args.customTemplates ?? []).filter((type) => !templateTypes.has(type));
+        const missingCustomTemplates = [...new Set(result.requestedCustomTemplates)].filter((type) => !templateTypes.has(type));
         const partial = missing.length > 0 || missingCustomTemplates.length > 0 || result.errors.length > 0;
         result.operation = await packageNative(this.evaluator, { operation: "finish_export", operationId, partial }, operationResult);
         const cleanupError = await cleanup();
