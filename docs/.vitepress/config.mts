@@ -42,6 +42,16 @@ export default defineConfig({
         ],
       },
       {
+        text: "Инструменты MCP",
+        items: [
+          { text: "Стенд, запросы и выполнение кода", link: "/reference/mcp-execution" },
+          { text: "Каталоги, формы и документы", link: "/reference/mcp-objects" },
+          { text: "Настраиваемые поля и страницы", link: "/reference/mcp-custom-fields" },
+          { text: "Файлы и каталоги HCM", link: "/reference/mcp-files" },
+          { text: "Пакеты объектов и ZIP", link: "/reference/mcp-packages" },
+        ],
+      },
+      {
         text: "Компиляция и поставка кода",
         items: [
           { text: "Начало работы", link: "/guides/getting-started" },

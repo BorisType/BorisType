@@ -7,7 +7,8 @@ export function registerWriteFileTool(server: McpServer, api: WshcmApi): void {
     "wshcm_write_file",
     {
       description:
-        "Create a UTF-8 BOM file via automatically managed BorisType.FileSystem/API 2. Default mode create NEVER overwrites. mode overwrite requires a readToken covering the entire current file in this MCP instance. Mutation consumes token. Up to 1 MiB including BOM; parent must exist, links/readonly files rejected. External writes after the final check remain possible.",
+        "Write a complete UTF-8 BOM file up to 1 MiB including BOM. Default mode create requires a free name and an existing parent (see wshcm_create_directory). For overwrite, read the entire current file with wshcm_read_file and pass its readToken. For a partial change use wshcm_edit_file. " +
+        "Returns plain text 'File written: <path>'. Reread after an overwrite attempt. Other processes can write between the final comparison and rename.",
       inputSchema: wshcmSchemas.files.write,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },

@@ -7,7 +7,8 @@ export function registerSystemInfoTool(server: McpServer, api: WshcmApi): void {
     "wshcm_get_system_info",
     {
       description:
-        "Read HCM environment information from the platform's About/System Information report: HCM, OS, database and Unibridge versions, run mode, cluster, full-text index and personal-data flags. Returns JSON with summary; missing or unrecognized summary fields are null. Set includeReport=true to include the complete native report (INI/XML/global settings), without additional redaction. Reports over 256 KiB UTF-8 are rejected whole. No BorisType file DLL is required; no retries or cluster-wide snapshot guarantee.",
+        "Identify the answering HCM process using the native About/System Information report. Call with {} for summary: HCM, OS, database, Unibridge, run mode, cluster, full-text and personal-data flags. Unknown fields are null. " +
+        "Use includeReport=true for the complete native configuration text without additional redaction. Reports over 256 KiB UTF-8 fail even for summary alone. Use wshcm_runtime_status to diagnose the file DLL. No file DLL is needed to read this report.",
       inputSchema: wshcmSchemas.systemInfo,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },

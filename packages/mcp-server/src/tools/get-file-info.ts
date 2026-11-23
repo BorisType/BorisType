@@ -7,7 +7,7 @@ export function registerGetFileInfoTool(server: McpServer, api: WshcmApi): void 
     "wshcm_get_file_info",
     {
       description:
-        "Get file/directory name, type, UTC modification time and sizeBytes for files via automatically managed BorisType.FileSystem/API 2. Does not read content or grant a readToken. Supports binary files and files larger than the text budget. Links/junctions are rejected.",
+        "Inspect one physical HCM x-local:// entry before deciding how to handle it. Returns name, isDirectory, modifiedUtc and, for a file, sizeBytes. Works for binary and large files. Links/junctions are rejected. Use wshcm_read_file for text and a readToken.",
       inputSchema: wshcmSchemas.files.info,
       annotations: { readOnlyHint: true, destructiveHint: false },
     },

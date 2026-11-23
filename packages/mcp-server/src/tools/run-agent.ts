@@ -7,7 +7,8 @@ export function registerRunAgentTool(server: McpServer, api: WshcmApi): void {
     "wshcm_run_agent",
     {
       description:
-        "Launch an existing BorisScript server agent on a standalone HCM server by its exact ID. Async returns accepted. Sync waits up to waitTimeoutMs and returns ended or wait_timeout. Ended describes the thread lifecycle. A wait or connection timeout does not cancel the run. Pass declared string params to override defaults for this run, and optional object context IDs. Check the agent's actual effects before retrying an unknown outcome.",
+        "Launch an existing BorisScript server_agent by exact decimal agentId on standalone HCM. params overrides declared string parameters for this run. objectId sets OBJECT_ID and objectIds sets semicolon-delimited OBJECTS_ID_STR. " +
+        "Default async returns {agentId,status:'accepted'}. Sync waits for the thread up to waitTimeoutMs (default 5000, max 20000) and returns ended or wait_timeout. Verify the agent's business effects separately. Wait expiry and connection loss do not cancel the run.",
       inputSchema: wshcmSchemas.runAgent,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
