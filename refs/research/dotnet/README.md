@@ -12,6 +12,7 @@
 | [Read-aware nine tools](13-read-aware-files-results.md)      | Alpha.4/API 2, grant chain/rename и independent cleanup                                    | [Files/read grants](../../dotnet/files-and-read-grants.md) |
 | [URL schemes](14-path-schemes-research.md)                   | 27+23+3 resolver inputs, managed alias-read; не новые MCP schema inputs                    | [Paths/storage](../../platform/paths-and-storage.md)       |
 | [SQL storage routing](15-url-storage-routing-research.md)    | Blob/disk priority/hydration, root config negatives и restored ini hash                    | [Paths/storage](../../platform/paths-and-storage.md)       |
+| [Kestrel и side-by-side DLL](16-http-mapping-transport.md)   | Динамический маршрут, два major, холодный старт после сбоя, портал и SOAP identity         | [.NET](../../dotnet/README.md)                             |
 
 Проверки относятся к Linux HCM 2025.2.1333/CLR 9.0.11, если в самом отчёте
 не оговорён иной слой. Windows managed CI не означает Windows HCM acceptance.

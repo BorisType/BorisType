@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>BorisType.HttpMappingProbe</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Reference Include="Websoft.Commons" HintPath="$(WebsoftReferenceDir)/Websoft.Commons.dll" Private="false" />
+    <Reference Include="Datex.log" HintPath="$(WebsoftReferenceDir)/Datex.log.dll" Private="false" />
+  </ItemGroup>
+</Project>
