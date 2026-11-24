@@ -49,15 +49,38 @@ const boundedXml = z
   .string()
   .max(objectXmlBytes)
   .refine((xml) => xml.isWellFormed() && Buffer.byteLength(xml, "utf8") <= objectXmlBytes);
-const patchInput = z.strictObject({ id: objectId, readToken: z.uuid(), xml: boundedXml, dryRun: z.boolean().default(false) });
+const filePath = z.string().min(1).max(4096);
+const outputFields = {
+  outputMode: z.enum(["inline", "file"]).optional().describe("Return XML text or a new .xml file. File input defaults to file output."),
+  outputPath: filePath.optional().describe("New .xml file inside the project or shared/objects. Implies file output."),
+};
+const xmlSource = {
+  xml: boundedXml.optional(),
+  inputPath: filePath.optional().describe("UTF-8 .xml file on the MCP host. Relative paths require one project root."),
+};
+function validOutput(input: { outputMode?: string; outputPath?: string }) {
+  return input.outputMode !== "inline" || input.outputPath === undefined;
+}
+function validSource(input: { xml?: string; inputPath?: string }) {
+  return (input.xml === undefined) !== (input.inputPath === undefined);
+}
+const outputMessage = "outputPath requires file output";
+const sourceMessage = "Provide exactly one of xml or inputPath";
+const patchInput = z
+  .strictObject({ id: objectId, readToken: z.uuid(), ...xmlSource, ...outputFields, dryRun: z.boolean().default(false) })
+  .refine(validSource, sourceMessage)
+  .refine(validOutput, outputMessage);
 const saveInput = z
   .strictObject({
     mode: z.enum(["create", "replace"]),
     formUrl: formUrl.optional(),
     id: objectId.optional(),
     readToken: z.uuid().optional(),
-    xml: boundedXml.describe("Full object XML; omitted fields are removed on replace"),
+    ...xmlSource,
+    ...outputFields,
   })
+  .refine(validSource, sourceMessage)
+  .refine(validOutput, outputMessage)
   .superRefine((input, context) => {
     if (
       input.mode === "create"
@@ -95,8 +118,8 @@ export const wshcmSchemas = {
   objects: {
     listTypes: objectTypesInputSchema,
     listDataTypes: objectDataTypesInputSchema,
-    getForm: z.strictObject({ formUrl }),
-    get: z.strictObject({ id: objectId }),
+    getForm: z.strictObject({ formUrl, ...outputFields }).refine(validOutput, outputMessage),
+    get: z.strictObject({ id: objectId, ...outputFields }).refine(validOutput, outputMessage),
     save: saveInput,
     patch: patchInput,
     delete: z.strictObject({ id: objectId, readToken: z.uuid() }),

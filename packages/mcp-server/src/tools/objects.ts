@@ -22,6 +22,9 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
   const writeAnnotations = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true };
   const description =
     " Form loading and hooks may execute code. The XML API has no file DLL dependency, atomic compare-and-save or UI workflow guarantee.";
+  const xmlOutput =
+    " Use outputMode:'file' for a temporary UTF-8 XML file in shared/objects (24h), or outputPath for a new .xml in the project. Returns file.path in file mode. Relative paths require one project root.";
+  const xmlInput = " Supply exactly one of xml or inputPath. A file input defaults to file output. Set outputMode:'inline' for XML text.";
   server.registerTool(
     "wshcm_list_object_types",
     {
@@ -72,9 +75,10 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     {
       description:
         "Read the loaded XMD by formUrl from wshcm_list_object_types or wshcm_get_object. Returns formUrl, root and expanded schema in xml for inspecting paths, types and array keys. Platform inheritance is resolved at load time. Dependencies and cache freshness are platform-specific. Use wshcm_get_custom_field_definitions for configured fields and pages." +
+        xmlOutput +
         description,
       inputSchema: wshcmSchemas.objects.getForm,
-      annotations: readAnnotations,
+      annotations: { ...readAnnotations, readOnlyHint: false },
     },
     (input) => objectResult(() => api.objects.getForm(input)),
   );
@@ -83,9 +87,10 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     {
       description:
         "Open one HCM document by exact decimal id. Returns id, formUrl, root, full exported xml and a fresh readToken for wshcm_patch_object, full replacement or deletion. XML or schema over 256 KiB is rejected whole. A new read of this id replaces its token in this MCP instance. Tokens expire after 30 minutes." +
+        xmlOutput +
         description,
       inputSchema: wshcmSchemas.objects.get,
-      annotations: readAnnotations,
+      annotations: { ...readAnnotations, readOnlyHint: false },
     },
     (input) => objectResult(() => api.objects.get(input)),
   );
@@ -94,6 +99,8 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     {
       description:
         "Create a document with {mode:'create',formUrl,xml}, or fully replace one with {mode:'replace',id,readToken,xml} from a complete read. Omitted fields are removed or reset on replace. For partial changes use wshcm_patch_object. Checks XML syntax, root/identity, known fields, cardinality and integer range. Success returns the id and saved XML readback. A handled replace consumes the token. Check writeStatus and known id on errors: saved can accompany a failed readback, unknown needs an independent check before retry." +
+        xmlInput +
+        xmlOutput +
         description,
       inputSchema: wshcmSchemas.objects.save,
       annotations: writeAnnotations,
@@ -105,6 +112,8 @@ export function registerObjectTools(server: McpServer, api: WshcmApi): void {
     {
       description:
         "Patch fields of one existing document with {id,readToken,xml,dryRun?} from a fresh wshcm_get_object read. Omitted fields are preserved. Keyed arrays merge by primary key; supplying an unkeyed group replaces all its entries. bt-mode supports replace, replace-array, clear and keyed remove. Every handled attempt consumes the token, including dryRun, invalid XML and no-op. Preview returns changed and candidate xml. Reread before apply. No-op skips Save. Saved xml reflects readback after hooks. Verify uncertain writes before retry." +
+        xmlInput +
+        xmlOutput +
         description,
       inputSchema: wshcmSchemas.objects.patch,
       annotations: writeAnnotations,

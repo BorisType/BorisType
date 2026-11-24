@@ -1,9 +1,10 @@
+import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { randomUUID, createHash } from "node:crypto";
 import { mkdtemp, writeFile, readFile, rm, mkdir, readdir, chmod } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { join, parse, resolve } from "node:path";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { createServer } from "../build/index.js";
 import { packagePlatform, packageExportPlatform } from "../../ws-client/test/helpers/package-platform.mjs";
@@ -22,8 +23,8 @@ const names = [
   "get_package_operation",
 ];
 const id = "9007199254740993";
-async function connect(t, evaluator = { eval: () => assert.fail("Unexpected native call") }) {
-  const server = createServer({ evaluator });
+async function connect(t, evaluator = { eval: () => assert.fail("Unexpected native call") }, options) {
+  const server = createServer({ evaluator }, options);
   const client = new Client({ name: "packages-test", version: "1" });
   const [a, b] = InMemoryTransport.createLinkedPair();
   t.after(async () => {
@@ -134,6 +135,7 @@ for (const [name, args] of [
   ["save_package_schema", { schemaId: "a", name: "missing revision" }],
   ["get_package_schema", { schemaId: "a", limit: 1001 }],
   ["inspect_package", { localPath: "relative.zip" }],
+  ["inspect_package", { localPath: "same.zip", inputPath: "same.zip" }],
   ["import_package", { inspectionId: randomUUID(), includeWvars: true }],
 ])
   test(`invalid ${name} never dispatches`, async (t) => {
@@ -149,11 +151,22 @@ test("large validation errors remain bounded JSON with an explicit truncated mar
   assert.equal(failed.truncated, true);
 });
 
-test("generic local failures are bounded and do not dump archive bytes", async (t) => {
-  const client = await connect(t);
-  const failed = await call(client, "inspect_package", { localPath: join(tmpdir(), "missing-package-" + randomUUID() + ".zip") }, true);
-  assert.equal(typeof failed.message, "string");
-  assert.equal(failed.code, "PackageToolError");
+test("inspect reports a missing local ZIP before contacting HCM", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "bt-missing-package-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const inbox = join(dir, "import");
+  await mkdir(inbox);
+  const platform = packagePlatform();
+  const client = await connect(t, platform.evaluator, { projectDirectory: dir });
+  for (const localPath of [join(inbox, "missing.zip"), "missing-folder/agents.zip"]) {
+    const failed = await call(client, "inspect_package", { localPath }, true);
+    assert.equal(platform.calls, 0);
+    assert.equal(failed.status, "not_attempted");
+    assert.equal(failed.phase, "input");
+    assert.equal(failed.code, "PackageFileNotFound");
+    assert.match(failed.message, /file not found/i);
+    assert.ok(failed.message.includes(resolve(dir, localPath)));
+  }
 });
 
 test("large schema pages have bounded text and a continuation that loses no members", async (t) => {
@@ -175,23 +188,7 @@ test("large schema pages have bounded text and a continuation that loses no memb
 
 test("export/inspect/import through the registered tools retain immutable bytes and full-snapshot defaults", async (t) => {
   const local = await mkdtemp(join(tmpdir(), "bt-mcp-packages-"));
-  const ownedArtifacts = new Set();
-  t.after(async () => {
-    for (const path of ownedArtifacts) {
-      await rm(path, { force: true });
-      await rm(
-        join(
-          dirname(path),
-          path
-            .split(/[\\/]/)
-            .at(-1)
-            .replace(/\.zip$/, ".json"),
-        ),
-        { force: true },
-      );
-    }
-    await rm(local, { recursive: true, force: true });
-  });
+  t.after(() => rm(local, { recursive: true, force: true }));
   let p;
   let selected;
   p = packagePlatform({
@@ -231,19 +228,21 @@ test("export/inspect/import through the registered tools retain immutable bytes 
       },
     },
   });
-  const client = await connect(t, p.evaluator);
-  const exported = await call(client, "export_package", { objectIds: [id] });
-  ownedArtifacts.add(exported.artifact.localPath);
+  const sharedDirectory = join(local, "shared");
+  const exporter = await connect(t, p.evaluator, { packageArtifactDirectory: join(local, "source-private"), sharedDirectory });
+  const client = await connect(t, p.evaluator, { packageArtifactDirectory: join(local, "target-private"), sharedDirectory });
+  const exported = await call(exporter, "export_package", { objectIds: [id] });
   assert.equal(exported.status, "completed");
   assert.equal(exported.verification, "archive_membership");
   const bytes = await readFile(exported.artifact.localPath);
   assert.equal(bytes.length, exported.artifact.sizeBytes);
   assert.equal(createHash("sha256").update(bytes).digest("hex"), exported.artifact.sha256);
   assert.ok(!JSON.stringify(exported).includes(bytes.toString("base64")));
-  const source = join(local, "source.zip");
-  await writeFile(source, bytes);
-  const preview = await call(client, "inspect_package", { localPath: source, limit: 1 });
-  ownedArtifacts.add(preview.artifact.localPath);
+  assert.equal(exported.file.storage, "shared");
+  assert.ok(Date.parse(exported.file.expiresAt) > Date.now());
+  const source = exported.file.path;
+  assert.deepEqual(await readFile(source), bytes);
+  const preview = await call(client, "inspect_package", { inputPath: source, limit: 1 });
   assert.equal(preview.items.length, 1);
   assert.equal(preview.total, 2);
   await writeFile(source, "changed original");
@@ -289,18 +288,22 @@ for (const loseAck of [false, true])
       const old = process.env.TMPDIR;
       const p = packageExportPlatform();
       let restricted;
-      const client = await connect(t, {
-        eval: async (code) => {
-          const wire = await p.evaluator.eval(code);
-          const body = JSON.parse(JSON.parse(wire)).body;
-          if (body?.phase === "downloaded" && !restricted) {
-            restricted = join(taskTmp, (await readdir(taskTmp))[0]);
-            await chmod(restricted, 0o500);
-            if (loseAck) throw Error("lost final acknowledgement");
-          }
-          return wire;
+      const client = await connect(
+        t,
+        {
+          eval: async (code) => {
+            const wire = await p.evaluator.eval(code);
+            const body = JSON.parse(JSON.parse(wire)).body;
+            if (body?.phase === "downloaded" && !restricted) {
+              restricted = join(taskTmp, (await readdir(taskTmp))[0]);
+              await chmod(restricted, 0o500);
+              if (loseAck) throw Error("lost final acknowledgement");
+            }
+            return wire;
+          },
         },
-      });
+        { sharedDirectory: join(local, "export") },
+      );
       const operationId = randomUUID();
       let artifact;
       try {
@@ -331,8 +334,8 @@ for (const loseAck of [false, true])
   );
 
 test("oversized generic filesystem diagnostics are explicitly truncated", async (t) => {
-  const client = await connect(t);
-  const failed = await call(client, "inspect_package", { localPath: join(tmpdir(), "中".repeat(4080)) }, true);
+  const client = await connect(t, undefined, { projectDirectory: tmpdir() });
+  const failed = await call(client, "inspect_package", { localPath: join(tmpdir(), "中".repeat(4080) + ".zip") }, true);
   assert.equal(failed.code, "PackageToolError");
   assert.equal(failed.truncated, true);
   assert.ok(failed.message.length <= 4096);
@@ -397,3 +400,53 @@ for (const failure of ["missing", "unreadable", "corrupt"])
     assert.equal(p.saved.find((s) => s.id === created.schemaId).name, "owned-effect");
     assert.deepEqual(p.files, before);
   });
+
+for (const version of ["2025-06-18", "2025-11-25"]) {
+  test(`package tools resolve fresh client roots on protocol ${version}`, async (t) => {
+    const dir = await mkdtemp(join(tmpdir(), "bt-client-roots-"));
+    t.after(() => rm(dir, { recursive: true, force: true }));
+    const project = join(dir, "project");
+    const fallback = join(dir, "fallback");
+    await Promise.all([mkdir(project), mkdir(fallback)]);
+    const server = createServer(
+      { evaluator: packageExportPlatform().evaluator },
+      {
+        packageArtifactDirectory: join(dir, "private"),
+        sharedDirectory: join(dir, "shared"),
+        projectDirectory: fallback,
+      },
+    );
+    const client = new Client({ name: "workspace", version: "1" }, { supportedProtocolVersions: [version], capabilities: { roots: {} } });
+    let roots = [{ uri: pathToFileURL(project).href }];
+    let requests = 0;
+    client.setRequestHandler("roots/list", () => {
+      requests++;
+      return { roots };
+    });
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    t.after(async () => {
+      await client.close();
+      await server.close();
+    });
+    await server.connect(b);
+    await client.connect(a);
+    assert.equal(server.server.getNegotiatedProtocolVersion(), version);
+    const shared = await call(client, "export_package", { objectIds: [id] });
+    assert.equal(requests, 0);
+    const exported = await call(client, "export_package", { objectIds: [id], outputPath: "agents.zip" });
+    assert.equal(exported.file.path, join(project, "agents.zip"));
+    assert.equal(requests, 1);
+    await writeFile(exported.file.path, "bad archive");
+    assert.equal((await call(client, "inspect_package", { localPath: "agents.zip" }, true)).code, "InvalidPackage");
+    roots = [{ uri: pathToFileURL(project).href }, { uri: pathToFileURL(dir).href }];
+    assert.equal((await call(client, "inspect_package", { localPath: "agents.zip" }, true)).code, "ImportPathDenied");
+    roots = [{ uri: pathToFileURL(homedir()).href }, { uri: pathToFileURL(parse(dir).root).href }, { uri: "file://remote.example/work" }];
+    assert.equal((await call(client, "inspect_package", { localPath: join(homedir(), "unavailable.zip") }, true)).code, "ImportPathDenied");
+    roots = [];
+    assert.equal((await call(client, "inspect_package", { localPath: exported.file.path }, true)).code, "ImportPathDenied");
+    assert.equal(requests, 5);
+    const local = await call(client, "export_package", { objectIds: [id], outputPath: "from-fallback.zip" });
+    assert.equal(local.file.path, join(fallback, "from-fallback.zip"));
+    assert.deepEqual(await readFile(shared.file.path), objectPackage());
+  });
+}

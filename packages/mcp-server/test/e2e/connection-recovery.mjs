@@ -156,7 +156,13 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
     const client = new Client({ name: "mcp-native-recovery", version: "1" }, { supportedProtocolVersions: ["2025-11-25"] });
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: [join(root, "packages/mcp-server/build/cli.js"), "--package-artifact-directory", artifactsDirectory],
+      args: [
+        join(root, "packages/mcp-server/build/cli.js"),
+        "--package-artifact-directory",
+        artifactsDirectory,
+        "--shared-directory",
+        join(privateDirectory, "export"),
+      ],
       env: {
         NODE_USE_ENV_PROXY: "0",
         WSHCM_HOST: "127.0.0.1",

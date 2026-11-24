@@ -21,6 +21,10 @@ export interface McpServerOptions {
   connectionTimeoutMs?: number;
   /** Absolute local directory for package ZIP snapshots and metadata. */
   packageArtifactDirectory?: string;
+  /** Absolute shared directory with packages/ and objects/ for local transfers. */
+  sharedDirectory?: string;
+  /** Project root used when the client supplies no usable local roots. */
+  projectDirectory?: string;
 }
 
 /**

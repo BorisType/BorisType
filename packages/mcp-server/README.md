@@ -222,12 +222,11 @@ includeMetadata удалён; edit требует readToken, write по умол
 возвращает `partial`, даже если штатная сборка сообщила успех. ZIP/base64 в текст
 tool response не помещается; export не создаёт `upload_package` в базе.
 
-`localPath` — абсолютный путь **на машине процесса MCP**, а не на HCM или
-удалённом клиенте. По умолчанию ZIP и метаданные находятся в
+`artifact.localPath` указывает на служебный снимок **на машине процесса MCP**. По умолчанию ZIP и метаданные находятся в
 `~/.boristype/package-artifacts`. Чтобы выбрать другой абсолютный каталог,
 передайте `--package-artifact-directory <path>`. Файлы переживают закрытие
 сеанса, handle действует 24 часа. Автоматическая уборка серверных receipt,
-native report/temp и старых локальных файлов пока не реализована. Исходный
+native report/temp и служебных снимков ZIP пока не реализована. Исходный
 пользовательский ZIP не перезаписывается; чтение не разрешает его перезапись.
 Resources/attachment upload на этом шаге не зарегистрированы.
 
@@ -237,8 +236,15 @@ Resources/attachment upload на этом шаге не зарегистриро
 { "artifactId": "<artifactId из export>", "limit": 100 }
 ```
 
-Этот input для `wshcm_inspect_package` можно заменить на
-`{"localPath":"/absolute/path/on-mcp-host/input.zip"}`. SDK копирует ZIP в собственный
+`wshcm_export_package` возвращает `file.path`. По умолчанию это `~/.boristype/shared/packages/<operationId>.zip`. Если целевой MCP видит этот каталог, передайте ему `file.path` как `inputPath`. Для переноса между машинами используйте общий том или скопируйте ZIP в проект либо в `shared/packages` целевого MCP. Синоним `localPath` у инструмента просмотра поддерживается для существующих клиентов.
+
+Чтобы сохранить ZIP в проекте, передайте `"outputPath":"agents.zip"`. Для XML формы и объекта тот же параметр задаёт имя нового `.xml`. Чтобы редактировать объект скриптом, получите файл через `wshcm_get_object`, измените его и передайте `inputPath` с прежним `readToken` в `wshcm_save_object`. Для точечной правки передайте XML с нужными полями в `wshcm_patch_object`. В обоих случаях отправьте один из `xml` и `inputPath`. Файловый вход по умолчанию возвращает файл, `outputMode: "inline"` возвращает строку.
+
+Временные ZIP и XML находятся в подпапках `packages` и `objects` каталога `--shared-directory`. Для XML временный файл запрашивается через `outputMode: "file"`. В ответе с `file.storage: "shared"` есть предупреждение и `expiresAt` через 24 часа. Stdio MCP проверяет срок при запуске и каждый час. Передайте проектный `outputPath` или скопируйте файл в проект до очистки, если он должен сохраниться. Проектными файлами управляет владелец проекта.
+
+MCP запрашивает корни проекта у клиента по `roots/list`. Для одного корня подходят относительные пути, для нескольких нужен абсолютный путь внутри выбранного корня. Если клиент не даёт подходящих корней, укажите `--project-directory /work/project`. Значение `.` явно выбирает рабочий каталог процесса. Для вывода нужны существующая подпапка и свободное имя файла.
+
+SDK проверяет путь, копирует ZIP в собственный
 артефакт и передаёт его для native preview. Ответ содержит `inspectionId`, `artifact`,
 страницу `items`, `offset/limit/total` и receipt. Строка вложенного
 пакета с определениями содержит `customTemplateTypes`. Следующая страница:
@@ -420,12 +426,11 @@ runtimeStatus:...}`. XQuery/XML не блокируются отсутствую
 
 ### XML объектов: форма, чтение, сохранение
 
-Данные остаются XML строкой. JSON используется только для MCP аргументов и
-служебного ответа; вручную вызывать `EncodeJson` не нужно. Обратной сборки XML
+По умолчанию XML приходит строкой. С `outputMode: "file"` текст доступен по `file.path`, с `outputPath` можно сразу сохранить его в проекте. Для save и patch с `inputPath` результат по умолчанию тоже файловый. Обратной сборки XML
 из JS objects нет. XML escaping (`&amp;`, `&lt;`, quotes в атрибутах) остаётся
 обычным правилом XML.
 
-`wshcm_get_form` получает загруженную платформой форму и возвращает
+При чтении в строку `wshcm_get_form` получает загруженную платформой форму и возвращает
 `{formUrl,root,xml}`, где `xml = FetchForm(formUrl).TopElem.Xml`:
 
 ```json
@@ -1017,15 +1022,17 @@ x-local://wt/myapp/src/index.bs   — файл проекта
 
 Параметры можно передать через CLI-аргументы или переменные окружения (CLI приоритетнее):
 
-| CLI аргумент                   | Env переменная   | Описание                                      | По умолчанию                     |
-| ------------------------------ | ---------------- | --------------------------------------------- | -------------------------------- |
-| `--host`                       | `WSHCM_HOST`     | Хост сервера                                  | `localhost`                      |
-| `--port`                       | `WSHCM_PORT`     | Порт сервера                                  | `80`                             |
-| `--username`                   | `WSHCM_USERNAME` | Имя пользователя                              | `user1`                          |
-| `--password`                   | `WSHCM_PASSWORD` | Пароль                                        | `user1`                          |
-| `--https`                      | `WSHCM_HTTPS`    | Использовать HTTPS                            | `false`                          |
-| `--package-artifact-directory` | —                | Абсолютный каталог локальных ZIP и метаданных | `~/.boristype/package-artifacts` |
-| `--connection-timeout-ms`      | —                | Deadline setup/probe на HTTP-запрос           | `5000`                           |
+| CLI аргумент                   | Env переменная   | Описание                                              | По умолчанию                     |
+| ------------------------------ | ---------------- | ----------------------------------------------------- | -------------------------------- |
+| `--host`                       | `WSHCM_HOST`     | Хост сервера                                          | `localhost`                      |
+| `--port`                       | `WSHCM_PORT`     | Порт сервера                                          | `80`                             |
+| `--username`                   | `WSHCM_USERNAME` | Имя пользователя                                      | `user1`                          |
+| `--password`                   | `WSHCM_PASSWORD` | Пароль                                                | `user1`                          |
+| `--https`                      | `WSHCM_HTTPS`    | Использовать HTTPS                                    | `false`                          |
+| `--package-artifact-directory` | —                | Абсолютный каталог локальных ZIP и метаданных         | `~/.boristype/package-artifacts` |
+| `--shared-directory`           | —                | Общий каталог ZIP и XML на машине MCP                 | `~/.boristype/shared`            |
+| `--project-directory`          | —                | Запасной корень проекта при отсутствии корней клиента | —                                |
+| `--connection-timeout-ms`      | —                | Deadline setup/probe на HTTP-запрос                   | `5000`                           |
 
 ### VS Code
 

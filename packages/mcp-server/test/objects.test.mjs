@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
@@ -9,8 +12,8 @@ const formUrl = "x-local://wtv/wtv_cost_center.xmd";
 const id = "7349577710243911718";
 const xml = "<cost_center><name>Привет &amp; 'quoted' ${request}</name><n>42</n></cost_center>";
 
-async function connect(t, evaluate = () => assert.fail("Unexpected platform call")) {
-  const server = createServer({ evaluator: { eval: evaluate } });
+async function connect(t, evaluate = () => assert.fail("Unexpected platform call"), options) {
+  const server = createServer({ evaluator: { eval: evaluate } }, options);
   const client = new Client({ name: "object-test", version: "1" });
   const [a, b] = InMemoryTransport.createLinkedPair();
   t.after(async () => {
@@ -430,21 +433,25 @@ const patchFixture = { id, formUrl, root: "cost_center", xml };
 const schemaXml = '<cost_center><name TYPE="string"/><n TYPE="integer"/></cost_center>';
 const wire = (body) => JSON.stringify(JSON.stringify(body));
 
-async function patchClient(t, evaluatePatch = () => assert.fail("Unexpected patch dispatch")) {
+async function patchClient(t, evaluatePatch = () => assert.fail("Unexpected patch dispatch"), options) {
   let reads = 0;
   let patches = 0;
-  const client = await connect(t, (script) => {
-    const payload = script.match(/BtObjectOperation\(ParseJson\(('.*')\)\)\)\);\s*$/)?.[1];
-    assert.ok(payload, "SDK sent an object operation request");
-    const request = JSON.parse(runInNewContext(payload));
-    if (request.operation === "get_object") {
-      reads++;
-      return wire({ ok: true, ...patchFixture, schemaXml });
-    }
-    assert.equal(request.operation, "patch_object");
-    patches++;
-    return evaluatePatch(request);
-  });
+  const client = await connect(
+    t,
+    (script) => {
+      const payload = script.match(/BtObjectOperation\(ParseJson\(('.*')\)\)\)\);\s*$/)?.[1];
+      assert.ok(payload, "SDK sent an object operation request");
+      const request = JSON.parse(runInNewContext(payload));
+      if (request.operation === "get_object") {
+        reads++;
+        return wire({ ok: true, ...patchFixture, schemaXml });
+      }
+      assert.equal(request.operation, "patch_object");
+      patches++;
+      return evaluatePatch(request);
+    },
+    options,
+  );
   const { readToken } = await call(client, "get_object", { id });
   return { client, args: { id, readToken, xml: patchXml }, reads: () => reads, patches: () => patches };
 }
@@ -456,9 +463,9 @@ test("patch advertises a strict shared schema and write hints", async (t) => {
   assert.ok(patch, "patch tool is registered");
   const { type, required, additionalProperties, properties } = patch.inputSchema;
   assert.equal(type, "object");
-  assert.deepEqual([...required].sort(), ["id", "readToken", "xml"]);
+  assert.deepEqual([...required].sort(), ["id", "readToken"]);
   assert.equal(additionalProperties, false);
-  assert.deepEqual(Object.keys(properties).sort(), ["dryRun", "id", "readToken", "xml"]);
+  assert.deepEqual(Object.keys(properties).sort(), ["dryRun", "id", "inputPath", "outputMode", "outputPath", "readToken", "xml"]);
   assert.equal(properties.id.type, "string");
   assert.equal(properties.readToken.format, "uuid");
   assert.equal(properties.xml.maxLength, 256 * 1024);
@@ -476,6 +483,9 @@ test("patch rejects bad arguments before dispatch and forwards the XML with the 
   });
   for (const bad of [
     { ...args, mode: "replace" },
+    { ...args, inputPath: "also.xml" },
+    { ...args, outputMode: "inline", outputPath: "unused.xml" },
+    { id, readToken: args.readToken },
     { ...args, id: Number(id) },
     { ...args, id: "18446744073709551616" },
     { ...args, readToken: "invalid" },
@@ -564,3 +574,122 @@ for (const [name, response, expected] of [
     assert.equal(patches(), 1);
   });
 }
+
+test("XML project file can be edited and replaced with its original read token", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "bt-object-xml-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const sharedDirectory = join(dir, "shared");
+  const projectDirectory = join(dir, "project");
+  await mkdir(projectDirectory);
+  const state = platform();
+  const client = await connect(t, state.evaluate, { sharedDirectory, projectDirectory });
+  const original = await call(client, "get_object", { id, outputPath: "agent.xml" });
+  assert.deepEqual(original.file, { path: join(projectDirectory, "agent.xml"), storage: "project" });
+  assert.equal(original.xml, undefined);
+  assert.equal(await readFile(original.file.path, "utf8"), xml);
+  const edited = "<cost_center><name>updated</name></cost_center>";
+  await writeFile(original.file.path, edited);
+  const saved = await call(client, "save_object", { mode: "replace", id, readToken: original.readToken, inputPath: "agent.xml" });
+  assert.equal(saved.writeStatus, "saved");
+  assert.equal(saved.xml, undefined);
+  assert.equal(saved.file.storage, "shared");
+  assert.equal(saved.file.path.startsWith(join(sharedDirectory, "objects")), true);
+  assert.ok(Date.parse(saved.file.expiresAt) > Date.now());
+  assert.equal(await readFile(saved.file.path, "utf8"), edited);
+  assert.equal(await readFile(original.file.path, "utf8"), edited);
+  const conflict = await call(client, "get_object", { id, outputPath: "agent.xml" }, true);
+  assert.equal(conflict.writeStatus, "not_attempted");
+  const fresh = await call(client, "get_object", { id, outputMode: "file" });
+  state.value = "<cost_center><name>external</name></cost_center>";
+  const stale = await call(client, "save_object", { id, mode: "replace", inputPath: fresh.file.path, readToken: fresh.readToken }, true);
+  assert.equal(stale.error.code, "Conflict");
+  assert.equal(state.saves, 1);
+});
+
+test("file-based patch returns the complete candidate in preview and honors inline output", async (t) => {
+  const projectDirectory = await mkdtemp(join(tmpdir(), "bt-patch-"));
+  t.after(() => rm(projectDirectory, { recursive: true, force: true }));
+  await writeFile(join(projectDirectory, "patch.xml"), patchXml);
+  const candidate = "<cost_center><name>candidate</name><n>42</n></cost_center>";
+  const { client, args } = await patchClient(
+    t,
+    (request) => {
+      assert.equal(request.xml, patchXml);
+      for (const key of ["inputPath", "outputPath", "outputMode"]) assert.equal(key in request, false);
+      return wire({ ok: true, ...patchFixture, changed: true, writeStatus: "not_attempted", dryRun: true, xml: candidate });
+    },
+    { projectDirectory, sharedDirectory: join(projectDirectory, "shared") },
+  );
+  const preview = { id, readToken: args.readToken, inputPath: "patch.xml", dryRun: true };
+  const result = await call(client, "patch_object", preview);
+  assert.equal(result.file.storage, "shared");
+  assert.equal(result.xml, undefined);
+  assert.equal(await readFile(result.file.path, "utf8"), candidate);
+  const { readToken } = await call(client, "get_object", { id });
+  const inline = await call(client, "patch_object", { ...preview, readToken, outputMode: "inline" });
+  assert.equal(inline.xml, candidate);
+  assert.equal(inline.file, undefined);
+});
+
+test("XML file validation happens locally and a late output collision preserves a confirmed save", async (t) => {
+  const projectDirectory = await mkdtemp(join(tmpdir(), "bt-xml-save-"));
+  t.after(() => rm(projectDirectory, { recursive: true, force: true }));
+  const sharedDirectory = join(projectDirectory, "shared");
+  const target = join(projectDirectory, "saved.xml");
+  const state = platform();
+  const client = await connect(
+    t,
+    async (script) => {
+      const wire = state.evaluate(script);
+      if (state.saves) await writeFile(target, "concurrent publisher", { flag: "wx" });
+      return wire;
+    },
+    { projectDirectory, sharedDirectory },
+  );
+  const create = { mode: "create", formUrl };
+  await writeFile(join(projectDirectory, "bad.xml"), Buffer.from([255]));
+  await writeFile(join(projectDirectory, "large.xml"), Buffer.alloc(256 * 1024 + 1));
+  for (const [inputPath, code] of [
+    ["missing.xml", "ObjectFileNotFound"],
+    ["bad.xml", "InvalidInput"],
+    ["large.xml", "InputLimit"],
+    ["../outside.xml", "ImportPathDenied"],
+    [join(sharedDirectory, "packages", "wrong.xml"), "ImportPathDenied"],
+  ]) {
+    const failed = await call(client, "save_object", { ...create, inputPath }, true);
+    assert.equal(failed.error.code, code);
+    assert.equal(failed.writeStatus, "not_attempted");
+  }
+  assert.equal(state.calls, 0);
+  const form = await call(client, "get_form", { formUrl, outputMode: "file" });
+  assert.equal(await readFile(form.file.path, "utf8"), state.schema);
+  const failed = await call(client, "save_object", { ...create, xml, outputPath: target }, true);
+  assert.equal(failed.id, id);
+  assert.equal(failed.phase, "readback");
+  assert.equal(failed.writeStatus, "saved");
+  assert.equal(failed.error.code, "ExportWriteError");
+  assert.equal(await readFile(target, "utf8"), "concurrent publisher");
+  assert.equal(state.saves, 1);
+});
+
+test("a failed XML publication preserves the token from the last successful read", async (t) => {
+  const projectDirectory = await mkdtemp(join(tmpdir(), "bt-read-token-"));
+  t.after(() => rm(projectDirectory, { recursive: true, force: true }));
+  const state = platform();
+  const outputPath = join(projectDirectory, "copy.xml");
+  const client = await connect(
+    t,
+    async (script) => {
+      const wire = state.evaluate(script);
+      if (state.calls === 2) await writeFile(outputPath, "claimed", { flag: "wx" });
+      return wire;
+    },
+    { projectDirectory },
+  );
+  const prior = await call(client, "get_object", { id });
+  const failed = await call(client, "get_object", { id, outputPath }, true);
+  assert.equal(failed.error.code, "ExportWriteError");
+  assert.equal(failed.readToken, undefined);
+  const saved = await call(client, "save_object", { id, mode: "replace", xml: prior.xml, readToken: prior.readToken });
+  assert.equal(saved.writeStatus, "saved");
+});

@@ -88,7 +88,7 @@ test("lost native acknowledgement exposes durable receipt identity and never rep
   assert.equal(receipt.status, "completed");
   assert.equal(p.saves, 1);
 });
-import { mkdtemp, writeFile, readFile, rm, mkdir, chmod, readdir } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm, mkdir, chmod, readdir, link, symlink } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
@@ -116,6 +116,49 @@ test("WshcmApi honors its package artifact directory and preserves the default",
     path: join(configuredDirectory, artifactId + ".json"),
   });
   assert.throws(() => new sdk.WshcmApi(evaluator, {}, { artifactDirectory: "relative/path" }), /must be absolute/);
+});
+
+test("inspect admits local ZIPs only from its import directory before capture or native dispatch", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "bt-import-root-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const importDirectory = join(root, "inbox");
+  const artifactDirectory = join(root, "artifacts");
+  const elsewhere = join(root, "inbox-other");
+  await Promise.all([mkdir(importDirectory), mkdir(artifactDirectory), mkdir(elsewhere)]);
+  const outside = join(elsewhere, "valid.zip");
+  await writeFile(outside, objectPackage());
+  const p = platform();
+  const service = new sdk.WshcmPackages(p.evaluator, { projectDirectory: importDirectory, artifactDirectory });
+  const denied = (error) => error.details?.code === "ImportPathDenied" && error.details.status === "not_attempted";
+  await assert.rejects(service.inspectPackage({ localPath: outside }), denied);
+  const defaults = new sdk.WshcmPackages(p.evaluator, { artifactDirectory });
+  await assert.rejects(defaults.inspectPackage({ localPath: outside }), denied);
+  if (process.platform !== "win32") {
+    await link(outside, join(importDirectory, "hardlink.zip"));
+    await assert.rejects(service.inspectPackage({ localPath: join(importDirectory, "hardlink.zip") }), denied);
+    await symlink(join(importDirectory, "missing"), join(importDirectory, "dangling.zip"));
+    await assert.rejects(service.inspectPackage({ localPath: join(importDirectory, "dangling.zip") }), denied);
+    await symlink(elsewhere, join(importDirectory, "link"));
+    await assert.rejects(service.inspectPackage({ localPath: join(importDirectory, "link", "valid.zip") }), denied);
+  }
+  assert.deepEqual(await readdir(artifactDirectory), []);
+  assert.equal(p.files.size, 0);
+});
+
+test("rejecting an invalid inbox archive removes its snapshot and preserves the source", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "bt-invalid-import-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const importDirectory = join(root, "inbox");
+  const artifactDirectory = join(root, "artifacts");
+  await Promise.all([mkdir(join(importDirectory, "release"), { recursive: true }), mkdir(artifactDirectory)]);
+  const source = join(importDirectory, "release", "invalid.zip");
+  await writeFile(source, "invalid package");
+  const p = platform();
+  const service = new sdk.WshcmPackages(p.evaluator, { projectDirectory: importDirectory, artifactDirectory });
+  await assert.rejects(service.inspectPackage({ localPath: source }), (error) => error.details?.code === "InvalidPackage");
+  assert.deepEqual(await readdir(artifactDirectory), []);
+  assert.equal(await readFile(source, "utf8"), "invalid package");
+  assert.equal(p.files.size, 0);
 });
 
 test("product transfer preserves binary across exclusive 256 KiB boundaries and seals uploads", async () => {
@@ -209,9 +252,11 @@ test("immutable inspection rejects outside selection, repeat/version/type confli
       q.includes("action_reports") ? [{ id: "99" }] : q.includes("download_packages") && (reimport || applied > 0) ? [{ id: "42" }] : [],
   });
   try {
-    const path = join(dir, "source.zip");
+    const nested = join(dir, "release");
+    await mkdir(nested);
+    const path = join(nested, "source.zip");
     await writeFile(path, objectPackage());
-    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") });
+    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts"), projectDirectory: dir });
     const preview = await service.inspectPackage({ localPath: path, limit: 1 });
     await writeFile(path, "changed source");
     assert.equal(preview.total, 2);
@@ -308,7 +353,7 @@ test("import can reuse an inspection after preflight failure but guards a dispat
         return response;
       },
     },
-    { artifactDirectory: join(directory, "artifacts") },
+    { artifactDirectory: join(directory, "artifacts"), projectDirectory: directory },
   );
   const { inspectionId } = await service.inspectPackage({ localPath });
   reads.length = 0;
@@ -366,7 +411,7 @@ test("direct export preserves common schema and retains partial artifact for mis
     },
   });
   try {
-    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") });
+    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts"), sharedDirectory: join(dir, "export") });
     const result = await service.exportPackage({ objectIds: ["9007199254740993", "9007199254740993", "2"] });
     assert.equal(result.status, "partial");
     assert.deepEqual(result.missingIds, ["2"]);
@@ -409,7 +454,7 @@ test("direct and saved-schema export report requested template types absent from
       },
     },
   });
-  const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: directory });
+  const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: directory, sharedDirectory: join(directory, "export") });
   const result = await service.exportPackage({ customTemplates: ["subdivision", "empty_type", "subdivision"] });
   assert.equal(result.objects.total, 0);
   assert.deepEqual(result.customTemplateTypes, ["subdivision"]);
@@ -454,7 +499,7 @@ test("a native finish rejection preserves the acknowledged export and its artifa
         return response;
       },
     },
-    { artifactDirectory: directory },
+    { artifactDirectory: directory, sharedDirectory: join(directory, "export") },
   );
   await assert.rejects(service.exportPackage({ objectIds: ["9007199254740993"], operationId }), (error) => {
     assert.ok(error instanceof sdk.WshcmPackageError);
@@ -575,7 +620,10 @@ test("standalone update ZIP retains its stable package ID in native preview", as
         },
       ]),
     );
-    const result = await new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") }).inspectPackage({
+    const result = await new sdk.WshcmPackages(p.evaluator, {
+      artifactDirectory: join(dir, "artifacts"),
+      projectDirectory: dir,
+    }).inspectPackage({
       localPath: path,
     });
     assert.equal(result.items[0].packageId, "standalone");
@@ -668,7 +716,7 @@ test("inspection pagination does not restrict default or explicit native import 
         })),
       ]),
     );
-    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") });
+    const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts"), projectDirectory: dir });
     const preview = await service.inspectPackage({ localPath: path });
     assert.equal(preview.items.length, 100);
     assert.equal(preview.total, 1003);
@@ -698,7 +746,7 @@ test("unavailable temporary directory after native export preserves generated op
   const dir = await mkdtemp(join(tmpdir(), "bt-missing-temp-"));
   const old = process.env.TMPDIR;
   const p = exportingPlatform();
-  const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts") });
+  const service = new sdk.WshcmPackages(p.evaluator, { artifactDirectory: join(dir, "artifacts"), sharedDirectory: join(dir, "export") });
   try {
     process.env.TMPDIR = join(dir, "missing-parent");
     let failure;
@@ -742,7 +790,7 @@ for (const loseAck of [false, true])
             return wire;
           },
         },
-        { artifactDirectory: join(dir, "artifacts") },
+        { artifactDirectory: join(dir, "artifacts"), sharedDirectory: join(dir, "export") },
       );
       try {
         process.env.TMPDIR = taskTmp;
@@ -923,7 +971,7 @@ test("inspection failures retain the latest acknowledged native receipt", async 
             return wire;
           },
         },
-        { artifactDirectory: join(directory, "artifacts") },
+        { artifactDirectory: join(directory, "artifacts"), projectDirectory: directory },
       );
       await assert.rejects(service.inspectPackage({ operationId, localPath }), (error) => {
         assert.ok(acknowledged);
@@ -948,4 +996,75 @@ test("inspection failures retain the latest acknowledged native receipt", async 
       });
     });
   }
+});
+
+test("package ZIPs round-trip at shared and project paths without overwriting files", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "bt-package-paths-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const projectDirectory = join(dir, "project");
+  const sharedDirectory = join(dir, "shared");
+  await mkdir(join(projectDirectory, "release"), { recursive: true });
+  const p = exportingPlatform();
+  const service = new sdk.WshcmPackages(p.evaluator, {
+    projectDirectory,
+    sharedDirectory,
+    artifactDirectory: join(dir, "artifacts"),
+  });
+  for (const outputPath of [undefined, "agents.zip", "release/agents.zip"]) {
+    const result = await service.exportPackage({ objectIds: ["9007199254740993"], outputPath });
+    const destination = outputPath ? join(projectDirectory, outputPath) : join(sharedDirectory, "packages", result.operationId + ".zip");
+    assert.equal(result.file.path, destination);
+    assert.equal((await service.getOperation({ operationId: result.operationId })).file.path, destination);
+    assert.deepEqual(await readFile(destination), await readFile(result.artifact.localPath));
+    assert.notEqual(destination, result.artifact.localPath);
+    const calls = p.calls;
+    await assert.rejects(service.exportPackage({ objectIds: ["1"], outputPath: destination }), /already exists/i);
+    assert.equal(p.calls, calls);
+    await writeFile(destination, "bad archive");
+    await assert.rejects(service.inspectPackage({ localPath: outputPath ?? destination }), /InvalidPackage/);
+    assert.equal(p.calls, calls);
+    assert.deepEqual(await service.artifacts.get(result.artifact.artifactId), result.artifact);
+  }
+  if (process.platform !== "win32") await symlink(dir, join(projectDirectory, "link"));
+  for (const path of [
+    "../outside.zip",
+    join(dir, "outside.zip"),
+    "release/script.js",
+    ...(process.platform === "win32" ? [] : ["link/outside.zip"]),
+  ]) {
+    const calls = p.calls;
+    await assert.rejects(service.exportPackage({ objectIds: ["1"], outputPath: path }), /ExportPathDenied/);
+    assert.equal(p.calls, calls);
+  }
+});
+
+test("a destination claimed during export keeps its contents and the recoverable private artifact", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "bt-export-collision-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const outputPath = join(dir, "ready.zip");
+  const platform = exportingPlatform();
+  let first = true;
+  const service = new sdk.WshcmPackages(
+    {
+      eval: async (code) => {
+        if (first) {
+          first = false;
+          await writeFile(outputPath, "other publisher", { flag: "wx" });
+        }
+        return platform.evaluator.eval(code);
+      },
+    },
+    { projectDirectory: dir, artifactDirectory: join(dir, "private") },
+  );
+  const operationId = randomUUID();
+  await assert.rejects(
+    service.exportPackage({ objectIds: ["9007199254740993"], operationId, outputPath }),
+    (error) => error.details.code === "ExportWriteError" && error.details.lastKnownOperation.operationId === operationId,
+  );
+  const receipt = await service.getOperation({ operationId });
+  assert.ok(receipt.artifact);
+  assert.equal(receipt.file, undefined);
+  assert.deepEqual(await readFile(receipt.artifact.localPath), objectPackage());
+  assert.equal(await readFile(outputPath, "utf8"), "other publisher");
+  assert.deepEqual((await readdir(dir)).sort(), ["private", "ready.zip"]);
 });

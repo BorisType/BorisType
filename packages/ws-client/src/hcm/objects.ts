@@ -1,5 +1,7 @@
 import { WshcmDispatchError } from "../exceptions.js";
 import { readFileSync } from "node:fs";
+import { TransferFiles, type TransferFile, type TransferLocation } from "./transfer-files.js";
+import { LocalFileError } from "./local-file-access.js";
 import { z } from "zod";
 import type { WshcmEvaluator } from "./types.js";
 import { buildScript } from "./load.js";
@@ -88,23 +90,60 @@ async function execute(evaluator: WshcmEvaluator, request: Record<string, unknow
 
 type Input<K extends keyof typeof wshcmSchemas.objects> = z.input<(typeof wshcmSchemas.objects)[K]>;
 
+type XmlOptions = { outputMode?: "inline" | "file"; inputPath?: string; outputPath?: string };
+type InlineXml = { xml: string };
+type FileXml = { file: TransferFile };
+type XmlOutput<I> = I extends { outputMode: "inline" }
+  ? InlineXml
+  : I extends { outputMode: "file" } | { outputPath: string } | { inputPath: string; outputMode?: "file" }
+    ? FileXml
+    : I extends { outputMode?: "inline"; outputPath?: undefined; inputPath?: undefined }
+      ? InlineXml
+      : Extract<keyof I, keyof XmlOptions> extends never
+        ? InlineXml
+        : InlineXml | FileXml;
+
 /** Native XML operations; no evaluator initialization, disposal or managed file dependency. */
 export class WshcmObjects {
   private readonly reads = new ObjectReadState();
-  constructor(private readonly evaluator: WshcmEvaluator) {}
+  constructor(
+    private readonly evaluator: WshcmEvaluator,
+    private readonly files = new TransferFiles(),
+  ) {}
 
-  async getForm(input: Input<"getForm">) {
-    const { formUrl } = wshcmSchemas.objects.getForm.parse(input);
+  private destination(input: XmlOptions) {
+    if (input.outputMode === "file" || input.outputPath !== undefined || (input.inputPath !== undefined && input.outputMode !== "inline"))
+      return this.files.destination("objects", input.outputPath);
+    return undefined;
+  }
+
+  private async output<I, B extends InlineXml>(_input: I, body: B, destination?: TransferLocation) {
+    const { xml, ...metadata } = body;
+    let content: InlineXml | FileXml = { xml };
+    if (destination) {
+      try {
+        content = { file: await this.files.publish(destination, { xml }) };
+      } catch (cause) {
+        throw new LocalFileError("ExportWriteError", "Could not publish XML: " + String(cause), { cause });
+      }
+    }
+    return { ...metadata, ...(content as XmlOutput<I>) };
+  }
+
+  async getForm<I extends Input<"getForm">>(input: I) {
+    const args = wshcmSchemas.objects.getForm.parse(input);
+    const { formUrl } = args;
     return this.reads.run(async () => {
       try {
+        const destination = await this.destination(args);
         const result = await execute(this.evaluator, { operation: "get_form", formUrl });
         const { ok: _, ...body } = formResponse.parse(result);
-        return body;
+        return await this.output(input, body, destination);
       } catch (error) {
         if (error instanceof WshcmObjectError) throw error;
         throw new WshcmObjectError(
           {
-            error: { code: "ReadError", message: String(error).slice(0, 2000) },
+            error: { code: error instanceof LocalFileError ? error.code : "ReadError", message: String(error).slice(0, 2000) },
             phase: "read",
             writeStatus: "not_attempted",
           },
@@ -114,19 +153,21 @@ export class WshcmObjects {
     });
   }
 
-  async get(input: Input<"get">) {
-    const { id } = wshcmSchemas.objects.get.parse(input);
+  async get<I extends Input<"get">>(input: I) {
+    const args = wshcmSchemas.objects.get.parse(input);
+    const { id } = args;
     return this.reads.run(async () => {
       try {
+        const destination = await this.destination(args);
         const result = await execute(this.evaluator, { operation: "get_object", id });
         const { ok: _, schemaXml, ...body } = readResponse.parse(result);
         if (body.id !== id) throw new Error("Object response identity mismatch");
-        return { ...body, readToken: this.reads.record({ ...body, schemaXml }) };
+        return { ...(await this.output(input, body, destination)), readToken: this.reads.record({ ...body, schemaXml }) };
       } catch (error) {
         if (error instanceof WshcmObjectError) throw error;
         throw new WshcmObjectError(
           {
-            error: { code: "ReadError", message: String(error).slice(0, 2000) },
+            error: { code: error instanceof LocalFileError ? error.code : "ReadError", message: String(error).slice(0, 2000) },
             id,
             phase: "read",
             writeStatus: "not_attempted",
@@ -137,7 +178,7 @@ export class WshcmObjects {
     });
   }
 
-  async patch(input: Input<"patch">) {
+  async patch<I extends Input<"patch">>(input: I) {
     return this.reads.run(async () => {
       let phase: "input" | "transport" | "readback" = "input";
       let writeStatus: "not_attempted" | "unknown" | "saved" = "not_attempted";
@@ -147,13 +188,15 @@ export class WshcmObjects {
         const token = wshcmSchemas.objects.patch.shape.readToken.parse(input?.readToken);
         const expected = this.reads.consume(knownId, token);
         const args = wshcmSchemas.objects.patch.parse(input);
-        const inspected = inspectObjectPatchXml(args.xml, expected);
+        const destination = await this.destination(args);
+        const xml = args.xml ?? (await this.files.readXml(args.inputPath!));
+        const inspected = inspectObjectPatchXml(xml, expected);
         const request = {
           operation: "patch_object",
           mode: "patch",
           id: args.id,
           formUrl: expected.formUrl,
-          xml: args.xml,
+          xml,
           root: inspected.root,
           nodes: inspected.nodes,
           dryRun: args.dryRun,
@@ -177,12 +220,15 @@ export class WshcmObjects {
           (body.writeStatus === "saved") !== (body.changed && !args.dryRun)
         )
           throw new Error("Inconsistent object patch response");
-        return body;
+        return await this.output(input, body, destination);
       } catch (error) {
         if (error instanceof WshcmObjectError) throw error;
         throw new WshcmObjectError(
           {
-            error: { code: phase === "input" ? "InvalidInput" : "TransportError", message: String(error).slice(0, 2000) },
+            error: {
+              code: error instanceof LocalFileError ? error.code : phase === "input" ? "InvalidInput" : "TransportError",
+              message: String(error).slice(0, 2000),
+            },
             ...(knownId ? { id: knownId } : {}),
             phase,
             writeStatus: phase === "transport" && error instanceof WshcmDispatchError && !error.dispatched ? "not_attempted" : writeStatus,
@@ -241,7 +287,7 @@ export class WshcmObjects {
     });
   }
 
-  async save(input: Input<"save">) {
+  async save<I extends Input<"save">>(input: I) {
     const args = wshcmSchemas.objects.save.parse(input);
     return this.reads.run(async () => {
       let phase: "input" | "transport" | "readback" = "input";
@@ -250,13 +296,15 @@ export class WshcmObjects {
       try {
         const expected = args.mode === "replace" ? this.reads.consume(args.id!, args.readToken!) : undefined;
         const selectedForm = expected?.formUrl ?? args.formUrl!;
-        const inspected = inspectObjectXml(args.xml, { formUrl: selectedForm, ...(args.id === undefined ? {} : { id: args.id }) });
+        const destination = await this.destination(args);
+        const xml = args.xml ?? (await this.files.readXml(args.inputPath!));
+        const inspected = inspectObjectXml(xml, { formUrl: selectedForm, ...(args.id === undefined ? {} : { id: args.id }) });
         const request = {
           operation: "save_object",
           mode: args.mode,
           formUrl: selectedForm,
           id: args.id ?? "",
-          xml: args.xml,
+          xml,
           root: inspected.root,
           nodes: inspected.nodes,
           ...(expected ? { expected: { xml: expected.xml, formUrl: expected.formUrl, schemaXml: expected.schemaXml } } : {}),
@@ -274,12 +322,15 @@ export class WshcmObjects {
         }
         const { ok: _, ...body } = saveResponse.parse(result);
         if (args.mode === "replace" && body.id !== args.id) throw new Error("Saved object response identity mismatch");
-        return body;
+        return await this.output(input, body, destination);
       } catch (error) {
         if (error instanceof WshcmObjectError) throw error;
         throw new WshcmObjectError(
           {
-            error: { code: phase === "input" ? "InvalidInput" : "TransportError", message: String(error).slice(0, 2000) },
+            error: {
+              code: error instanceof LocalFileError ? error.code : phase === "input" ? "InvalidInput" : "TransportError",
+              message: String(error).slice(0, 2000),
+            },
             ...(knownId ? { id: knownId } : {}),
             phase,
             writeStatus: phase === "transport" && error instanceof WshcmDispatchError && !error.dispatched ? "not_attempted" : writeStatus,

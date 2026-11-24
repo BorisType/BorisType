@@ -219,7 +219,7 @@ const exported = await api.packages.exportPackage({
   operationId: randomUUID(),
 });
 const preview = await api.packages.inspectPackage({ artifactId: exported.artifact.artifactId });
-// Or inspectPackage({ localPath: "/absolute/path/on-sdk-host/input.zip" })
+// A target SDK sharing the export directory can inspect { inputPath: exported.file.path }.
 const operationId = randomUUID(); // retain before dispatch
 try {
   const applied = await api.packages.importPackage({ inspectionId: preview.inspectionId, operationId });
@@ -264,8 +264,19 @@ missingIds/missingCount и artifact с artifactId/localPath/mimeType/sizeBytes/s
 handle действует 24 часа. Абсолютный каталог можно задать через
 `new WshcmPackages(evaluator, { artifactDirectory })` или через третий аргумент
 `new WshcmApi(evaluator, runtimeOptions, { artifactDirectory })`.
-Удаление expired файлов и native receipt/temp/report
-автоматически не выполняется. Чтение localPath не разрешает перезапись оригинала.
+У служебного снимка свой срок действия handle. Для передачи используйте отдельный ZIP по `file.path`, по умолчанию `~/.boristype/shared/packages/<operationId>.zip`.
+
+```ts
+const options = { projectDirectory: "/work/app", sharedDirectory: "/srv/shared" };
+const source = new WshcmApi(sourceEvaluator, {}, options);
+const target = new WshcmApi(targetEvaluator, {}, options);
+const exported = await source.packages.exportPackage({ objectIds: ["9007199254740993"], outputPath: "agents.zip" });
+const inspected = await target.packages.inspectPackage({ inputPath: exported.file.path });
+```
+
+Те же настройки действуют для XML. В `objects.get` и `objects.getForm` укажите `outputMode: "file"` для временного XML или `outputPath` для конкретного нового файла. `objects.patch` и `objects.save` принимают ровно один из `xml` и `inputPath`. Файловый вход по умолчанию возвращает файловый результат. После редактирования используйте исходный `readToken` в том же экземпляре SDK.
+
+Относительные пути разрешаются при одном корне проекта. `projectDirectory` служит запасным корнем, если `projectRoots` не вернул локальных корней. Подпапки проекта должны существовать. SDK публикует файл только под свободным именем. Для `storage: "shared"` ответ содержит `expiresAt` через 24 часа и предупреждение. Stdio MCP периодически вызывает `cleanExpiredSharedFiles(sharedDirectory)`. При прямом встраивании SDK эту функцию планирует вызывающее приложение. Проектные файлы остаются под управлением проекта.
 
 Inspect создаёт неизменяемую копию ZIP и native preview. `inspectionId` связывает
 весь состав; default import выбирает все его объекты, независимо от страниц.

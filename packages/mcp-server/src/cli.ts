@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { resolve } from "node:path";
 import { program } from "commander";
 import { startServer } from "./server.js";
 import { packageVersion } from "./version.js";
@@ -19,6 +20,12 @@ program
   .option("--https", "Use HTTPS instead of HTTP", process.env["WSHCM_HTTPS"] === "true")
   .option("--connection-timeout-ms <ms>", "Deadline per HCM connection setup/probe request (default 5000 ms)")
   .option("--package-artifact-directory <path>", "Absolute local directory for package ZIPs and metadata")
+  .option("--shared-directory <path>", "Absolute directory for temporary ZIPs and XML (default ~/.boristype/shared)")
+  .option(
+    "--project-directory <path>",
+    "Project root when no local MCP client roots are available; use . for the launch directory",
+    (path: string) => resolve(path),
+  )
   .action(
     async (options: {
       host: string;
@@ -28,12 +35,16 @@ program
       https: boolean;
       connectionTimeoutMs?: string;
       packageArtifactDirectory?: string;
+      sharedDirectory?: string;
+      projectDirectory?: string;
     }) => {
       await startServer({
         host: options.host,
         port: decimal(options.port),
         connectionTimeoutMs: options.connectionTimeoutMs === undefined ? undefined : decimal(options.connectionTimeoutMs),
         packageArtifactDirectory: options.packageArtifactDirectory,
+        sharedDirectory: options.sharedDirectory,
+        projectDirectory: options.projectDirectory,
         username: options.username,
         password: options.password,
         https: options.https,

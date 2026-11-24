@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { openTransferSource } from "../local-file-access.js";
 
 const MAX_ARCHIVE_BYTES = 128 * 1024 * 1024;
 const RETENTION_MS = 24 * 60 * 60 * 1000;
@@ -29,9 +30,12 @@ export class PackageArtifactStore {
   }
 
   async capture(localPath: string): Promise<PackageArtifact> {
-    if (!isAbsolute(localPath)) throw new Error("Package path must be absolute");
-    if (!(await lstat(localPath)).isFile()) throw new Error("Package source must be a regular file");
-    const source = await open(localPath, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    return (await this.captureChecked(localPath, () => undefined)).artifact;
+  }
+
+  /** Validate the owned copy before publishing metadata. Failed captures remove only their own files. */
+  async captureChecked<T>(localPath: string, validate: (path: string) => T | Promise<T>, sourceDirectory?: string) {
+    const source = await openTransferSource(localPath, "packages", sourceDirectory);
     const artifactId = randomUUID();
     const targetPath = join(this.directory, `${artifactId}.zip`);
     const metadataPath = join(this.directory, `${artifactId}.json`);
@@ -65,6 +69,7 @@ export class PackageArtifactStore {
         throw new Error("Package source changed during capture");
       }
       await target.sync();
+      const result = await validate(targetPath);
       const artifact: PackageArtifact = {
         artifactId,
         localPath: targetPath,
@@ -77,7 +82,7 @@ export class PackageArtifactStore {
       await metadata.writeFile(JSON.stringify(artifact), "utf8");
       await metadata.sync();
       complete = true;
-      return artifact;
+      return { artifact, result };
     } finally {
       output?.destroy();
       await source.close();
