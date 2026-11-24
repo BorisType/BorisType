@@ -31,18 +31,11 @@
 
 ## CLI: build, linking и deployment
 
-- **Синхронизация служебных объектов из артефакта.** Вернуться к поставке агентов
-  и других служебных объектов вместе со сборкой и их применению при deployment /
-  старте сервера без ручной сборки пакета объектов. В CLI использовать общий
-  `WshcmApi.objects.patch`; для серверного startup — чистый native helper с
-  отдельной orchestration, без копирования алгоритма patch. Определить поиск
-  существующих / создание отсутствующих объектов и перенос legacy `default="true"`:
-  текущий patch работает только с существующим объектом после полного get.
-  Приёмка: dryRun, Date/defaults, keyed/unkeyed MULTIPLE, сохранение непереданных
-  полей, повтор без Save, конфликты и понятный unknown outcome. Отдельно проверить
-  CLI и startup на целевом стенде; прежний Linux C acceptance их не подтверждает.
-  Основа — [общий контракт и решения](refs/mcp/xml-object-patch.md),
-  [исследование, пробы и воспроизведение](refs/research/mcp/object-patch/README.md).
+- **Перенос и проверка служебных объектов.** Для startup и `btc objects apply`
+  остаются проверка Windows/MSSQL, файловой БД, нового реестра форм и координация
+  нескольких пишущих узлов. Для миграции старых проектов определить семантику
+  legacy-атрибута `default="true"` и формат обратной выгрузки отдельных определений.
+  [Реализация и приёмка на Linux C/PG](refs/cli/startup-objects.md).
 - **CLI/config расходятся.** `build --outDir` зарегистрирован, но output берётся
   из tsconfig; Commander default `--https=false` перекрывает file `true`;
   `.properties` parser обрезает значение с `=` и не снимает quotes. Нужны tests

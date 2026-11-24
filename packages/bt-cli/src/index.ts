@@ -6,6 +6,7 @@ import packageInfo from "../package.json";
 
 import { initCommand, buildCommand, linkCommand, artifactCommand, devCommand, pushCommand } from "./cli/commands";
 import type { BtcCompileOptions } from "./core/building/types";
+import { objectsApplyCommand } from "./cli/commands/objects";
 import type { PushCommandOptions } from "./core/pushing/types";
 
 // Реэкспорт типов для обратной совместимости
@@ -84,4 +85,20 @@ program
     await pushCommand(options);
   });
 
-program.parse(process.argv);
+program
+  .command("objects")
+  .description("Manage individual platform objects")
+  .command("apply <file>")
+  .description("Create or patch one HCM object from <objectType>/<decimal ID>.xml")
+  .option("--dry-run", "Preview the changes on the server")
+  .option("--host <host>", "WSHCM server host")
+  .option("--port <port>", "WSHCM server port")
+  .option("--username <username>", "Username for authentication")
+  .option("--password <password>", "Password for authentication")
+  .option("--https", "Use HTTPS")
+  .action(objectsApplyCommand);
+
+program.parseAsync(process.argv).catch((error: Error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});

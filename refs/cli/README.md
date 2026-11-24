@@ -5,6 +5,7 @@
 
 - [Build/watch](build-and-watch.md): разделение TS diagnostics и BS emit, initial barrier, incremental границы.
 - [Линковка и кэш](linking-and-cache.md): layout, system/library, invalidation, orphan output.
+- [Служебные объекты при старте](startup-objects.md) — регистрация, fixed ID, холодная приёмка и границы хранилищ.
 - [Push и ZIP](push-and-artifacts.md): upload/reinit, retry, ошибки, отличие от artifact.
 - [Monorepo, release и maintenance](release-and-maintenance.md): текущий граф, fixed group, supply-chain policy.
 - [npm-релизы](npm-releases.md): общий release PR, пакетные теги, CI и настройка npm trust.

@@ -11,34 +11,37 @@ import { logger } from "../logger";
 import { collectComponentInitScripts, collectStandaloneInitScripts } from "./init-scripts";
 import type { InitScript } from "./types";
 
-/**
- * Выполняет reinit модулей на сервере
- *
- * 1. Собирает init-скрипты из компонентов и standalone модулей
- * 2. Сбрасывает кеш require (`bt.init_require()`)
- * 3. Выполняет каждый init-скрипт
- *
- * Ошибки отдельных init-скриптов логируются, но не прерывают процесс.
- * Lifecycle evaluator-а управляется вызывающим кодом.
- *
- * @param evaluator - инициализированный evaluator
- * @param distPath - путь к папке dist
- */
+/** The native object loader must finish before any application init can observe its objects. */
 export async function reinitModules(evaluator: Evaluator, distPath: string): Promise<void> {
   logger.info("🔄 Collecting init scripts...");
-
-  const initScripts: InitScript[] = [];
-
-  // 1. Компоненты (первыми, исключая bt-runtime)
-  const componentScripts = collectComponentInitScripts(distPath).filter((script) => script.name !== "bt-runtime");
-  initScripts.push(...componentScripts);
-
-  // 2. Standalone модули из api_ext.xml
   const standaloneScripts = collectStandaloneInitScripts(distPath);
-  initScripts.push(...standaloneScripts);
+  const startup = standaloneScripts.find((script) => script.startupObjects);
+  const initScripts: InitScript[] = [
+    ...collectComponentInitScripts(distPath).filter((script) => script.name !== "bt-runtime"),
+    ...standaloneScripts.filter((script) => !script.startupObjects),
+  ];
 
-  if (initScripts.length === 0) {
-    logger.info("ℹ️ No init scripts found");
+  try {
+    if (startup) {
+      logger.info("Applying startup objects...");
+      const result = await evaluator.eval(
+        "var outcome = 'ok'; try {\n" +
+          startup.code +
+          "\n} catch (err) { outcome = 'error: ' + StrLeftCharRange(String(err), 4000); } return outcome;",
+      );
+      if (result !== "ok") throw new Error(typeof result === "string" ? result : "Invalid startup response");
+    }
+    if (initScripts.length) await evaluator.evalCode("bt.init_require();\nreturn;");
+  } catch (error) {
+    // A network error after dispatch must not trigger DeploySession's full upload + reinit retry.
+    if (startup)
+      throw new Error("Reinit failed after dispatching startup objects. Check the stand before retrying: " + (error as Error).message, {
+        cause: error,
+      });
+    throw error;
+  }
+  if (!initScripts.length) {
+    if (!startup) logger.info("ℹ️ No init scripts found");
     return;
   }
 
@@ -51,9 +54,6 @@ export async function reinitModules(evaluator: Evaluator, distPath: string): Pro
     console.log(script.code);
   }
   logger.info(`\n${"─".repeat(60)}`);
-
-  // Сброс кеша require
-  await evaluator.evalCode("bt.init_require();\nreturn;");
 
   // Выполнение init скриптов
   for (const script of initScripts) {

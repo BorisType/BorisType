@@ -151,6 +151,8 @@ npx btc link --clean
 npx btc artifact --clean
 ```
 
+Для поставки отдельных XML вместе с кодом см. [служебные объекты при запуске HCM](./startup-objects).
+
 ## Справочник конфигурации
 
 - [btconfig.json](../reference/btconfig)
