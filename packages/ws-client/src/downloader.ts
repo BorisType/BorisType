@@ -34,8 +34,7 @@ export interface DownloadResult {
   skippedLinks: number;
 }
 
-function validateName(name: string) {
-  if (!name || name === "." || name === ".." || /[\\/\0]/.test(name)) throw new Error("Invalid remote entry name");
+function validateLocalName(name: string) {
   if (
     process.platform === "win32" &&
     (/[<>:"|?*\x00-\x1f]|[. ]$/.test(name) || /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/i.test(name))
@@ -94,7 +93,13 @@ export class WshcmDownloader {
   }
 
   private async call(parts: string[], operation: "info" | "read", range?: { start: number; end: number }): Promise<unknown> {
-    const request = JSON.stringify({ source: this.options.path, parts, operation, ...range });
+    const request = JSON.stringify({
+      source: this.options.path,
+      moduleUrl: this.options.evaluator.moduleUrl ?? "",
+      parts,
+      operation,
+      ...range,
+    });
     const wire = await this.options.evaluator.eval(buildScript(script, { request }));
     if (typeof wire !== "string") throw new Error("Invalid download response");
     const result: unknown = JSON.parse(wire);
@@ -111,19 +116,22 @@ export class WshcmDownloader {
     while (pending.length) {
       const parts = pending.pop()!;
       const entry = info.parse(await this.call(parts, "info"));
+      if (entry.kind === "link") {
+        if (!parts.length) throw new Error("Cannot download a symbolic link");
+        skippedLinks++;
+        continue;
+      }
+      if (parts.length) validateLocalName(parts[parts.length - 1]);
       if (entry.kind === "directory") {
         directories.push(parts);
         for (const name of entry.names) {
-          validateName(name);
+          if (!name || name === "." || name === ".." || /[\\/\0]/.test(name)) throw new Error("Invalid remote entry name");
           pending.push([...parts, name]);
         }
-      } else if (entry.kind === "file") {
+      } else {
         files.push({ ...entry, parts });
         bytes += entry.size;
         if (!Number.isSafeInteger(bytes)) throw new Error("Download size exceeds exact byte range");
-      } else {
-        if (parts.length === 0) throw new Error("Cannot download a symbolic link");
-        skippedLinks++;
       }
     }
     return { directories, files, bytes, skippedLinks };

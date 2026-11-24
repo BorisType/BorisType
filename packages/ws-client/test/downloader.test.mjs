@@ -12,6 +12,7 @@ async function setup(t, entries, transform = (response) => response) {
   const destination = join(directory, "copy");
   const requests = [];
   const evaluator = {
+    moduleUrl: "x-local://wt/sample/current.bs",
     async eval(script) {
       let request;
       const root = "/stand/sample";
@@ -38,7 +39,8 @@ async function setup(t, entries, transform = (response) => response) {
           },
         },
         FilePath: posix.join,
-        UrlToFilePath: () => root,
+        UrlToFilePath: (url) => url.replace("x-local://wt/sample", root),
+        StrLowerCase: (value) => value.toLowerCase(),
         StrBegins: (s, prefix) => s.startsWith(prefix),
         StrContains: (s, part) => s.includes(part),
         ParentDirectory: posix.dirname,
@@ -66,11 +68,11 @@ async function setup(t, entries, transform = (response) => response) {
 test("downloads nested binary data, empty files/directories and skips links; transfers byte ranges", async (t) => {
   const bytes = Buffer.from([0, 255, 10, 13, 127, 128, 32]);
   const { downloader, destination, requests } = await setup(t, {
-    "": { kind: "directory", names: ["empty", "sub", "link", ".zero"] },
+    "": { kind: "directory", names: ["empty", "sub", "latest:old", ".zero"] },
     empty: { kind: "directory", names: [] },
     sub: { kind: "directory", names: ["binary"] },
     "sub/binary": bytes,
-    link: { kind: "link" },
+    "latest:old": { kind: "link" },
     ".zero": Buffer.alloc(0),
   });
   const progress = [];
@@ -89,6 +91,20 @@ test("downloads nested binary data, empty files/directories and skips links; tra
     ],
   );
   assert.deepEqual(progress.at(-1), [7, 7]);
+});
+
+test("directory copy omits the active evaluator and keeps identically named files elsewhere", async (t) => {
+  const { downloader, destination } = await setup(t, {
+    "": { kind: "directory", names: ["current.bs", "another.bs", "nested"] },
+    "current.bs": Buffer.from("helper"),
+    "another.bs": Buffer.from("user"),
+    nested: { kind: "directory", names: ["current.bs"] },
+    "nested/current.bs": Buffer.from("keep"),
+  });
+  const result = await downloader.download();
+  assert.deepEqual((await readdir(destination)).sort(), ["another.bs", "nested"]);
+  assert.equal(await readFile(join(destination, "nested", "current.bs"), "utf8"), "keep");
+  assert.deepEqual(result, { path: destination, files: 2, bytes: 8, skippedLinks: 0 });
 });
 
 test("publishes a single file under the exact destination once, including concurrent downloads", async (t) => {

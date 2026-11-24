@@ -24,7 +24,8 @@ export interface EvaluatorInitializeOptions extends WshcmRequestOptions {
 export class Evaluator {
   private client: WshcmClient;
   private evalKey: string;
-  private libUrl: string;
+  /** URL of this evaluator’s temporary server module. */
+  readonly moduleUrl: string;
   private initialized = false;
   private setupAttempted = false;
 
@@ -35,7 +36,7 @@ export class Evaluator {
   constructor(client: WshcmClient) {
     this.client = client;
     this.evalKey = "unsafe_eval_" + this.generateRandomString(32);
-    this.libUrl = `x-local://wt/${this.evalKey}.bs`;
+    this.moduleUrl = `x-local://wt/${this.evalKey}.bs`;
   }
 
   /**
@@ -48,13 +49,13 @@ export class Evaluator {
 
     const content = this.getUnsafeEvalScript();
     this.setupAttempted = true;
-    await this.client.callMethod("tools", "put_url_text_server", [this.libUrl, content], options);
+    await this.client.callMethod("tools", "put_url_text_server", [this.moduleUrl, content], options);
     this.initialized = true;
   }
 
   /** Check only this module, including after an unacknowledged setup request. */
   async probe(options: WshcmRequestOptions = {}): Promise<boolean> {
-    const value = await this.client.callMethod(this.libUrl, "execute", ["return 1;"], options);
+    const value = await this.client.callMethod(this.moduleUrl, "execute", ["return 1;"], options);
     if (value !== 1n && value !== 1) return false;
     this.initialized = true;
     return true;
@@ -69,7 +70,7 @@ export class Evaluator {
     if (!this.initialized) {
       await this.initialize(options);
     }
-    return this.client.callMethod(this.libUrl, "execute", [code], options);
+    return this.client.callMethod(this.moduleUrl, "execute", [code], options);
   }
 
   /**
@@ -102,7 +103,7 @@ export class Evaluator {
       return false;
     }
     try {
-      const result = await this.client.callMethod(this.libUrl, "drop_self", [], options);
+      const result = await this.client.callMethod(this.moduleUrl, "drop_self", [], options);
       this.initialized = false;
       if (result === true) this.setupAttempted = false;
       return result === true;
@@ -135,7 +136,7 @@ function execute(code) {
 "META:ALLOW-CALL-FROM-CLIENT:1"
 function drop_self() {
     try {
-        DeleteFile("${this.libUrl}");
+        DeleteFile("${this.moduleUrl}");
         return true;
     } catch (err) {
         return false;
