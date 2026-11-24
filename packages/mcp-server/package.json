@@ -1,6 +1,6 @@
 {
   "name": "@boristype/mcp-server",
-  "version": "0.1.0-alpha.9",
+  "version": "0.1.0-alpha.10",
   "description": "MCP server for WebSoft HCM documents, custom fields, object packages, files, queries and server-side execution",
   "type": "module",
   "main": "./build/index.js",

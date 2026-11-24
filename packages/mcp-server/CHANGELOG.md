@@ -1,5 +1,15 @@
 # @boristype/mcp-server
 
+## 0.1.0-alpha.10
+
+### Patch Changes
+
+- 386ee6b: Уточнены описания инструментов для MCP-клиентов. Справочник на GitHub Pages описывает аргументы, результаты, порядок вызовов и ограничения каждого инструмента.
+- c4f2df9: ZIP пакетов и XML форм и объектов используют общие `inputPath`, `outputPath` и `file.path`. Через 24 часа MCP может очистить созданные им файлы в `~/.boristype/shared/{packages,objects}`. Для постоянного результата укажите путь в проекте. Stdio MCP принимает `--shared-directory` и использует `--project-directory` при отсутствии пригодных корней клиента. XML можно редактировать локально и отправлять с исходным `readToken`. Просмотр ZIP сохраняет совместимость с `localPath` и сообщает `PackageFileNotFound` до обращения к HCM, если файл отсутствует по разрешённому пути.
+- Updated dependencies [c4f2df9]
+- Updated dependencies [d1790e7]
+  - @boristype/ws-client@0.1.0-alpha.11
+
 ## 0.1.0-alpha.9
 
 ### Minor Changes
