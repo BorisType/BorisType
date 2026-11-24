@@ -76,7 +76,7 @@ function present(value: unknown, method: string, input: RecordValue): RecordValu
   function copy(value: unknown, path: string, arrayLimit: number, stringLimit = 4096): unknown {
     const field = path.slice(path.lastIndexOf(".") + 1).replace(/\[\d+\]$/, "");
     // Valid identities fit 256 characters; artifact paths retain their full input bound.
-    const limit = Math.max(stringLimit, identityFields.has(field) ? 256 : field === "localPath" || field === "exportPath" ? 4096 : 0);
+    const limit = Math.max(stringLimit, identityFields.has(field) ? 256 : field === "localPath" || field === "path" ? 4096 : 0);
     if (typeof value === "string" && value.length > limit) {
       truncatedFields.add(path);
       return value.slice(0, limit);
@@ -230,7 +230,7 @@ export function registerPackageTools(server: McpServer, api: WshcmApi): void {
   register(
     "export_package",
     "exportPackage",
-    "Build a ZIP from schemaId/revision, or directly from decimal objectIds and/or customTemplates without saving a schema. Each selected type includes all its configured templates. Returns exportPath on the MCP host (default ~/.boristype/packages/export/<operationId>.zip) and a private artifact.{artifactId,localPath,sizeBytes,sha256}. Set outputPath to a new .zip in shared export or a project directory; a relative path uses a single project root. Project subdirectories must already exist. Check status, missingCount and missingCustomTemplates against the actual archive. Use wshcm_inspect_package on the intended target. Export creates temporary files/reports." +
+    "Build a ZIP from schemaId/revision, or directly from decimal objectIds and/or customTemplates without saving a schema. Each selected type includes all its configured templates. Returns file.path on the MCP host (default ~/.boristype/shared/packages/<operationId>.zip, eligible for cleanup after 24 hours) and a private artifact.{artifactId,localPath,sizeBytes,sha256}. Set outputPath to a new .zip in shared/packages or a project directory; a relative path uses a single project root. Project subdirectories must already exist. Check status, missingCount and missingCustomTemplates against the actual archive. Use wshcm_inspect_package on the intended target. Export creates temporary files/reports." +
       links +
       receipt,
     temporary,
@@ -238,7 +238,7 @@ export function registerPackageTools(server: McpServer, api: WshcmApi): void {
   register(
     "inspect_package",
     "inspectPackage",
-    "Preview an exported artifactId, or pass localPath to a ZIP in either shared directory (~/.boristype/packages/import or export) or a project directory on the MCP host. Use exportPath directly across instances sharing that directory. Relative paths use a single project root. On PackageFileNotFound, correct localPath and retry. Preview uploads the validated copy to the configured HCM before import. Returns inspectionId, artifact, operation and paged items including conflicts and customTemplateTypes. For more rows pass inspectionId/offset/limit. The 24-hour artifact and this instance's inspection are required for import. ZIP 128 MiB, expanded 512 MiB, 10000 entries, depth 2, XML 32 MiB." +
+    "Preview an exported artifactId, or pass inputPath (legacy alias localPath) to a ZIP in shared/packages or a project on the MCP host. Use file.path directly across instances sharing that directory. Relative paths use a single project root. On PackageFileNotFound, correct inputPath and retry. Preview uploads the validated copy to the configured HCM before import. Returns inspectionId, artifact, operation and paged items including conflicts and customTemplateTypes. For more rows pass inspectionId/offset/limit. The 24-hour artifact and this instance's inspection are required for import. ZIP 128 MiB, expanded 512 MiB, 10000 entries, depth 2, XML 32 MiB." +
       receipt,
     temporary,
   );
@@ -251,7 +251,7 @@ export function registerPackageTools(server: McpServer, api: WshcmApi): void {
   register(
     "get_package_operation",
     "getOperation",
-    "Look up a previous operationId on the same HCM/account, including after timeout. UUID handles are canonicalized to lowercase. Returns the native receipt with status, phase, verification, reportIds and downloadIds. Status may be running/completed/partial/failed/unknown. ReceiptUnavailable leaves the outcome unknown. The exporting instance also returns the local artifact and the exportPath when publication succeeded.",
+    "Look up a previous operationId on the same HCM/account, including after timeout. UUID handles are canonicalized to lowercase. Returns the native receipt with status, phase, verification, reportIds and downloadIds. Status may be running/completed/partial/failed/unknown. ReceiptUnavailable leaves the outcome unknown. The exporting instance also returns the local artifact and file metadata when publication succeeded.",
     read,
   );
 }

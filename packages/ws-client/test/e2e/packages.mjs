@@ -24,8 +24,8 @@ const e = client.createEvaluator();
 const local = await mkdtemp(join(tmpdir(), "bt-native-packages-"));
 const api = new WshcmPackages(e, {
   artifactDirectory: join(local, "artifacts"),
-  importDirectory: local,
-  exportDirectory: join(local, "export"),
+  projectDirectory: local,
+  sharedDirectory: join(local, "export"),
 });
 const marker = "bt-packages-" + randomUUID();
 const receipt = { marker, operations: [], stages: [] };

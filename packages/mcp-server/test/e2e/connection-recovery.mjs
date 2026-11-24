@@ -160,7 +160,7 @@ test("built MCP keeps one stdio session across native HCM outages", { timeout: 1
         join(root, "packages/mcp-server/build/cli.js"),
         "--package-artifact-directory",
         artifactsDirectory,
-        "--package-export-directory",
+        "--shared-directory",
         join(privateDirectory, "export"),
       ],
       env: {

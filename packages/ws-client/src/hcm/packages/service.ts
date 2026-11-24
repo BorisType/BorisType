@@ -20,7 +20,8 @@ import {
 } from "./contracts.js";
 import { packageNative } from "./native.js";
 import { PackageArtifactStore, type PackageArtifact } from "./artifacts.js";
-import { PackagePaths, publishPackage, type PackagePathOptions } from "./paths.js";
+import { TransferFiles, type TransferFile, type TransferFileOptions } from "../transfer-files.js";
+import { LocalFileError } from "../local-file-access.js";
 
 type Input<K extends keyof typeof packageSchemas> = z.input<(typeof packageSchemas)[K]>;
 // Keep public schemas JSON Schema serializable; normalize only public UUID handles
@@ -81,7 +82,7 @@ interface Inspection {
   operation: z.infer<typeof operationResult>;
   attempted: boolean;
 }
-export interface WshcmPackageOptions extends PackagePathOptions {
+export interface WshcmPackageOptions extends TransferFileOptions {
   /** Absolute local directory for archived ZIP snapshots and metadata. */
   artifactDirectory?: string;
 }
@@ -90,18 +91,30 @@ export class WshcmPackages {
   private tail: Promise<unknown> = Promise.resolve();
   private readonly snapshots = new Map<string, string>();
   private readonly inspections = new Map<string, Inspection>();
-  private readonly operationArtifacts = new Map<string, { artifact: PackageArtifact; exportPath?: string }>();
-  private readonly paths: PackagePaths;
+  private readonly operationArtifacts = new Map<string, { artifact: PackageArtifact; file?: TransferFile }>();
+  private readonly paths: TransferFiles;
   readonly artifacts: PackageArtifactStore;
   constructor(
     private readonly evaluator: WshcmEvaluator,
     options: WshcmPackageOptions = {},
   ) {
-    this.paths = new PackagePaths(options);
+    this.paths = new TransferFiles(options);
     this.artifacts = new PackageArtifactStore(options.artifactDirectory);
   }
   private run<T>(fn: () => Promise<T>): Promise<T> {
-    const next = this.tail.then(fn, fn);
+    const next = this.tail.then(fn, fn).catch((error: unknown) => {
+      if (error instanceof LocalFileError)
+        throw new WshcmPackageError(
+          {
+            code: error.code,
+            message: error.message,
+            phase: "input",
+            status: "not_attempted",
+          },
+          { cause: error },
+        );
+      throw error;
+    });
     this.tail = next.catch(() => {});
     return next;
   }
@@ -209,7 +222,7 @@ export class WshcmPackages {
     if (args.customTemplates) args.customTemplates = [...new Set(args.customTemplates)];
     return this.run(async () => {
       const operationId = args.operationId ?? randomUUID();
-      const destination = await this.paths.destination(outputPath, operationId);
+      const destination = await this.paths.destination("packages", outputPath, operationId);
       const result = await packageNative(
         this.evaluator,
         { ...args, operation: "export", operationId, ...(args.revision ? { expected: this.expected(args.revision) } : {}) },
@@ -245,8 +258,9 @@ export class WshcmPackages {
         const missingCustomTemplates = [...new Set(result.requestedCustomTemplates)].filter((type) => !templateTypes.has(type));
         const partial = missing.length > 0 || missingCustomTemplates.length > 0 || result.errors.length > 0;
         result.operation = await packageNative(this.evaluator, { operation: "finish_export", operationId, partial }, operationResult);
+        let file: TransferFile;
         try {
-          await publishPackage(artifact.localPath, destination);
+          file = await this.paths.publish(destination, { source: artifact.localPath });
         } catch (cause) {
           throw new WshcmPackageError(
             {
@@ -259,10 +273,10 @@ export class WshcmPackages {
             { cause },
           );
         }
-        this.operationArtifacts.set(operationId, { artifact: { ...artifact }, exportPath: destination.path });
+        this.operationArtifacts.set(operationId, { artifact: { ...artifact }, file });
         const cleanupError = await cleanup();
         return {
-          exportPath: destination.path,
+          file,
           operationId,
           artifact,
           ...(cleanupError ? { cleanupError } : {}),
@@ -409,7 +423,8 @@ export class WshcmPackages {
         if (receipt.accountId !== state.operation.accountId || receipt.targetId !== state.operation.targetId)
           throw new Error("Inspection context changed");
       } else {
-        const external = args.localPath === undefined ? undefined : await this.paths.locate(args.localPath, "Import");
+        const inputPath = args.inputPath ?? args.localPath;
+        const external = inputPath === undefined ? undefined : await this.paths.locate("packages", inputPath, "Import");
         const source = external?.path ?? (await this.artifacts.get(args.artifactId!)).localPath;
         const { artifact, result: archive } = await this.artifacts.captureChecked(
           source,

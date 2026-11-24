@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { McpServer } from "@modelcontextprotocol/server";
 
 /** The stdio server negotiates initialize-based MCP revisions; ask the host on every project-path call. */
-export async function packageProjectRoots(server: McpServer): Promise<string[]> {
+export async function projectRoots(server: McpServer): Promise<string[]> {
   if (!server.server.getClientCapabilities()?.roots) return [];
   const { roots } = await server.server.listRoots(undefined, { timeout: 3000 }).catch(() => ({ roots: [] }));
   const directories = new Set<string>();

@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/client";
 import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import { TransferFiles } from "../../ws-client/build/hcm/transfer-files.js";
 import { PackageArtifactStore } from "../../ws-client/build/hcm/packages/artifacts.js";
 import { objectPackage } from "../../ws-client/test/helpers/package-fixtures.mjs";
 
@@ -424,25 +425,23 @@ test("CLI isolates ZIP capture even when a new inspection fails before dispatch"
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   t.after(() => new Promise((resolve) => server.close(resolve)));
-  const inbox = join(root, "import");
-  const sharedExport = join(root, "export");
+  const shared = join(root, "shared");
+  const packages = join(shared, "packages");
   const project = join(root, "project");
-  await Promise.all([mkdir(inbox), mkdir(sharedExport), mkdir(project)]);
+  await Promise.all([mkdir(packages, { recursive: true }), mkdir(project)]);
   const { client, call } = await openSession(
     t,
     server.address().port,
     "--package-artifact-directory",
     artifactDirectory,
-    "--package-import-directory",
-    inbox,
-    "--package-export-directory",
-    sharedExport,
+    "--shared-directory",
+    shared,
     "--project-directory",
     project,
   );
   for (const [file, localPath] of [
     [join(project, "root.zip"), "root.zip"],
-    [join(sharedExport, "in.zip"), join(sharedExport, "in.zip")],
+    [join(packages, "in.zip"), join(packages, "in.zip")],
   ]) {
     await writeFile(file, "invalid");
     const rejected = await call("wshcm_inspect_package", { localPath }, true);
@@ -467,7 +466,7 @@ test("CLI isolates ZIP capture even when a new inspection fails before dispatch"
   assert.equal(sha256, exported.sha256);
   assert.deepEqual(await readFile(localPath), bytes);
 
-  const staged = join(inbox, "source.zip");
+  const staged = join(packages, "source.zip");
   await writeFile(staged, bytes);
   const allowed = await call("wshcm_inspect_package", { localPath: staged }, true);
   assert.equal(allowed.error.code, "HcmUnavailable");
@@ -476,6 +475,26 @@ test("CLI isolates ZIP capture even when a new inspection fails before dispatch"
   await rm(artifactDirectory, { recursive: true });
   await assert.rejects(readdir(artifactDirectory), { code: "ENOENT" });
   assert.deepEqual(await readFile(source), bytes);
+});
+
+test("stdio startup cleans only expired shared publications, including after a restart", async (t) => {
+  const sharedDirectory = await mkdtemp(join(tmpdir(), "bt-stdio-expiry-"));
+  t.after(() => rm(sharedDirectory, { recursive: true, force: true }));
+  const files = new TransferFiles({ sharedDirectory });
+  const publish = async () => files.publish(await files.destination("objects"), { xml: "<agent/>" });
+  const oldTime = t.mock.method(Date, "now", () => Date.parse("2020-01-01"));
+  let expired;
+  try {
+    expired = await publish();
+  } finally {
+    oldTime.mock.restore();
+  }
+  const fresh = await publish();
+  const session = await openSession(t, 1, "--shared-directory", sharedDirectory);
+  await session.client.close();
+  assert.equal(session.stderr(), "");
+  await assert.rejects(readFile(expired.path), { code: "ENOENT" });
+  assert.equal(await readFile(fresh.path, "utf8"), "<agent/>");
 });
 
 test("CLI EOF before any tool makes zero backend requests", { timeout: 5000 }, async (t) => {

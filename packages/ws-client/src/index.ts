@@ -14,6 +14,8 @@ export { WshcmUploader } from "./uploader.js";
 export type { WshcmClientOptions, WshcmRequestOptions, WshcmValue } from "./types.js";
 export type { WshcmUploaderOptions, UploadProgressCallback } from "./uploader.js";
 
+export { cleanExpiredSharedFiles } from "./hcm/shared-file-cleanup.js";
+export type { TransferFile, TransferFileOptions } from "./hcm/transfer-files.js";
 export { WshcmApi } from "./hcm/api.js";
 export type { SystemInfoResult, SystemInfoSummary } from "./hcm/system-info.js";
 export { WshcmExecutionError } from "./hcm/execute.js";

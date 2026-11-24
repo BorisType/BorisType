@@ -20,11 +20,10 @@ program
   .option("--https", "Use HTTPS instead of HTTP", process.env["WSHCM_HTTPS"] === "true")
   .option("--connection-timeout-ms <ms>", "Deadline per HCM connection setup/probe request (default 5000 ms)")
   .option("--package-artifact-directory <path>", "Absolute local directory for package ZIPs and metadata")
-  .option("--package-import-directory <path>", "Absolute directory for incoming ZIPs (default ~/.boristype/packages/import)")
-  .option("--package-export-directory <path>", "Absolute directory for exported ZIPs (default ~/.boristype/packages/export)")
+  .option("--shared-directory <path>", "Absolute directory for temporary ZIPs and XML (default ~/.boristype/shared)")
   .option(
     "--project-directory <path>",
-    "Package workspace root, overriding MCP client roots; use . for the launch directory",
+    "Project root when no local MCP client roots are available; use . for the launch directory",
     (path: string) => resolve(path),
   )
   .action(
@@ -36,8 +35,7 @@ program
       https: boolean;
       connectionTimeoutMs?: string;
       packageArtifactDirectory?: string;
-      packageImportDirectory?: string;
-      packageExportDirectory?: string;
+      sharedDirectory?: string;
       projectDirectory?: string;
     }) => {
       await startServer({
@@ -45,8 +43,7 @@ program
         port: decimal(options.port),
         connectionTimeoutMs: options.connectionTimeoutMs === undefined ? undefined : decimal(options.connectionTimeoutMs),
         packageArtifactDirectory: options.packageArtifactDirectory,
-        packageImportDirectory: options.packageImportDirectory,
-        packageExportDirectory: options.packageExportDirectory,
+        sharedDirectory: options.sharedDirectory,
         projectDirectory: options.projectDirectory,
         username: options.username,
         password: options.password,

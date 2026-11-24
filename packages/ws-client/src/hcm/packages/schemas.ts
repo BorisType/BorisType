@@ -71,7 +71,7 @@ export const packageSchemas = {
       revision: revision.optional(),
       outputPath: packagePath
         .optional()
-        .describe("New .zip file inside the shared export directory or project. Relative paths use a single project root."),
+        .describe("New .zip file inside shared/packages or project. Relative paths use a single project root."),
       objectIds: objectIdList.optional(),
       customTemplates: customTemplates.optional(),
       ...options,
@@ -87,13 +87,14 @@ export const packageSchemas = {
     .strictObject({
       ...operation,
       artifactId: z.uuid().optional(),
-      localPath: packagePath
+      inputPath: packagePath
         .optional()
-        .describe("Package ZIP in shared import/export or a project directory. Relative paths use a single project root."),
+        .describe("ZIP in shared/packages or a project on the MCP host. Relative paths require one project root."),
+      localPath: packagePath.optional().describe("Deprecated alias for inputPath."),
       inspectionId: z.uuid().optional(),
       ...page,
     })
-    .refine((v) => [v.artifactId, v.localPath, v.inspectionId].filter((x) => x !== undefined).length === 1),
+    .refine((v) => [v.artifactId, v.inputPath, v.localPath, v.inspectionId].filter((x) => x !== undefined).length === 1),
   importPackage: z.strictObject({
     ...operation,
     inspectionId: z.uuid(),

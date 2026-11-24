@@ -1,12 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import { constants, type WriteStream } from "node:fs";
-import { lstat, mkdir, open, realpath, unlink } from "node:fs/promises";
+import { lstat, mkdir, open, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
-import { basename, isAbsolute, join, relative, sep } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { WshcmPackageError } from "./contracts.js";
-import { checkedParent } from "./paths.js";
+import { openTransferSource } from "../local-file-access.js";
 
 const MAX_ARCHIVE_BYTES = 128 * 1024 * 1024;
 const RETENTION_MS = 24 * 60 * 60 * 1000;
@@ -19,52 +18,6 @@ export interface PackageArtifact {
   sizeBytes: number;
   sha256: string;
   expiresAt: string;
-}
-
-/** External tool inputs must be scoped to an admitted root. Downloads and verified handles have trusted sources. */
-async function openPackageSource(localPath: string, sourceDirectory?: string) {
-  if (!isAbsolute(localPath)) throw new Error("Package path must be absolute");
-  const flags = constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
-  if (sourceDirectory === undefined) {
-    if (!(await lstat(localPath)).isFile()) throw new Error("Package source must be a regular file");
-    return open(localPath, flags);
-  }
-
-  function denied() {
-    return new WshcmPackageError({
-      code: "ImportPathDenied",
-      status: "not_attempted",
-      phase: "input",
-      message: `Place a regular package file inside the allowed directory (${sourceDirectory}) or use an artifactId.`,
-    });
-  }
-  function reportSourceError(cause: unknown): never {
-    if (cause instanceof Error && "code" in cause && cause.code === "ENOENT")
-      throw new WshcmPackageError(
-        { code: "PackageFileNotFound", phase: "input", status: "not_attempted", message: `Package file not found at ${localPath}` },
-        { cause },
-      );
-    throw cause;
-  }
-  if (process.platform === "win32" && relative(sourceDirectory, localPath).includes(":")) throw denied();
-  const { parent, canonical: root } = await checkedParent({ root: sourceDirectory, path: localPath }, "Import").catch(reportSourceError);
-  const path = join(parent, basename(localPath));
-  const expected = await lstat(path, { bigint: true }).catch(reportSourceError);
-  if (!expected.isFile() || expected.nlink !== 1n) throw denied();
-  const source = await open(path, flags).catch(reportSourceError);
-  try {
-    // Bind admission to the open file before reading any bytes. On Linux ask the kernel for its path.
-    const actual = await source.stat({ bigint: true });
-    if (!actual.isFile() || actual.nlink !== 1n || actual.dev !== expected.dev || actual.ino !== expected.ino) throw denied();
-    const openedPath = await realpath(process.platform === "linux" ? `/proc/self/fd/${source.fd}` : path);
-    if (!openedPath.startsWith(root.endsWith(sep) ? root : root + sep)) throw denied();
-    const verified = await lstat(openedPath, { bigint: true });
-    if (verified.dev !== actual.dev || verified.ino !== actual.ino) throw denied();
-    return source;
-  } catch (error) {
-    await source.close();
-    throw error;
-  }
 }
 
 /** Persistent, private snapshots; handles never resolve a caller supplied filesystem path. */
@@ -82,7 +35,7 @@ export class PackageArtifactStore {
 
   /** Validate the owned copy before publishing metadata. Failed captures remove only their own files. */
   async captureChecked<T>(localPath: string, validate: (path: string) => T | Promise<T>, sourceDirectory?: string) {
-    const source = await openPackageSource(localPath, sourceDirectory);
+    const source = await openTransferSource(localPath, "packages", sourceDirectory);
     const artifactId = randomUUID();
     const targetPath = join(this.directory, `${artifactId}.zip`);
     const metadataPath = join(this.directory, `${artifactId}.json`);

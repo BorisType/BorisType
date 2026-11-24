@@ -3,6 +3,7 @@ import { WshcmRuntime, type WshcmRuntimeOptions } from "./runtime/runtime.js";
 import type { z } from "zod";
 import { WshcmFiles } from "./files.js";
 import { WshcmPackages, type WshcmPackageOptions } from "./packages/service.js";
+import { TransferFiles } from "./transfer-files.js";
 import { WshcmObjects } from "./objects.js";
 import { WshcmCustomFieldDefinitions } from "./custom-fields.js";
 import { executeXQuery } from "./xquery.js";
@@ -24,7 +25,7 @@ export class WshcmApi {
   constructor(
     private readonly evaluator: WshcmEvaluator,
     runtimeOptions: WshcmRuntimeOptions = {},
-    packageOptions: WshcmPackageOptions = {},
+    localOptions: WshcmPackageOptions = {},
   ) {
     this.runtime = new WshcmRuntime(evaluator, runtimeOptions);
     this.files = new WshcmFiles({
@@ -36,9 +37,9 @@ export class WshcmApi {
         return evaluator.eval(code);
       },
     });
-    this.objects = new WshcmObjects(evaluator);
+    this.objects = new WshcmObjects(evaluator, new TransferFiles(localOptions));
     this.customFields = new WshcmCustomFieldDefinitions(evaluator);
-    this.packages = new WshcmPackages(evaluator, packageOptions);
+    this.packages = new WshcmPackages(evaluator, localOptions);
   }
 
   /** Return bounded typed rows: integers are bigint, reals number, native dates ISO strings. */

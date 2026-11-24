@@ -1,0 +1,53 @@
+import assert from "node:assert/strict";
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { test } from "node:test";
+import { cleanExpiredSharedFiles } from "../build/index.js";
+import { TransferFiles } from "../build/hcm/transfer-files.js";
+
+test("shared cleanup uses publication time and file identity across processes", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "bt-expiry-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const sharedDirectory = join(root, "shared");
+  const projectDirectory = join(root, "project");
+  await mkdir(projectDirectory);
+  const files = new TransferFiles({ sharedDirectory, projectDirectory });
+  const publish = async (kind, path, data) => files.publish(await files.destination(kind, path), data);
+  const xml = { xml: "<agent/>" };
+  const project = await publish("objects", "keep.xml", xml);
+  const owned = await publish("objects", undefined, xml);
+  await writeFile(owned.path, "<updated/>");
+  const source = join(projectDirectory, "source.zip");
+  await writeFile(source, "PK");
+  const zip = await publish("packages", undefined, { source });
+  const replaced = await publish("objects", undefined, xml);
+  await writeFile(join(root, "replacement"), "new owner");
+  await rename(join(root, "replacement"), replaced.path);
+  const manual = join(sharedDirectory, "objects", "manual.xml");
+  await writeFile(manual, "user");
+  const expiry = Date.parse(owned.expiresAt);
+  await cleanExpiredSharedFiles(sharedDirectory, expiry - 1);
+  assert.equal(await readFile(owned.path, "utf8"), "<updated/>");
+  const after = Math.max(expiry, Date.parse(zip.expiresAt), Date.parse(replaced.expiresAt));
+  await Promise.all([cleanExpiredSharedFiles(sharedDirectory, after), cleanExpiredSharedFiles(sharedDirectory, after)]);
+  for (const expired of [owned, zip]) await assert.rejects(readFile(expired.path), { code: "ENOENT" });
+  assert.equal(await readFile(project.path, "utf8"), xml.xml);
+  assert.equal(await readFile(replaced.path, "utf8"), "new owner");
+  assert.equal(await readFile(manual, "utf8"), "user");
+  assert.deepEqual(await readdir(join(sharedDirectory, ".leases")), []);
+});
+
+test("cleanup leaves a moved directory alone while its old name is a symlink", { skip: process.platform === "win32" }, async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "bt-moved-shared-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const sharedDirectory = join(root, "shared");
+  const files = new TransferFiles({ sharedDirectory });
+  const item = await files.publish(await files.destination("objects", undefined, "example"), { xml: "<agent/>" });
+  const folder = join(sharedDirectory, "objects");
+  const moved = join(root, "moved");
+  await rename(folder, moved);
+  await symlink(moved, folder, "dir");
+  await assert.rejects(cleanExpiredSharedFiles(sharedDirectory, Date.parse(item.expiresAt)), /linked or non-directory/);
+  assert.equal(await readFile(join(moved, "example.xml"), "utf8"), "<agent/>");
+});

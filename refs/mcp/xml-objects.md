@@ -187,3 +187,7 @@ uniqueness, external CAS/transactions, Windows/MSSQL/new model/cluster cache.
 Full TopElem.Xml экспортирует поля; binary/external-data требуют своего backup.
 Object delete/trash/restore, typed JSON, bulk и business adapters остаются
 за пределами публичных object tools.
+
+## Локальный файл и readToken
+
+В файловом режиме SDK сохраняет полный проверенный XML документа и формы в `ObjectReadState`. Токен выдаётся после публикации пользовательской копии. Локальный путь не уходит на HCM. При записи SDK читает ограниченный UTF-8 файл и применяет ту же проверку снимка и native операцию, что при inline XML. Путь назначения проверяется до dispatch. После подтверждения Save ошибка локальной публикации сохраняет `id` и `writeStatus: "saved"`. MCP-тест проверяет это на конкурентном занятии выходного имени, а также проверяет replace после редактирования файла и конфликт с внешней правкой. [Общие пути ZIP и XML](./object-packages.md)

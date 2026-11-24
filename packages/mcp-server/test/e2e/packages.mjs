@@ -47,7 +47,7 @@ test(
     t.after(() => rm(exportDirectory, { recursive: true, force: true }));
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: [fileURLToPath(new URL("../../build/cli.js", import.meta.url)), "--package-export-directory", exportDirectory],
+      args: [fileURLToPath(new URL("../../build/cli.js", import.meta.url)), "--shared-directory", exportDirectory],
       env: {
         ...process.env,
         NODE_USE_ENV_PROXY: "0",
