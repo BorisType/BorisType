@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { randomUUID, createHash } from "node:crypto";
 import { mkdtemp, writeFile, readFile, rm, mkdir, readdir, chmod } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
-import { join, parse } from "node:path";
+import { join, parse, resolve } from "node:path";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { createServer } from "../build/index.js";
 import { packagePlatform, packageExportPlatform } from "../../ws-client/test/helpers/package-platform.mjs";
@@ -150,11 +150,22 @@ test("large validation errors remain bounded JSON with an explicit truncated mar
   assert.equal(failed.truncated, true);
 });
 
-test("generic local failures are bounded and do not dump archive bytes", async (t) => {
-  const client = await connect(t, undefined, { packageImportDirectory: tmpdir() });
-  const failed = await call(client, "inspect_package", { localPath: join(tmpdir(), "missing-package-" + randomUUID() + ".zip") }, true);
-  assert.equal(typeof failed.message, "string");
-  assert.equal(failed.code, "PackageToolError");
+test("inspect reports a missing local ZIP before contacting HCM", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "bt-missing-package-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const inbox = join(dir, "import");
+  await mkdir(inbox);
+  const platform = packagePlatform();
+  const client = await connect(t, platform.evaluator, { packageImportDirectory: inbox, projectDirectory: dir });
+  for (const localPath of [join(inbox, "missing.zip"), "missing-folder/agents.zip"]) {
+    const failed = await call(client, "inspect_package", { localPath }, true);
+    assert.equal(platform.calls, 0);
+    assert.equal(failed.status, "not_attempted");
+    assert.equal(failed.phase, "input");
+    assert.equal(failed.code, "PackageFileNotFound");
+    assert.match(failed.message, /file not found/i);
+    assert.ok(failed.message.includes(resolve(dir, localPath)));
+  }
 });
 
 test("large schema pages have bounded text and a continuation that loses no members", async (t) => {

@@ -238,7 +238,7 @@ export function registerPackageTools(server: McpServer, api: WshcmApi): void {
   register(
     "inspect_package",
     "inspectPackage",
-    "Preview an exported artifactId, or pass localPath to a ZIP in either shared directory (~/.boristype/packages/import or export) or a project directory on the MCP host. Use exportPath directly across instances sharing that directory. Relative paths use a single project root. Preview uploads the validated copy to the configured HCM before import. Returns inspectionId, artifact, operation and paged items including conflicts and customTemplateTypes. For more rows pass inspectionId/offset/limit. The 24-hour artifact and this instance's inspection are required for import. ZIP 128 MiB, expanded 512 MiB, 10000 entries, depth 2, XML 32 MiB." +
+    "Preview an exported artifactId, or pass localPath to a ZIP in either shared directory (~/.boristype/packages/import or export) or a project directory on the MCP host. Use exportPath directly across instances sharing that directory. Relative paths use a single project root. On PackageFileNotFound, correct localPath and retry. Preview uploads the validated copy to the configured HCM before import. Returns inspectionId, artifact, operation and paged items including conflicts and customTemplateTypes. For more rows pass inspectionId/offset/limit. The 24-hour artifact and this instance's inspection are required for import. ZIP 128 MiB, expanded 512 MiB, 10000 entries, depth 2, XML 32 MiB." +
       receipt,
     temporary,
   );

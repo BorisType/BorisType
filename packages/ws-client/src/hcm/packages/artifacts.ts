@@ -38,12 +38,20 @@ async function openPackageSource(localPath: string, sourceDirectory?: string) {
       message: `Place a regular package file inside the allowed directory (${sourceDirectory}) or use an artifactId.`,
     });
   }
+  function reportSourceError(cause: unknown): never {
+    if (cause instanceof Error && "code" in cause && cause.code === "ENOENT")
+      throw new WshcmPackageError(
+        { code: "PackageFileNotFound", phase: "input", status: "not_attempted", message: `Package file not found at ${localPath}` },
+        { cause },
+      );
+    throw cause;
+  }
   if (process.platform === "win32" && relative(sourceDirectory, localPath).includes(":")) throw denied();
-  const { parent, canonical: root } = await checkedParent({ root: sourceDirectory, path: localPath }, "Import");
+  const { parent, canonical: root } = await checkedParent({ root: sourceDirectory, path: localPath }, "Import").catch(reportSourceError);
   const path = join(parent, basename(localPath));
-  const expected = await lstat(path, { bigint: true });
+  const expected = await lstat(path, { bigint: true }).catch(reportSourceError);
   if (!expected.isFile() || expected.nlink !== 1n) throw denied();
-  const source = await open(path, flags);
+  const source = await open(path, flags).catch(reportSourceError);
   try {
     // Bind admission to the open file before reading any bytes. On Linux ask the kernel for its path.
     const actual = await source.stat({ bigint: true });
