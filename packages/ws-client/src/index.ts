@@ -11,6 +11,7 @@ export type { XQueryOptions, XQueryResult } from "./xquery.js";
 export { WshcmException, UnauthorizedError, WshcmRequestError, WshcmSoapFault, WshcmDispatchError } from "./exceptions.js";
 export { renderRequest, parseResponse } from "./soap-utils.js";
 export { WshcmUploader } from "./uploader.js";
+export { WshcmDownloader, type WshcmDownloaderOptions, type DownloadProgressCallback, type DownloadResult } from "./downloader.js";
 export type { WshcmClientOptions, WshcmRequestOptions, WshcmValue } from "./types.js";
 export type { WshcmUploaderOptions, UploadProgressCallback } from "./uploader.js";
 

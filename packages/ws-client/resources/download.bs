@@ -1,0 +1,41 @@
+// Download one physical file range or inspect one directory level.
+var request = ParseJson('${request}');
+try {
+    var core = tools.dotnet_host.Object.GetAssembly("mscorlib");
+    var path = request.source;
+    if (StrBegins(path, "x-local://") || StrBegins(path, "x-app://") || StrBegins(path, "file://")) {
+        path = UrlToFilePath(path);
+    }
+    if (!core.CallClassStaticMethod("System.IO.Path", "IsPathFullyQualified", [path])) {
+        throw "Expected an absolute server path or a physical file URL";
+    }
+    for (var i = 0; i < ArrayCount(request.parts); i++) {
+        path = FilePath(path, request.parts[i]);
+    }
+    path = core.CallClassStaticMethod("System.IO.Path", "GetFullPath", [path]);
+    var cursor = path;
+    var attributes;
+    var parentPath;
+    while (cursor != "") {
+        attributes = core.CallClassStaticMethod("System.IO.File", "GetAttributes", [cursor]).ToString();
+        if (StrContains(attributes, "ReparsePoint")) {
+            if (cursor == path && request.operation == "info") return EncodeJson({kind:"link"});
+            throw "Cannot read through a symbolic link";
+        }
+        parentPath = ParentDirectory(cursor);
+        if (parentPath == cursor) break;
+        cursor = parentPath;
+    }
+    if (request.operation == "read") {
+        return EncodeJson({data:Base64Encode(LoadFileDataRange(path, request.start, request.end))});
+    }
+    if (IsDirectory(path)) {
+        var entries = ReadDirectoryByPath(path);
+        var names = [];
+        for (var j = 0; j < ArrayCount(entries); j++) names.push(FileName(entries[j]));
+        return EncodeJson({kind:"directory", names:names});
+    }
+    return EncodeJson({kind:"file", size:FileSize(path), modified:StrDate(GetFileModDate(path))});
+} catch (error) {
+    return EncodeJson({error:String(error)});
+}
