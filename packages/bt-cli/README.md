@@ -34,14 +34,17 @@ npx btc build --compile-mode bare
 
 ## CLI-команды
 
-| Команда                | Действие                                                     |
-| ---------------------- | ------------------------------------------------------------ |
-| `btc init`             | Создать tsconfig, не трогая существующий                     |
-| `btc build`            | Компиляция по tsconfig; ресурсы с `--include-non-ts-files`   |
-| `btc link --clean`     | Собрать готовые пакеты в dist, очистив старые dist/cache     |
-| `btc artifact --clean` | Один artifact/main.zip со всем dist, включая components      |
-| `btc push`             | Загрузить готовый dist и выполнить initialization на HCM     |
-| `btc dev --no-push`    | Watch/build/link локально; без этого флага auto-push включён |
+| Команда                                | Действие                                                     |
+| -------------------------------------- | ------------------------------------------------------------ |
+| `btc init`                             | Создать tsconfig, не трогая существующий                     |
+| `btc build`                            | Компиляция по tsconfig; ресурсы с `--include-non-ts-files`   |
+| `btc link --clean`                     | Собрать готовые пакеты в dist, очистив старые dist/cache     |
+| `btc artifact --clean`                 | Один artifact/main.zip со всем dist, включая components      |
+| `btc objects apply <file> [--dry-run]` | Проверить или применить отдельный XML на стенде              |
+| `btc push`                             | Загрузить готовый dist и выполнить initialization на HCM     |
+| `btc dev --no-push`                    | Watch/build/link локально; без этого флага auto-push включён |
+
+Для CI/CD положите определения в `objects/<тип>/<ID>.xml`. Линковщик добавит в поставку серверный загрузчик, который применяет их при старте HCM. [Пример и правила обновления](https://boristype.github.io/BorisType/guides/startup-objects).
 
 Команды `link`, `dev` и `push` работают с готовыми пакетами.
 Инициализация пакета зависит от формата выходных файлов и его метаданных.

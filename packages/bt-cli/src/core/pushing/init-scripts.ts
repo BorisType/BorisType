@@ -9,6 +9,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import { xmlParser } from "../utils/xml";
+import { startupObjectApiName, startupObjectInitUrl } from "../startup-object-library";
 import { logger } from "../logger";
 import type { InitScript } from "./types";
 
@@ -79,16 +80,18 @@ export function collectStandaloneInitScripts(distPath: string): InitScript[] {
       if (!libPath || typeof libPath !== "string") continue;
 
       // Резолвим путь: x-local://wt/myapp/init.xml -> dist/wt/myapp/init.xml
+      const startupObjects = name === startupObjectApiName && libPath === startupObjectInitUrl;
       const resolvedPath = resolveXLocalPath(distPath, libPath);
       if (!resolvedPath || !fs.existsSync(resolvedPath)) {
+        if (startupObjects) throw new Error("Missing startup object initializer: " + libPath);
         logger.warning(`⚠️ Init file not found: ${libPath} (resolved: ${resolvedPath})`);
         continue;
       }
 
       const initCode = extractOnInitFromXml(resolvedPath);
       if (initCode) {
-        result.push({ type: "standalone", name, code: initCode });
-      }
+        result.push({ type: "standalone", name, code: initCode, ...(startupObjects && { startupObjects }) });
+      } else if (startupObjects) throw new Error("Missing startup OnInit in " + libPath);
     }
   }
 

@@ -38,6 +38,7 @@ export interface InitScript {
   name: string;
   /** Код для выполнения */
   code: string;
+  startupObjects?: boolean;
 }
 
 /**

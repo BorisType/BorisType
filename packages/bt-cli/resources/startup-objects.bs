@@ -1,0 +1,214 @@
+// Fixed-ID project objects. Input XML and native merge semantics are provided by
+// startup-xml.bs and the SDK's object-patch.bs in the same code library.
+function BtStartupCheckKey(objectType, id) {
+    var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_';
+    var allowed = letters;
+    var i; var count = StrCharCount(objectType);
+    if (count == 0) throw 'Empty object type';
+    for (i = 0; i < count; i++) {
+        if (i == 1) allowed = letters + '0123456789';
+        if (!StrContains(allowed, StrCharRangePos(objectType, i, i + 1)))
+            throw 'Invalid object type: ' + objectType;
+    }
+    if (DataType(id) != 'string' || StrLen(id) == 0 || StrLen(id) > 20 || id == '0' || StrInt(Int(id)) != id)
+        throw 'Expected a canonical positive decimal object ID: ' + id;
+}
+
+function BtStartupOpen(id, url) {
+    try { return OpenDoc(url); }
+    catch (openError) {
+        var message = String(openError);
+        // SQL storage reports the missing object ID. Physical storage reports
+        // the missing file. An unreadable document or form must never be replaced.
+        var missing = StrBegins(message, 'unibridge error: spxml_err:#2 Object not found') &&
+            StrContains(message, 'LoadObjectUrl: ' + id + '`');
+        if (!missing && !DefaultDb.UseSqlStorage)
+            missing = StrBegins(message, 'File not found\r\n') || StrBegins(message, 'Файл не найден\r\n');
+        if (!missing || UrlExists(url)) throw openError;
+        return undefined;
+    }
+}
+
+function BtStartupCheckDoc(doc, id, objectType, formUrl) {
+    if (StrInt(doc.DocID) != id || StrInt(doc.TopElem.Child('id').Value) != id)
+        throw 'Object identity differs from the requested ID';
+    if (doc.TopElem.Name != objectType || FetchForm(doc.FormUrl).Url != formUrl)
+        throw 'Object ID belongs to a different form';
+}
+
+function BtStartupCheckFields(form, nodes) {
+    var fields = [form.TopElem]; var field; var node; var i;
+    field = fields[0].OptChild('id');
+    if (field == undefined || field.Type != 'integer' || field.IsMultiple || field.IsMethod || field.IsTemp)
+        throw 'Selected form has no persistent integer object identity';
+    for (i = 0; i < ArrayCount(nodes); i++) {
+        node = nodes[i];
+        if (i > 0) {
+            field = fields[node.parentIndex].OptChild(node.name);
+            if (field == undefined) throw 'Unknown XML field: ' + node.name;
+            if (node.mode == 'default') {
+                if (field.Type == '' || field.IsMultiple) throw 'Scalar default requires a singleton scalar field: ' + node.name;
+                if (fields[node.parentIndex].IsMultiple && fields[node.parentIndex].PrimaryKeyName == node.name)
+                    throw 'Scalar default cannot be applied to a primary key: ' + node.name;
+            }
+            fields.push(field);
+        }
+        else field = fields[0];
+        if (field.Type == '' && node.hasText) throw 'Structure XML field contains text: ' + node.name;
+        if (field.Type != '' && node.hasElements) throw 'Scalar XML field contains elements: ' + node.name;
+        if (!field.IsMultiple && node.count > 1) throw 'Repeated singleton XML field: ' + node.name;
+    }
+}
+
+function BtStartupRegisteredForm(objectType) {
+    if (DefaultDb.UseObjectTypes) return DefaultDb.GetObjectFormUrl(objectType);
+    var entry = common.exchange_object_types.GetOptChildByKey(objectType);
+    if (entry == undefined) throw 'Unregistered object type: ' + objectType;
+    var url = String(entry.form_url.Value);
+    if (url == '') url = tools.get_object_form_url(objectType, false);
+    return url;
+}
+
+function BtStartupPrepare(xmlText, result) {
+    var id = result.id; var objectType = result.objectType;
+    BtStartupCheckKey(objectType, id);
+    var input = BtReadStartupXml(xmlText, objectType, id);
+    var formUrl = BtStartupRegisteredForm(objectType);
+    var form = FetchForm(formUrl);
+    if (input.formUrl != '' && input.formUrl != formUrl && input.formUrl != form.Url)
+        throw 'SPXML-FORM does not match the registered object form';
+    if (input.root != objectType || form.TopElem.Name != objectType || form.IsCatalog)
+        throw 'XML root, object directory and object form must agree';
+    BtStartupCheckFields(form, input.nodes);
+    var source = CreateElemByFormElem(form.TopElem);
+    BtPatchLoadSource(source, input.nodes);
+    result.phase = 'read';
+    var url = UrlFromDocID(Int(id));
+    // Some native providers mask off bit 63 when producing an object URL.
+    if (StrInt(DocIDFromUrl(url)) != id) throw 'Native object URL cannot represent this object ID';
+    var candidate = BtStartupOpen(id, url);
+    var exists = candidate != undefined;
+    var original = '';
+    if (exists) {
+        BtStartupCheckDoc(candidate, id, objectType, form.Url);
+        original = candidate.TopElem.Xml;
+    }
+    else candidate = OpenNewDoc(form.Url);
+    result.phase = 'patch';
+    BtPatchDocument(candidate.TopElem, source, input.nodes, !exists, false);
+    result.changed = !exists || candidate.TopElem.Xml != original;
+    return {url:url,formUrl:form.Url,schema:form.TopElem.Xml,source:source,nodes:input.nodes,
+        exists:exists,original:original,candidate:candidate};
+}
+
+function BtStartupFinish(plan, result) {
+    var id = result.id; var objectType = result.objectType;
+    if (!plan.exists && !result.dryRun) {
+        result.phase = 'bind';
+        plan.candidate.BindToDb(DefaultDb, Int(id));
+        BtStartupCheckDoc(plan.candidate, id, objectType, plan.formUrl);
+    }
+    result.phase = 'recheck';
+    var fresh = BtStartupOpen(id, plan.url);
+    if (plan.exists != (fresh != undefined) || FetchForm(plan.formUrl).TopElem.Xml != plan.schema)
+        throw 'Object existence or form changed before Save';
+    if (plan.exists) {
+        BtStartupCheckDoc(fresh, id, objectType, plan.formUrl);
+        if (fresh.TopElem.Xml != plan.original) throw 'Object changed before Save';
+    }
+    if (!result.changed) result.status = 'unchanged';
+    else if (result.dryRun) result.status = plan.exists ? 'would_update' : 'would_create';
+    else {
+        result.phase = 'save';
+        result.writeStatus = 'unknown';
+        plan.candidate.Save();
+        result.writeStatus = 'saved';
+        result.phase = 'readback';
+        fresh = OpenDoc(plan.url);
+        BtStartupCheckDoc(fresh, id, objectType, plan.formUrl);
+        var savedXml = fresh.TopElem.Xml;
+        BtPatchDocument(fresh.TopElem, plan.source, plan.nodes, false, true);
+        if (fresh.TopElem.Xml != savedXml) throw 'Readback differs from the requested patch';
+        result.status = plan.exists ? 'updated' : 'created';
+    }
+    result.ok = true;
+    result.phase = 'done';
+    return result;
+}
+
+function BtStartupResult(objectType, id, dryRun) {
+    return {ok:false,id:id,objectType:objectType,status:'error',phase:'validate',changed:false,
+        dryRun:dryRun,writeStatus:'not_attempted'};
+}
+
+function BtApplyStartupObject(xmlText, objectType, id, dryRun) {
+    var result = BtStartupResult(objectType, id, dryRun);
+    try { return BtStartupFinish(BtStartupPrepare(xmlText, result), result); }
+    catch (err) { result.error = StrLeftCharRange(String(err), 2000); return result; }
+}
+
+function BtStartupFiles(directoryUrls) {
+    var files = []; var i; var j; var k; var base; var entries; var typeDir; var children; var path;
+    var objectType; var name; var id;
+    for (i = 0; i < ArrayCount(directoryUrls); i++) {
+        base = UrlToFilePath(directoryUrls[i]);
+        if (!IsDirectory(base)) throw 'Missing deployed objects directory: ' + base;
+        entries = ArraySort(ReadDirectoryByPath(base), 'This', '+');
+        for (j = 0; j < ArrayCount(entries); j++) {
+            typeDir = entries[j];
+            if (!IsDirectory(typeDir)) {
+                if (StrEnds(typeDir, '.xml', true)) throw 'Missing object type directory: ' + typeDir;
+                continue;
+            }
+            objectType = FileName(typeDir);
+            children = ArraySort(ReadDirectoryByPath(typeDir), 'This', '+');
+            for (k = 0; k < ArrayCount(children); k++) {
+                path = children[k]; name = FileName(path);
+                if (IsDirectory(path)) throw 'Unexpected nested object directory: ' + path;
+                if (!StrEnds(name, '.xml', true)) continue;
+                if (!StrEnds(name, '.xml')) throw 'Expected .xml object filename: ' + path;
+                id = StrLeftCharRange(name, StrCharCount(name) - 4);
+                try { BtStartupCheckKey(objectType, id); }
+                catch (invalidKey) { throw 'Invalid startup object path ' + path + ': ' + String(invalidKey); }
+                files.push({path:path,objectType:objectType,id:id});
+            }
+        }
+    }
+    return ArraySort(files, 'This.path', '+');
+}
+
+function BtLoadStartupObjects(directoryUrls) {
+    var files; var seen = {}; var plans = []; var results = []; var i; var file; var result; var message;
+    try {
+        files = BtStartupFiles(directoryUrls);
+        for (i = 0; i < ArrayCount(files); i++) {
+            file = files[i];
+            if (BtPatchLookup(seen, file.id) != undefined)
+                throw 'Duplicate startup object ID ' + file.id + ' in ' + seen['$' + file.id] + ' and ' + file.path;
+            seen['$' + file.id] = file.path;
+        }
+        // Keep the prepared documents and snapshots through preflight. A malformed
+        // later XML or a form conflict is reported before any object is saved.
+        for (i = 0; i < ArrayCount(files); i++) {
+            file = files[i]; result = BtStartupResult(file.objectType, file.id, false);
+            // One byte beyond the XML size limit lets the reader reject an oversized
+            // file without allocating an unbounded physical read.
+            plans.push(BtStartupPrepare(LoadFileDataRange(file.path, 0, 262145), result));
+            results.push(result);
+        }
+        for (i = 0; i < ArrayCount(plans); i++) {
+            file = files[i]; result = results[i];
+            BtStartupFinish(plans[i], result);
+            alert('BorisType objects ' + file.path + ': ' + result.status);
+        }
+    }
+    catch (err) {
+        message = 'BorisType objects';
+        if (result != undefined)
+            message += ' ' + file.path + ' ID ' + file.id + ' (' + result.phase + ', ' + result.writeStatus + ')';
+        message += ': ' + StrLeftCharRange(String(err), 2000);
+        alert(message);
+        throw message;
+    }
+    return results;
+}

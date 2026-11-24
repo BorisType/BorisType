@@ -3,7 +3,7 @@
  * @module linking/generators/api-ext
  */
 
-import { xmlBuilderKeepEmpty } from "../../utils/xml";
+import { xmlBuilderKeepEmpty, xmlParser } from "../../utils/xml";
 import { ApiExtEntry } from "../types";
 
 /**
@@ -39,20 +39,26 @@ import { ApiExtEntry } from "../types";
  * const xml = buildApiExt(entries);
  * ```
  */
-export function buildApiExt(entries: ApiExtEntry[]): string {
-  const xmlObj = {
-    "?xml": { "@_version": "1.0", "@_encoding": "utf-8" },
-    api_ext: {
-      apis: {
-        api: entries.map((entry) => ({
-          name: entry.name,
-          libs: {
-            lib: entry.libs.map((libPath) => ({ path: libPath })),
-          },
-        })),
-      },
-    },
-  };
-
+export function buildApiExt(entries: ApiExtEntry[], template?: string, startup?: ApiExtEntry): string {
+  const xmlObj = template
+    ? xmlParser.parse(template)
+    : {
+        "?xml": { "@_version": "1.0", "@_encoding": "utf-8" },
+        api_ext: { apis: {} },
+      };
+  if (xmlObj.api_ext === "") xmlObj.api_ext = {};
+  if (!xmlObj.api_ext || typeof xmlObj.api_ext !== "object") throw new Error("Expected api_ext registry in source/api_ext.xml");
+  const apis = xmlObj.api_ext.apis || (xmlObj.api_ext.apis = {});
+  const existing = apis.api ? [apis.api].flat() : [];
+  const toApi = (entry: ApiExtEntry) => ({
+    name: entry.name,
+    libs: { lib: entry.libs.map((libPath) => ({ path: libPath })) },
+  });
+  const combined = [...existing, ...entries.map(toApi)];
+  if (startup) {
+    if (combined.some((api) => api.name === startup.name)) throw new Error("API name collision in source/api_ext.xml: " + startup.name);
+    combined.unshift(toApi(startup));
+  }
+  apis.api = combined;
   return xmlBuilderKeepEmpty.build(xmlObj);
 }

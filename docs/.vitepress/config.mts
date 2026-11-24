@@ -60,6 +60,7 @@ export default defineConfig({
           { text: "Линковка", link: "/guides/linking" },
           { text: "Dev Mode", link: "/guides/dev-mode" },
           { text: "Push & Deploy", link: "/guides/push-deploy" },
+          { text: "Служебные объекты при запуске", link: "/guides/startup-objects" },
           { text: "Тестирование", link: "/guides/testing" },
         ],
       },

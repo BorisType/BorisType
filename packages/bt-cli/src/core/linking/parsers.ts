@@ -12,6 +12,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { logger } from "../logger.js";
 import { DependencyNode } from "./dependencies.js";
+import { isObjectsOnlyProject } from "./startup-objects.js";
 import { BtConfigLinkingPackage } from "../config.js";
 import { PackageInfo, PackageType, LinkingContext, ApiExtEntry } from "./types.js";
 import { normalizePackageType, isExecutablePackageType, formatValidPackageTypes, copyRecursive } from "./utils/index.js";
@@ -135,6 +136,7 @@ export function parseUserPackageInfo(
   packageDirAbsolute: string,
   packageConfig: BtConfigLinkingPackage,
   displayName: string,
+  hadObjectRelease = false,
 ): PackageInfo | null {
   // Проверяем существование директории пакета
   if (!fs.existsSync(packageDirAbsolute)) {
@@ -187,6 +189,8 @@ export function parseUserPackageInfo(
     sourceDir = path.join(projectPath, packageConfig.source);
   } else if (isBorisTypePackage) {
     sourceDir = path.join(packageDirAbsolute, "build");
+  } else if (packageDirAbsolute === projectPath && !packageConfig.target && (hadObjectRelease || isObjectsOnlyProject(projectPath))) {
+    return null;
   } else {
     logger.error(`❌ Package ${displayName}: 'source' is required for non-BorisType packages`);
     process.exit(1);

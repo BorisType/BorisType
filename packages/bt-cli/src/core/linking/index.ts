@@ -16,11 +16,12 @@ import { BtConfigLinkingPackage, getBTConfig } from "../config";
 import { LinkingOptions } from "./types";
 import { createLinkingContext, prepareDistDirectory, addLinkedPackage } from "./context";
 import { LinkingCache } from "./cache";
-import { copyWithPrefix, normalizePackageType, isExecutablePackageType } from "./utils";
+import { copyWithPrefix, normalizePackageType, isExecutablePackageType, writeIfChanged } from "./utils";
 import { linkPackage } from "./linkers";
 import { buildApiExt } from "./generators";
 import { parseCompilerDependencyPackageInfo, parseUserPackageInfo } from "./parsers";
 import { collectExecutables } from "./executables";
+import { checkStartupTarget, isObjectsOnlyProject, linkStartupObjects, previousStartupRelease } from "./startup-objects.js";
 
 // Re-export всех типов и утилит для удобства
 export * from "./types";
@@ -97,6 +98,8 @@ export function resolvePackagesToLink(projectPath: string): BtConfigLinkingPacka
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
   const packageType = normalizePackageType(packageJson["ws:package"]);
 
+  if (!packageJson["ws:package"] && isObjectsOnlyProject(projectPath)) return [];
+
   if (!packageType || !isExecutablePackageType(packageType)) {
     logger.error(
       '❌ No btconfig.json found and current project is not an executable BorisType package (ws:package must be "standalone", "component", "system"). Nothing to link.',
@@ -146,7 +149,14 @@ export async function processPackagesLinking(
   }
 
   // Подготавливаем dist директорию (кэш уже очищен если нужно)
+  const previousObjects = previousStartupRelease(ctx.distPath);
+  const apiExtXmlFilePath = path.join(ctx.distPath, "source", "api_ext.xml");
+  const priorRegistry =
+    previousObjects && !options.clean && fs.existsSync(apiExtXmlFilePath) ? fs.readFileSync(apiExtXmlFilePath, "utf8") : undefined;
   prepareDistDirectory(ctx, options.clean);
+  const protectRelease = (source: string, target: string) => {
+    if (previousObjects && !options.clean) checkStartupTarget(ctx.distPath, source, path.join(ctx.distPath, target));
+  };
 
   // === STAGE 1: Линковка system-пакетов (runtime и т.д.) ===
   if (options.externalRuntime) {
@@ -172,6 +182,7 @@ export async function processPackagesLinking(
         logger.success(`  📦 ${pkgInfo.packageJson.name}: ${pkgInfo.targetPath}`);
 
         // Копируем файлы
+        protectRelease(pkgInfo.sourceDir, pkgInfo.targetPath);
         copyWithPrefix(pkgInfo.sourceDir, ctx.distPath, pkgInfo.targetPath);
 
         // Линкуем через соответствующий линковщик
@@ -190,7 +201,8 @@ export async function processPackagesLinking(
     logger.success(`📦 Processing package: ${displayName}`);
 
     // Парсим информацию о пакете
-    const pkgInfo = parseUserPackageInfo(projectPath, packageDirAbsolute, packageConfig, displayName);
+    if (packageConfig.source && packageConfig.target) protectRelease(path.join(projectPath, packageConfig.source), packageConfig.target);
+    const pkgInfo = parseUserPackageInfo(projectPath, packageDirAbsolute, packageConfig, displayName, previousObjects !== undefined);
 
     if (!pkgInfo) {
       // Обычная директория (не BT пакет) - просто копируем
@@ -198,6 +210,7 @@ export async function processPackagesLinking(
     }
 
     // Собираем executables из .executables.json
+    protectRelease(pkgInfo.sourceDir, pkgInfo.targetPath);
     collectExecutables(pkgInfo, ctx);
 
     // Линкуем через соответствующий линковщик
@@ -206,12 +219,26 @@ export async function processPackagesLinking(
   }
 
   // === STAGE 3: Создаём api_ext.xml ===
-  if (ctx.apiExtEntries.length > 0) {
-    const apiExtXml = buildApiExt(ctx.apiExtEntries);
-    const apiExtXmlFilePath = path.join(ctx.distPath, "source", "api_ext.xml");
+  // Dev callbacks link only the changed package. Keep the full startup registry until the next full link.
+  if (ctx.devMode && previousObjects) {
+    if (priorRegistry !== undefined) writeIfChanged(apiExtXmlFilePath, priorRegistry);
+    return;
+  }
+  let startupRegistry: string | undefined;
+  try {
+    if (!ctx.devMode) startupRegistry = linkStartupObjects(ctx, packages, previousObjects);
+  } catch (error) {
+    // A static package may have just copied its base registry over the active one.
+    if (priorRegistry !== undefined) writeIfChanged(apiExtXmlFilePath, priorRegistry);
+    throw error;
+  }
+  if (startupRegistry !== undefined || ctx.apiExtEntries.length > 0) {
+    const apiExtXml = startupRegistry ?? buildApiExt(ctx.apiExtEntries);
     fs.mkdirSync(path.dirname(apiExtXmlFilePath), { recursive: true });
-    fs.writeFileSync(apiExtXmlFilePath, "\uFEFF" + apiExtXml, { encoding: "utf-8" });
-    logger.success(`📄 Generated api_ext.xml with ${ctx.apiExtEntries.length} entries`);
+    fs.writeFileSync(apiExtXmlFilePath, "\uFEFF" + apiExtXml, "utf8");
+    logger.success(
+      startupRegistry === undefined ? `📄 Generated api_ext.xml with ${ctx.apiExtEntries.length} entries` : "📄 Generated api_ext.xml",
+    );
   }
 
   logger.success(`✅ Linking completed (${packages.length} package(s))`);

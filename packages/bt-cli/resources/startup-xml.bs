@@ -1,0 +1,176 @@
+// XmlReader reads plain XML from memory. Its default DTD policy is Prohibit.
+// Passing the base URI selects the Stream overload in the HCM .NET bridge.
+function BtReadStartupXml(xmlText, objectType, idDecimalString) {
+    var size = StrLen(xmlText);
+    if (size == 0 || size > 262144) throw 'Startup XML exceeds the 1-262144 byte range';
+    // UTF-16/32 markup contains NUL bytes. XmlReader otherwise auto-detects those encodings even without a declaration.
+    if (StrOptSubStrPosB(xmlText, DataFromHex('00')) != undefined) throw 'Startup XML must be UTF-8 without NUL bytes';
+    var core = tools.dotnet_host.Object.GetAssembly('mscorlib.dll');
+    var xml = tools.dotnet_host.Object.GetAssembly('System.Xml.dll');
+    var stream = core.CreateClassObject('System.IO.MemoryStream');
+    var reader;
+    try {
+        stream.Write(xmlText, 0, size);
+        stream.Position = 0;
+        var settings = xml.CreateClassObject('System.Xml.XmlReaderSettings');
+        reader = xml.CallClassStaticMethod('System.Xml.XmlReader', 'Create', [stream, settings, '']);
+        return BtStartupXmlPlan(reader, objectType, idDecimalString);
+    }
+    catch (xmlError) { throw xmlError; }
+    finally {
+        if (reader != undefined) reader.Close();
+        stream.Close();
+    }
+}
+
+// Static CLR matches keep concurrent startup calls independent of the cached HCM RegExp object.
+function BtStartupXmlMatches(assembly, pattern, text) {
+    return assembly.CallClassStaticMethod('System.Text.RegularExpressions.Regex', 'IsMatch', [text, pattern]);
+}
+
+function BtStartupXmlInteger(text) {
+    var first = StrRangePos(text, 0, 1);
+    var hexadecimal = StrBegins(text, '0x') || StrBegins(text, '0X');
+    var pos = hexadecimal ? 2 : ((first == '+' || first == '-') ? 1 : 0);
+    var end = StrLen(text);
+    while (pos + 1 < end && StrRangePos(text, pos, pos + 1) == '0') pos++;
+    var width = end - pos;
+    if (width > (hexadecimal ? 16 : 20)) return '';
+    var digits = StrRangePos(text, pos, end);
+    if (hexadecimal) return StrInt(Int('0x' + digits));
+    var decimal = first == '-' && digits != '0' ? '-' + digits : digits;
+    try {
+        var value = Int(decimal);
+        if (decimal == StrInt(value) || decimal == StrSignedInt(value)) return decimal;
+    }
+    catch (overflow) {}
+    return '';
+}
+
+// Match the SDK whole-second wall-clock contract, including native short-year output.
+function BtStartupXmlDate(assembly, text, datePattern) {
+    var match = assembly.CallClassStaticMethod('System.Text.RegularExpressions.Regex', 'Match', [text, datePattern]);
+    if (!match.Success) return '';
+    var groups = match.Groups;
+    var year = groups.get_Item(1).Value; var month = groups.get_Item(2).Value; var day = groups.get_Item(3).Value;
+    var hour = groups.get_Item(4).Value; var minute = groups.get_Item(5).Value; var second = groups.get_Item(6).Value;
+    var width = StrLen(year);
+    if (width < 4) {
+        if (StrBegins(year, '0') || groups.get_Item(7).Value != '' || groups.get_Item(8).Value != '+00:00') return '';
+        year = StrRangePos('000', 0, 4 - width) + year;
+    }
+    var y = Int(year); var mo = Int(month); var d = Int(day);
+    var days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)) days[1] = 29;
+    if (y == 0 || mo < 1 || mo > 12 || d < 1 || d > days[mo - 1]) return '';
+    if (hour == '') return year + '-' + month + '-' + day + 'T00:00:00';
+    if (Int(hour) > 23 || Int(minute) > 59 || Int(second) > 59) return '';
+    return year + '-' + month + '-' + day + 'T' + hour + ':' + minute + ':' + second;
+}
+
+function BtStartupXmlPlan(reader, objectType, idDecimalString) {
+    var plan = {root:'', formUrl:'', nodes:[]};
+    var frames = []; var siblingGroups = [];
+    var idSeen = false;
+    var expressions = tools.dotnet_host.Object.GetAssembly('System.Text.RegularExpressions.dll');
+    var integerPattern = '^(?:[+-]?[0-9]+|0[xX][0-9a-fA-F]+)$';
+    var realPattern = '^[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?$';
+    var datePattern = '^([0-9]{1,4})-([0-9]{2})-([0-9]{2})(?:T([0-9]{2}):([0-9]{2}):([0-9]{2})(\\.0+)?(Z|[+-]00:00)?)?$';
+    var formPattern = '^x-(?:local|app)://[A-Za-z0-9._~!$&()+,@%/-]+\\.xmd$';
+    var kind; var depth; var frame; var parent; var node; var name; var index; var group; var key;
+    var attr; var value; var mode; var initialOnly; var text; var i; var encoding;
+    while (reader.Read()) {
+        kind = reader.NodeType.ToString();
+        depth = reader.Depth;
+        if (kind == 'XmlDeclaration') {
+            encoding = reader.GetAttribute('encoding');
+            if (reader.GetAttribute('version') != '1.0' || (encoding != undefined && StrLowerCase(encoding) != 'utf-8'))
+                throw 'Expected an XML 1.0 UTF-8 declaration';
+            continue;
+        }
+        if (kind == 'Comment') continue;
+        if (kind == 'Text' || kind == 'CDATA' || kind == 'Whitespace' || kind == 'SignificantWhitespace') {
+            if (depth > 0) frames[depth - 1].chunks.push(reader.Value);
+            continue;
+        }
+        if (kind == 'Element') {
+            index = ArrayCount(plan.nodes);
+            if (depth >= 64 || index >= 8192) throw 'Startup XML exceeds the depth or element limit';
+            name = reader.Name;
+            mode = 'auto'; initialOnly = false;
+            if (reader.MoveToFirstAttribute()) {
+                do {
+                    attr = reader.Name; value = reader.Value;
+                    if (attr == 'bt-mode') {
+                        if (value != 'merge' && value != 'replace' && value != 'replace-array' && value != 'clear' && value != 'remove')
+                            throw 'Unknown XML bt-mode';
+                        if ((depth == 0 && value != 'merge') || (depth == 1 && name == 'id')) throw 'Invalid mode on root or identity';
+                        mode = value;
+                    }
+                    else if (attr == 'default') {
+                        if (value != 'true' && value != 'false') throw 'Expected default="true" or default="false"';
+                        initialOnly = value == 'true';
+                    }
+                    else if (depth == 0 && attr == 'SPXML-FORM') {
+                        if (StrLen(value) > 2048 || Trim(value) != value || !BtStartupXmlMatches(expressions, formPattern, value))
+                            throw 'Expected a local XMD form URL';
+                        plan.formUrl = value;
+                    }
+                    else throw 'Unsupported startup XML attribute: ' + attr;
+                } while (reader.MoveToNextAttribute());
+                reader.MoveToElement();
+            }
+            if (initialOnly) {
+                if (depth == 0 || (depth == 1 && name == 'id') || mode != 'auto')
+                    throw 'default="true" requires a scalar field without an identity or bt-mode control: ' + name;
+                mode = 'default';
+            }
+            node = {name:name, mode:mode, parentIndex:-1, ordinal:0, count:1, hasElements:false,
+                hasText:false, text:'', integerValid:true, integer:'', realValid:false, date:''};
+            if (depth == 0) {
+                if (name != objectType) throw 'Startup XML root must match object type directory';
+                plan.root = name;
+                group = {count:1};
+            }
+            else {
+                parent = frames[depth - 1];
+                parent.node.hasElements = true;
+                node.parentIndex = parent.index;
+                key = '$' + name;
+                try { group = parent.groups[key]; } catch (missing) { group = undefined; }
+                if (group == undefined) { group = {count:0}; parent.groups[key] = group; }
+                node.ordinal = group.count;
+                group.count++;
+            }
+            plan.nodes.push(node);
+            siblingGroups.push(group);
+            frame = {index:index,node:node,groups:{},chunks:[]};
+            if (depth == ArrayCount(frames)) frames.push(frame);
+            else frames[depth] = frame;
+            if (!reader.IsEmptyElement) continue;
+        }
+        else if (kind == 'EndElement') {
+            frame = frames[depth];
+            node = frame.node;
+        }
+        else throw 'Unsupported startup XML node: ' + kind;
+
+        node.text = frame.chunks.join('');
+        text = Trim(node.text);
+        node.hasText = text != '';
+        if (node.hasText) {
+            if (BtStartupXmlMatches(expressions, integerPattern, text)) node.integer = BtStartupXmlInteger(text);
+            node.integerValid = node.integer != '';
+            node.realValid = BtStartupXmlMatches(expressions, realPattern, text);
+            node.date = BtStartupXmlDate(expressions, text, datePattern);
+        }
+        if (node.mode == 'clear' && (node.hasElements || node.text != '')) throw 'XML clear requires an empty placeholder';
+        if (depth == 1 && node.name == 'id') {
+            if (idSeen || node.hasElements || node.integer != idDecimalString) throw 'Startup XML id must match its filename';
+            idSeen = true;
+        }
+    }
+    if (plan.root == '') throw 'Startup XML requires a root element';
+    for (i = 0; i < ArrayCount(plan.nodes); i++) plan.nodes[i].count = siblingGroups[i].count;
+    return plan;
+}
