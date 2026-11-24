@@ -78,7 +78,7 @@ function BtStartupXmlPlan(reader, objectType, idDecimalString) {
     var datePattern = '^([0-9]{1,4})-([0-9]{2})-([0-9]{2})(?:T([0-9]{2}):([0-9]{2}):([0-9]{2})(\\.0+)?(Z|[+-]00:00)?)?$';
     var formPattern = '^x-(?:local|app)://[A-Za-z0-9._~!$&()+,@%/-]+\\.xmd$';
     var kind; var depth; var frame; var parent; var node; var name; var index; var group; var key;
-    var attr; var value; var mode; var text; var i; var encoding;
+    var attr; var value; var mode; var initialOnly; var text; var i; var encoding;
     while (reader.Read()) {
         kind = reader.NodeType.ToString();
         depth = reader.Depth;
@@ -97,7 +97,7 @@ function BtStartupXmlPlan(reader, objectType, idDecimalString) {
             index = ArrayCount(plan.nodes);
             if (depth >= 64 || index >= 8192) throw 'Startup XML exceeds the depth or element limit';
             name = reader.Name;
-            mode = 'auto';
+            mode = 'auto'; initialOnly = false;
             if (reader.MoveToFirstAttribute()) {
                 do {
                     attr = reader.Name; value = reader.Value;
@@ -107,6 +107,10 @@ function BtStartupXmlPlan(reader, objectType, idDecimalString) {
                         if ((depth == 0 && value != 'merge') || (depth == 1 && name == 'id')) throw 'Invalid mode on root or identity';
                         mode = value;
                     }
+                    else if (attr == 'default') {
+                        if (value != 'true' && value != 'false') throw 'Expected default="true" or default="false"';
+                        initialOnly = value == 'true';
+                    }
                     else if (depth == 0 && attr == 'SPXML-FORM') {
                         if (StrLen(value) > 2048 || Trim(value) != value || !BtStartupXmlMatches(expressions, formPattern, value))
                             throw 'Expected a local XMD form URL';
@@ -115,6 +119,11 @@ function BtStartupXmlPlan(reader, objectType, idDecimalString) {
                     else throw 'Unsupported startup XML attribute: ' + attr;
                 } while (reader.MoveToNextAttribute());
                 reader.MoveToElement();
+            }
+            if (initialOnly) {
+                if (depth == 0 || (depth == 1 && name == 'id') || mode != 'auto')
+                    throw 'default="true" requires a scalar field without an identity or bt-mode control: ' + name;
+                mode = 'default';
             }
             node = {name:name, mode:mode, parentIndex:-1, ordinal:0, count:1, hasElements:false,
                 hasText:false, text:'', integerValid:true, integer:'', realValid:false, date:''};

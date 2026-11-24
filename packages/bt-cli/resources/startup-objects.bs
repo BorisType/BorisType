@@ -46,6 +46,11 @@ function BtStartupCheckFields(form, nodes) {
         if (i > 0) {
             field = fields[node.parentIndex].OptChild(node.name);
             if (field == undefined) throw 'Unknown XML field: ' + node.name;
+            if (node.mode == 'default') {
+                if (field.Type == '' || field.IsMultiple) throw 'Scalar default requires a singleton scalar field: ' + node.name;
+                if (fields[node.parentIndex].IsMultiple && fields[node.parentIndex].PrimaryKeyName == node.name)
+                    throw 'Scalar default cannot be applied to a primary key: ' + node.name;
+            }
             fields.push(field);
         }
         else field = fields[0];
@@ -90,7 +95,7 @@ function BtStartupPrepare(xmlText, result) {
     }
     else candidate = OpenNewDoc(form.Url);
     result.phase = 'patch';
-    BtApplyObjectPatch(candidate.TopElem, source, input.nodes);
+    BtPatchDocument(candidate.TopElem, source, input.nodes, !exists, false);
     result.changed = !exists || candidate.TopElem.Xml != original;
     return {url:url,formUrl:form.Url,schema:form.TopElem.Xml,source:source,nodes:input.nodes,
         exists:exists,original:original,candidate:candidate};
@@ -122,7 +127,7 @@ function BtStartupFinish(plan, result) {
         fresh = OpenDoc(plan.url);
         BtStartupCheckDoc(fresh, id, objectType, plan.formUrl);
         var savedXml = fresh.TopElem.Xml;
-        BtApplyObjectPatch(fresh.TopElem, plan.source, plan.nodes);
+        BtPatchDocument(fresh.TopElem, plan.source, plan.nodes, false, true);
         if (fresh.TopElem.Xml != savedXml) throw 'Readback differs from the requested patch';
         result.status = plan.exists ? 'updated' : 'created';
     }

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
-import { inspectObjectPatchXml } from "../../ws-client/build/hcm/object-xml.js";
+import { readStartupXml } from "./fixtures/startup-xml-reader.mjs";
 
 const id = "9007199254740993";
 const formUrl = "x-local://wtv/wtv_cost_center.xmd";
@@ -79,10 +79,7 @@ function platform() {
     };
   }
   const context = {
-    BtReadStartupXml(input, type, identity) {
-      const url = / SPXML-FORM="([^"]+)"/.exec(input)?.[1] ?? "";
-      return { ...inspectObjectPatchXml(input, { formUrl: url || formUrl, id: identity }), formUrl: url };
-    },
+    BtReadStartupXml: readStartupXml,
     UrlFromDocID: (n) => String(BigInt.asUintN(63, n)),
     DocIDFromUrl: BigInt,
     UrlExists: (url) => records.has(url),
@@ -283,7 +280,7 @@ test("an oversized deployed file is rejected without reading its full bytes into
   const p = platform();
   p.controls.maxReadSize = 262145;
   p.putFile("/wt/deploy/objects/cost_center/99.xml", "<cost_center>" + " ".repeat(301000) + "</cost_center>");
-  assert.throws(() => p.BtLoadStartupObjects([rootUrl]), /size limit|256 KiB/i);
+  assert.throws(() => p.BtLoadStartupObjects([rootUrl]), /262144 byte range/i);
   assert.deepEqual(p.saves, []);
 });
 
@@ -293,4 +290,46 @@ test("a malformed deployed filename reports the exact source path and prevents a
   p.putFile("/wt/deploy/objects/cost_center/12x.xml", xml);
   assert.throws(() => p.BtLoadStartupObjects([rootUrl]), /cost_center\/12x\.xml/);
   assert.deepEqual(p.saves, []);
+});
+
+test("scalar defaults use owner creation, preserve manual edits and empty values, and verify Save hooks", () => {
+  const p = platform();
+  const input = '<cost_center><name default="true">Seed</name><keep>managed</keep></cost_center>';
+  const apply = (xml, dryRun = false) => p.BtApplyStartupObject(xml, "cost_center", id, dryRun);
+  assert.equal(apply(input, true).status, "would_create");
+  assert.equal(apply(input).status, "created");
+  assert.equal(p.records.get(id).values.name, "Seed");
+  for (const value of ["Renamed", ""]) {
+    const values = p.records.get(id).values;
+    values.name = value;
+    values.keep = "outdated";
+    assert.equal(apply(input, true).status, "would_update");
+    assert.equal(values.keep, "outdated");
+    assert.equal(apply(input).status, "updated");
+    assert.equal(p.records.get(id).values.name, value);
+    assert.equal(apply(input).writeStatus, "not_attempted");
+  }
+  p.controls.afterSave = (rec) => {
+    rec.values.name = "changed by hook";
+  };
+  const broken = apply(input.replace("managed", "v2"));
+  assert.equal(broken.ok, false);
+  assert.equal(broken.phase, "readback");
+  assert.equal(broken.writeStatus, "saved");
+});
+
+test("form validation rejects defaults on an empty structure, a repeated scalar and an array key", () => {
+  const p = platform();
+  const scalar = { Type: "string", IsMultiple: false };
+  const row = { Type: "", IsMultiple: true, PrimaryKeyName: "key", OptChild: () => scalar };
+  const fields = { id: { Type: "integer" }, group: { Type: "" }, tag: { Type: "string", IsMultiple: true }, row };
+  const form = { TopElem: { Type: "", OptChild: (key) => fields[key] } };
+  for (const [body, message] of [
+    ['<group default="true"/>', /singleton scalar/],
+    ['<tag default="true"/>', /singleton scalar/],
+    ['<row><key default="true">a</key></row>', /primary key/],
+  ]) {
+    const { nodes } = readStartupXml("<cost_center>" + body + "</cost_center>", "cost_center", id);
+    assert.throws(() => p.BtStartupCheckFields(form, nodes), message);
+  }
 });

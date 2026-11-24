@@ -87,6 +87,10 @@ function BtPatchDataGroups(parent, wanted) {
 }
 
 function BtApplyObjectPatch(targetTopElem, sourceTopElem, nodes) {
+    BtPatchDocument(targetTopElem, sourceTopElem, nodes, false, false);
+}
+
+function BtPatchDocument(targetTopElem, sourceTopElem, nodes, creatingDocument, verifying) {
     // Each plan parent owns its groups. Numeric plan indices distinguish two
     // occurrences of the same ancestor path, including nested MULTIPLE.
     var children = []; var i; var node; var parent; var group;
@@ -103,8 +107,21 @@ function BtApplyObjectPatch(targetTopElem, sourceTopElem, nodes) {
         }
         group.push(i);
     }
-    function applyElem(target, source, index) {
+    function applyElem(target, source, index, owner) {
         var n = nodes[index]; var form = source.FormElem;
+        if (n.mode == 'default') {
+            // Only the startup reader emits this mode. Reuse the originally selected
+            // scalar XML at readback: a newly inserted keyed row now appears to exist.
+            if (owner == 'replaced') throw 'Scalar default under a replaced structure or array: ' + n.name;
+            if (verifying) {
+                if (target.Xml != n.expectedXml) throw 'Readback differs from scalar default decision: ' + n.name;
+            }
+            else {
+                if (owner == 'new') target.Value = source.Value;
+                n.expectedXml = target.Xml;
+            }
+            return;
+        }
         if (n.mode == 'clear') {
             // Explicit clear has the same durable value as a fresh form field
             // after reopening. Restore native defaults without parsing arbitrary XML.
@@ -117,15 +134,15 @@ function BtApplyObjectPatch(targetTopElem, sourceTopElem, nodes) {
             return;
         }
         if (n.mode == 'replace') target.AssignElem(CreateElemByFormElem(form));
-        applyChildren(target, source, index);
+        applyChildren(target, source, index, n.mode == 'replace' ? 'replaced' : owner);
     }
-    function applyGroup(target, sources, existing, indices, field) {
+    function applyGroup(target, sources, existing, indices, field, owner) {
         var key = field.PrimaryKeyName;
         var first = nodes[indices[0]];
         var clear = first.mode == 'clear';
         var replaceAll = first.mode == 'replace-array' || key == '';
         var keyed = {}; var seen = {}; var keys = [];
-        var j; var idx; var n; var k; var keyNodes; var keyField; var match; var item;
+        var j; var idx; var n; var k; var keyNodes; var keyField; var match; var item; var itemOwner;
         if (clear && ArrayCount(indices) != 1) throw 'Array clear requires a sole empty placeholder';
         if (key != '' && !clear) {
             keyField = field.OptChild(key);
@@ -173,10 +190,13 @@ function BtApplyObjectPatch(targetTopElem, sourceTopElem, nodes) {
                 continue;
             }
             item = match == undefined ? BtPatchNewChild(target, field) : match;
-            applyElem(item, sources[j], idx);
+            itemOwner = owner;
+            if (replaceAll) itemOwner = 'replaced';
+            else if (owner != 'replaced' && match == undefined) itemOwner = 'new';
+            applyElem(item, sources[j], idx, itemOwner);
         }
     }
-    function applyChildren(target, source, index) {
+    function applyChildren(target, source, index, owner) {
         var plan = children[index]; var j; var name; var indices; var n; var field; var existing;
         var src; var dst;
         for (j = 0; j < ArrayCount(plan.names); j++) {
@@ -185,7 +205,7 @@ function BtApplyObjectPatch(targetTopElem, sourceTopElem, nodes) {
             if (index == 0 && name == 'id') continue;
             if (!field.IsMultiple) {
                 if (n.mode == 'remove' || n.mode == 'replace-array') throw 'Array-only mode on singleton field';
-                applyElem(target.Child(name), source.Child(name), indices[0]);
+                applyElem(target.Child(name), source.Child(name), indices[0], owner);
             }
             else {
                 if (src == undefined) {
@@ -194,9 +214,9 @@ function BtApplyObjectPatch(targetTopElem, sourceTopElem, nodes) {
                 }
                 existing = BtPatchLookup(dst, name);
                 if (existing == undefined) existing = [];
-                applyGroup(target, src['$' + name], existing, indices, field);
+                applyGroup(target, src['$' + name], existing, indices, field, owner);
             }
         }
     }
-    applyChildren(targetTopElem, sourceTopElem, 0);
+    applyChildren(targetTopElem, sourceTopElem, 0, creatingDocument ? 'new' : 'existing');
 }

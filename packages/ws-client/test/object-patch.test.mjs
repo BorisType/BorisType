@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { z } from "zod";
@@ -548,4 +549,47 @@ test("scalar classification trims only XML whitespace and preserves internal run
     xmlTools.inspectObjectXml(xml, { formUrl, id }).nodes.map((node) => node.integerValid),
     [true, false, true, false, false, false, false, false, true],
   );
+});
+
+test("startup defaults distinguish existing and newly inserted keyed rows and reject destructive array operations", () => {
+  const nodesFor = (body) => {
+    const nodes = xmlTools.inspectObjectPatchXml("<probe>" + body + "</probe>", { formUrl, id }).nodes;
+    for (const node of nodes) if (node.name === "value" || node.name === "name") node.mode = "default";
+    return nodes;
+  };
+  const context = { ArrayCount: (v) => v.children?.length ?? v.length, CreateElemByFormElem: (f) => new Elem(f) };
+  runInNewContext(readFileSync(new URL("../resources/object-patch.bs", import.meta.url), "utf8"), context);
+  const form = new Form(["probe", "", definitions]);
+  const initial = {
+    row: [
+      { key: "a", value: "", secret: "keep" },
+      { key: "other", value: "untouched" },
+    ],
+  };
+  const target = new Elem(form, null, initial);
+  function apply(body) {
+    const nodes = nodesFor(body);
+    const source = new Elem(form);
+    context.BtPatchLoadSource(source, nodes);
+    context.BtPatchDocument(target, source, nodes, false, false);
+    context.BtPatchDocument(target, source, nodes, false, true);
+  }
+  const patch = "<row><key>a</key><value>proxy</value><secret>new</secret></row><row><key>b</key><value>initial</value></row>";
+  apply(patch);
+  assert.deepEqual(
+    target.snapshot().row.map(({ key, value, secret }) => [key, value, secret]),
+    [
+      ["a", "", "new"],
+      ["other", "untouched", null],
+      ["b", "initial", null],
+    ],
+  );
+  apply(patch);
+  for (const body of [
+    '<nested bt-mode="replace"><part><name>X</name></part></nested>',
+    "<nested><part><name>X</name></part></nested>",
+    '<row bt-mode="replace"><key>a</key><value>X</value></row>',
+    '<row bt-mode="replace-array"><key>other</key></row><row><key>a</key><value>X</value></row>',
+  ])
+    assert.throws(() => apply(body), /default.*replac/i);
 });
