@@ -6,6 +6,7 @@ import packageInfo from "../package.json";
 
 import { initCommand, buildCommand, linkCommand, artifactCommand, devCommand, pushCommand } from "./cli/commands";
 import type { BtcCompileOptions } from "./core/building/types";
+import { downloadCommand } from "./cli/commands/download";
 import { objectsApplyCommand } from "./cli/commands/objects";
 import type { PushCommandOptions } from "./core/pushing/types";
 
@@ -84,6 +85,17 @@ program
   .action(async (options: PushCommandOptions) => {
     await pushCommand(options);
   });
+
+program
+  .command("download <source> <destination>")
+  .description("Download a physical HCM file or directory tree to a new local path")
+  .option("--chunk-size <bytes>", "Raw bytes per request (default 262144, maximum 4194304)", Number)
+  .option("--host <host>", "WSHCM server host")
+  .option("--port <port>", "WSHCM server port", Number)
+  .option("--username <username>", "Username for authentication")
+  .option("--password <password>", "Password for authentication")
+  .option("--https", "Use HTTPS")
+  .action(downloadCommand);
 
 program
   .command("objects")

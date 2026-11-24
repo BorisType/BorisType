@@ -40,6 +40,7 @@ npx btc build --compile-mode bare
 | `btc build`                            | Компиляция по tsconfig; ресурсы с `--include-non-ts-files`   |
 | `btc link --clean`                     | Собрать готовые пакеты в dist, очистив старые dist/cache     |
 | `btc artifact --clean`                 | Один artifact/main.zip со всем dist, включая components      |
+| `btc download <source> <destination>`  | Скачать файл или каталог со стенда в новый локальный путь    |
 | `btc objects apply <file> [--dry-run]` | Проверить или применить отдельный XML на стенде              |
 | `btc push`                             | Загрузить готовый dist и выполнить initialization на HCM     |
 | `btc dev --no-push`                    | Watch/build/link локально; без этого флага auto-push включён |

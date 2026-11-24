@@ -6,6 +6,9 @@ on:
     paths:
       - "packages/bt-cli/**"
       - "packages/ws-client/resources/object-patch.bs"
+      - "packages/ws-client/resources/download.bs"
+      - "packages/ws-client/src/downloader.ts"
+      - "packages/ws-client/test/downloader.test.mjs"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "package.json"
@@ -16,6 +19,9 @@ on:
     paths:
       - "packages/bt-cli/**"
       - "packages/ws-client/resources/object-patch.bs"
+      - "packages/ws-client/resources/download.bs"
+      - "packages/ws-client/src/downloader.ts"
+      - "packages/ws-client/test/downloader.test.mjs"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "package.json"
@@ -64,3 +70,6 @@ jobs:
 
       - name: Test linking, objects and file watching
         run: pnpm --filter @boristype/bt-cli test
+
+      - name: Test file and directory downloads on the runner filesystem
+        run: node --test packages/ws-client/test/downloader.test.mjs

@@ -18,6 +18,7 @@ npm install @boristype/ws-client@next
 | `WshcmObjectDeleteError`, `WshcmRunAgentError` | Ошибки удаления и запуска с известным ID, фазой и статусом         |
 | `wshcmSchemas`                                 | Входные schemas общего SDK                                         |
 | `Evaluator`                                    | Временный серверный модуль для выполнения BorisScript              |
+| `WshcmDownloader`                              | Скачивание файлов и каталогов HCM по чанкам                        |
 | `WshcmUploader`                                | Пакетная загрузка файлов через серверные BS resources              |
 | `WshcmRequestError`, `UnauthorizedError`       | Ошибки HTTP, сети, timeout и аутентификации                        |
 | `WshcmSoapFault`, `WshcmException`             | SOAP fault с серверной диагностикой и общая ошибка SDK             |
@@ -83,6 +84,25 @@ HTTP 500. Если вызывающий код использует свой eva
 загружает её снова по прежнему URL. Клиент SDK управляет подготовкой и
 очисткой самостоятельно. Если результат загрузки потерян, `close` всё
 равно пытается удалить возможно созданную библиотеку.
+
+## Скачать файл или каталог
+
+Передайте открытый `evaluator` и точный путь к новому локальному файлу или каталогу. Вызывающий код закрывает evaluator после скачивания.
+
+```typescript
+import { WshcmDownloader } from "@boristype/ws-client";
+
+const downloader = new WshcmDownloader({
+  evaluator,
+  path: "x-local://wt/site",
+  destination: "./site-copy",
+  chunkSize: 256 * 1024,
+});
+const result = await downloader.download((received, total) => console.log(received, total));
+console.log(result.path, result.files, result.bytes, result.skippedLinks);
+```
+
+SDK сохраняет бинарные данные и пустые каталоги. Скачивание использует физический путь и штатный .NET-мост HCM для проверки ссылок. [Пути, конфликты и поведение при обрыве](https://boristype.github.io/BorisType/guides/push-deploy#скачать-файл-или-дерево-каталогов).
 
 ## Общий API
 
