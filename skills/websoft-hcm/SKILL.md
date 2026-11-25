@@ -1,6 +1,6 @@
 ---
 name: websoft-hcm
-description: Use when developing or troubleshooting WebSoft HCM and BorisScript integrations involving x-local/x-app/file URLs, filesystem paths, SQL blobs, LoadUrlData, storage hooks, numeric formatting, StrSignedInt, large IDs, XQuery SQL-to-XML conversion, BorisScript string comparison, OpenCodeLib caching, server logs and auth-events, .NET calls, or XLSX import and editing.
+description: Use when developing or troubleshooting WebSoft HCM and BorisScript integrations involving x-local/x-app/file URLs, filesystem paths, SQL blobs, LoadUrlData, storage hooks, numeric formatting, StrSignedInt, large IDs, XQuery SQL-to-XML conversion, BorisScript string comparison, OpenCodeLib caching, server logs and auth-events, .NET calls, Kestrel authentication or stale mapping assemblies, or XLSX import and editing.
 ---
 
 # WebSoft HCM
@@ -29,6 +29,9 @@ description: Use when developing or troubleshooting WebSoft HCM and BorisScript 
 - Для загрузки доступной DLL и выбора типов аргументов прочитай
   [вызовы .NET](references/managed-calls.md). Для XLSX прочитай
   [импорт, отчёты и правку книги](references/excel.md).
+
+Для 401 в Kestrel после SOAP-входа или старой DLL после обновления прочитай
+[диагностику HTTP mapping](references/kestrel.md).
 
 ## Операции с файлами
 

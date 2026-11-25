@@ -1,4 +1,4 @@
 interface:
   display_name: "BorisType MCP"
-  short_description: "Файловые операции и серверные запросы WebSoft HCM"
+  short_description: "Файлы, запросы, XML-объекты и ZIP-пакеты через MCP"
   default_prompt: "Используй $boristype-mcp для работы с файлами и запросами через мой MCP-сервер WebSoft HCM."
