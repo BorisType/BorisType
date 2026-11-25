@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SPXML-INLINE-FORM CODE-LIB="1">
+  <component>
+    <component_base_path TYPE="string"/>
+  </component>
+</SPXML-INLINE-FORM>

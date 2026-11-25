@@ -1,0 +1,11 @@
+{
+  "name": "bt_http_mapping_probe",
+  "code": "bt_http_mapping_probe",
+  "version": "1.0.0",
+  "description": "BorisType startup registration probe",
+  "author": "BorisType",
+  "type": "standard",
+  "onFailure": "warn",
+  "enableByDefault": true,
+  "dependencies": {}
+}
