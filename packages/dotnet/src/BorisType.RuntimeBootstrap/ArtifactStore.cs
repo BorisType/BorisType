@@ -24,8 +24,9 @@ internal sealed class ArtifactStore(string root)
     internal string DirectoryFor(Component component) => Path.Combine(Root, "components", component.Id, component.Version + "-" + component.BuildId);
     private string MarkerFor(Component component) => Path.Combine(Root, "components", component.Id, "active.json");
 
-    internal Component Select(Component requested)
+    internal Component Select(Component requested, out bool alreadySelected)
     {
+        alreadySelected = false;
         string marker = MarkerFor(requested);
         RejectAncestors(marker);
         if (!File.Exists(marker)) return requested;
@@ -36,9 +37,11 @@ internal sealed class ArtifactStore(string root)
         if (compared > 0)
         {
             if (active.ApiVersion != requested.ApiVersion) throw new InstallFailure("IncompatibleApi");
+            alreadySelected = true;
             return active;
         }
         if (compared == 0 && active.BuildId != requested.BuildId) throw new InstallFailure("BuildConflict");
+        alreadySelected = active.Identity == requested.Identity && active.Files.SequenceEqual(requested.Files);
         return requested;
     }
 

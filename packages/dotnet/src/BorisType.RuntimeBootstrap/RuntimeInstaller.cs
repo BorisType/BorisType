@@ -12,10 +12,13 @@ public sealed class RuntimeInstaller(string root, AssemblyLoadContext context)
     /// <summary>Installs verified payloads and activates code when the managed host has no conflicting module.</summary>
     public string EnsureJson(string descriptorJson, string payloadJson) => Run(descriptorJson, payloadJson);
 
+    /// <summary>Publishes the selection for a startup handler without loading its assembly.</summary>
+    public string StageJson(string descriptorJson, string payloadJson) => Run(descriptorJson, payloadJson, stageOnly: true);
+
     /// <summary>Reads installed and loaded identities without loading the requested component.</summary>
     public string InspectJson(string descriptorJson) => Run(descriptorJson, null);
 
-    private string Run(string descriptorJson, string? payloadJson)
+    private string Run(string descriptorJson, string? payloadJson, bool stageOnly = false)
     {
         Component? expected = null, installed = null;
         BuildIdentity? loaded = null;
@@ -53,9 +56,10 @@ public sealed class RuntimeInstaller(string root, AssemblyLoadContext context)
                 return Result("ready", "Current");
             }
             loaded = ReadLoaded();
-            Component selected = store.Select(expected);
+            Component selected = store.Select(expected, out bool alreadySelected);
             if (loaded is not null && Wire.CompareVersions(loaded.Version, expected.Version) > 0 && selected.Version == expected.Version)
             {
+                if (stageOnly) return Serialize(Result("blocked", "NewerLoadedWithoutSelection"));
                 if (loaded.ApiVersion != expected.ApiVersion) return Serialize(Result("blocked", "IncompatibleApi"));
                 if (store.Verify(selected)) installed = selected;
                 return Serialize(Result("ready", "NewerCompatible"));
@@ -63,13 +67,22 @@ public sealed class RuntimeInstaller(string root, AssemblyLoadContext context)
             if (payloadJson is not null)
             {
                 changed = store.Install(selected, selected.BuildId == expected.BuildId ? payloadJson : "{}");
-                store.Activate(selected);
+                if (!alreadySelected)
+                {
+                    store.Activate(selected);
+                    changed = true;
+                }
             }
             if (store.Verify(selected)) installed = selected;
             // Other platform code does not participate in our installation lock.
             // Reconcile its loads after staging, then also handle the final race
             // between this enumeration and LoadFromAssemblyPath itself.
             loaded = ReadLoaded();
+            if (stageOnly)
+            {
+                if (installed is null) throw new InstallFailure("CorruptInstallation");
+                return Serialize(Result("installed", "PreparedForStartup"));
+            }
             if (LoadedResult(selected) is object result) return Serialize(result);
             if (installed is null) return Serialize(Result("missing", "NotInstalled"));
             if (payloadJson is null) return Serialize(Result("installed", "NotLoaded"));
@@ -109,6 +122,10 @@ public static class EntryPoint
     /// <summary>Prepares a component using its manifest and base64 payload dictionary.</summary>
     public static string EnsureJson(string root, string descriptorJson, string payloadJson) =>
         new RuntimeInstaller(root, AssemblyLoadContext.GetLoadContext(typeof(EntryPoint).Assembly)!).EnsureJson(descriptorJson, payloadJson);
+
+    /// <summary>Stages a verified selection for the next startup without executing component code.</summary>
+    public static string StageJson(string root, string descriptorJson, string payloadJson) =>
+        new RuntimeInstaller(root, AssemblyLoadContext.GetLoadContext(typeof(EntryPoint).Assembly)!).StageJson(descriptorJson, payloadJson);
 
     /// <summary>Inspects component status without loading that component.</summary>
     public static string InspectJson(string root, string descriptorJson) =>

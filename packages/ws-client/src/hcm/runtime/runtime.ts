@@ -66,13 +66,18 @@ export class WshcmRuntime {
     return this.pending;
   }
 
+  /** Publish immutable files and the selection for the next host startup, without loading the component. */
+  stageForStartup(): Promise<RuntimeStatus> {
+    return this.prepare(true);
+  }
+
   async requireReady(): Promise<RuntimeStatus> {
     const status = await this.ensure();
     if (status.status !== "ready") throw new WshcmRuntimeError(status);
     return status;
   }
 
-  private async prepare(): Promise<RuntimeStatus> {
+  private async prepare(stageOnly = false): Promise<RuntimeStatus> {
     let expected: RuntimeBuildIdentity | null = null;
     try {
       if (
@@ -115,28 +120,30 @@ export class WshcmRuntime {
         }
         this.verifiedBootstrap = fingerprint;
       }
-      const execute = async (method: "InspectJson" | "EnsureJson") => {
+      const execute = async (method: "InspectJson" | "EnsureJson" | "StageJson") => {
         const request = {
           installationName: this.installationName,
           bootstrapId: manifest.bootstrap.id,
           method,
           descriptorJson: JSON.stringify(manifest.component),
-          ...(method === "EnsureJson" ? { payloadJson: JSON.stringify(componentPayload) } : {}),
+          ...(method !== "InspectJson" ? { payloadJson: JSON.stringify(componentPayload) } : {}),
         };
         try {
           const result = runtimeStatusSchema.parse(
             parseCarrier(await this.evaluator.eval(buildScript(operationTemplate, { request: JSON.stringify(request) })), 65536),
           );
           if (JSON.stringify(result.expected) !== JSON.stringify(expected)) throw new Error("Runtime expected identity mismatch");
-          if (result.status === "ready") {
-            if (!result.loaded || result.loaded.id !== expected!.id || result.loaded.apiVersion !== expected!.apiVersion)
-              throw new Error("Ready status lacks compatible loaded identity");
-            const version = compareVersions(result.loaded.version, expected!.version);
-            if (
-              version < 0 ||
-              (version === 0 && (result.loaded.buildId !== expected!.buildId || result.loaded.version !== expected!.version))
-            )
-              throw new Error("Ready status contradicts loaded build identity");
+          if (method === "StageJson" && result.status !== "blocked" && result.status !== "installed")
+            throw new Error("Staging did not confirm publication");
+          const confirmed =
+            method === "StageJson" && result.status === "installed" ? "installed" : result.status === "ready" ? "loaded" : null;
+          if (confirmed) {
+            const actual = result[confirmed];
+            if (!actual || actual.id !== expected!.id || actual.apiVersion !== expected!.apiVersion)
+              throw new Error("Runtime status lacks compatible " + confirmed + " identity");
+            const version = compareVersions(actual.version, expected!.version);
+            if (version < 0 || (version === 0 && (actual.buildId !== expected!.buildId || actual.version !== expected!.version)))
+              throw new Error("Runtime status contradicts " + confirmed + " build identity");
           }
           return result;
         } catch (error) {
@@ -145,6 +152,7 @@ export class WshcmRuntime {
           throw localFailure("RuntimeTransportError", expected, error);
         }
       };
+      if (stageOnly) return await execute("StageJson");
       let status = await execute(this.inspectNext ? "InspectJson" : "EnsureJson");
       const inspected = this.inspectNext;
       this.inspectNext = true;

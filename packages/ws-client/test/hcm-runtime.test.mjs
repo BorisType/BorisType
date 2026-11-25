@@ -367,3 +367,27 @@ for (const apiVersion of [0, 500]) {
     assert.equal(status.loaded.buildId, foreignMvid);
   });
 }
+
+test("stageForStartup sends the complete verified bundle without invoking the immediate loader", async (t) => {
+  const fixture = await bundle(t);
+  const transport = runtimeTransport(undefined, {
+    status: ({ method, args, status }) => {
+      assert.equal(method, "StageJson");
+      assert.deepEqual(JSON.parse(args[2]), { "BorisType.FileSystem.dll": fixture.componentBytes.toString("base64") });
+      return { ...status, status: "installed", reason: "PreparedForStartup", loaded: null };
+    },
+  });
+  const runtime = new sdk.WshcmRuntime(transport, { bundleDirectory: fixture.directory });
+  const result = await runtime.stageForStartup();
+  assert.equal(result.status, "installed");
+  assert.deepEqual(transport.calls, ["bootstrap", "operation", "StageJson"]);
+});
+
+test("stageForStartup rejects ready or an unconfirmed disk selection", async (t) => {
+  const fixture = await bundle(t);
+  for (const override of [{ status: "ready" }, { status: "installed", installed: null }]) {
+    const transport = runtimeTransport(undefined, { status: ({ status }) => ({ ...status, ...override }) });
+    const runtime = new sdk.WshcmRuntime(transport, { bundleDirectory: fixture.directory });
+    await assert.rejects(runtime.stageForStartup(), (error) => error.status.reason === "RuntimeTransportError");
+  }
+});

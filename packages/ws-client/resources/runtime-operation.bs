@@ -5,6 +5,6 @@ var btRuntimeDirectory = FilePath(FilePath(btRuntimeRootPath, 'bootstrap'), btRu
 var btRuntimeAssemblyPath = FilePath(btRuntimeDirectory, btRuntimeRequest.bootstrapId + '.dll');
 var btRuntimeAssembly = tools.dotnet_host.Object.GetAssembly(btRuntimeAssemblyPath);
 var btRuntimeArgs = [btRuntimeRootPath, btRuntimeRequest.descriptorJson];
-if (btRuntimeRequest.method == 'EnsureJson') btRuntimeArgs.push(btRuntimeRequest.payloadJson);
+if (btRuntimeRequest.method == 'EnsureJson' || btRuntimeRequest.method == 'StageJson') btRuntimeArgs.push(btRuntimeRequest.payloadJson);
 var btRuntimeResult = btRuntimeAssembly.CallClassStaticMethod('BorisType.RuntimeBootstrap.EntryPoint', btRuntimeRequest.method, btRuntimeArgs);
 return EncodeJson(btRuntimeResult);

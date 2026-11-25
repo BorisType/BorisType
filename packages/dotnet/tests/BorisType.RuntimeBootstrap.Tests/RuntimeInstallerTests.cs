@@ -96,6 +96,59 @@ public sealed class RuntimeInstallerTests : IDisposable
     }
 
     [Fact]
+    public void Stage_for_startup_never_loads_a_wrapper_and_preserves_the_open_running_image()
+    {
+        var old = Fixture("v1");
+        var next = Fixture("v2");
+        var installer = Installer();
+        var first = Body(installer.StageJson(old.Manifest, old.Payload));
+        Assert.Equal("installed", first.GetProperty("status").GetString());
+        Assert.Empty(contexts[0].Assemblies);
+        string oldPath = Assert.Single(Directory.GetFiles(root, "BorisType.RuntimeFixture.dll", SearchOption.AllDirectories));
+        var running = contexts[0].LoadFromAssemblyPath(oldPath);
+        using var held = new FileStream(oldPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (OperatingSystem.IsWindows())
+            Assert.Throws<IOException>(() => File.Open(oldPath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite).Dispose());
+
+        var prepared = Body(installer.StageJson(next.Manifest, next.Payload));
+        Assert.Equal("installed", prepared.GetProperty("status").GetString());
+        Assert.Equal(old.BuildId, prepared.GetProperty("loaded").GetProperty("buildId").GetString());
+        Assert.Equal(next.BuildId, prepared.GetProperty("installed").GetProperty("buildId").GetString());
+        Assert.Same(running, Assert.Single(contexts[0].Assemblies));
+        Assert.Equal(old.BuildId, running.ManifestModule.ModuleVersionId.ToString("D"));
+        string marker = Assert.Single(Directory.GetFiles(root, "active.json", SearchOption.AllDirectories));
+        Assert.Equal(next.BuildId, Body(File.ReadAllText(marker)).GetProperty("buildId").GetString());
+        var olderClient = Body(installer.StageJson(old.Manifest, old.Payload));
+        Assert.False(olderClient.GetProperty("changed").GetBoolean());
+        Assert.Equal(next.BuildId, olderClient.GetProperty("installed").GetProperty("buildId").GetString());
+    }
+
+    [Fact]
+    public void Windows_denied_marker_replace_keeps_the_previous_selection_and_retry_commits_verified_files()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var old = Fixture("v1");
+        var next = Fixture("v2");
+        var installer = Installer();
+        Assert.Equal("installed", Body(installer.StageJson(old.Manifest, old.Payload)).GetProperty("status").GetString());
+        string marker = Assert.Single(Directory.GetFiles(root, "active.json", SearchOption.AllDirectories));
+        string original = File.ReadAllText(marker);
+        using (var held = new FileStream(marker, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            Assert.False(Body(installer.StageJson(old.Manifest, old.Payload)).GetProperty("changed").GetBoolean());
+            var failure = Body(installer.StageJson(next.Manifest, next.Payload));
+            Assert.Equal("blocked", failure.GetProperty("status").GetString());
+            Assert.Equal(original, File.ReadAllText(marker));
+        }
+        Assert.Empty(Directory.GetFiles(root, "*.tmp", SearchOption.AllDirectories));
+        var retried = Body(installer.StageJson(next.Manifest, next.Payload));
+        Assert.Equal("installed", retried.GetProperty("status").GetString());
+        Assert.True(retried.GetProperty("changed").GetBoolean());
+        Assert.Equal(next.BuildId, Body(File.ReadAllText(marker)).GetProperty("buildId").GetString());
+        Assert.Empty(contexts[0].Assemblies);
+    }
+
+    [Fact]
     public void Same_version_with_changed_module_is_not_reported_as_current()
     {
         var old = Fixture("v1");
