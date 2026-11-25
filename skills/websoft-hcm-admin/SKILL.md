@@ -1,6 +1,6 @@
 ---
 name: websoft-hcm-admin
-description: Use when navigating the WebSoft HCM web administrator in a browser, locating employees, checking employee cards or contact details, configuring custom fields or request type forms, taking screenshots, or troubleshooting records missing from text search.
+description: Use when navigating the WebSoft HCM web administrator in a browser, locating employees, checking employee cards or contact details, configuring custom fields or request type forms, locating the current object package or previewing a package ZIP, taking screenshots, or troubleshooting records missing from text search.
 ---
 
 # WebSoft HCM: веб-администратор
@@ -15,6 +15,9 @@ MCP. Используй доступный browser tool и адрес целев
 Для общих полей типа и отдельных шаблонов заявок прочитай
 [настраиваемые поля](references/custom-fields.md). Там описаны выбор
 области, поле со списком значений на новой странице, сохранение и очистка пробы.
+
+Для текущей схемы, выгрузки ZIP и просмотра вложенных объектов перед применением прочитай
+[пакеты в админке](references/object-packages.md).
 
 ## Работа с интерфейсом
 

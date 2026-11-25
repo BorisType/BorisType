@@ -1,6 +1,6 @@
 ---
 name: boristype-mcp
-description: Use when working with WebSoft HCM through BorisType MCP tools such as wshcm_read_file, wshcm_edit_file, wshcm_search_files or wshcm_xquery, including readToken errors, SQL results, truncation, XML object edits, wshcm_execute, wshcm_run_agent and uncertain execution outcomes.
+description: Use when working with WebSoft HCM through BorisType MCP tools such as wshcm_read_file, wshcm_edit_file, wshcm_search_files or wshcm_xquery, including readToken errors, SQL results, truncation, XML object edits, object package ZIP export and inspection, wshcm_execute, wshcm_run_agent and uncertain execution outcomes.
 ---
 
 # BorisType MCP
@@ -20,6 +20,8 @@ description: Use when working with WebSoft HCM through BorisType MCP tools such 
   примеры text cast и границы timeout/повторов.
 - Для создания XML-объекта агента, запуска и проверки результата прочитай
   [объекты и выполнение](references/objects-and-execution.md).
+- Для переноса по ID или именованной схеме, просмотра ZIP и выбора объектов
+  перед импортом прочитай [пакеты объектов](references/object-packages.md).
 
 Точные параметры бери из schemas текущего сервера. Подробные ограничения
 относятся к установленной версии; не подменяй отсутствующий tool придуманным
