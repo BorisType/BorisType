@@ -15,6 +15,7 @@ acceptance новой ревизии после переноса Markdown.
   explicit acknowledgement chain, consume/invalidate, rename и внешняя CAS гонка.
 - [Platform paths/storage](../platform/paths-and-storage.md): почему physical
   System.IO и logical URL/blob не равнозначны.
+- [Предлагаемый контракт поставки HTTP-транспорта](http-transport-lifecycle.md) описывает первую установку через evaluator, горячее обновление backend и активацию обёртки при рестарте.
 - [Kestrel и версии HTTP-обработчиков](../research/dotnet/16-http-mapping-transport.md): компонент без правки xhttp_config.json, горячие маршруты, восстановление после обновления и identity при входе через портал.
 - [Датированные исследования и native results](../research/dotnet/README.md).
 - [Websoft.Code и варианты OmniCode](../research/ws-client-runtime/websoft-code.md):
