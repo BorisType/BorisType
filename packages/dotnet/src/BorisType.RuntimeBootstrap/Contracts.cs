@@ -19,7 +19,8 @@ internal sealed record Component(string Id, string Version, int ApiVersion, stri
             value.Version is null || !Regex.IsMatch(value.Version, @"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$") ||
             value.ApiVersion is < 1 or > 64 || value.TargetFramework != "net9.0" ||
             !Guid.TryParseExact(value.BuildId, "D", out Guid buildId) || buildId == Guid.Empty ||
-            value.EntryAssembly != value.Id + ".dll" || value.Files is null || value.Files.Length is < 1 or > 16)
+            (value.EntryAssembly != value.Id + ".dll" && value.EntryAssembly != value.Id + ".V" + value.Version + ".dll") ||
+            value.Files is null || value.Files.Length is < 1 or > 16)
             throw new InstallFailure("InvalidManifest");
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long total = 0;
@@ -34,10 +35,22 @@ internal sealed record Component(string Id, string Version, int ApiVersion, stri
         return value;
     }
 
+    // WebSoft resolves GetAssembly by simple name, even when given the full versioned path.
+    public bool HasVersionedEntry() => EntryAssembly != Id + ".dll";
+
+    public BuildIdentity? MatchLoaded(Assembly assembly)
+    {
+        string? name = assembly.GetName().Name;
+        if (name == Id) return BuildIdentity.FromAssembly(assembly);
+        if (!HasVersionedEntry() || name?.StartsWith(Id + ".V", StringComparison.Ordinal) != true) return null;
+        BuildIdentity identity = BuildIdentity.FromAssembly(assembly);
+        return name == Id + ".V" + identity.Version ? identity with { Id = Id } : null;
+    }
+
     public void CheckModule(string path)
     {
         ModuleIdentity metadata = ModuleIdentity.Read(path);
-        if (metadata.Id != Id || metadata.BuildId != BuildId || metadata.Version != Version ||
+        if (metadata.Id + ".dll" != EntryAssembly || metadata.BuildId != BuildId || metadata.Version != Version ||
             metadata.ApiVersion != ApiVersion || metadata.TargetFramework != ".NETCoreApp,Version=v9.0")
             throw new InstallFailure("ArtifactMismatch");
     }

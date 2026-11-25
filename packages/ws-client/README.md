@@ -442,6 +442,10 @@ BorisType.FileSystem / API 2; общий runtime manager допускает др
 для следующего старта. При успехе `status === "installed"`, поле `installed`
 указывает выбранную сборку, а `loaded` — сборку в контексте отвечающего процесса
 (или `null`). Старый клиент сохраняет выбор более новой совместимой версии.
+Для загрузки обёртки через WebSoft `GetAssembly` сборку каждого релиза
+компилируют с именем `<id>.V<version>` и указывают соответствующую DLL в
+`entryAssembly`. Установщик сверяет это имя в метаданных PE. Такой компонент
+загружает `init()` владельца, вызов `ensure()` возвращает `blocked / StartupOwnedComponent`.
 Готовность HTTP-маршрута проверяется отдельным запросом после запуска HCM.
 
 Пакет содержит JavaScript, declarations, BS bridges, manifest и production DLL

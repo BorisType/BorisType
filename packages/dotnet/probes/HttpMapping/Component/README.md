@@ -1,25 +1,16 @@
-# Регистрация mapping из компонента HCM
+# Обновление обёртки IDatexHttpMapping
 
-Проба проверяет раннюю регистрацию через публичный `Datex.XHTTP.Middleware.RegisterAspNetMapping`. Компонент публикует один диагностический GET на loopback с фиксированным ответом. Каталог компонента содержит собственный манифест, SP-XML и одну DLL. Регистрация с двумя аргументами не передаёт `Properties`. В этом обработчике параметры не требуются.
+Проба устанавливает диагностический компонент на отдельный Linux HCM и дважды перезапускает его web-процесс. HTTP GET с loopback возвращает версию, MVID и идентификатор экземпляра mapping. Установку выполняет штатный авторизованный SOAP evaluator. Компонент регистрирует единственный маршрут при старте через `Middleware.RegisterAspNetMapping`.
 
-Для сборки нужны .NET SDK проекта и `Datex.XHTTP.dll`, `Websoft.Commons.dll`, `Datex.log.dll` из каталога managed-библиотек целевого стенда. Из корня checkout:
-
-```sh
-source_dir=packages/dotnet/probes/HttpMapping/Component
-build_dir=$(mktemp -d)
-component_dir="$build_dir/bt_http_mapping_probe"
-mkdir -p "$component_dir/bin"
-dotnet build "$source_dir/Component.csproj" -c Release \
-  -p:WebsoftReferenceDir="$WEBSOFT_REFERENCE_DIR" -o "$build_dir/compiled"
-cp -R "$source_dir/package/." "$component_dir/"
-cp "$build_dir/compiled/BorisType.ComponentMappingProbe.dll" "$component_dir/bin/"
-```
-
-На отдельном совместимом стенде разместите готовый каталог в `/WebsoftServer/components/` под указанным именем. В опыте каталог передавался целиком через `WshcmUploader` в `x-local://components/`. До установки убедитесь, что имя свободно. После запуска HCM запрос из самого контейнера проверяет, что выполнился именно обработчик:
+Нужны одноразовый контейнер Linux HCM с одной сетью и доступным с машины теста IPv4 контейнера, Docker CLI, Python 3, Node/pnpm и .NET SDK проекта. Задайте `WSHCM_USERNAME` и `WSHCM_PASSWORD` тестовой учётной записи с доступом к evaluator. В `WEBSOFT_REFERENCE_DIR` укажите локальный каталог с `Datex.XHTTP.dll`, `Websoft.Commons.dll` и `Datex.log.dll` из целевой поставки.
 
 ```sh
-docker exec "$HCM_CONTAINER" wget -qO- --no-proxy \
-  http://127.0.0.1/__boristype_component_mapping_probe
+pnpm --filter @boristype/ws-client build
+python3 packages/dotnet/probes/HttpMapping/Component/verify-upgrade.py "$HCM_CONTAINER" "$WEBSOFT_REFERENCE_DIR"
 ```
 
-Ожидаемое тело — `boristype-component-mapped`. Для удаления остановите стенд, удалите только этот тестовый каталог и снова запустите. [Результаты исследования](../../../../../refs/research/dotnet/16-http-mapping-transport.md).
+1. Runner проверяет, что имя компонента и каталог установки свободны. SDK подготавливает V1. Runner публикует три проверенных файла компонента одним переименованием каталога. Маршрут пока отвечает 404.
+2. После первого рестарта маршрут отвечает V1. SDK подготавливает V2 рядом с V1 и меняет `active.json`. Повторный вызов клиента V1 сохраняет выбор V2. Обе DLL проверяются по SHA-256.
+3. После второго рестарта обработчик возвращает MVID V2 и новый идентификатор экземпляра. Runner сверяет также байты `xhttp_config.json` и трёх файлов компонента.
+
+Локальные сборки удаляются по завершении. Для очистки стенда удалите одноразовый контейнер и его тома. [Результаты и ограничения](../../../../../refs/research/dotnet/16-http-mapping-transport.md#смена-версии-обёртки-при-рестарте).

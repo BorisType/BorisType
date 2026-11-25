@@ -391,3 +391,21 @@ test("stageForStartup rejects ready or an unconfirmed disk selection", async (t)
     await assert.rejects(runtime.stageForStartup(), (error) => error.status.reason === "RuntimeTransportError");
   }
 });
+
+test("a startup release can qualify its real assembly name while keeping a stable component ID", async (t) => {
+  const fixture = await bundle(t);
+  const component = fixture.manifest.component;
+  component.id = "BorisType.StartupProbe";
+  component.entryAssembly = component.id + ".V" + component.version + ".dll";
+  component.files[0].path = component.entryAssembly;
+  await writeFile(join(fixture.directory, "component", component.entryAssembly), fixture.componentBytes);
+  await writeFile(join(fixture.directory, "manifest.json"), JSON.stringify(fixture.manifest));
+  const transport = runtimeTransport(undefined, { status: ({ status }) => ({ ...status, status: "installed", loaded: null }) });
+  const runtime = new sdk.WshcmRuntime(transport, { bundleDirectory: fixture.directory });
+  assert.equal((await runtime.stageForStartup()).installed.id, component.id);
+  component.entryAssembly = component.id + ".V9.9.9.dll";
+  component.files[0].path = component.entryAssembly;
+  await writeFile(join(fixture.directory, "component", component.entryAssembly), fixture.componentBytes);
+  await writeFile(join(fixture.directory, "manifest.json"), JSON.stringify(fixture.manifest));
+  await assert.rejects(runtime.stageForStartup(), (error) => error.status.reason === "InvalidBundle");
+});

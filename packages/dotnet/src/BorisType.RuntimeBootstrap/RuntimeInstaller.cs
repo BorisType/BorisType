@@ -41,9 +41,9 @@ public sealed class RuntimeInstaller(string root, AssemblyLoadContext context)
             using var guard = store.Lock();
             BuildIdentity? ReadLoaded()
             {
-                Assembly[] matches = context.Assemblies.Where(a => a.GetName().Name == expected.Id).ToArray();
+                var matches = context.Assemblies.Select(expected.MatchLoaded).OfType<BuildIdentity>().ToArray();
                 if (matches.Length > 1) throw new InstallFailure("AmbiguousLoadedAssembly");
-                return matches.Length == 1 ? BuildIdentity.FromAssembly(matches[0]) : null;
+                return matches.SingleOrDefault();
             }
             object? LoadedResult(Component candidate)
             {
@@ -57,6 +57,8 @@ public sealed class RuntimeInstaller(string root, AssemblyLoadContext context)
             }
             loaded = ReadLoaded();
             Component selected = store.Select(expected, out bool alreadySelected);
+            if (!stageOnly && (expected.HasVersionedEntry() || selected.HasVersionedEntry()))
+                return Serialize(Result("blocked", "StartupOwnedComponent"));
             if (loaded is not null && Wire.CompareVersions(loaded.Version, expected.Version) > 0 && selected.Version == expected.Version)
             {
                 if (stageOnly) return Serialize(Result("blocked", "NewerLoadedWithoutSelection"));

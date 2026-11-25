@@ -124,6 +124,23 @@ public sealed class RuntimeInstallerTests : IDisposable
     }
 
     [Fact]
+    public void Renaming_a_file_does_not_make_its_PE_identity_version_specific()
+    {
+        var original = Fixture("v1");
+        const string file = "BorisType.RuntimeFixture.V1.0.0.dll";
+        var descriptor = JsonNode.Parse(original.Manifest)!;
+        descriptor["entryAssembly"] = file;
+        descriptor["files"]![0]!["path"] = file;
+        var payload = new Dictionary<string, string> { [file] = Body(original.Payload).GetProperty("BorisType.RuntimeFixture.dll").GetString()! };
+        var installer = Installer();
+        var response = Body(installer.StageJson(descriptor.ToJsonString(), JsonSerializer.Serialize(payload)));
+        Assert.Equal("blocked", response.GetProperty("status").GetString());
+        Assert.Equal("ArtifactMismatch", response.GetProperty("reason").GetString());
+        Assert.Empty(Directory.GetFiles(root, "active.json", SearchOption.AllDirectories));
+        Assert.Empty(contexts[0].Assemblies);
+    }
+
+    [Fact]
     public void Windows_denied_marker_replace_keeps_the_previous_selection_and_retry_commits_verified_files()
     {
         if (!OperatingSystem.IsWindows()) return;

@@ -25,7 +25,7 @@ export const componentDescriptorSchema = buildIdentitySchema
   })
   .refine(
     (value) =>
-      value.entryAssembly === `${value.id}.dll` &&
+      (value.entryAssembly === `${value.id}.dll` || value.entryAssembly === `${value.id}.V${value.version}.dll`) &&
       value.files.some((file) => file.path === value.entryAssembly) &&
       new Set(value.files.map((file) => file.path.toLowerCase())).size === value.files.length &&
       value.files.reduce((total, file) => total + file.bytes, 0) <= 8388608,
@@ -33,7 +33,9 @@ export const componentDescriptorSchema = buildIdentitySchema
 export type RuntimeComponentDescriptor = z.infer<typeof componentDescriptorSchema>;
 export const bundleManifestSchema = z.strictObject({
   schemaVersion: z.literal(1),
-  bootstrap: componentDescriptorSchema.refine((value) => /^BorisType\.RuntimeBootstrap\.B[a-fA-F0-9]{64}$/.test(value.id)),
+  bootstrap: componentDescriptorSchema.refine(
+    (value) => value.entryAssembly === value.id + ".dll" && /^BorisType\.RuntimeBootstrap\.B[a-fA-F0-9]{64}$/.test(value.id),
+  ),
   component: componentDescriptorSchema,
 });
 
